@@ -227,8 +227,10 @@ udev_input_enable(struct udev_input *input)
 		return -1;
 	}
 
-	if (udev_input_add_devices(input, udev) < 0)
+	if (udev_input_add_devices(input, udev) < 0) {
+		udev_input_disable(input);
 		return -1;
+	}
 
 	return 0;
 }
