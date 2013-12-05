@@ -24,3 +24,5 @@ src/.deps/
 src/Makefile
 src/Makefile.in
 src/libinput-version.h
+doc/libinput.doxygen
+doc/html

@@ -49,7 +49,18 @@ if test "x$GCC" = "xyes"; then
 fi
 AC_SUBST(GCC_CFLAGS)
 
+AC_PATH_PROG(DOXYGEN, [doxygen])
+if test "x$DOXYGEN" = "x"; then
+	AC_MSG_WARN([doxygen not found - required for documentation])
+	have_doxygen="no"
+else
+	have_doxygen="yes"
+fi
+AM_CONDITIONAL([HAVE_DOXYGEN], [test "x$have_doxygen" = "xyes"])
+
 AC_CONFIG_FILES([Makefile
+		 doc/Makefile
+		 doc/libinput.doxygen
 		 src/Makefile
 		 src/libinput.pc
 		 src/libinput-version.h])
