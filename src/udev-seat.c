@@ -319,10 +319,10 @@ udev_seat_get_named(struct udev_input *input, const char *seat_name)
 }
 
 LIBINPUT_EXPORT struct libinput *
-libinput_create_udev(const struct libinput_interface *interface,
-		     void *user_data,
-		     struct udev *udev,
-		     const char *seat_id)
+libinput_create_from_udev(const struct libinput_interface *interface,
+			  void *user_data,
+			  struct udev *udev,
+			  const char *seat_id)
 {
 	struct udev_input *input;
 

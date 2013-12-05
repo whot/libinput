@@ -187,10 +187,10 @@ struct libinput_interface {
  */
 
 struct libinput *
-libinput_create_udev(const struct libinput_interface *interface,
-		     void *user_data,
-		     struct udev *udev,
-		     const char *seat_id);
+libinput_create_from_udev(const struct libinput_interface *interface,
+			  void *user_data,
+			  struct udev *udev,
+			  const char *seat_id);
 
 int
 libinput_get_fd(struct libinput *libinput);
