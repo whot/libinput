@@ -40,9 +40,9 @@ AC_CHECK_DECL(TFD_CLOEXEC,[],
 AC_CHECK_DECL(CLOCK_MONOTONIC,[],
 	      [AC_MSG_ERROR("CLOCK_MONOTONIC is needed to compile libinput")],
 	      [[#include <time.h>]])
-
 PKG_PROG_PKG_CONFIG()
 PKG_CHECK_MODULES(MTDEV, [mtdev >= 1.1.0])
+PKG_CHECK_MODULES(LIBEVDEV, [libevdev >= 0.4])
 
 if test "x$GCC" = "xyes"; then
 	GCC_CFLAGS="-Wall -Wextra -Wno-unused-parameter -g -Wstrict-prototypes -Wmissing-prototypes -fvisibility=hidden"

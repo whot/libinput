@@ -27,6 +27,7 @@
 #include "config.h"
 
 #include <linux/input.h>
+#include <libevdev/libevdev.h>
 
 #include "libinput-private.h"
 
@@ -69,9 +70,10 @@ struct evdev_device {
 	struct libinput_source *source;
 
 	struct evdev_dispatch *dispatch;
+	struct libevdev *evdev;
 	char *output_name;
 	char *devnode;
-	char *devname;
+	const char *devname;
 	int fd;
 	struct {
 		int min_x, max_x, min_y, max_y;
@@ -99,16 +101,6 @@ struct evdev_device {
 
 	int is_mt;
 };
-
-/* copied from udev/extras/input_id/input_id.c */
-/* we must use this kernel-compatible implementation */
-#define BITS_PER_LONG (sizeof(unsigned long) * 8)
-#define NBITS(x) ((((x)-1)/BITS_PER_LONG)+1)
-#define OFF(x)  ((x)%BITS_PER_LONG)
-#define BIT(x)  (1UL<<OFF(x))
-#define LONG(x) ((x)/BITS_PER_LONG)
-#define TEST_BIT(array, bit)    ((array[LONG(bit)] >> OFF(bit)) & 1)
-/* end copied */
 
 #define EVDEV_UNHANDLED_DEVICE ((struct evdev_device *) 1)
 

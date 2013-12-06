@@ -169,16 +169,16 @@ struct touchpad_dispatch {
 static enum touchpad_model
 get_touchpad_model(struct evdev_device *device)
 {
-	struct input_id id;
+	int vendor, product;
 	unsigned int i;
 
-	if (ioctl(device->fd, EVIOCGID, &id) < 0)
-		return TOUCHPAD_MODEL_UNKNOWN;
+	vendor = libevdev_get_id_vendor(device->evdev);
+	product = libevdev_get_id_product(device->evdev);
 
 	for (i = 0; i < ARRAY_LENGTH(touchpad_spec_table); i++)
-		if (touchpad_spec_table[i].vendor == id.vendor &&
+		if (touchpad_spec_table[i].vendor == vendor &&
 		    (!touchpad_spec_table[i].product ||
-		     touchpad_spec_table[i].product == id.product))
+		     touchpad_spec_table[i].product == product))
 			return touchpad_spec_table[i].model;
 
 	return TOUCHPAD_MODEL_UNKNOWN;
@@ -728,9 +728,7 @@ touchpad_init(struct touchpad_dispatch *touchpad,
 {
 	struct motion_filter *accel;
 
-	unsigned long prop_bits[INPUT_PROP_MAX];
-	struct input_absinfo absinfo;
-	unsigned long abs_bits[NBITS(ABS_MAX)];
+	const struct input_absinfo *absinfo;
 
 	bool has_buttonpad;
 
@@ -744,16 +742,13 @@ touchpad_init(struct touchpad_dispatch *touchpad,
 	/* Detect model */
 	touchpad->model = get_touchpad_model(device);
 
-	ioctl(device->fd, EVIOCGPROP(sizeof(prop_bits)), prop_bits);
-	has_buttonpad = TEST_BIT(prop_bits, INPUT_PROP_BUTTONPAD);
+	has_buttonpad = libevdev_has_property(device->evdev, INPUT_PROP_BUTTONPAD);
 
 	/* Configure pressure */
-	ioctl(device->fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), abs_bits);
-	if (TEST_BIT(abs_bits, ABS_PRESSURE)) {
-		ioctl(device->fd, EVIOCGABS(ABS_PRESSURE), &absinfo);
+	if ((absinfo = libevdev_get_abs_info(device->evdev, ABS_PRESSURE))) {
 		configure_touchpad_pressure(touchpad,
-					    absinfo.minimum,
-					    absinfo.maximum);
+					    absinfo->minimum,
+					    absinfo->maximum);
 	}
 
 	/* Configure acceleration factor */
