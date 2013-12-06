@@ -51,7 +51,7 @@ typedef int32_t li_fixed_t;
 enum libinput_device_capability {
 	LIBINPUT_DEVICE_CAP_KEYBOARD = 0,
 	LIBINPUT_DEVICE_CAP_POINTER = 1,
-	LIBINPUT_DEVICE_CAP_TOUCH = 2,
+	LIBINPUT_DEVICE_CAP_TOUCH = 2
 };
 
 /**
@@ -62,7 +62,7 @@ enum libinput_device_capability {
  */
 enum libinput_keyboard_key_state {
 	LIBINPUT_KEYBOARD_KEY_STATE_RELEASED = 0,
-	LIBINPUT_KEYBOARD_KEY_STATE_PRESSED = 1,
+	LIBINPUT_KEYBOARD_KEY_STATE_PRESSED = 1
 };
 
 /**
@@ -73,7 +73,7 @@ enum libinput_keyboard_key_state {
 enum libinput_led {
 	LIBINPUT_LED_NUM_LOCK = (1 << 0),
 	LIBINPUT_LED_CAPS_LOCK = (1 << 1),
-	LIBINPUT_LED_SCROLL_LOCK = (1 << 2),
+	LIBINPUT_LED_SCROLL_LOCK = (1 << 2)
 };
 
 /**
@@ -84,7 +84,7 @@ enum libinput_led {
  */
 enum libinput_pointer_button_state {
 	LIBINPUT_POINTER_BUTTON_STATE_RELEASED = 0,
-	LIBINPUT_POINTER_BUTTON_STATE_PRESSED = 1,
+	LIBINPUT_POINTER_BUTTON_STATE_PRESSED = 1
 };
 
 
@@ -95,7 +95,7 @@ enum libinput_pointer_button_state {
  */
 enum libinput_pointer_axis {
 	LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL = 0,
-	LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL = 1,
+	LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL = 1
 };
 
 /**
@@ -114,7 +114,7 @@ enum libinput_touch_type {
 	LIBINPUT_TOUCH_TYPE_UP = 1,
 	LIBINPUT_TOUCH_TYPE_MOTION = 2,
 	LIBINPUT_TOUCH_TYPE_FRAME = 3,
-	LIBINPUT_TOUCH_TYPE_CANCEL = 4,
+	LIBINPUT_TOUCH_TYPE_CANCEL = 4
 };
 
 /**
@@ -139,7 +139,7 @@ enum libinput_event_type {
 	LIBINPUT_EVENT_POINTER_BUTTON,
 	LIBINPUT_EVENT_POINTER_AXIS,
 
-	LIBINPUT_EVENT_TOUCH_TOUCH = 500,
+	LIBINPUT_EVENT_TOUCH_TOUCH = 500
 };
 
 struct libinput;
