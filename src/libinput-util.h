@@ -96,4 +96,10 @@ li_fixed_from_double(double d)
 
 #define LIBINPUT_EXPORT __attribute__ ((visibility("default")))
 
+static inline void *
+zalloc(size_t size)
+{
+	return calloc(1, size);
+}
+
 #endif /* LIBINPUT_UTIL_H */

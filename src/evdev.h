@@ -30,12 +30,6 @@
 
 #include "libinput-private.h"
 
-static inline void *
-zalloc(size_t size)
-{
-	return calloc(1, size);
-}
-
 #define MAX_SLOTS 16
 
 enum evdev_event_type {
