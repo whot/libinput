@@ -70,6 +70,8 @@ int list_empty(const struct list *list);
 	     tmp = container_of(pos->member.next, tmp, member))
 
 #define ARRAY_LENGTH(a) (sizeof (a) / sizeof (a)[0])
+#define ARRAY_FOR_EACH(_arr, _elem) \
+	for (int i = 0; (_elem = &_arr[i]) && i < ARRAY_LENGTH(_arr); i++)
 
 /*
  * This fixed point implementation is a verbatim copy from wayland-util.h from
