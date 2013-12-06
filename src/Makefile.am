@@ -20,9 +20,11 @@ libinput_la_SOURCES =			\
 
 libinput_la_LIBADD = $(MTDEV_LIBS) \
 		     $(LIBUDEV_LIBS) \
+		     $(LIBEVDEV_LIBS) \
 		     -lm
 libinput_la_CFLAGS = $(MTDEV_CFLAGS)	\
 		     $(LIBUDEV_CFLAGS)	\
+		     $(LIBEVDEV_CFLAGS)	\
 		     $(GCC_CFLAGS)
 
 pkgconfigdir = $(libdir)/pkgconfig

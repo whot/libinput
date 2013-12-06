@@ -468,11 +468,7 @@ evdev_device_dispatch(void *data)
 static int
 evdev_handle_device(struct evdev_device *device)
 {
-	struct input_absinfo absinfo;
-	unsigned long ev_bits[NBITS(EV_MAX)];
-	unsigned long abs_bits[NBITS(ABS_MAX)];
-	unsigned long rel_bits[NBITS(REL_MAX)];
-	unsigned long key_bits[NBITS(KEY_MAX)];
+	const struct input_absinfo *absinfo;
 	int has_key, has_abs;
 	unsigned int i;
 
@@ -480,50 +476,42 @@ evdev_handle_device(struct evdev_device *device)
 	has_abs = 0;
 	device->caps = 0;
 
-	ioctl(device->fd, EVIOCGBIT(0, sizeof(ev_bits)), ev_bits);
-	if (TEST_BIT(ev_bits, EV_ABS)) {
+	if (libevdev_has_event_type(device->evdev, EV_ABS)) {
 		has_abs = 1;
 
-		ioctl(device->fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)),
-		      abs_bits);
-
-		if (TEST_BIT(abs_bits, ABS_WHEEL) ||
-		    TEST_BIT(abs_bits, ABS_GAS) ||
-		    TEST_BIT(abs_bits, ABS_BRAKE) ||
-		    TEST_BIT(abs_bits, ABS_HAT0X)) {
+		if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_WHEEL) ||
+		    libevdev_has_event_code(device->evdev, EV_ABS, ABS_GAS) ||
+		    libevdev_has_event_code(device->evdev, EV_ABS, ABS_BRAKE) ||
+		    libevdev_has_event_code(device->evdev, EV_ABS, ABS_HAT0X)) {
 			/* Device %s is a joystick, ignoring. */
 			return 0;
 		}
 
-		if (TEST_BIT(abs_bits, ABS_X)) {
-			ioctl(device->fd, EVIOCGABS(ABS_X), &absinfo);
-			device->abs.min_x = absinfo.minimum;
-			device->abs.max_x = absinfo.maximum;
+		if ((absinfo = libevdev_get_abs_info(device->evdev, ABS_X))) {
+			device->abs.min_x = absinfo->minimum;
+			device->abs.max_x = absinfo->maximum;
 			device->caps |= EVDEV_MOTION_ABS;
 		}
-		if (TEST_BIT(abs_bits, ABS_Y)) {
-			ioctl(device->fd, EVIOCGABS(ABS_Y), &absinfo);
-			device->abs.min_y = absinfo.minimum;
-			device->abs.max_y = absinfo.maximum;
+		if ((absinfo = libevdev_get_abs_info(device->evdev, ABS_Y))) {
+			device->abs.min_y = absinfo->minimum;
+			device->abs.max_y = absinfo->maximum;
 			device->caps |= EVDEV_MOTION_ABS;
 		}
                 /* We only handle the slotted Protocol B in weston.
                    Devices with ABS_MT_POSITION_* but not ABS_MT_SLOT
                    require mtdev for conversion. */
-		if (TEST_BIT(abs_bits, ABS_MT_POSITION_X) &&
-		    TEST_BIT(abs_bits, ABS_MT_POSITION_Y)) {
-			ioctl(device->fd, EVIOCGABS(ABS_MT_POSITION_X),
-			      &absinfo);
-			device->abs.min_x = absinfo.minimum;
-			device->abs.max_x = absinfo.maximum;
-			ioctl(device->fd, EVIOCGABS(ABS_MT_POSITION_Y),
-			      &absinfo);
-			device->abs.min_y = absinfo.minimum;
-			device->abs.max_y = absinfo.maximum;
+		if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_MT_POSITION_X) &&
+		    libevdev_has_event_code(device->evdev, EV_ABS, ABS_MT_POSITION_Y)) {
+			absinfo = libevdev_get_abs_info(device->evdev, ABS_MT_POSITION_X);
+			device->abs.min_x = absinfo->minimum;
+			device->abs.max_x = absinfo->maximum;
+			absinfo = libevdev_get_abs_info(device->evdev, ABS_MT_POSITION_Y);
+			device->abs.min_y = absinfo->minimum;
+			device->abs.max_y = absinfo->maximum;
 			device->is_mt = 1;
 			device->caps |= EVDEV_TOUCH;
 
-			if (!TEST_BIT(abs_bits, ABS_MT_SLOT)) {
+			if (!libevdev_has_event_code(device->evdev, EV_ABS, ABS_MT_SLOT)) {
 				device->mtdev = mtdev_new_open(device->fd);
 				if (!device->mtdev) {
 					/* mtdev required but failed to open. */
@@ -531,47 +519,42 @@ evdev_handle_device(struct evdev_device *device)
 				}
 				device->mt.slot = device->mtdev->caps.slot.value;
 			} else {
-				ioctl(device->fd, EVIOCGABS(ABS_MT_SLOT),
-				      &absinfo);
-				device->mt.slot = absinfo.value;
+				device->mt.slot = libevdev_get_current_slot(device->evdev);
 			}
 		}
 	}
-	if (TEST_BIT(ev_bits, EV_REL)) {
-		ioctl(device->fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)),
-		      rel_bits);
-		if (TEST_BIT(rel_bits, REL_X) || TEST_BIT(rel_bits, REL_Y))
+	if (libevdev_has_event_type(device->evdev, EV_REL)) {
+		if (libevdev_has_event_code(device->evdev, EV_REL, REL_X) ||
+		    libevdev_has_event_code(device->evdev, EV_REL, REL_Y))
 			device->caps |= EVDEV_MOTION_REL;
 	}
-	if (TEST_BIT(ev_bits, EV_KEY)) {
+	if (libevdev_has_event_type(device->evdev, EV_KEY)) {
 		has_key = 1;
-		ioctl(device->fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)),
-		      key_bits);
-		if (TEST_BIT(key_bits, BTN_TOOL_FINGER) &&
-		    !TEST_BIT(key_bits, BTN_TOOL_PEN) &&
+		if (libevdev_has_event_code(device->evdev, EV_KEY, BTN_TOOL_FINGER) &&
+		    !libevdev_has_event_code(device->evdev, EV_KEY, BTN_TOOL_PEN) &&
 		    has_abs) {
 			device->dispatch = evdev_touchpad_create(device);
 		}
 		for (i = KEY_ESC; i < KEY_MAX; i++) {
 			if (i >= BTN_MISC && i < KEY_OK)
 				continue;
-			if (TEST_BIT(key_bits, i)) {
+			if (libevdev_has_event_code(device->evdev, EV_KEY, i)) {
 				device->caps |= EVDEV_KEYBOARD;
 				break;
 			}
 		}
-		if (TEST_BIT(key_bits, BTN_TOUCH)) {
+		if (libevdev_has_event_code(device->evdev, EV_KEY, BTN_TOUCH)) {
 			device->caps |= EVDEV_TOUCH;
 		}
 		for (i = BTN_MISC; i < BTN_JOYSTICK; i++) {
-			if (TEST_BIT(key_bits, i)) {
+			if (libevdev_has_event_code(device->evdev, EV_KEY, i)) {
 				device->caps |= EVDEV_BUTTON;
 				device->caps &= ~EVDEV_TOUCH;
 				break;
 			}
 		}
 	}
-	if (TEST_BIT(ev_bits, EV_LED)) {
+	if (libevdev_has_event_type(device->evdev, EV_LED)) {
 		device->caps |= EVDEV_KEYBOARD;
 	}
 
@@ -622,13 +605,17 @@ evdev_device_create(struct libinput_seat *seat,
 {
 	struct libinput *libinput = seat->libinput;
 	struct evdev_device *device;
-	char devname[256] = "unknown";
+	int rc;
 
 	device = zalloc(sizeof *device);
 	if (device == NULL)
 		return NULL;
 
 	libinput_device_init(&device->base, seat);
+
+	rc = libevdev_new_from_fd(fd, &device->evdev);
+	if (rc != 0)
+		return NULL;
 
 	device->seat_caps = 0;
 	device->is_mt = 0;
@@ -641,10 +628,7 @@ evdev_device_create(struct libinput_seat *seat,
 	device->dispatch = NULL;
 	device->fd = fd;
 	device->pending_event = EVDEV_NONE;
-
-	ioctl(device->fd, EVIOCGNAME(sizeof(devname)), devname);
-	devname[sizeof(devname) - 1] = '\0';
-	device->devname = strdup(devname);
+	device->devname = libevdev_get_name(device->evdev);
 
 	if (!evdev_handle_device(device)) {
 		evdev_device_destroy(device);
@@ -755,7 +739,7 @@ evdev_device_destroy(struct evdev_device *device)
 	if (dispatch)
 		dispatch->interface->destroy(dispatch);
 
-	free(device->devname);
+	libevdev_free(device->evdev);
 	free(device->devnode);
 	free(device->sysname);
 	free(device);
