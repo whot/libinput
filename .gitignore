@@ -26,3 +26,5 @@ src/Makefile.in
 src/libinput-version.h
 doc/libinput.doxygen
 doc/html
+test/test-*
+test-driver

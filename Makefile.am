@@ -1,3 +1,3 @@
-SUBDIRS = src doc
+SUBDIRS = src doc test
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}

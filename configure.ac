@@ -59,10 +59,25 @@ else
 fi
 AM_CONDITIONAL([HAVE_DOXYGEN], [test "x$have_doxygen" = "xyes"])
 
+AC_ARG_ENABLE(tests,
+	      AS_HELP_STRING([--enable-tests], [Build the tests (default=auto)]),
+	      [build_tests="$enableval"],
+	      [build_tests="auto"])
+PKG_CHECK_MODULES(CHECK, [check >= 0.9.9], [HAVE_CHECK="yes"], [HAVE_CHECK="no"])
+if test "x$build_tests" = "xauto"; then
+	build_tests="$HAVE_CHECK"
+fi
+if test "x$build_tests" = "xyes" -a "x$HAVE_CHECK" = "xno"; then
+	AC_MSG_ERROR([Cannot build tests, check is missing])
+fi
+
+AM_CONDITIONAL(BUILD_TESTS, [test "x$build_tests" = "xyes"])
+
 AC_CONFIG_FILES([Makefile
 		 doc/Makefile
 		 doc/libinput.doxygen
 		 src/Makefile
 		 src/libinput.pc
-		 src/libinput-version.h])
+		 src/libinput-version.h
+		 test/Makefile])
 AC_OUTPUT
