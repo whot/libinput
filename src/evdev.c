@@ -29,7 +29,7 @@
 #include <linux/input.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <mtdev.h>
+#include <mtdev-plumbing.h>
 #include <assert.h>
 
 #include "libinput.h"
@@ -413,21 +413,48 @@ fallback_dispatch_create(void)
 	return dispatch;
 }
 
-static void
-evdev_process_events(struct evdev_device *device,
-		     struct input_event *ev, int count)
+static inline void
+evdev_process_event(struct evdev_device *device, struct input_event *e)
 {
 	struct evdev_dispatch *dispatch = device->dispatch;
-	struct input_event *e, *end;
-	uint32_t time = 0;
+	uint32_t time = e->time.tv_sec * 1000 + e->time.tv_usec / 1000;
 
-	e = ev;
-	end = e + count;
-	for (e = ev; e < end; e++) {
-		time = e->time.tv_sec * 1000 + e->time.tv_usec / 1000;
+	dispatch->interface->process(dispatch, device, e, time);
+}
 
-		dispatch->interface->process(dispatch, device, e, time);
+static inline void
+evdev_device_dispatch_one(struct evdev_device *device,
+			  struct input_event *ev)
+{
+	if (!device->mtdev) {
+		evdev_process_event(device, ev);
+	} else {
+		mtdev_put_event(device->mtdev, ev);
+		if (libevdev_event_is_code(ev, EV_SYN, SYN_REPORT)) {
+			while(!mtdev_empty(device->mtdev)) {
+				struct input_event e;
+				mtdev_get_event(device->mtdev, &e);
+				evdev_process_event(device, &e);
+			}
+		}
 	}
+}
+
+static int
+evdev_sync_device(struct evdev_device *device)
+{
+	struct input_event ev;
+	int rc;
+
+	do {
+		rc = libevdev_next_event(device->evdev,
+					 LIBEVDEV_READ_FLAG_SYNC, &ev);
+		if (rc < 0)
+			break;
+		evdev_device_dispatch_one(device, &ev);
+	} while (rc == LIBEVDEV_READ_STATUS_SYNC);
+
+	return rc == -EAGAIN ? 0 : rc;
 }
 
 static void
@@ -435,34 +462,33 @@ evdev_device_dispatch(void *data)
 {
 	struct evdev_device *device = data;
 	struct libinput *libinput = device->base.seat->libinput;
-	int fd = device->fd;
-	struct input_event ev[32];
-	int len;
+	struct input_event ev;
+	int rc;
 
 	/* If the compositor is repainting, this function is called only once
 	 * per frame and we have to process all the events available on the
 	 * fd, otherwise there will be input lag. */
 	do {
-		if (device->mtdev)
-			len = mtdev_get(device->mtdev, fd, ev,
-					ARRAY_LENGTH(ev)) *
-				sizeof (struct input_event);
-		else
-			len = read(fd, &ev, sizeof ev);
+		rc = libevdev_next_event(device->evdev,
+					 LIBEVDEV_READ_FLAG_NORMAL, &ev);
+		if (rc == LIBEVDEV_READ_STATUS_SYNC) {
+			/* send one more sync event so we handle all
+			   currently pending events before we sync up
+			   to the current state */
+			ev.code = SYN_REPORT;
+			evdev_device_dispatch_one(device, &ev);
 
-		if (len < 0 || len % sizeof ev[0] != 0) {
-			if (len < 0 && errno != EAGAIN && errno != EINTR) {
-				libinput_remove_source(libinput,
-						       device->source);
-				device->source = NULL;
-			}
+			rc = evdev_sync_device(device);
+			if (rc > 0)
+				rc = LIBEVDEV_READ_STATUS_SUCCESS;
+		} else if (rc == LIBEVDEV_READ_STATUS_SUCCESS)
+			evdev_device_dispatch_one(device, &ev);
+	} while (rc == LIBEVDEV_READ_STATUS_SUCCESS);
 
-			return;
-		}
-
-		evdev_process_events(device, ev, len / sizeof ev[0]);
-
-	} while (len > 0);
+	if (rc != -EAGAIN && rc != -EINTR) {
+		libinput_remove_source(libinput, device->source);
+		device->source = NULL;
+	}
 }
 
 static int
