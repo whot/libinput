@@ -12,7 +12,7 @@ liblitest_la_SOURCES = \
 	litest-synaptics.h \
 	litest.c
 
-run_tests = test-udev
+run_tests = test-udev test-path
 build_tests = test-build-pedantic-c99 test-build-std-gnuc90
 
 noinst_PROGRAMS = $(build_tests) $(run_tests)
@@ -22,6 +22,11 @@ test_udev_SOURCES = udev.c
 test_udev_CFLAGS = $(AM_CPPFLAGS)
 test_udev_LDADD = $(TEST_LIBS)
 test_udev_LDFLAGS = -static
+
+test_path_SOURCES = path.c
+test_path_CFLAGS = $(AM_CPPFLAGS)
+test_path_LDADD = $(TEST_LIBS)
+test_path_LDFLAGS = -static
 
 # build-test only
 test_build_pedantic_c99_SOURCES = build-pedantic.c
