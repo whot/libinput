@@ -13,6 +13,8 @@ libinput_la_SOURCES =			\
 	evdev-touchpad.c		\
 	filter.c			\
 	filter.h			\
+	path.h				\
+	path.c				\
 	udev-seat.c			\
 	udev-seat.h
 
