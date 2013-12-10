@@ -12,6 +12,8 @@ liblitest_la_SOURCES = \
 	litest-keyboard.h \
 	litest-synaptics.c \
 	litest-synaptics.h \
+	litest-trackpoint.c \
+	litest-trackpoint.h \
 	litest.c
 
 run_tests = test-udev test-path

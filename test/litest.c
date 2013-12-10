@@ -43,6 +43,7 @@
 #include "litest-int.h"
 #include "litest-synaptics.h"
 #include "litest-keyboard.h"
+#include "litest-trackpoint.h"
 #include "libinput-util.h"
 
 static int in_debugger = -1;
@@ -98,6 +99,13 @@ struct device {
 		.setup = litest_keyboard_setup,
 		.teardown = generic_device_teardown,
 		.create = litest_create_keyboard,
+	},
+	{
+		.type = LITEST_TRACKPOINT,
+		.shortname = "trackpoint",
+		.setup = litest_trackpoint_setup,
+		.teardown = generic_device_teardown,
+		.create = litest_create_trackpoint,
 	},
 	{ LITEST_NO_DEVICE, "no device", NULL, NULL },
 };
