@@ -42,6 +42,7 @@
 #include "litest.h"
 #include "litest-int.h"
 #include "litest-synaptics.h"
+#include "litest-keyboard.h"
 #include "libinput-util.h"
 
 static int in_debugger = -1;
@@ -90,6 +91,13 @@ struct device {
 		.setup = litest_synaptics_clickpad_setup,
 		.teardown = generic_device_teardown,
 		.create = litest_create_synaptics_clickpad,
+	},
+	{
+		.type = LITEST_KEYBOARD,
+		.shortname = "default keyboard",
+		.setup = litest_keyboard_setup,
+		.teardown = generic_device_teardown,
+		.create = litest_create_keyboard,
 	},
 	{ LITEST_NO_DEVICE, "no device", NULL, NULL },
 };

@@ -8,6 +8,8 @@ liblitest_la_SOURCES = \
 	$(top_srcdir)/src/libinput-util.c \
 	litest.h \
 	litest-int.h \
+	litest-keyboard.c \
+	litest-keyboard.h \
 	litest-synaptics.c \
 	litest-synaptics.h \
 	litest.c
