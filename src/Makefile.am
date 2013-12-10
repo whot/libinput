@@ -17,7 +17,8 @@ libinput_la_SOURCES =			\
 	udev-seat.h
 
 libinput_la_LIBADD = $(MTDEV_LIBS) \
-		     $(LIBUDEV_LIBS)
+		     $(LIBUDEV_LIBS) \
+		     -lm
 libinput_la_CFLAGS = $(MTDEV_CFLAGS)	\
 		     $(LIBUDEV_CFLAGS)	\
 		     $(GCC_CFLAGS)
