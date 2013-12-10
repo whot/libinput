@@ -127,11 +127,141 @@ START_TEST(udev_create_seat9)
 }
 END_TEST
 
+/**
+ * This test only works if there's at least one device in the system that is
+ * assigned the default seat. Should cover the 99% case.
+ */
+START_TEST(udev_seat_added_default)
+{
+	struct libinput *li;
+	struct libinput_event *event;
+	struct udev *udev;
+	struct libinput_event_seat_added *seat_event;
+	struct libinput_seat *seat;
+	const char *seat_name;
+	enum libinput_event_type type;
+	int default_seat_found = 0;
+
+	udev = udev_new();
+	ck_assert(udev != NULL);
+
+	li = libinput_create_from_udev(&simple_interface, NULL, udev, "seat0");
+	ck_assert(li != NULL);
+	ck_assert_int_ge(libinput_dispatch(li), -EAGAIN);
+
+	while (!default_seat_found && (event = libinput_get_event(li))) {
+		type = libinput_event_get_type(event);
+		if (type != LIBINPUT_EVENT_SEAT_ADDED) {
+			libinput_event_destroy(event);
+			continue;
+		}
+
+		seat_event = (struct libinput_event_seat_added*)event;
+		seat = libinput_event_seat_added_get_seat(seat_event);
+		ck_assert(seat != NULL);
+
+		seat_name = libinput_seat_get_name(seat);
+		default_seat_found = !strcmp(seat_name, "default");
+		libinput_event_destroy(event);
+		libinput_seat_unref(seat);
+	}
+
+	ck_assert(default_seat_found);
+
+	libinput_destroy(li);
+	udev_unref(udev);
+}
+END_TEST
+
+START_TEST(udev_seat_removed)
+{
+	struct libinput *li;
+	struct libinput_event *event;
+	struct udev *udev;
+#define MAX_SEATS 30
+	char *seat_names[MAX_SEATS] = {0};
+	int idx = 0;
+
+	udev = udev_new();
+	ck_assert(udev != NULL);
+
+	li = libinput_create_from_udev(&simple_interface, NULL, udev, "seat0");
+	ck_assert(li != NULL);
+	ck_assert_int_ge(libinput_dispatch(li), -EAGAIN);
+
+	while ((event = libinput_get_event(li))) {
+		enum libinput_event_type type;
+		struct libinput_event_seat_added *seat_event;
+		struct libinput_seat *seat;
+		const char *seat_name;
+
+		type = libinput_event_get_type(event);
+		if (type != LIBINPUT_EVENT_SEAT_ADDED) {
+			libinput_event_destroy(event);
+			continue;
+		}
+
+		seat_event = (struct libinput_event_seat_added*)event;
+		seat = libinput_event_seat_added_get_seat(seat_event);
+		ck_assert(seat != NULL);
+
+		seat_name = libinput_seat_get_name(seat);
+		seat_names[idx++] = strdup(seat_name);
+		ck_assert_int_lt(idx, MAX_SEATS);
+
+		libinput_seat_unref(seat);
+		libinput_event_destroy(event);
+	}
+
+	libinput_suspend(li);
+
+	while ((event = libinput_get_event(li))) {
+		enum libinput_event_type type;
+		struct libinput_event_seat_removed *seat_event;
+		struct libinput_seat *seat;
+		const char *seat_name;
+		int i;
+
+		type = libinput_event_get_type(event);
+		ck_assert_int_eq(type, LIBINPUT_EVENT_SEAT_REMOVED);
+
+		seat_event = (struct libinput_event_seat_removed*)event;
+		seat = libinput_event_seat_removed_get_seat(seat_event);
+		ck_assert(seat != NULL);
+
+		seat_name = libinput_seat_get_name(seat);
+
+		for (i = 0; i < idx; i++) {
+			if (seat_names[i] &&
+			    strcmp(seat_names[i], seat_name) == 0) {
+				free(seat_names[i]);
+				seat_names[i] = NULL;
+				break;
+			}
+		}
+		ck_assert_msg(i < idx, "Seat '%s' unknown or already removed\n", seat_name);
+
+		libinput_seat_unref(seat);
+		libinput_event_destroy(event);
+	}
+
+	while(idx--)
+		ck_assert_msg(seat_names[idx] == NULL, "Seat '%s' not removed\n", seat_names[idx]);
+
+	libinput_destroy(li);
+	udev_unref(udev);
+#undef MAX_SEATS
+}
+END_TEST
+
 int main (int argc, char **argv) {
 
 	litest_add("udev:create", udev_create_NULL, LITEST_NO_DEVICE);
 	litest_add("udev:create", udev_create_seat0, LITEST_NO_DEVICE);
 	litest_add("udev:create", udev_create_seat9, LITEST_NO_DEVICE);
+
+	litest_add("udev:seat events", udev_seat_added_default, LITEST_NO_DEVICE);
+	litest_add("udev:seat events", udev_seat_removed, LITEST_NO_DEVICE);
 
 	return litest_run(argc, argv);
 }
