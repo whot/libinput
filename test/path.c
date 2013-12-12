@@ -63,6 +63,16 @@ START_TEST(path_create_NULL)
 }
 END_TEST
 
+START_TEST(path_create_invalid)
+{
+	struct libinput *li;
+	const char *path = "/tmp";
+
+	li = libinput_create_from_path(&simple_interface, NULL, path);
+	ck_assert(li == NULL);
+}
+END_TEST
+
 START_TEST(path_seat_added)
 {
 	struct litest_device *dev = litest_current_device();
@@ -127,6 +137,7 @@ END_TEST
 int main (int argc, char **argv) {
 
 	litest_add("path:create", path_create_NULL, LITEST_NO_DEVICE);
+	litest_add("path:create", path_create_invalid, LITEST_NO_DEVICE);
 	litest_add("path:seat events", path_seat_added, LITEST_SYNAPTICS_CLICKPAD);
 	litest_add("path:device events", path_device_added, LITEST_SYNAPTICS_CLICKPAD);
 
