@@ -41,8 +41,6 @@ struct udev_input {
 	char *seat_id;
 };
 
-int udev_input_enable(struct udev_input *input);
-void udev_input_disable(struct udev_input *input);
 void udev_input_destroy(struct udev_input *input);
 
 void udev_seat_destroy(struct udev_seat *seat);

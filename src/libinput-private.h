@@ -26,6 +26,11 @@
 #include "libinput.h"
 #include "libinput-util.h"
 
+struct libinput_interface_private {
+	int (*resume)(struct libinput *libinput);
+	void (*suspend)(struct libinput *libinput);
+};
+
 struct libinput {
 	int epoll_fd;
 	struct list source_destroy_list;
@@ -39,6 +44,7 @@ struct libinput {
 	size_t events_out;
 
 	const struct libinput_interface *interface;
+	const struct libinput_interface_private *interface_private;
 	void *user_data;
 };
 
@@ -66,6 +72,7 @@ struct libinput_source;
 int
 libinput_init(struct libinput *libinput,
 	      const struct libinput_interface *interface,
+	      const struct libinput_interface_private *interface_private,
 	      void *user_data);
 
 struct libinput_source *

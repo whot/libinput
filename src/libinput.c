@@ -33,7 +33,6 @@
 #include "libinput.h"
 #include "libinput-private.h"
 #include "evdev.h"
-#include "udev-seat.h"
 
 enum libinput_event_class {
 	LIBINPUT_EVENT_CLASS_BASE,
@@ -366,6 +365,7 @@ libinput_remove_source(struct libinput *libinput,
 int
 libinput_init(struct libinput *libinput,
 	      const struct libinput_interface *interface,
+	      const struct libinput_interface_private *interface_private,
 	      void *user_data)
 {
 	libinput->epoll_fd = epoll_create1(EPOLL_CLOEXEC);;
@@ -373,6 +373,7 @@ libinput_init(struct libinput *libinput,
 		return -1;
 
 	libinput->interface = interface;
+	libinput->interface_private = interface_private;
 	libinput->user_data = user_data;
 	list_init(&libinput->source_destroy_list);
 	list_init(&libinput->seat_list);
@@ -909,13 +910,13 @@ libinput_get_user_data(struct libinput *libinput)
 LIBINPUT_EXPORT int
 libinput_resume(struct libinput *libinput)
 {
-	return udev_input_enable((struct udev_input *) libinput);
+	return libinput->interface_private->resume(libinput);
 }
 
 LIBINPUT_EXPORT void
 libinput_suspend(struct libinput *libinput)
 {
-	udev_input_disable((struct udev_input *) libinput);
+	libinput->interface_private->suspend(libinput);
 }
 
 LIBINPUT_EXPORT void
