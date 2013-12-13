@@ -123,7 +123,8 @@ enum libinput_touch_type {
  * Event type for events returned by libinput_get_event().
  */
 enum libinput_event_type {
-	LIBINPUT_EVENT_ADDED_SEAT = 0,
+	LIBINPUT_EVENT_NONE = 0,
+	LIBINPUT_EVENT_ADDED_SEAT,
 	LIBINPUT_EVENT_REMOVED_SEAT,
 	LIBINPUT_EVENT_ADDED_DEVICE,
 	LIBINPUT_EVENT_REMOVED_DEVICE,

@@ -35,6 +35,7 @@
 #include "evdev.h"
 
 enum libinput_event_class {
+	LIBINPUT_EVENT_CLASS_NONE,
 	LIBINPUT_EVENT_CLASS_BASE,
 	LIBINPUT_EVENT_CLASS_SEAT,
 	LIBINPUT_EVENT_CLASS_DEVICE,
@@ -398,6 +399,9 @@ static enum libinput_event_class
 libinput_event_get_class(struct libinput_event *event)
 {
 	switch (event->type) {
+	case LIBINPUT_EVENT_NONE:
+		return LIBINPUT_EVENT_CLASS_NONE;
+
 	case LIBINPUT_EVENT_ADDED_SEAT:
 	case LIBINPUT_EVENT_REMOVED_SEAT:
 	case LIBINPUT_EVENT_ADDED_DEVICE:
@@ -426,6 +430,7 @@ libinput_event_destroy(struct libinput_event *event)
 		return;
 
 	switch (libinput_event_get_class(event)) {
+	case LIBINPUT_EVENT_CLASS_NONE:
 	case LIBINPUT_EVENT_CLASS_BASE:
 		break;
 	case LIBINPUT_EVENT_CLASS_SEAT:
@@ -872,6 +877,7 @@ libinput_post_event(struct libinput *libinput,
 	}
 
 	switch (libinput_event_get_class(event)) {
+	case LIBINPUT_EVENT_CLASS_NONE:
 	case LIBINPUT_EVENT_CLASS_BASE:
 		break;
 	case LIBINPUT_EVENT_CLASS_SEAT:
