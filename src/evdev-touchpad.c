@@ -500,7 +500,7 @@ touchpad_update_state(struct touchpad_dispatch *touchpad, uint32_t time)
 	touchpad->event_mask_filter = TOUCHPAD_EVENT_ABSOLUTE_ANY;
 	touchpad->event_mask = 0;
 
-	/* Avoid noice by moving center only when delta reaches a threshold
+	/* Avoid noise by moving center only when delta reaches a threshold
 	 * distance from the old center. */
 	if (touchpad->motion_count > 0) {
 		center_x = hysteresis(touchpad->hw_abs.x,
