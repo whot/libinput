@@ -76,7 +76,7 @@ device_added(struct udev_device *udev_device, struct udev_input *input)
 	 * read.  mtdev_get() also expects this. */
 	fd = open_restricted(libinput, devnode, O_RDWR | O_NONBLOCK);
 	if (fd < 0) {
-		log_info("opening input device '%s' failed.\n", devnode);
+		log_info("opening input device '%s' failed (%s).\n", devnode, strerror(-fd));
 		return 0;
 	}
 
