@@ -463,7 +463,7 @@ libinput_get_fd(struct libinput *libinput);
  * @ingroup base
  *
  * Main event dispatchment function. Reads events of the file descriptors
- * and processes them internall. Use libinput_get_event() to retrieve the
+ * and processes them internally. Use libinput_get_event() to retrieve the
  * events.
  *
  * @param libinput A previously initialized libinput context
