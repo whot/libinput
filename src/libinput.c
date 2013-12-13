@@ -909,6 +909,18 @@ libinput_get_event(struct libinput *libinput)
 	return event;
 }
 
+LIBINPUT_EXPORT enum libinput_event_type
+libinput_next_event_type(struct libinput *libinput)
+{
+	struct libinput_event *event;
+
+	if (libinput->events_count == 0)
+		return LIBINPUT_EVENT_NONE;
+
+	event = libinput->events[libinput->events_out];
+	return event->type;
+}
+
 LIBINPUT_EXPORT void *
 libinput_get_user_data(struct libinput *libinput)
 {

@@ -512,6 +512,20 @@ libinput_get_event(struct libinput *libinput);
 /**
  * @ingroup base
  *
+ * Return the type of the next event in the internal queue. This function
+ * does not pop the event off the queue and the next call to
+ * libinput_get_event() returns that event.
+ *
+ * @param libinput A previously initialized libinput context
+ * @return The event type of the next available event or LIBINPUT_EVENT_NONE
+ * if no event is availble.
+ */
+enum libinput_event_type
+libinput_next_event_type(struct libinput *libinput);
+
+/**
+ * @ingroup base
+ *
  * @param libinput A previously initialized libinput context
  * @return the caller-specific data previously assigned in
  * libinput_create_udev().
