@@ -457,11 +457,13 @@ close_restricted(struct libinput *libinput, int fd)
 void
 libinput_seat_init(struct libinput_seat *seat,
 		   struct libinput *libinput,
-		   const char *name)
+		   const char *name,
+		   libinput_seat_destroy_func destroy)
 {
 	seat->refcount = 1;
 	seat->libinput = libinput;
 	seat->name = strdup(name);
+	seat->destroy = destroy;
 	list_init(&seat->devices_list);
 }
 
@@ -477,7 +479,7 @@ libinput_seat_unref(struct libinput_seat *seat)
 	seat->refcount--;
 	if (seat->refcount == 0) {
 		free(seat->name);
-		udev_seat_destroy((struct udev_seat *) seat);
+		seat->destroy(seat);
 	}
 }
 

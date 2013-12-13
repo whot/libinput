@@ -43,6 +43,4 @@ struct udev_input {
 
 void udev_input_destroy(struct udev_input *input);
 
-void udev_seat_destroy(struct udev_seat *seat);
-
 #endif

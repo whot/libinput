@@ -287,6 +287,14 @@ udev_input_destroy(struct udev_input *input)
 	free(input->seat_id);
 }
 
+static void
+udev_seat_destroy(struct libinput_seat *seat)
+{
+	struct udev_seat *useat = (struct udev_seat*)seat;
+	list_remove(&seat->link);
+	free(useat);
+}
+
 static struct udev_seat *
 udev_seat_create(struct udev_input *input, const char *seat_name)
 {
@@ -296,18 +304,11 @@ udev_seat_create(struct udev_input *input, const char *seat_name)
 	if (!seat)
 		return NULL;
 
-	libinput_seat_init(&seat->base, &input->base, seat_name);
+	libinput_seat_init(&seat->base, &input->base, seat_name, udev_seat_destroy);
 	list_insert(&input->base.seat_list, &seat->base.link);
 	notify_added_seat(&seat->base);
 
 	return seat;
-}
-
-void
-udev_seat_destroy(struct udev_seat *seat)
-{
-	list_remove(&seat->base.link);
-	free(seat);
 }
 
 static struct udev_seat *

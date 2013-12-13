@@ -48,6 +48,8 @@ struct libinput {
 	void *user_data;
 };
 
+typedef void (*libinput_seat_destroy_func) (struct libinput_seat *seat);
+
 struct libinput_seat {
 	struct libinput *libinput;
 	struct list link;
@@ -55,6 +57,7 @@ struct libinput_seat {
 	void *user_data;
 	int refcount;
 	char *name;
+	libinput_seat_destroy_func destroy;
 };
 
 struct libinput_device {
@@ -95,7 +98,8 @@ close_restricted(struct libinput *libinput, int fd);
 void
 libinput_seat_init(struct libinput_seat *seat,
 		   struct libinput *libinput,
-		   const char *name);
+		   const char *name,
+		   libinput_seat_destroy_func destroy);
 
 void
 libinput_device_init(struct libinput_device *device,
