@@ -399,7 +399,25 @@ libinput_event_touch_touch_get_touch_type(
  */
 
 struct libinput_interface {
+	/**
+	 * Open the device at the given path with the flags provided and
+	 * return the fd.
+	 *
+	 * @param path The device path to open
+	 * @param flags Flags as defined by open(2)
+	 * @param user_data The user_data provided in
+	 * libinput_create_from_udev()
+	 *
+	 * @return the file descriptor, or a negative errno on failure.
+	 */
 	int (*open_restricted)(const char *path, int flags, void *user_data);
+	/**
+	 * Close the file descriptor.
+	 *
+	 * @param fd The file descriptor to close
+	 * @param user_data The user_data provided in
+	 * libinput_create_from_udev()
+	 */
 	void (*close_restricted)(int fd, void *user_data);
 
 	void (*get_current_screen_dimensions)(struct libinput_device *device,
