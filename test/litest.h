@@ -66,6 +66,4 @@ void litest_touch_down(struct litest_device *d, unsigned int slot, int x, int y)
 void litest_touch_move_to(struct litest_device *d, unsigned int slot, int x_from, int y_from, int x_to, int y_to, int steps);
 void litest_button_click(struct litest_device *d, unsigned int button, bool is_press);
 
-void litest_error(const char *msg, ...);
-
 #endif /* LITEST_H */
