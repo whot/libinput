@@ -251,93 +251,245 @@ struct libinput_device*
 libinput_event_get_device(struct libinput_event *event);
 
 /**
- * @defgroup event_keyboard_key Keyboard key event
+ * @defgroup event_keyboard Keyboard events
+ *
+ * Key events are generated when a key changes its logical state, usually by
+ * being pressed or released.
  */
 
+/**
+ * @ingroup event_keyboard
+ *
+ * The time returned for a device event is the one reported by the kernel,
+ * not when userland sees the event.
+ *
+ * @return The event time for this event
+ */
 uint32_t
 libinput_event_keyboard_get_time(
 	struct libinput_event_keyboard *event);
 
+/**
+ * @ingroup event_keyboard
+ *
+ * @return The keycode that triggered this key event
+ */
 uint32_t
 libinput_event_keyboard_get_key(
 	struct libinput_event_keyboard *event);
 
+/**
+ * @ingroup event_keyboard
+ *
+ * @return The state change of the key
+ */
 enum libinput_keyboard_key_state
 libinput_event_keyboard_get_key_state(
 	struct libinput_event_keyboard *event);
 
 /**
- * @defgroup event_pointer Pointer motion event
+ * @defgroup event_pointer Pointer events
  */
 
+/**
+ * @ingroup event_pointer
+ *
+ * The time returned for a device event is the one reported by the kernel,
+ * not when userland sees the event.
+ *
+ * @return The event time for this event
+ */
 uint32_t
 libinput_event_pointer_get_time(
 	struct libinput_event_pointer *event);
 
+/**
+ * @ingroup event_pointer
+ *
+ * Return the delta between the last event and the current event. The axis'
+ * positive direction is device-specific. For pointer events that are
+ * not of type LIBINPUT_EVENT_POINTER_MOTION, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * LIBINPUT_EVENT_POINTER_MOTION.
+ *
+ * @return the relative x movement since the last event
+ */
 li_fixed_t
 libinput_event_pointer_get_dx(
 	struct libinput_event_pointer *event);
 
+/**
+ * @ingroup event_pointer
+ *
+ * Return the delta between the last event and the current event. The
+ * axis' positive direction is device-specific. For pointer events that are
+ * not of type LIBINPUT_EVENT_POINTER_MOTION, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * LIBINPUT_EVENT_POINTER_MOTION.
+ *
+ * @return the relative y movement since the last event
+ */
 li_fixed_t
 libinput_event_pointer_get_dy(
 	struct libinput_event_pointer *event);
 
 /**
- * @defgroup event_pointer_absolute Absolute pointer motion event
+ * @ingroup event_pointer
+ *
+ * Return the absolute x coordinate of the device, in device coordinates.
+ * The axes' positive direction is device-specific. For pointer events that
+ * are not of type LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE, this function
+ * returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE.
+ *
+ * @return the current absolute x coordinate in device coordinates.
  */
-
 li_fixed_t
 libinput_event_pointer_get_absolute_x(
 	struct libinput_event_pointer *event);
 
+/**
+ * @ingroup event_pointer
+ *
+ * Return the absolute y coordinate of the device, in device coordinates.
+ * The axes' positive direction is device-specific. For pointer events that
+ * are not of type LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE, this function
+ * returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE.
+ *
+ * @return the current absolute y coordinate in device coordinates.
+ */
 li_fixed_t
 libinput_event_pointer_get_absolute_y(
 	struct libinput_event_pointer *event);
 
 /**
- * @defgroup event_pointer_button Pointer button event
+ * @ingroup event_pointer
+ *
+ * Return the button that triggered this event.
+ * For pointer events that are not of type LIBINPUT_EVENT_POINTER_BUTTON,
+ * this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * LIBINPUT_EVENT_POINTER_BUTTON.
+ *
+ * @return the button triggering this event
  */
-
 uint32_t
 libinput_event_pointer_get_button(
 	struct libinput_event_pointer *event);
 
+/**
+ * @ingroup event_pointer
+ *
+ * Return the button state that triggered this event.
+ * For pointer events that are not of type LIBINPUT_EVENT_POINTER_BUTTON,
+ * this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * LIBINPUT_EVENT_POINTER_BUTTON.
+ *
+ * @return the button state triggering this event
+ */
 enum libinput_pointer_button_state
 libinput_event_pointer_get_button_state(
 	struct libinput_event_pointer *event);
 
 /**
- * @defgroup event_pointer_axis Pointer axis event
+ * @ingroup event_pointer
+ *
+ * Return the axis that triggered this event.
+ * For pointer events that are not of type LIBINPUT_EVENT_POINTER_AXIS,
+ * this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * LIBINPUT_EVENT_POINTER_AXIS.
+ *
+ * @return the axis triggering this event
  */
-
 enum libinput_pointer_axis
 libinput_event_pointer_get_axis(
 	struct libinput_event_pointer *event);
 
+/**
+ * @ingroup event_pointer
+ *
+ * Return the current axis value of the given axis. The interpretation of
+ * the value is dependent on the axis.
+ * For LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL and
+ * LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL, the value of the event is in
+ * relative scroll units, with the positive direction being down or right,
+ * respectively.
+ *
+ * For pointer events that are not of type LIBINPUT_EVENT_POINTER_AXIS,
+ * this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * LIBINPUT_EVENT_POINTER_AXIS.
+ *
+ * @return the axis value of this event
+ */
 li_fixed_t
 libinput_event_pointer_get_axis_value(
 	struct libinput_event_pointer *event);
 
 /**
- * @defgroup event_pointer_button Pointer button event
+ * @defgroup event_touch Touch events
  */
 
+/**
+ * @ingroup event_touch
+ *
+ * The time returned for a device event is the one reported by the kernel,
+ * not when userland sees the event.
+ *
+ * @return The event time for this event
+ */
 uint32_t
 libinput_event_touch_get_time(
 	struct libinput_event_touch *event);
 
+/**
+ * @ingroup event_touch
+ *
+ * Get the currently active slot on this device. See the kernel's multitouch
+ * protocol B documentation for more information.
+ *
+ * @return The currently active slot on this multitouch device
+ */
 uint32_t
 libinput_event_touch_get_slot(
 	struct libinput_event_touch *event);
 
+/**
+ * @ingroup event_touch
+ *
+ * @return the absolute X coordinate on this touch device, in device coordinates.
+ */
 li_fixed_t
 libinput_event_touch_get_x(
 	struct libinput_event_touch *event);
 
+/**
+ * @ingroup event_touch
+ *
+ * @return the absolute X coordinate on this touch device, in device coordinates.
+ */
 li_fixed_t
 libinput_event_touch_get_y(
 	struct libinput_event_touch *event);
 
+/**
+ * @ingroup event_touch
+ *
+ * @return the type of touch that occured on the device
+ */
 enum libinput_touch_type
 libinput_event_touch_get_touch_type(
 	struct libinput_event_touch *event);
