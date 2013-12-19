@@ -147,8 +147,7 @@ struct libinput_seat;
 
 struct libinput_event;
 struct libinput_event_seat_notify;
-struct libinput_event_added_device;
-struct libinput_event_removed_device;
+struct libinput_event_device_notify;
 struct libinput_event_device_notify_capability;
 struct libinput_event_keyboard_key;
 struct libinput_event_pointer_motion;
