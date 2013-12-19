@@ -143,12 +143,6 @@ struct libinput;
 struct libinput_device;
 struct libinput_seat;
 
-union libinput_event_target {
-	struct libinput *libinput;
-	struct libinput_seat *seat;
-	struct libinput_device *device;
-};
-
 struct libinput_event;
 struct libinput_event_added_seat;
 struct libinput_event_removed_seat;
@@ -223,22 +217,6 @@ libinput_event_destroy(struct libinput_event *event);
  */
 enum libinput_event_type
 libinput_event_get_type(struct libinput_event *event);
-
-/**
- * @ingroup event
- *
- * Get get the target union of the event.
- *
- * The valid union member depends on the event type. For global events not
- * related to some seat or device, the target is a libinput struct pointer.
- * For events associated with a seat, the target is a libinput_seat pointer
- * and for events associated with a device, the target is a libinput_device
- * pointer.
- *
- * @param event An event retrieved by libinput_get_event().
- */
-union libinput_event_target
-libinput_event_get_target(struct libinput_event *event);
 
 /**
  * @ingroup event
