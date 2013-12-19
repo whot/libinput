@@ -161,7 +161,6 @@ START_TEST(path_added_device)
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
 	struct libinput_event *event;
-	struct libinput_event_added_device *device_event = NULL;
 	struct libinput_device *device;
 
 	libinput_dispatch(li);
@@ -171,16 +170,15 @@ START_TEST(path_added_device)
 		type = libinput_event_get_type(event);
 
 		if (type == LIBINPUT_EVENT_ADDED_DEVICE) {
-			device_event = (struct libinput_event_added_device*)event;
 			break;
 		}
 
 		libinput_event_destroy(event);
 	}
 
-	ck_assert(device_event != NULL);
+	ck_assert(event != NULL);
 
-	device = libinput_event_added_device_get_device(device_event);
+	device = libinput_event_get_device(event);
 	ck_assert(device != NULL);
 
 	libinput_event_destroy(event);

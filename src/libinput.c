@@ -165,17 +165,26 @@ libinput_event_get_seat(struct libinput_event *event)
 }
 
 LIBINPUT_EXPORT struct libinput_device *
-libinput_event_added_device_get_device(
-	struct libinput_event_added_device *event)
+libinput_event_get_device(struct libinput_event *event)
 {
-	return event->device;
-}
-
-LIBINPUT_EXPORT struct libinput_device *
-libinput_event_removed_device_get_device(
-	struct libinput_event_removed_device *event)
-{
-	return event->device;
+	switch (event->type) {
+	case LIBINPUT_EVENT_NONE:
+		abort(); /* not used as actual event type */
+	case LIBINPUT_EVENT_ADDED_SEAT:
+	case LIBINPUT_EVENT_REMOVED_SEAT:
+		return NULL;
+	case LIBINPUT_EVENT_ADDED_DEVICE:
+	case LIBINPUT_EVENT_REMOVED_DEVICE:
+		return ((struct libinput_event_added_device*)event)->device;
+	case LIBINPUT_EVENT_KEYBOARD_KEY:
+	case LIBINPUT_EVENT_POINTER_MOTION:
+	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
+	case LIBINPUT_EVENT_POINTER_BUTTON:
+	case LIBINPUT_EVENT_POINTER_AXIS:
+	case LIBINPUT_EVENT_TOUCH_TOUCH:
+		return event->target.device;
+	}
+	abort();
 }
 
 LIBINPUT_EXPORT uint32_t

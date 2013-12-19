@@ -267,20 +267,20 @@ struct libinput_seat*
 libinput_event_get_seat(struct libinput_event *event);
 
 /**
- * @defgroup event_added_device Added device event
+ * @ingroup event
+ *
+ * Return the device associated with this event, if applicable. For seat
+ * added/removed events the device is NULL. For device added/removed events
+ * this is the device added or removed. For all other device events, this is
+ * the device that generated the event.
+ *
+ * This device is not refcounted and its lifetime is that of the event. Use
+ * libinput_device_ref() before using the device outside of this scope.
+ *
+ * @return The device associated with this event
  */
-
-struct libinput_device *
-libinput_event_added_device_get_device(
-	struct libinput_event_added_device *event);
-
-/**
- * @defgroup event_removed_device Removed device event
- */
-
-struct libinput_device *
-libinput_event_removed_device_get_device(
-	struct libinput_event_removed_device *event);
+struct libinput_device*
+libinput_event_get_device(struct libinput_event *event);
 
 /**
  * @defgroup event_keyboard_key Keyboard key event
