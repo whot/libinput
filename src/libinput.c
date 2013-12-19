@@ -192,20 +192,6 @@ libinput_event_get_device(struct libinput_event *event)
 	return NULL;
 }
 
-LIBINPUT_EXPORT struct libinput_device *
-libinput_event_added_device_get_device(
-	struct libinput_event_added_device *event)
-{
-	return event->device;
-}
-
-LIBINPUT_EXPORT struct libinput_device *
-libinput_event_removed_device_get_device(
-	struct libinput_event_removed_device *event)
-{
-	return event->device;
-}
-
 LIBINPUT_EXPORT enum libinput_device_capability
 libinput_event_device_notify_capability_get_capability(
 	struct libinput_event_device_notify_capability *event)

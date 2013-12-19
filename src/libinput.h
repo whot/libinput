@@ -258,22 +258,6 @@ struct libinput_device*
 libinput_event_get_device(struct libinput_event *event);
 
 /**
- * @defgroup event_added_device Added device event
- */
-
-struct libinput_device *
-libinput_event_added_device_get_device(
-	struct libinput_event_added_device *event);
-
-/**
- * @defgroup event_removed_device Removed device event
- */
-
-struct libinput_device *
-libinput_event_removed_device_get_device(
-	struct libinput_event_removed_device *event);
-
-/**
  * @defgroup libinput_event_device_notify_capability Register device capability event
  */
 
