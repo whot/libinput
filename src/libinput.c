@@ -51,7 +51,6 @@ struct libinput_source {
 struct libinput_event {
 	enum libinput_event_type type;
 	struct libinput_device *device;
-	union libinput_event_target target;
 };
 
 struct libinput_event_added_device {
@@ -116,12 +115,6 @@ LIBINPUT_EXPORT enum libinput_event_type
 libinput_event_get_type(struct libinput_event *event)
 {
 	return event->type;
-}
-
-LIBINPUT_EXPORT union libinput_event_target
-libinput_event_get_target(struct libinput_event *event)
-{
-	return event->target;
 }
 
 LIBINPUT_EXPORT struct libinput*
@@ -427,10 +420,10 @@ libinput_event_destroy(struct libinput_event *event)
 	case LIBINPUT_EVENT_CLASS_BASE:
 		break;
 	case LIBINPUT_EVENT_CLASS_SEAT:
-		libinput_seat_unref(event->target.seat);
+		libinput_seat_unref(event->device->seat);
 		break;
 	case LIBINPUT_EVENT_CLASS_DEVICE:
-		libinput_device_unref(event->target.device);
+		libinput_device_unref(event->device);
 		break;
 	}
 
@@ -577,12 +570,10 @@ libinput_dispatch(struct libinput *libinput)
 static void
 init_event_base(struct libinput_event *event,
 		struct libinput_device *device,
-		enum libinput_event_type type,
-		union libinput_event_target target)
+		enum libinput_event_type type)
 {
 	event->type = type;
 	event->device = device;
-	event->target = target;
 }
 
 static void
@@ -591,8 +582,7 @@ post_base_event(struct libinput_device *device,
 		struct libinput_event *event)
 {
 	struct libinput *libinput = device->seat->libinput;
-	init_event_base(event, device, type,
-			(union libinput_event_target) { .libinput = libinput });
+	init_event_base(event, device, type);
 	libinput_post_event(libinput, event);
 }
 
@@ -601,8 +591,7 @@ post_device_event(struct libinput_device *device,
 		  enum libinput_event_type type,
 		  struct libinput_event *event)
 {
-	init_event_base(event, device, type,
-			(union libinput_event_target) { .device = device });
+	init_event_base(event, device, type);
 	libinput_post_event(device->seat->libinput, event);
 }
 
@@ -825,10 +814,10 @@ libinput_post_event(struct libinput *libinput,
 	case LIBINPUT_EVENT_CLASS_BASE:
 		break;
 	case LIBINPUT_EVENT_CLASS_SEAT:
-		libinput_seat_ref(event->target.seat);
+		libinput_seat_ref(event->device->seat);
 		break;
 	case LIBINPUT_EVENT_CLASS_DEVICE:
-		libinput_device_ref(event->target.device);
+		libinput_device_ref(event->device);
 		break;
 	}
 
