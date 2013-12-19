@@ -139,11 +139,11 @@ LIBINPUT_EXPORT struct libinput_seat*
 libinput_event_get_seat(struct libinput_event *event)
 {
 	switch (event->type) {
-		case LIBINPUT_EVENT_ADDED_SEAT:
-		case LIBINPUT_EVENT_REMOVED_SEAT:
+		case LIBINPUT_EVENT_SEAT_ADDED:
+		case LIBINPUT_EVENT_SEAT_REMOVED:
 			return ((struct libinput_event_seat_notify*)event)->seat;
-		case LIBINPUT_EVENT_ADDED_DEVICE:
-		case LIBINPUT_EVENT_REMOVED_DEVICE:
+		case LIBINPUT_EVENT_DEVICE_ADDED:
+		case LIBINPUT_EVENT_DEVICE_REMOVED:
 			return ((struct libinput_event_device_notify*)event)->device->seat;
 		case LIBINPUT_EVENT_DEVICE_REGISTER_CAPABILITY:
 		case LIBINPUT_EVENT_DEVICE_UNREGISTER_CAPABILITY:
@@ -163,11 +163,11 @@ LIBINPUT_EXPORT struct libinput_device *
 libinput_event_get_device(struct libinput_event *event)
 {
 	switch (event->type) {
-		case LIBINPUT_EVENT_ADDED_SEAT:
-		case LIBINPUT_EVENT_REMOVED_SEAT:
+		case LIBINPUT_EVENT_SEAT_ADDED:
+		case LIBINPUT_EVENT_SEAT_REMOVED:
 			return NULL;
-		case LIBINPUT_EVENT_ADDED_DEVICE:
-		case LIBINPUT_EVENT_REMOVED_DEVICE:
+		case LIBINPUT_EVENT_DEVICE_ADDED:
+		case LIBINPUT_EVENT_DEVICE_REMOVED:
 			return ((struct libinput_event_device_notify*)event)->device;
 		case LIBINPUT_EVENT_DEVICE_REGISTER_CAPABILITY:
 		case LIBINPUT_EVENT_DEVICE_UNREGISTER_CAPABILITY:
@@ -403,10 +403,10 @@ static enum libinput_event_class
 libinput_event_get_class(struct libinput_event *event)
 {
 	switch (event->type) {
-	case LIBINPUT_EVENT_ADDED_SEAT:
-	case LIBINPUT_EVENT_REMOVED_SEAT:
-	case LIBINPUT_EVENT_ADDED_DEVICE:
-	case LIBINPUT_EVENT_REMOVED_DEVICE:
+	case LIBINPUT_EVENT_SEAT_ADDED:
+	case LIBINPUT_EVENT_SEAT_REMOVED:
+	case LIBINPUT_EVENT_DEVICE_ADDED:
+	case LIBINPUT_EVENT_DEVICE_REMOVED:
 		return LIBINPUT_EVENT_CLASS_BASE;
 
 	case LIBINPUT_EVENT_DEVICE_REGISTER_CAPABILITY:
@@ -611,13 +611,13 @@ notify_seat(struct libinput_seat *seat,
 void
 notify_added_seat(struct libinput_seat *seat)
 {
-	notify_seat(seat, LIBINPUT_EVENT_ADDED_SEAT);
+	notify_seat(seat, LIBINPUT_EVENT_SEAT_ADDED);
 }
 
 void
 notify_removed_seat(struct libinput_seat *seat)
 {
-	notify_seat(seat, LIBINPUT_EVENT_REMOVED_SEAT);
+	notify_seat(seat, LIBINPUT_EVENT_SEAT_REMOVED);
 }
 
 static void
@@ -642,13 +642,13 @@ notify_device(struct libinput_device *device,
 void
 notify_added_device(struct libinput_device *device)
 {
-	notify_device(device, LIBINPUT_EVENT_ADDED_DEVICE);
+	notify_device(device, LIBINPUT_EVENT_DEVICE_ADDED);
 }
 
 void
 notify_removed_device(struct libinput_device *device)
 {
-	notify_device(device, LIBINPUT_EVENT_REMOVED_DEVICE);
+	notify_device(device, LIBINPUT_EVENT_DEVICE_REMOVED);
 }
 
 static void
