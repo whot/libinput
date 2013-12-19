@@ -141,16 +141,111 @@ enum libinput_event_type {
 	LIBINPUT_EVENT_TOUCH_TOUCH = 500,
 };
 
+/**
+ * @ingroup base
+ * @struct libinput
+ *
+ * Main libinput context. Unlike @ref libinput_device and @ref libinput_seat
+ * this context is not reference-counted and a call too libinput_destroy()
+ * will destroy the one reference a caller has.
+ */
 struct libinput;
+/**
+ * @ingroup base
+ * @struct libinput_device
+ *
+ * libinput input device handle. A device is a member of exactly one seat,
+ * moving a device from one seat to another will appear as device removal
+ * and re-appearance in a new seat.
+ *
+ * devices are refcounted, use libinput_device_ref() and
+ * libinput_device_unref() to add additional references.
+ *
+ * A device has zero or more capabilities, see
+ * libinput_device_has_capability() for more information.
+ */
 struct libinput_device;
+/**
+ * @ingroup base
+ * @struct libinput_seat
+ *
+ * libinput seat handle. A seat is a logical group of devices and may have
+ * zero or more devices associated. In most cases, a seat represents a
+ * single user on a set of outputs.
+ */
 struct libinput_seat;
 
+/**
+ * @ingroup events
+ * @struct libinput_event
+ * Base libinput event. This event is the base for all other events and
+ * provides the accessors to common fields.
+ */
 struct libinput_event;
+
+/**
+ * @ingroup events
+ * @struct libinput_event_seat_notify
+ *
+ * Event signalling addition or removal of a seat. Valid event types for
+ * this event are @ref LIBINPUT_EVENT_SEAT_ADDED, @ref
+ * LIBINPUT_EVENT_SEAT_REMOVED.
+ */
 struct libinput_event_seat_notify;
+
+/**
+ * @ingroup events
+ * @struct libinput_event_device_notify
+ *
+ * Event signalling addition or removal of a device within a seat. Valid
+ * event types for this event are @ref LIBINPUT_EVENT_DEVICE_ADDED,
+ * @ref LIBINPUT_EVENT_DEVICE_REMOVED.
+ */
 struct libinput_event_device_notify;
+
+/**
+ * @ingroup event_capability
+ * @struct libinput_event_device_capability_notify
+ *
+ * Event signalling addition or removal of a capability to a device. Valid
+ * event types for this events are @ref
+ * LIBINPUT_EVENT_DEVICE_REGISTER_CAPABILITY and @ref
+ * LIBINPUT_EVENT_DEVICE_UNREGISTER_CAPABILITY.
+ *
+ * These events are sent as a burst after a @ref LIBINPUT_EVENT_DEVICE_ADDED
+ * event but some devices may change capabilities at runtime.
+ *
+ */
 struct libinput_event_device_capability_notify;
+
+/**
+ * @ingroup event_keyboard
+ * @struct libinput_event_keyboard
+ *
+ * Keyboard event representing a key state change. Valid event types for
+ * this event are @ref LIBINPUT_EVENT_KEYBOARD_KEY.
+ */
 struct libinput_event_keyboard;
+
+/**
+ * @ingroup event_pointer
+ * @struct libinput_event_pointer
+ *
+ * Pointer event representing movements, buttons and axis value changes.
+ * Valid event types for this event are @ref LIBINPUT_EVENT_POINTER_MOTION,
+ * @ref LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE, @ref
+ * LIBINPUT_EVENT_POINTER_BUTTON and @ref LIBINPUT_EVENT_POINTER_AXIS.
+ */
 struct libinput_event_pointer;
+
+/**
+ * @ingroup event_touch
+ * @struct libinput_event_touch
+ *
+ * Touch event representing a touch down, move or up, as well as a touch
+ * cancel and touch frame events. Valid event types for this event are @ref
+ * LIBINPUT_EVENT_TOUCH_TOUCH.
+ */
 struct libinput_event_touch;
 
 /**
