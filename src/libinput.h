@@ -150,8 +150,7 @@ struct libinput_event_added_seat;
 struct libinput_event_removed_seat;
 struct libinput_event_added_device;
 struct libinput_event_removed_device;
-struct libinput_event_device_register_capability;
-struct libinput_event_device_unregister_capability;
+struct libinput_event_device_notify_capability;
 struct libinput_event_keyboard_key;
 struct libinput_event_pointer_motion;
 struct libinput_event_pointer_motion_absolute;
@@ -289,20 +288,12 @@ libinput_event_removed_device_get_device(
 	struct libinput_event_removed_device *event);
 
 /**
- * @defgroup event_device_register_capability Register device capability event
+ * @defgroup libinput_event_device_notify_capability Register device capability event
  */
 
 enum libinput_device_capability
-libinput_event_device_register_capability_get_capability(
-	struct libinput_event_device_register_capability *event);
-
-/**
- * @defgroup event_device_unregister_capability Register device capability event
- */
-
-enum libinput_device_capability
-libinput_event_device_unregister_capability_get_capability(
-	struct libinput_event_device_unregister_capability *event);
+libinput_event_device_notify_capability_get_capability(
+	struct libinput_event_device_notify_capability *event);
 
 /**
  * @defgroup event_keyboard_key Keyboard key event

@@ -80,12 +80,7 @@ struct libinput_event_removed_device {
 	struct libinput_device *device;
 };
 
-struct libinput_event_device_register_capability {
-	struct libinput_event base;
-	enum libinput_device_capability capability;
-};
-
-struct libinput_event_device_unregister_capability {
+struct libinput_event_device_notify_capability {
 	struct libinput_event base;
 	enum libinput_device_capability capability;
 };
@@ -224,15 +219,8 @@ libinput_event_removed_device_get_device(
 }
 
 LIBINPUT_EXPORT enum libinput_device_capability
-libinput_event_device_register_capability_get_capability(
-	struct libinput_event_device_register_capability *event)
-{
-	return event->capability;
-}
-
-LIBINPUT_EXPORT enum libinput_device_capability
-libinput_event_device_unregister_capability_get_capability(
-	struct libinput_event_device_unregister_capability *event)
+libinput_event_device_notify_capability_get_capability(
+	struct libinput_event_device_notify_capability *event)
 {
 	return event->capability;
 }
@@ -713,11 +701,11 @@ void
 device_register_capability(struct libinput_device *device,
 			   enum libinput_device_capability capability)
 {
-	struct libinput_event_device_register_capability *capability_event;
+	struct libinput_event_device_notify_capability *capability_event;
 
 	capability_event = malloc(sizeof *capability_event);
 
-	*capability_event = (struct libinput_event_device_register_capability) {
+	*capability_event = (struct libinput_event_device_notify_capability) {
 		.capability = capability,
 	};
 
@@ -730,11 +718,11 @@ void
 device_unregister_capability(struct libinput_device *device,
 			     enum libinput_device_capability capability)
 {
-	struct libinput_event_device_unregister_capability *capability_event;
+	struct libinput_event_device_notify_capability *capability_event;
 
 	capability_event = malloc(sizeof *capability_event);
 
-	*capability_event = (struct libinput_event_device_unregister_capability) {
+	*capability_event = (struct libinput_event_device_notify_capability) {
 		.capability = capability,
 	};
 
