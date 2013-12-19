@@ -41,6 +41,12 @@ enum libinput_event_class {
 	LIBINPUT_EVENT_CLASS_DEVICE,
 };
 
+union libinput_event_target {
+	struct libinput *libinput;
+	struct libinput_seat *seat;
+	struct libinput_device *device;
+};
+
 struct libinput_source {
 	libinput_source_dispatch_t dispatch;
 	void *user_data;
@@ -136,12 +142,6 @@ LIBINPUT_EXPORT enum libinput_event_type
 libinput_event_get_type(struct libinput_event *event)
 {
 	return event->type;
-}
-
-LIBINPUT_EXPORT union libinput_event_target
-libinput_event_get_target(struct libinput_event *event)
-{
-	return event->target;
 }
 
 LIBINPUT_EXPORT struct libinput*
