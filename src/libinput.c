@@ -192,18 +192,6 @@ libinput_event_get_device(struct libinput_event *event)
 	return NULL;
 }
 
-LIBINPUT_EXPORT struct libinput_seat *
-libinput_event_added_seat_get_seat(struct libinput_event_added_seat *event)
-{
-	return event->seat;
-}
-
-LIBINPUT_EXPORT struct libinput_seat *
-libinput_event_removed_seat_get_seat(struct libinput_event_removed_seat *event)
-{
-	return event->seat;
-}
-
 LIBINPUT_EXPORT struct libinput_device *
 libinput_event_added_device_get_device(
 	struct libinput_event_added_device *event)

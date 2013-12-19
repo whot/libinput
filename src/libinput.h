@@ -258,20 +258,6 @@ struct libinput_device*
 libinput_event_get_device(struct libinput_event *event);
 
 /**
- * @defgroup event_added_seat Added seat event
- */
-
-struct libinput_seat *
-libinput_event_added_seat_get_seat(struct libinput_event_added_seat *event);
-
-/**
- * @defgroup event_removed_seat Removed seat event
- */
-
-struct libinput_seat *
-libinput_event_removed_seat_get_seat(struct libinput_event_removed_seat *event);
-
-/**
  * @defgroup event_added_device Added device event
  */
 
