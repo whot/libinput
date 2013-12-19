@@ -68,13 +68,6 @@ struct libinput_event_keyboard {
 struct libinput_event_pointer_motion {
 	struct libinput_event base;
 	uint32_t time;
-	li_fixed_t dx;
-	li_fixed_t dy;
-};
-
-struct libinput_event_pointer_motion_absolute {
-	struct libinput_event base;
-	uint32_t time;
 	li_fixed_t x;
 	li_fixed_t y;
 };
@@ -156,33 +149,33 @@ LIBINPUT_EXPORT li_fixed_t
 libinput_event_pointer_motion_get_dx(
 	struct libinput_event_pointer_motion *event)
 {
-	return event->dx;
+	return event->x;
 }
 
 LIBINPUT_EXPORT li_fixed_t
 libinput_event_pointer_motion_get_dy(
 	struct libinput_event_pointer_motion *event)
 {
-	return event->dy;
+	return event->y;
 }
 
 LIBINPUT_EXPORT uint32_t
 libinput_event_pointer_motion_absolute_get_time(
-	struct libinput_event_pointer_motion_absolute *event)
+	struct libinput_event_pointer_motion *event)
 {
 	return event->time;
 }
 
 LIBINPUT_EXPORT li_fixed_t
 libinput_event_pointer_motion_absolute_get_x(
-	struct libinput_event_pointer_motion_absolute *event)
+	struct libinput_event_pointer_motion *event)
 {
 	return event->x;
 }
 
 LIBINPUT_EXPORT li_fixed_t
 libinput_event_pointer_motion_absolute_get_y(
-	struct libinput_event_pointer_motion_absolute *event)
+	struct libinput_event_pointer_motion *event)
 {
 	return event->y;
 }
@@ -663,8 +656,8 @@ pointer_notify_motion(struct libinput_device *device,
 
 	*motion_event = (struct libinput_event_pointer_motion) {
 		.time = time,
-		.dx = dx,
-		.dy = dy,
+		.x = dx,
+		.y = dy,
 	};
 
 	post_device_event(device,
@@ -678,13 +671,13 @@ pointer_notify_motion_absolute(struct libinput_device *device,
 			       li_fixed_t x,
 			       li_fixed_t y)
 {
-	struct libinput_event_pointer_motion_absolute *motion_absolute_event;
+	struct libinput_event_pointer_motion *motion_absolute_event;
 
 	motion_absolute_event = malloc(sizeof *motion_absolute_event);
 	if (!motion_absolute_event)
 		return;
 
-	*motion_absolute_event = (struct libinput_event_pointer_motion_absolute) {
+	*motion_absolute_event = (struct libinput_event_pointer_motion) {
 		.time = time,
 		.x = x,
 		.y = y,

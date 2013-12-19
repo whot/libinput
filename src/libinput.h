@@ -145,7 +145,6 @@ struct libinput_event;
 struct libinput_event_device_notify;
 struct libinput_event_keyboard;
 struct libinput_event_pointer_motion;
-struct libinput_event_pointer_motion_absolute;
 struct libinput_event_pointer_button;
 struct libinput_event_pointer_axis;
 struct libinput_event_touch_touch;
@@ -279,15 +278,15 @@ libinput_event_pointer_motion_get_dy(
 
 uint32_t
 libinput_event_pointer_motion_absolute_get_time(
-	struct libinput_event_pointer_motion_absolute *event);
+	struct libinput_event_pointer_motion *event);
 
 li_fixed_t
 libinput_event_pointer_motion_absolute_get_x(
-	struct libinput_event_pointer_motion_absolute *event);
+	struct libinput_event_pointer_motion *event);
 
 li_fixed_t
 libinput_event_pointer_motion_absolute_get_y(
-	struct libinput_event_pointer_motion_absolute *event);
+	struct libinput_event_pointer_motion *event);
 
 /**
  * @defgroup event_pointer_button Pointer button event
