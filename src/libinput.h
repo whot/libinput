@@ -252,18 +252,19 @@ struct libinput*
 libinput_event_get_context(struct libinput_event *event);
 
 /**
- * @defgroup event_added_seat Added seat event
+ * @ingroup event
+ *
+ * Return the seat associated with this event. For seat added/removed events
+ * this is the seat added or removed. For device events, this is the seat
+ * the device belongs to.
+ *
+ * This seat is not refcounted and its lifetime is that of the event. Use
+ * libinput_seat_ref() before using the seat outside of this scope.
+ *
+ * @return The seat associated with this event.
  */
-
-struct libinput_seat *
-libinput_event_added_seat_get_seat(struct libinput_event_added_seat *event);
-
-/**
- * @defgroup event_removed_seat Removed seat event
- */
-
-struct libinput_seat *
-libinput_event_removed_seat_get_seat(struct libinput_event_removed_seat *event);
+struct libinput_seat*
+libinput_event_get_seat(struct libinput_event *event);
 
 /**
  * @defgroup event_added_device Added device event
