@@ -105,7 +105,7 @@ struct libinput_event_pointer_axis {
 	li_fixed_t value;
 };
 
-struct libinput_event_touch_touch {
+struct libinput_event_touch {
 	struct libinput_event base;
 	uint32_t time;
 	uint32_t slot;
@@ -296,36 +296,36 @@ libinput_event_pointer_get_axis_value(
 }
 
 LIBINPUT_EXPORT uint32_t
-libinput_event_touch_touch_get_time(
-	struct libinput_event_touch_touch *event)
+libinput_event_touch_get_time(
+	struct libinput_event_touch *event)
 {
 	return event->time;
 }
 
 LIBINPUT_EXPORT uint32_t
-libinput_event_touch_touch_get_slot(
-	struct libinput_event_touch_touch *event)
+libinput_event_touch_get_slot(
+	struct libinput_event_touch *event)
 {
 	return event->slot;
 }
 
 LIBINPUT_EXPORT li_fixed_t
-libinput_event_touch_touch_get_x(
-	struct libinput_event_touch_touch *event)
+libinput_event_touch_get_x(
+	struct libinput_event_touch *event)
 {
 	return event->x;
 }
 
 LIBINPUT_EXPORT li_fixed_t
-libinput_event_touch_touch_get_y(
-	struct libinput_event_touch_touch *event)
+libinput_event_touch_get_y(
+	struct libinput_event_touch *event)
 {
 	return event->y;
 }
 
 LIBINPUT_EXPORT enum libinput_touch_type
-libinput_event_touch_touch_get_touch_type(
-	struct libinput_event_touch_touch *event)
+libinput_event_touch_get_touch_type(
+	struct libinput_event_touch *event)
 {
 	return event->touch_type;
 }
@@ -821,13 +821,13 @@ touch_notify_touch(struct libinput_device *device,
 		   li_fixed_t y,
 		   enum libinput_touch_type touch_type)
 {
-	struct libinput_event_touch_touch *touch_event;
+	struct libinput_event_touch *touch_event;
 
 	touch_event = malloc(sizeof *touch_event);
 	if (!touch_event)
 		return;
 
-	*touch_event = (struct libinput_event_touch_touch) {
+	*touch_event = (struct libinput_event_touch) {
 		.time = time,
 		.slot = slot,
 		.x = x,
