@@ -237,6 +237,9 @@ libinput_event_get_context(struct libinput_event *event);
  * this is the seat added or removed. For device events, this is the seat
  * the device belongs to.
  *
+ * The seat returned is refcounted, use libinput_seat_unref() to release the
+ * reference.
+ *
  * @return The seat associated with this event.
  */
 struct libinput_seat*
