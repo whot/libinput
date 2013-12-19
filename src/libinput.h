@@ -35,6 +35,8 @@
  */
 
 /**
+ * @ingroup fixed_point
+ *
  * libinput 24.8 fixed point real number.
  */
 typedef int32_t li_fixed_t;
