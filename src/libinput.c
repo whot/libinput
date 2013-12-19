@@ -131,8 +131,8 @@ libinput_event_get_seat(struct libinput_event *event)
 	switch (event->type) {
 	case LIBINPUT_EVENT_NONE:
 		abort(); /* not used as actual event type */
-	case LIBINPUT_EVENT_ADDED_DEVICE:
-	case LIBINPUT_EVENT_REMOVED_DEVICE:
+	case LIBINPUT_EVENT_DEVICE_ADDED:
+	case LIBINPUT_EVENT_DEVICE_REMOVED:
 		return ((struct libinput_event_device_notify*)event)->device->seat;
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
 	case LIBINPUT_EVENT_POINTER_MOTION:
@@ -152,8 +152,8 @@ libinput_event_get_device(struct libinput_event *event)
 	switch (event->type) {
 	case LIBINPUT_EVENT_NONE:
 		abort(); /* not used as actual event type */
-	case LIBINPUT_EVENT_ADDED_DEVICE:
-	case LIBINPUT_EVENT_REMOVED_DEVICE:
+	case LIBINPUT_EVENT_DEVICE_ADDED:
+	case LIBINPUT_EVENT_DEVICE_REMOVED:
 		return ((struct libinput_event_device_notify*)event)->device;
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
 	case LIBINPUT_EVENT_POINTER_MOTION:
@@ -429,8 +429,8 @@ libinput_event_get_class(struct libinput_event *event)
 	case LIBINPUT_EVENT_NONE:
 		return LIBINPUT_EVENT_CLASS_NONE;
 
-	case LIBINPUT_EVENT_ADDED_DEVICE:
-	case LIBINPUT_EVENT_REMOVED_DEVICE:
+	case LIBINPUT_EVENT_DEVICE_ADDED:
+	case LIBINPUT_EVENT_DEVICE_REMOVED:
 		return LIBINPUT_EVENT_CLASS_BASE;
 
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
@@ -649,7 +649,7 @@ notify_added_device(struct libinput_device *device)
 	};
 
 	post_base_event(device->seat->libinput,
-			LIBINPUT_EVENT_ADDED_DEVICE,
+			LIBINPUT_EVENT_DEVICE_ADDED,
 			&added_device_event->base);
 }
 
@@ -667,7 +667,7 @@ notify_removed_device(struct libinput_device *device)
 	};
 
 	post_base_event(device->seat->libinput,
-			LIBINPUT_EVENT_REMOVED_DEVICE,
+			LIBINPUT_EVENT_DEVICE_REMOVED,
 			&removed_device_event->base);
 }
 

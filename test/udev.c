@@ -152,7 +152,7 @@ START_TEST(udev_added_seat_default)
 
 	while (!default_seat_found && (event = libinput_get_event(li))) {
 		type = libinput_event_get_type(event);
-		if (type != LIBINPUT_EVENT_ADDED_DEVICE) {
+		if (type != LIBINPUT_EVENT_DEVICE_ADDED) {
 			libinput_event_destroy(event);
 			continue;
 		}
@@ -241,10 +241,10 @@ process_events_count_devices(struct libinput *li, int *device_count)
 
 	while ((event = libinput_get_event(li))) {
 		switch (libinput_event_get_type(event)) {
-		case LIBINPUT_EVENT_ADDED_DEVICE:
+		case LIBINPUT_EVENT_DEVICE_ADDED:
 			(*device_count)++;
 			break;
-		case LIBINPUT_EVENT_REMOVED_DEVICE:
+		case LIBINPUT_EVENT_DEVICE_REMOVED:
 			(*device_count)--;
 			break;
 		default:
