@@ -697,9 +697,10 @@ notify_removed_device(struct libinput_device *device)
 			&removed_device_event->base);
 }
 
-void
-device_register_capability(struct libinput_device *device,
-			   enum libinput_device_capability capability)
+static void
+device_notify_capability(struct libinput_device *device,
+			 enum libinput_event_type which,
+			 enum libinput_device_capability capability)
 {
 	struct libinput_event_device_notify_capability *capability_event;
 
@@ -710,25 +711,26 @@ device_register_capability(struct libinput_device *device,
 	};
 
 	post_device_event(device,
-			  LIBINPUT_EVENT_DEVICE_REGISTER_CAPABILITY,
+			  which,
 			  &capability_event->base);
+}
+
+void
+device_register_capability(struct libinput_device *device,
+			   enum libinput_device_capability capability)
+{
+	device_notify_capability(device,
+				 LIBINPUT_EVENT_DEVICE_REGISTER_CAPABILITY,
+				 capability);
 }
 
 void
 device_unregister_capability(struct libinput_device *device,
 			     enum libinput_device_capability capability)
 {
-	struct libinput_event_device_notify_capability *capability_event;
-
-	capability_event = malloc(sizeof *capability_event);
-
-	*capability_event = (struct libinput_event_device_notify_capability) {
-		.capability = capability,
-	};
-
-	post_device_event(device,
-			  LIBINPUT_EVENT_DEVICE_UNREGISTER_CAPABILITY,
-			  &capability_event->base);
+	device_notify_capability(device,
+				 LIBINPUT_EVENT_DEVICE_UNREGISTER_CAPABILITY,
+				 capability);
 }
 
 void
