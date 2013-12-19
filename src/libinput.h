@@ -256,6 +256,18 @@ struct libinput*
 libinput_event_get_context(struct libinput_event *event);
 
 /**
+ * @ingroup event
+ *
+ * Return the seat associated with this event. For seat added/removed events
+ * this is the seat added or removed. For device events, this is the seat
+ * the device belongs to.
+ *
+ * @return The seat associated with this event.
+ */
+struct libinput_seat*
+libinput_event_get_seat(struct libinput_event *event);
+
+/**
  * @defgroup event_added_seat Added seat event
  */
 
