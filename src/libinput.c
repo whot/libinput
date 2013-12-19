@@ -620,40 +620,35 @@ notify_removed_seat(struct libinput_seat *seat)
 	notify_seat(seat, LIBINPUT_EVENT_REMOVED_SEAT);
 }
 
-void
-notify_added_device(struct libinput_device *device)
+static void
+notify_device(struct libinput_device *device,
+		enum libinput_event_type which)
 {
-	struct libinput_event_device_notify *added_device_event;
+	struct libinput_event_device_notify *notify_device_event;
 
-	added_device_event = malloc(sizeof *added_device_event);
-	if (!added_device_event)
+	notify_device_event = malloc(sizeof *notify_device_event);
+	if (!notify_device_event)
 		return;
 
-	*added_device_event = (struct libinput_event_device_notify) {
+	*notify_device_event = (struct libinput_event_device_notify) {
 		.device = device,
 	};
 
 	post_base_event(device->seat->libinput,
-			LIBINPUT_EVENT_ADDED_DEVICE,
-			&added_device_event->base);
+			which,
+			&notify_device_event->base);
+}
+
+void
+notify_added_device(struct libinput_device *device)
+{
+	notify_device(device, LIBINPUT_EVENT_ADDED_DEVICE);
 }
 
 void
 notify_removed_device(struct libinput_device *device)
 {
-	struct libinput_event_device_notify *removed_device_event;
-
-	removed_device_event = malloc(sizeof *removed_device_event);
-	if (!removed_device_event)
-		return;
-
-	*removed_device_event = (struct libinput_event_device_notify) {
-		.device = device,
-	};
-
-	post_base_event(device->seat->libinput,
-			LIBINPUT_EVENT_REMOVED_DEVICE,
-			&removed_device_event->base);
+	notify_device(device, LIBINPUT_EVENT_REMOVED_DEVICE);
 }
 
 static void
