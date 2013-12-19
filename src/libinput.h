@@ -145,7 +145,7 @@ struct libinput_event;
 struct libinput_event_device_notify;
 struct libinput_event_keyboard;
 struct libinput_event_pointer;
-struct libinput_event_touch_touch;
+struct libinput_event_touch;
 
 /**
  * @defgroup fixed_point Fixed point utilities
@@ -323,24 +323,24 @@ libinput_event_pointer_get_axis_value(
  */
 
 uint32_t
-libinput_event_touch_touch_get_time(
-	struct libinput_event_touch_touch *event);
+libinput_event_touch_get_time(
+	struct libinput_event_touch *event);
 
 uint32_t
-libinput_event_touch_touch_get_slot(
-	struct libinput_event_touch_touch *event);
+libinput_event_touch_get_slot(
+	struct libinput_event_touch *event);
 
 li_fixed_t
-libinput_event_touch_touch_get_x(
-	struct libinput_event_touch_touch *event);
+libinput_event_touch_get_x(
+	struct libinput_event_touch *event);
 
 li_fixed_t
-libinput_event_touch_touch_get_y(
-	struct libinput_event_touch_touch *event);
+libinput_event_touch_get_y(
+	struct libinput_event_touch *event);
 
 enum libinput_touch_type
-libinput_event_touch_touch_get_touch_type(
-	struct libinput_event_touch_touch *event);
+libinput_event_touch_get_touch_type(
+	struct libinput_event_touch *event);
 
 /**
  * @defgroup base Initialization and manipulation of libinput contexts
