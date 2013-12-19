@@ -259,6 +259,72 @@ struct libinput_device*
 libinput_event_get_device(struct libinput_event *event);
 
 /**
+ * @ingroup event
+ *
+ * Return the pointer event that is this input event. If the event type does
+ * not match the pointer event types, this function returns NULL.
+ *
+ * @return A pointer event, or NULL for other events
+ */
+struct libinput_event_pointer*
+libinput_event_get_pointer_event(struct libinput_event *event);
+
+/**
+ * @ingroup event
+ *
+ * Return the keyboard event that is this input event. If the event type does
+ * not match the keyboard event types, this function returns NULL.
+ *
+ * @return A keyboard event, or NULL for other events
+ */
+struct libinput_event_keyboard*
+libinput_event_get_keyboard_event(struct libinput_event *event);
+
+/**
+ * @ingroup event
+ *
+ * Return the touch event that is this input event. If the event type does
+ * not match the touch event types, this function returns NULL.
+ *
+ * @return A touch event, or NULL for other events
+ */
+struct libinput_event_touch*
+libinput_event_get_touch_event(struct libinput_event *event);
+
+/**
+ * @ingroup event
+ *
+ * Return the seat event that is this input event. If the event type does
+ * not match the seat event types, this function returns NULL.
+ *
+ * @return A seat event, or NULL for other events
+ */
+struct libinput_event_seat_notify*
+libinput_event_get_seat_notify_event(struct libinput_event *event);
+
+/**
+ * @ingroup event
+ *
+ * Return the device event that is this input event. If the event type does
+ * not match the device event types, this function returns NULL.
+ *
+ * @return A device event, or NULL for other events
+ */
+struct libinput_event_device_notify*
+libinput_event_get_device_notify_event(struct libinput_event *event);
+
+/**
+ * @ingroup event
+ *
+ * Return the capability event that is this input event. If the event type does
+ * not match the capability event types, this function returns NULL.
+ *
+ * @return A capability event, or NULL for other events
+ */
+struct libinput_event_device_capability_notify*
+libinput_event_get_device_capability_notify_event(struct libinput_event *event);
+
+/**
  * @defgroup event_capability Device capability events
  */
 
