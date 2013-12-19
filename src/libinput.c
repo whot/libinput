@@ -387,8 +387,8 @@ libinput_event_get_class(struct libinput_event *event)
 	case LIBINPUT_EVENT_NONE:
 		return LIBINPUT_EVENT_CLASS_NONE;
 
-	case LIBINPUT_EVENT_ADDED_DEVICE:
-	case LIBINPUT_EVENT_REMOVED_DEVICE:
+	case LIBINPUT_EVENT_DEVICE_ADDED:
+	case LIBINPUT_EVENT_DEVICE_REMOVED:
 		return LIBINPUT_EVENT_CLASS_BASE;
 
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
@@ -604,7 +604,7 @@ notify_added_device(struct libinput_device *device)
 	};
 
 	post_base_event(device,
-			LIBINPUT_EVENT_ADDED_DEVICE,
+			LIBINPUT_EVENT_DEVICE_ADDED,
 			&added_device_event->base);
 }
 
@@ -622,7 +622,7 @@ notify_removed_device(struct libinput_device *device)
 	};
 
 	post_base_event(device,
-			LIBINPUT_EVENT_REMOVED_DEVICE,
+			LIBINPUT_EVENT_DEVICE_REMOVED,
 			&removed_device_event->base);
 }
 

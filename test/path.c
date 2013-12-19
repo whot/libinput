@@ -145,7 +145,7 @@ START_TEST(path_added_seat)
 	ck_assert(event != NULL);
 
 	type = libinput_event_get_type(event);
-	ck_assert_int_eq(type, LIBINPUT_EVENT_ADDED_DEVICE);
+	ck_assert_int_eq(type, LIBINPUT_EVENT_DEVICE_ADDED);
 
 	device = libinput_event_get_device(event);
 	seat = libinput_device_get_seat(device);
@@ -171,7 +171,7 @@ START_TEST(path_added_device)
 		enum libinput_event_type type;
 		type = libinput_event_get_type(event);
 
-		if (type == LIBINPUT_EVENT_ADDED_DEVICE) {
+		if (type == LIBINPUT_EVENT_DEVICE_ADDED) {
 			break;
 		}
 
