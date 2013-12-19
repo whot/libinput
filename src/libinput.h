@@ -241,6 +241,17 @@ union libinput_event_target
 libinput_event_get_target(struct libinput_event *event);
 
 /**
+ * @ingroup event
+ *
+ * Get the libinput context from the event.
+ *
+ * @param event The libinput event
+ * @return The libinput context for this event.
+ */
+struct libinput*
+libinput_event_get_context(struct libinput_event *event);
+
+/**
  * @defgroup event_added_seat Added seat event
  */
 

@@ -50,6 +50,7 @@ struct libinput_source {
 
 struct libinput_event {
 	enum libinput_event_type type;
+	struct libinput *libinput;
 	union libinput_event_target target;
 };
 
@@ -131,6 +132,12 @@ LIBINPUT_EXPORT union libinput_event_target
 libinput_event_get_target(struct libinput_event *event)
 {
 	return event->target;
+}
+
+LIBINPUT_EXPORT struct libinput*
+libinput_event_get_context(struct libinput_event *event)
+{
+	return event->libinput;
 }
 
 LIBINPUT_EXPORT struct libinput_seat *
@@ -596,10 +603,12 @@ libinput_dispatch(struct libinput *libinput)
 
 static void
 init_event_base(struct libinput_event *event,
+		struct libinput *libinput,
 		enum libinput_event_type type,
 		union libinput_event_target target)
 {
 	event->type = type;
+	event->libinput = libinput;
 	event->target = target;
 }
 
@@ -608,7 +617,7 @@ post_base_event(struct libinput *libinput,
 		enum libinput_event_type type,
 		struct libinput_event *event)
 {
-	init_event_base(event, type,
+	init_event_base(event, libinput, type,
 			(union libinput_event_target) { .libinput = libinput });
 	libinput_post_event(libinput, event);
 }
@@ -618,7 +627,7 @@ post_device_event(struct libinput_device *device,
 		  enum libinput_event_type type,
 		  struct libinput_event *event)
 {
-	init_event_base(event, type,
+	init_event_base(event, device->seat->libinput, type,
 			(union libinput_event_target) { .device = device });
 	libinput_post_event(device->seat->libinput, event);
 }
