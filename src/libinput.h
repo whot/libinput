@@ -148,7 +148,7 @@ struct libinput_seat;
 struct libinput_event;
 struct libinput_event_seat_notify;
 struct libinput_event_device_notify;
-struct libinput_event_device_notify_capability;
+struct libinput_event_device_capability_notify;
 struct libinput_event_keyboard;
 struct libinput_event_pointer;
 struct libinput_event_touch;
@@ -268,8 +268,8 @@ libinput_event_get_device(struct libinput_event *event);
  * @return the capability added or removed with this event
  */
 enum libinput_device_capability
-libinput_event_device_notify_capability_get_capability(
-	struct libinput_event_device_notify_capability *event);
+libinput_event_device_capability_notify_get_capability(
+	struct libinput_event_device_capability_notify *event);
 
 /**
  * @defgroup event_keyboard Keyboard events
