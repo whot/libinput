@@ -150,9 +150,7 @@ struct libinput_event_seat_notify;
 struct libinput_event_device_notify;
 struct libinput_event_device_notify_capability;
 struct libinput_event_keyboard;
-struct libinput_event_pointer_motion;
-struct libinput_event_pointer_button;
-struct libinput_event_pointer_axis;
+struct libinput_event_pointer;
 struct libinput_event_touch_touch;
 
 /**
@@ -285,68 +283,56 @@ libinput_event_keyboard_get_key_state(
 	struct libinput_event_keyboard *event);
 
 /**
- * @defgroup event_pointer_motion Pointer motion event
+ * @defgroup event_pointer Pointer motion event
  */
 
 uint32_t
-libinput_event_pointer_motion_get_time(
-	struct libinput_event_pointer_motion *event);
+libinput_event_pointer_get_time(
+	struct libinput_event_pointer *event);
 
 li_fixed_t
-libinput_event_pointer_motion_get_dx(
-	struct libinput_event_pointer_motion *event);
+libinput_event_pointer_get_dx(
+	struct libinput_event_pointer *event);
 
 li_fixed_t
-libinput_event_pointer_motion_get_dy(
-	struct libinput_event_pointer_motion *event);
+libinput_event_pointer_get_dy(
+	struct libinput_event_pointer *event);
 
 /**
- * @defgroup event_pointer_motion_absolute Absolute pointer motion event
+ * @defgroup event_pointer_absolute Absolute pointer motion event
  */
 
-uint32_t
-libinput_event_pointer_motion_absolute_get_time(
-	struct libinput_event_pointer_motion *event);
+li_fixed_t
+libinput_event_pointer_get_absolute_x(
+	struct libinput_event_pointer *event);
 
 li_fixed_t
-libinput_event_pointer_motion_absolute_get_x(
-	struct libinput_event_pointer_motion *event);
-
-li_fixed_t
-libinput_event_pointer_motion_absolute_get_y(
-	struct libinput_event_pointer_motion *event);
+libinput_event_pointer_get_absolute_y(
+	struct libinput_event_pointer *event);
 
 /**
  * @defgroup event_pointer_button Pointer button event
  */
 
 uint32_t
-libinput_event_pointer_button_get_time(
-	struct libinput_event_pointer_button *event);
-
-uint32_t
-libinput_event_pointer_button_get_button(
-	struct libinput_event_pointer_button *event);
+libinput_event_pointer_get_button(
+	struct libinput_event_pointer *event);
 
 enum libinput_pointer_button_state
-libinput_event_pointer_button_get_state(
-	struct libinput_event_pointer_button *event);
+libinput_event_pointer_get_button_state(
+	struct libinput_event_pointer *event);
 
 /**
  * @defgroup event_pointer_axis Pointer axis event
  */
 
-uint32_t
-libinput_event_pointer_axis_get_time(
-	struct libinput_event_pointer_axis *event);
-
 enum libinput_pointer_axis
-libinput_event_pointer_axis_get_axis(
-	struct libinput_event_pointer_axis *event);
+libinput_event_pointer_get_axis(
+	struct libinput_event_pointer *event);
 
 li_fixed_t
-libinput_event_pointer_axis_get_value(
-	struct libinput_event_pointer_axis *event);
+libinput_event_pointer_get_axis_value(
+	struct libinput_event_pointer *event);
 
 /**
  * @defgroup event_pointer_button Pointer button event

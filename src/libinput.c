@@ -82,23 +82,25 @@ struct libinput_event_keyboard {
 	enum libinput_keyboard_key_state state;
 };
 
-struct libinput_event_pointer_motion {
+struct libinput_event_pointer {
 	struct libinput_event base;
 	uint32_t time;
+};
+
+struct libinput_event_pointer_motion {
+	struct libinput_event_pointer base;
 	li_fixed_t x;
 	li_fixed_t y;
 };
 
 struct libinput_event_pointer_button {
-	struct libinput_event base;
-	uint32_t time;
+	struct libinput_event_pointer base;
 	uint32_t button;
 	enum libinput_pointer_button_state state;
 };
 
 struct libinput_event_pointer_axis {
-	struct libinput_event base;
-	uint32_t time;
+	struct libinput_event_pointer base;
 	enum libinput_pointer_axis axis;
 	li_fixed_t value;
 };
@@ -215,87 +217,82 @@ libinput_event_keyboard_get_key_state(
 }
 
 LIBINPUT_EXPORT uint32_t
-libinput_event_pointer_motion_get_time(
-	struct libinput_event_pointer_motion *event)
+libinput_event_pointer_get_time(
+	struct libinput_event_pointer *event)
 {
 	return event->time;
 }
 
 LIBINPUT_EXPORT li_fixed_t
-libinput_event_pointer_motion_get_dx(
-	struct libinput_event_pointer_motion *event)
+libinput_event_pointer_get_dx(
+	struct libinput_event_pointer *event)
 {
-	return event->x;
+	struct libinput_event_pointer_motion *ptrev;
+	ptrev = container_of(event, ptrev, base);
+	return ptrev->x;
 }
 
 LIBINPUT_EXPORT li_fixed_t
-libinput_event_pointer_motion_get_dy(
-	struct libinput_event_pointer_motion *event)
+libinput_event_pointer_get_dy(
+	struct libinput_event_pointer *event)
 {
-	return event->y;
-}
-
-LIBINPUT_EXPORT uint32_t
-libinput_event_pointer_motion_absolute_get_time(
-	struct libinput_event_pointer_motion *event)
-{
-	return event->time;
+	struct libinput_event_pointer_motion *ptrev;
+	ptrev = container_of(event, ptrev, base);
+	return ptrev->y;
 }
 
 LIBINPUT_EXPORT li_fixed_t
-libinput_event_pointer_motion_absolute_get_x(
-	struct libinput_event_pointer_motion *event)
+libinput_event_pointer_get_absolute_x(
+	struct libinput_event_pointer *event)
 {
-	return event->x;
+	struct libinput_event_pointer_motion *ptrev;
+	ptrev = container_of(event, ptrev, base);
+	return ptrev->x;
 }
 
 LIBINPUT_EXPORT li_fixed_t
-libinput_event_pointer_motion_absolute_get_y(
-	struct libinput_event_pointer_motion *event)
+libinput_event_pointer_get_absolute_y(
+	struct libinput_event_pointer *event)
 {
-	return event->y;
+	struct libinput_event_pointer_motion *ptrev;
+	ptrev = container_of(event, ptrev, base);
+	return ptrev->y;
 }
 
 LIBINPUT_EXPORT uint32_t
-libinput_event_pointer_button_get_time(
-	struct libinput_event_pointer_button *event)
+libinput_event_pointer_get_button(
+	struct libinput_event_pointer *event)
 {
-	return event->time;
-}
-
-LIBINPUT_EXPORT uint32_t
-libinput_event_pointer_button_get_button(
-	struct libinput_event_pointer_button *event)
-{
-	return event->button;
+	struct libinput_event_pointer_button *ptrev;
+	ptrev = container_of(event, ptrev, base);
+	return ptrev->button;
 }
 
 LIBINPUT_EXPORT enum libinput_pointer_button_state
-libinput_event_pointer_button_get_state(
-	struct libinput_event_pointer_button *event)
+libinput_event_pointer_get_button_state(
+	struct libinput_event_pointer *event)
 {
-	return event->state;
-}
-
-LIBINPUT_EXPORT uint32_t
-libinput_event_pointer_axis_get_time(
-	struct libinput_event_pointer_axis *event)
-{
-	return event->time;
+	struct libinput_event_pointer_button *ptrev;
+	ptrev = container_of(event, ptrev, base);
+	return ptrev->state;
 }
 
 LIBINPUT_EXPORT enum libinput_pointer_axis
-libinput_event_pointer_axis_get_axis(
-	struct libinput_event_pointer_axis *event)
+libinput_event_pointer_get_axis(
+	struct libinput_event_pointer *event)
 {
-	return event->axis;
+	struct libinput_event_pointer_axis *ptrev;
+	ptrev = container_of(event, ptrev, base);
+	return ptrev->axis;
 }
 
 LIBINPUT_EXPORT li_fixed_t
-libinput_event_pointer_axis_get_value(
-	struct libinput_event_pointer_axis *event)
+libinput_event_pointer_get_axis_value(
+	struct libinput_event_pointer *event)
 {
-	return event->value;
+	struct libinput_event_pointer_axis *ptrev;
+	ptrev = container_of(event, ptrev, base);
+	return ptrev->value;
 }
 
 LIBINPUT_EXPORT uint32_t
@@ -594,6 +591,16 @@ post_device_event(struct libinput_device *device,
 }
 
 static void
+post_pointer_event(struct libinput_device *device,
+		   enum libinput_event_type type,
+		   uint32_t time,
+		   struct libinput_event_pointer *event)
+{
+	event->time = time;
+	post_device_event(device, type, &event->base);
+}
+
+static void
 notify_seat(struct libinput_seat *seat,
 	    enum libinput_event_type which)
 {
@@ -727,14 +734,14 @@ pointer_notify_motion(struct libinput_device *device,
 		return;
 
 	*motion_event = (struct libinput_event_pointer_motion) {
-		.time = time,
 		.x = dx,
 		.y = dy,
 	};
 
-	post_device_event(device,
-			  LIBINPUT_EVENT_POINTER_MOTION,
-			  &motion_event->base);
+	post_pointer_event(device,
+			   LIBINPUT_EVENT_POINTER_MOTION,
+			   time,
+			   &motion_event->base);
 }
 
 void
@@ -750,14 +757,14 @@ pointer_notify_motion_absolute(struct libinput_device *device,
 		return;
 
 	*motion_absolute_event = (struct libinput_event_pointer_motion) {
-		.time = time,
 		.x = x,
 		.y = y,
 	};
 
-	post_device_event(device,
-			  LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE,
-			  &motion_absolute_event->base);
+	post_pointer_event(device,
+			   LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE,
+			   time,
+			   &motion_absolute_event->base);
 }
 
 void
@@ -773,14 +780,14 @@ pointer_notify_button(struct libinput_device *device,
 		return;
 
 	*button_event = (struct libinput_event_pointer_button) {
-		.time = time,
 		.button = button,
 		.state = state,
 	};
 
-	post_device_event(device,
-			  LIBINPUT_EVENT_POINTER_BUTTON,
-			  &button_event->base);
+	post_pointer_event(device,
+			   LIBINPUT_EVENT_POINTER_BUTTON,
+			   time,
+			   &button_event->base);
 }
 
 void
@@ -796,14 +803,14 @@ pointer_notify_axis(struct libinput_device *device,
 		return;
 
 	*axis_event = (struct libinput_event_pointer_axis) {
-		.time = time,
 		.axis = axis,
 		.value = value,
 	};
 
-	post_device_event(device,
-			  LIBINPUT_EVENT_POINTER_AXIS,
-			  &axis_event->base);
+	post_pointer_event(device,
+			   LIBINPUT_EVENT_POINTER_AXIS,
+			   time,
+			   &axis_event->base);
 }
 
 void
