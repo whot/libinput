@@ -75,7 +75,7 @@ struct libinput_event_device_notify_capability {
 	enum libinput_device_capability capability;
 };
 
-struct libinput_event_keyboard_key {
+struct libinput_event_keyboard {
 	struct libinput_event base;
 	uint32_t time;
 	uint32_t key;
@@ -194,22 +194,22 @@ libinput_event_device_notify_capability_get_capability(
 }
 
 LIBINPUT_EXPORT uint32_t
-libinput_event_keyboard_key_get_time(
-	struct libinput_event_keyboard_key *event)
+libinput_event_keyboard_get_time(
+	struct libinput_event_keyboard *event)
 {
 	return event->time;
 }
 
 LIBINPUT_EXPORT uint32_t
-libinput_event_keyboard_key_get_key(
-	struct libinput_event_keyboard_key *event)
+libinput_event_keyboard_get_key(
+	struct libinput_event_keyboard *event)
 {
 	return event->key;
 }
 
 LIBINPUT_EXPORT enum libinput_keyboard_key_state
-libinput_event_keyboard_key_get_state(
-	struct libinput_event_keyboard_key *event)
+libinput_event_keyboard_get_key_state(
+	struct libinput_event_keyboard *event)
 {
 	return event->state;
 }
@@ -697,13 +697,13 @@ keyboard_notify_key(struct libinput_device *device,
 		    uint32_t key,
 		    enum libinput_keyboard_key_state state)
 {
-	struct libinput_event_keyboard_key *key_event;
+	struct libinput_event_keyboard *key_event;
 
 	key_event = malloc(sizeof *key_event);
 	if (!key_event)
 		return;
 
-	*key_event = (struct libinput_event_keyboard_key) {
+	*key_event = (struct libinput_event_keyboard) {
 		.time = time,
 		.key = key,
 		.state = state,

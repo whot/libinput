@@ -149,7 +149,7 @@ struct libinput_event;
 struct libinput_event_seat_notify;
 struct libinput_event_device_notify;
 struct libinput_event_device_notify_capability;
-struct libinput_event_keyboard_key;
+struct libinput_event_keyboard;
 struct libinput_event_pointer_motion;
 struct libinput_event_pointer_button;
 struct libinput_event_pointer_axis;
@@ -273,16 +273,16 @@ libinput_event_device_notify_capability_get_capability(
  */
 
 uint32_t
-libinput_event_keyboard_key_get_time(
-	struct libinput_event_keyboard_key *event);
+libinput_event_keyboard_get_time(
+	struct libinput_event_keyboard *event);
 
 uint32_t
-libinput_event_keyboard_key_get_key(
-	struct libinput_event_keyboard_key *event);
+libinput_event_keyboard_get_key(
+	struct libinput_event_keyboard *event);
 
 enum libinput_keyboard_key_state
-libinput_event_keyboard_key_get_state(
-	struct libinput_event_keyboard_key *event);
+libinput_event_keyboard_get_key_state(
+	struct libinput_event_keyboard *event);
 
 /**
  * @defgroup event_pointer_motion Pointer motion event
