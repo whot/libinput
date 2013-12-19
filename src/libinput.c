@@ -167,13 +167,15 @@ libinput_event_get_seat(struct libinput_event *event)
 LIBINPUT_EXPORT struct libinput_device *
 libinput_event_get_device(struct libinput_event *event)
 {
+	struct libinput_device *device = NULL;
+
 	switch (event->type) {
 		case LIBINPUT_EVENT_SEAT_ADDED:
 		case LIBINPUT_EVENT_SEAT_REMOVED:
-			return NULL;
+			break;
 		case LIBINPUT_EVENT_DEVICE_ADDED:
 		case LIBINPUT_EVENT_DEVICE_REMOVED:
-			return ((struct libinput_event_device_notify*)event)->device;
+			device = ((struct libinput_event_device_notify*)event)->device;
 		case LIBINPUT_EVENT_DEVICE_REGISTER_CAPABILITY:
 		case LIBINPUT_EVENT_DEVICE_UNREGISTER_CAPABILITY:
 		case LIBINPUT_EVENT_KEYBOARD_KEY:
@@ -182,9 +184,13 @@ libinput_event_get_device(struct libinput_event *event)
 		case LIBINPUT_EVENT_POINTER_BUTTON:
 		case LIBINPUT_EVENT_POINTER_AXIS:
 		case LIBINPUT_EVENT_TOUCH_TOUCH:
-			return event->target.device;
+			device = event->target.device;
 	}
-	return NULL;
+
+	if (device)
+		libinput_device_ref(device);
+
+	return device;
 }
 
 LIBINPUT_EXPORT enum libinput_device_capability

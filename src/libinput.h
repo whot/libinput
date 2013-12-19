@@ -253,6 +253,9 @@ libinput_event_get_seat(struct libinput_event *event);
  * this is the device added or removed. For all other device events, this is
  * the device that generated the event.
  *
+ * The device returned is refcounted, use libinput_device_unref() to release
+ * the reference.
+ *
  * @return The device associated with this event
  */
 struct libinput_device*
