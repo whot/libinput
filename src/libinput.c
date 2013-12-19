@@ -60,12 +60,7 @@ struct libinput_event {
 	union libinput_event_target target;
 };
 
-struct libinput_event_added_seat {
-	struct libinput_event base;
-	struct libinput_seat *seat;
-};
-
-struct libinput_event_removed_seat {
+struct libinput_event_seat_notify {
 	struct libinput_event base;
 	struct libinput_seat *seat;
 };
@@ -151,7 +146,7 @@ libinput_event_get_seat(struct libinput_event *event)
 	switch (event->type) {
 		case LIBINPUT_EVENT_ADDED_SEAT:
 		case LIBINPUT_EVENT_REMOVED_SEAT:
-			return ((struct libinput_event_added_seat*)event)->seat;
+			return ((struct libinput_event_seat_notify*)event)->seat;
 		case LIBINPUT_EVENT_ADDED_DEVICE:
 		case LIBINPUT_EVENT_REMOVED_DEVICE:
 			return ((struct libinput_event_added_device*)event)->device->seat;
@@ -602,13 +597,13 @@ post_device_event(struct libinput_device *device,
 void
 notify_added_seat(struct libinput_seat *seat)
 {
-	struct libinput_event_added_seat *added_seat_event;
+	struct libinput_event_seat_notify *added_seat_event;
 
 	added_seat_event = malloc(sizeof *added_seat_event);
 	if (!added_seat_event)
 		return;
 
-	*added_seat_event = (struct libinput_event_added_seat) {
+	*added_seat_event = (struct libinput_event_seat_notify) {
 		.seat = seat,
 	};
 
@@ -620,13 +615,13 @@ notify_added_seat(struct libinput_seat *seat)
 void
 notify_removed_seat(struct libinput_seat *seat)
 {
-	struct libinput_event_removed_seat *removed_seat_event;
+	struct libinput_event_seat_notify *removed_seat_event;
 
 	removed_seat_event = malloc(sizeof *removed_seat_event);
 	if (!removed_seat_event)
 		return;
 
-	*removed_seat_event = (struct libinput_event_removed_seat) {
+	*removed_seat_event = (struct libinput_event_seat_notify) {
 		.seat = seat,
 	};
 
