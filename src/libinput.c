@@ -1000,6 +1000,26 @@ touch_notify_touch(struct libinput_device *device,
 			  &touch_event->base);
 }
 
+void
+touch_notify_frame(struct libinput_device *device,
+		   uint32_t time)
+{
+	struct libinput_event_touch *touch_event;
+
+	touch_event = malloc(sizeof *touch_event);
+	if (!touch_event)
+		return;
+
+	*touch_event = (struct libinput_event_touch) {
+		.time = time,
+	};
+
+	post_device_event(device,
+			  LIBINPUT_EVENT_TOUCH_FRAME,
+			  &touch_event->base);
+}
+
+
 static void
 libinput_post_event(struct libinput *libinput,
 		    struct libinput_event *event)
