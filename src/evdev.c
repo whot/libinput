@@ -111,16 +111,16 @@ evdev_flush_pending_event(struct evdev_device *device, uint32_t time)
 		touch_notify_touch(base,
 				   time,
 				   slot,
-				   li_fixed_from_int(device->mt.slots[slot].x),
-				   li_fixed_from_int(device->mt.slots[slot].y),
+				   device->mt.slots[slot].x,
+				   device->mt.slots[slot].y,
 				   LIBINPUT_TOUCH_TYPE_DOWN);
 		goto handled;
 	case EVDEV_ABSOLUTE_MT_MOTION:
 		touch_notify_touch(base,
 				   time,
 				   slot,
-				   li_fixed_from_int(device->mt.slots[slot].x),
-				   li_fixed_from_int(device->mt.slots[slot].y),
+				   device->mt.slots[slot].x,
+				   device->mt.slots[slot].y,
 				   LIBINPUT_TOUCH_TYPE_MOTION);
 		goto handled;
 	case EVDEV_ABSOLUTE_MT_UP:
@@ -223,10 +223,11 @@ evdev_process_key(struct evdev_device *device, struct input_event *e, int time)
 	}
 }
 
-static inline int
+static inline li_fixed_t
 evdev_scale_axis(int value, int from_min, int from_max, int to_min, int to_max)
 {
-	return (value - from_min) * (to_max - to_min)/(from_max - from_min) + to_min;
+	return li_fixed_from_double(1.0 * (value - from_min) *
+				    (to_max - to_min)/(from_max - from_min) + to_min);
 }
 
 

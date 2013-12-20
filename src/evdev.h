@@ -79,7 +79,7 @@ struct evdev_device {
 	struct {
 		int slot;
 		struct {
-			int32_t x, y;
+			li_fixed_t x, y;
 		} slots[MAX_SLOTS];
 	} mt;
 	struct mtdev *mtdev;
