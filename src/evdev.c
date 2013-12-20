@@ -69,6 +69,25 @@ evdev_device_led_update(struct evdev_device *device, enum libinput_led leds)
 }
 
 static void
+transform_absolute_mt(struct evdev_device *device, int slot, li_fixed_t *x, li_fixed_t *y)
+{
+	if (!device->abs.apply_calibration) {
+		*x = device->mt.slots[slot].x;
+		*y = device->mt.slots[slot].y;
+		return;
+	} else {
+		double cx = li_fixed_to_double(device->mt.slots[slot].x) * device->abs.calibration[0] +
+			    device->abs.y * device->abs.calibration[1] +
+			    device->abs.calibration[2];
+		double cy = li_fixed_to_double(device->mt.slots[slot].y) * device->abs.calibration[0] +
+			    device->abs.y * device->abs.calibration[1] +
+			    device->abs.calibration[2];
+		*x = li_fixed_from_double(cx);
+		*y = li_fixed_from_double(cy);
+	}
+}
+
+static void
 transform_absolute(struct evdev_device *device, li_fixed_t *x, li_fixed_t *y)
 {
 	if (!device->abs.apply_calibration) {
@@ -108,19 +127,21 @@ evdev_flush_pending_event(struct evdev_device *device, uint32_t time)
 		device->rel.dy = 0;
 		goto handled;
 	case EVDEV_ABSOLUTE_MT_DOWN:
+		transform_absolute_mt(device, slot, &cx, &cy);
 		touch_notify_touch(base,
 				   time,
 				   slot,
-				   device->mt.slots[slot].x,
-				   device->mt.slots[slot].y,
+				   cx,
+				   cy,
 				   LIBINPUT_TOUCH_TYPE_DOWN);
 		goto handled;
 	case EVDEV_ABSOLUTE_MT_MOTION:
+		transform_absolute_mt(device, slot, &cx, &cy);
 		touch_notify_touch(base,
 				   time,
 				   slot,
-				   device->mt.slots[slot].x,
-				   device->mt.slots[slot].y,
+				   cx,
+				   cy,
 				   LIBINPUT_TOUCH_TYPE_MOTION);
 		goto handled;
 	case EVDEV_ABSOLUTE_MT_UP:
