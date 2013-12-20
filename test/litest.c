@@ -42,6 +42,7 @@
 #include "litest.h"
 #include "litest-int.h"
 #include "litest-synaptics.h"
+#include "litest-bcm5974.h"
 #include "litest-keyboard.h"
 #include "litest-trackpoint.h"
 #include "libinput-util.h"
@@ -94,6 +95,14 @@ struct device {
 		.setup = litest_synaptics_clickpad_setup,
 		.teardown = generic_device_teardown,
 		.create = litest_create_synaptics_clickpad,
+	},
+	{
+		.type = LITEST_BCM5974,
+		.features = LITEST_TOUCHPAD | LITEST_CLICKPAD | LITEST_BUTTON,
+		.shortname = "bcm5974",
+		.setup = litest_bcm5974_setup,
+		.teardown = generic_device_teardown,
+		.create = litest_create_bcm5974,
 	},
 	{
 		.type = LITEST_KEYBOARD,
