@@ -152,4 +152,7 @@ touch_notify_touch(struct libinput_device *device,
 		   li_fixed_t y,
 		   enum libinput_touch_type touch_type);
 
+void
+touch_notify_frame(struct libinput_device *device,
+		   uint32_t time);
 #endif /* LIBINPUT_PRIVATE_H */
