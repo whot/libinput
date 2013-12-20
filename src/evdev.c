@@ -222,6 +222,13 @@ evdev_process_key(struct evdev_device *device, struct input_event *e, int time)
 	}
 }
 
+static inline int
+evdev_scale_axis(int value, int from_min, int from_max, int to_min, int to_max)
+{
+	return (value - from_min) * (to_max - to_min)/(from_max - from_min) + to_min;
+}
+
+
 static void
 evdev_process_touch(struct evdev_device *device,
 		    struct input_event *e,
@@ -253,15 +260,19 @@ evdev_process_touch(struct evdev_device *device,
 		break;
 	case ABS_MT_POSITION_X:
 		device->mt.slots[device->mt.slot].x =
-			(e->value - device->abs.min_x) * screen_width /
-			(device->abs.max_x - device->abs.min_x);
+			evdev_scale_axis(e->value,
+					 device->abs.min_x,
+					 device->abs.max_x,
+					 0, screen_width);
 		if (device->pending_event == EVDEV_NONE)
 			device->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
 		break;
 	case ABS_MT_POSITION_Y:
 		device->mt.slots[device->mt.slot].y =
-			(e->value - device->abs.min_y) * screen_height /
-			(device->abs.max_y - device->abs.min_y);
+			evdev_scale_axis(e->value,
+					 device->abs.min_y,
+					 device->abs.max_y,
+					 0, screen_height);
 		if (device->pending_event == EVDEV_NONE)
 			device->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
 		break;
@@ -285,15 +296,19 @@ evdev_process_absolute_motion(struct evdev_device *device,
 	switch (e->code) {
 	case ABS_X:
 		device->abs.x =
-			(e->value - device->abs.min_x) * screen_width /
-			(device->abs.max_x - device->abs.min_x);
+			evdev_scale_axis(e->value,
+					 device->abs.min_x,
+					 device->abs.max_x,
+					 0, screen_width);
 		if (device->pending_event == EVDEV_NONE)
 			device->pending_event = EVDEV_ABSOLUTE_MOTION;
 		break;
 	case ABS_Y:
 		device->abs.y =
-			(e->value - device->abs.min_y) * screen_height /
-			(device->abs.max_y - device->abs.min_y);
+			evdev_scale_axis(e->value,
+					 device->abs.min_y,
+					 device->abs.max_y,
+					 0, screen_height);
 		if (device->pending_event == EVDEV_NONE)
 			device->pending_event = EVDEV_ABSOLUTE_MOTION;
 		break;
