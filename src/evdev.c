@@ -368,12 +368,36 @@ evdev_process_absolute(struct evdev_device *device,
 	}
 }
 
+static inline int
+evdev_need_touch_frame(struct evdev_device *device)
+{
+	switch (device->pending_event) {
+	case EVDEV_NONE:
+	case EVDEV_RELATIVE_MOTION:
+		break;
+	case EVDEV_ABSOLUTE_MT_DOWN:
+	case EVDEV_ABSOLUTE_MT_MOTION:
+	case EVDEV_ABSOLUTE_MT_UP:
+	case EVDEV_ABSOLUTE_TOUCH_DOWN:
+	case EVDEV_ABSOLUTE_TOUCH_UP:
+		return 1;
+	case EVDEV_ABSOLUTE_MOTION:
+		if (device->seat_caps & EVDEV_DEVICE_TOUCH)
+			return 1;
+		break;
+	}
+
+	return 0;
+}
+
 static void
 fallback_process(struct evdev_dispatch *dispatch,
 		 struct evdev_device *device,
 		 struct input_event *event,
 		 uint32_t time)
 {
+	int need_frame = 0;
+
 	switch (event->type) {
 	case EV_REL:
 		evdev_process_relative(device, event, time);
@@ -385,7 +409,10 @@ fallback_process(struct evdev_dispatch *dispatch,
 		evdev_process_key(device, event, time);
 		break;
 	case EV_SYN:
+		need_frame = evdev_need_touch_frame(device);
 		evdev_flush_pending_event(device, time);
+		if (need_frame)
+			touch_notify_frame(&device->base, time);
 		break;
 	}
 }

@@ -123,6 +123,7 @@ libinput_event_get_pointer_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_AXIS:
 		return (struct libinput_event_pointer*)event;
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		break;
 	}
 
@@ -145,6 +146,7 @@ libinput_event_get_keyboard_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		break;
 	}
 
@@ -166,6 +168,7 @@ libinput_event_get_touch_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_AXIS:
 		break;
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		return (struct libinput_event_touch*)event;
 	}
 
@@ -187,6 +190,7 @@ libinput_event_get_device_notify_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		break;
 	}
 
@@ -445,6 +449,7 @@ libinput_event_get_class(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		return LIBINPUT_EVENT_CLASS_DEVICE;
 	}
 
@@ -815,6 +820,26 @@ touch_notify_touch(struct libinput_device *device,
 			  LIBINPUT_EVENT_TOUCH_TOUCH,
 			  &touch_event->base);
 }
+
+void
+touch_notify_frame(struct libinput_device *device,
+		   uint32_t time)
+{
+	struct libinput_event_touch *touch_event;
+
+	touch_event = malloc(sizeof *touch_event);
+	if (!touch_event)
+		return;
+
+	*touch_event = (struct libinput_event_touch) {
+		.time = time,
+	};
+
+	post_device_event(device,
+			  LIBINPUT_EVENT_TOUCH_FRAME,
+			  &touch_event->base);
+}
+
 
 static void
 libinput_post_event(struct libinput *libinput,
