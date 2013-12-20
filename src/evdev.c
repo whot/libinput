@@ -69,27 +69,28 @@ evdev_device_led_update(struct evdev_device *device, enum libinput_led leds)
 }
 
 static void
-transform_absolute(struct evdev_device *device, int32_t *x, int32_t *y)
+transform_absolute(struct evdev_device *device, li_fixed_t *x, li_fixed_t *y)
 {
 	if (!device->abs.apply_calibration) {
 		*x = device->abs.x;
 		*y = device->abs.y;
 		return;
 	} else {
-		*x = device->abs.x * device->abs.calibration[0] +
-			device->abs.y * device->abs.calibration[1] +
-			device->abs.calibration[2];
-
-		*y = device->abs.x * device->abs.calibration[3] +
-			device->abs.y * device->abs.calibration[4] +
-			device->abs.calibration[5];
+		double cx = li_fixed_to_double(device->abs.x) * device->abs.calibration[0] +
+			    device->abs.y * device->abs.calibration[1] +
+			    device->abs.calibration[2];
+		double cy = li_fixed_to_double(device->abs.y) * device->abs.calibration[0] +
+			    device->abs.y * device->abs.calibration[1] +
+			    device->abs.calibration[2];
+		*x = li_fixed_from_double(cx);
+		*y = li_fixed_from_double(cy);
 	}
 }
 
 static void
 evdev_flush_pending_event(struct evdev_device *device, uint32_t time)
 {
-	int32_t cx, cy;
+	li_fixed_t cx, cy;
 	int slot;
 	struct libinput_device *base = &device->base;
 
@@ -134,8 +135,8 @@ evdev_flush_pending_event(struct evdev_device *device, uint32_t time)
 		touch_notify_touch(base,
 				   time,
 				   slot,
-				   li_fixed_from_int(cx),
-				   li_fixed_from_int(cy),
+				   cx,
+				   cy,
 				   LIBINPUT_TOUCH_TYPE_DOWN);
 		goto handled;
 	case EVDEV_ABSOLUTE_MOTION:
@@ -144,14 +145,14 @@ evdev_flush_pending_event(struct evdev_device *device, uint32_t time)
 			touch_notify_touch(base,
 					   time,
 					   slot,
-					   li_fixed_from_int(cx),
-					   li_fixed_from_int(cy),
+					   cx,
+					   cy,
 					   LIBINPUT_TOUCH_TYPE_DOWN);
 		} else {
 			pointer_notify_motion_absolute(base,
 						       time,
-						       li_fixed_from_int(cx),
-						       li_fixed_from_int(cy));
+						       cx,
+						       cy);
 		}
 		goto handled;
 	case EVDEV_ABSOLUTE_TOUCH_UP:
