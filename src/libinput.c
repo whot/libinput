@@ -135,6 +135,7 @@ libinput_event_get_seat(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		return event->target.device->seat;
 	}
 
@@ -156,6 +157,7 @@ libinput_event_get_device(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		return event->target.device;
 	}
 	abort();
@@ -177,6 +179,7 @@ libinput_event_get_pointer_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_AXIS:
 		return (struct libinput_event_pointer*)event;
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		break;
 	}
 
@@ -199,6 +202,7 @@ libinput_event_get_keyboard_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		break;
 	}
 
@@ -220,6 +224,7 @@ libinput_event_get_touch_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_AXIS:
 		break;
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		return (struct libinput_event_touch*)event;
 	}
 
@@ -241,6 +246,7 @@ libinput_event_get_device_notify_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		break;
 	}
 
@@ -515,6 +521,7 @@ libinput_event_get_class(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		return LIBINPUT_EVENT_CLASS_DEVICE;
 	}
 

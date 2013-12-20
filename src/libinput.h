@@ -105,15 +105,11 @@ enum libinput_pointer_axis {
  * sequence down, motion, up, with the number of motion events being zero or
  * greater. If a touch point was used for gesture interpretation internally
  * and will not generate any further events, the touchpoint is cancelled.
- *
- * A frame event is set after a set of touchpoints that constitute one
- * logical set of points at a sampling point.
  */
 enum libinput_touch_type {
 	LIBINPUT_TOUCH_TYPE_DOWN = 0,
 	LIBINPUT_TOUCH_TYPE_UP = 1,
 	LIBINPUT_TOUCH_TYPE_MOTION = 2,
-	LIBINPUT_TOUCH_TYPE_FRAME = 3,
 	LIBINPUT_TOUCH_TYPE_CANCEL = 4
 };
 
@@ -134,7 +130,12 @@ enum libinput_event_type {
 	LIBINPUT_EVENT_POINTER_BUTTON,
 	LIBINPUT_EVENT_POINTER_AXIS,
 
-	LIBINPUT_EVENT_TOUCH_TOUCH = 500
+	LIBINPUT_EVENT_TOUCH_TOUCH = 500,
+	/**
+	 * Signals the end of a set of touchpoints at one device sample
+	 * time. This event has no coordinate information attached.
+	 */
+	LIBINPUT_EVENT_TOUCH_FRAME
 };
 
 struct libinput;
@@ -145,6 +146,15 @@ struct libinput_event;
 struct libinput_event_device_notify;
 struct libinput_event_keyboard;
 struct libinput_event_pointer;
+
+/**
+ * @ingroup event_touch
+ * @struct libinput_event_touch
+ *
+ * Touch event representing a touch down, move or up, as well as a touch
+ * cancel and touch frame events. Valid event types for this event are @ref
+ * LIBINPUT_EVENT_TOUCH_TOUCH and @ref LIBINPUT_EVENT_TOUCH_FRAME.
+ */
 struct libinput_event_touch;
 
 /**
@@ -505,6 +515,8 @@ libinput_event_touch_get_time(
  * Get the currently active slot on this device. See the kernel's multitouch
  * protocol B documentation for more information.
  *
+ * @note this function should not be called for LIBINPUT_EVENT_TOUCH_FRAME.
+ *
  * @return The currently active slot on this multitouch device
  */
 uint32_t
@@ -513,6 +525,8 @@ libinput_event_touch_get_slot(
 
 /**
  * @ingroup event_touch
+ *
+ * @note this function should not be called for LIBINPUT_EVENT_TOUCH_FRAME.
  *
  * @return the absolute X coordinate on this touch device, in device coordinates.
  */
@@ -523,6 +537,8 @@ libinput_event_touch_get_x(
 /**
  * @ingroup event_touch
  *
+ * @note this function should not be called for LIBINPUT_EVENT_TOUCH_FRAME.
+ *
  * @return the absolute X coordinate on this touch device, in device coordinates.
  */
 li_fixed_t
@@ -531,6 +547,8 @@ libinput_event_touch_get_y(
 
 /**
  * @ingroup event_touch
+ *
+ * @note this function should not be called for LIBINPUT_EVENT_TOUCH_FRAME.
  *
  * @return the type of touch that occured on the device
  */
