@@ -88,10 +88,10 @@ START_TEST(path_seat_added)
 	ck_assert(event != NULL);
 
 	type = libinput_event_get_type(event);
-	ck_assert_int_eq(type, LIBINPUT_EVENT_SEAT_ADDED);
+	ck_assert_int_eq(type, LIBINPUT_EVENT_ADDED_SEAT);
 
-	seat_event = (struct libinput_event_seat_added*)event;
-	seat = libinput_event_seat_added_get_seat(seat_event);
+	seat_event = (struct libinput_event_added_seat*)event;
+	seat = libinput_event_added_seat_get_seat(seat_event);
 	ck_assert(seat != NULL);
 
 	seat_name = libinput_seat_get_name(seat);
@@ -116,8 +116,8 @@ START_TEST(path_device_added)
 		enum libinput_event_type type;
 		type = libinput_event_get_type(event);
 
-		if (type == LIBINPUT_EVENT_DEVICE_ADDED) {
-			device_event = (struct libinput_event_device_added*)event;
+		if (type == LIBINPUT_EVENT_ADDED_DEVICE) {
+			device_event = (struct libinput_event_added_device*)event;
 			break;;
 		}
 
@@ -126,7 +126,7 @@ START_TEST(path_device_added)
 
 	ck_assert(device_event != NULL);
 
-	device = libinput_event_device_added_get_device(device_event);
+	device = libinput_event_added_device_get_device(device_event);
 	ck_assert(device != NULL);
 
 	libinput_event_destroy(event);
@@ -136,10 +136,10 @@ END_TEST
 
 int main (int argc, char **argv) {
 
-	litest_add("path:create", path_create_NULL, LITEST_NO_DEVICE);
-	litest_add("path:create", path_create_invalid, LITEST_NO_DEVICE);
-	litest_add("path:seat events", path_seat_added, LITEST_SYNAPTICS_CLICKPAD);
-	litest_add("path:device events", path_device_added, LITEST_SYNAPTICS_CLICKPAD);
+	litest_add("path:create", path_create_NULL, LITEST_ANY, LITEST_ANY);
+	litest_add("path:create", path_create_invalid, LITEST_ANY, LITEST_ANY);
+	litest_add("path:seat events", path_seat_added, LITEST_ANY, LITEST_ANY);
+	litest_add("path:device events", path_device_added, LITEST_ANY, LITEST_ANY);
 
 	return litest_run(argc, argv);
 }

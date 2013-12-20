@@ -131,12 +131,12 @@ END_TEST
  * This test only works if there's at least one device in the system that is
  * assigned the default seat. Should cover the 99% case.
  */
-START_TEST(udev_seat_added_default)
+START_TEST(udev_added_seat_default)
 {
 	struct libinput *li;
 	struct libinput_event *event;
 	struct udev *udev;
-	struct libinput_event_seat_added *seat_event;
+	struct libinput_event_added_seat *seat_event;
 	struct libinput_seat *seat;
 	const char *seat_name;
 	enum libinput_event_type type;
@@ -151,13 +151,13 @@ START_TEST(udev_seat_added_default)
 
 	while (!default_seat_found && (event = libinput_get_event(li))) {
 		type = libinput_event_get_type(event);
-		if (type != LIBINPUT_EVENT_SEAT_ADDED) {
+		if (type != LIBINPUT_EVENT_ADDED_SEAT) {
 			libinput_event_destroy(event);
 			continue;
 		}
 
-		seat_event = (struct libinput_event_seat_added*)event;
-		seat = libinput_event_seat_added_get_seat(seat_event);
+		seat_event = (struct libinput_event_added_seat*)event;
+		seat = libinput_event_added_seat_get_seat(seat_event);
 		ck_assert(seat != NULL);
 
 		seat_name = libinput_seat_get_name(seat);
@@ -173,7 +173,7 @@ START_TEST(udev_seat_added_default)
 }
 END_TEST
 
-START_TEST(udev_seat_removed)
+START_TEST(udev_removed_seat)
 {
 	struct libinput *li;
 	struct libinput_event *event;
@@ -191,18 +191,18 @@ START_TEST(udev_seat_removed)
 
 	while ((event = libinput_get_event(li))) {
 		enum libinput_event_type type;
-		struct libinput_event_seat_added *seat_event;
+		struct libinput_event_added_seat *seat_event;
 		struct libinput_seat *seat;
 		const char *seat_name;
 
 		type = libinput_event_get_type(event);
-		if (type != LIBINPUT_EVENT_SEAT_ADDED) {
+		if (type != LIBINPUT_EVENT_ADDED_SEAT) {
 			libinput_event_destroy(event);
 			continue;
 		}
 
-		seat_event = (struct libinput_event_seat_added*)event;
-		seat = libinput_event_seat_added_get_seat(seat_event);
+		seat_event = (struct libinput_event_added_seat*)event;
+		seat = libinput_event_added_seat_get_seat(seat_event);
 		ck_assert(seat != NULL);
 
 		seat_name = libinput_seat_get_name(seat);
@@ -217,16 +217,16 @@ START_TEST(udev_seat_removed)
 
 	while ((event = libinput_get_event(li))) {
 		enum libinput_event_type type;
-		struct libinput_event_seat_removed *seat_event;
+		struct libinput_event_removed_seat *seat_event;
 		struct libinput_seat *seat;
 		const char *seat_name;
 		int i;
 
 		type = libinput_event_get_type(event);
-		ck_assert_int_eq(type, LIBINPUT_EVENT_SEAT_REMOVED);
+		ck_assert_int_eq(type, LIBINPUT_EVENT_REMOVED_SEAT);
 
-		seat_event = (struct libinput_event_seat_removed*)event;
-		seat = libinput_event_seat_removed_get_seat(seat_event);
+		seat_event = (struct libinput_event_removed_seat*)event;
+		seat = libinput_event_removed_seat_get_seat(seat_event);
 		ck_assert(seat != NULL);
 
 		seat_name = libinput_seat_get_name(seat);
@@ -256,12 +256,12 @@ END_TEST
 
 int main (int argc, char **argv) {
 
-	litest_add("udev:create", udev_create_NULL, LITEST_NO_DEVICE);
-	litest_add("udev:create", udev_create_seat0, LITEST_NO_DEVICE);
-	litest_add("udev:create", udev_create_seat9, LITEST_NO_DEVICE);
+	litest_add("udev:create", udev_create_NULL, LITEST_ANY, LITEST_ANY);
+	litest_add("udev:create", udev_create_seat0, LITEST_ANY, LITEST_ANY);
+	litest_add("udev:create", udev_create_seat9, LITEST_ANY, LITEST_ANY);
 
-	litest_add("udev:seat events", udev_seat_added_default, LITEST_NO_DEVICE);
-	litest_add("udev:seat events", udev_seat_removed, LITEST_NO_DEVICE);
+	litest_add("udev:seat events", udev_added_seat_default, LITEST_ANY, LITEST_ANY);
+	litest_add("udev:seat events", udev_removed_seat, LITEST_ANY, LITEST_ANY);
 
 	return litest_run(argc, argv);
 }

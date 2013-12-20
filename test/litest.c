@@ -80,6 +80,7 @@ static void generic_device_teardown(void)
 
 struct device {
        enum litest_device_type type;
+       enum litest_device_feature features;
        const char *shortname;
        void (*setup)(void); /* test fixture, used by check */
        void (*teardown)(void); /* test fixture, used by check */
@@ -88,6 +89,7 @@ struct device {
 } devices[] = {
 	{
 		.type = LITEST_SYNAPTICS_CLICKPAD,
+		.features = LITEST_TOUCHPAD | LITEST_CLICKPAD | LITEST_BUTTON,
 		.shortname = "synaptics",
 		.setup = litest_synaptics_clickpad_setup,
 		.teardown = generic_device_teardown,
@@ -95,6 +97,7 @@ struct device {
 	},
 	{
 		.type = LITEST_KEYBOARD,
+		.features = LITEST_KEYBOARD,
 		.shortname = "default keyboard",
 		.setup = litest_keyboard_setup,
 		.teardown = generic_device_teardown,
@@ -102,34 +105,22 @@ struct device {
 	},
 	{
 		.type = LITEST_TRACKPOINT,
+		.features = LITEST_POINTER | LITEST_BUTTON,
 		.shortname = "trackpoint",
 		.setup = litest_trackpoint_setup,
 		.teardown = generic_device_teardown,
 		.create = litest_create_trackpoint,
 	},
-	{ LITEST_NO_DEVICE, "no device", NULL, NULL },
+	{ LITEST_NO_DEVICE, LITEST_ANY, "no device", NULL, NULL },
 };
 
 
 static struct list all_tests;
 
-const struct device*
-lookup_device(enum litest_device_type type)
-{
-	struct device *d = devices;
-	while (d->type != LITEST_NO_DEVICE) {
-		if (d->type == type)
-			return d;
-		d++;
-	}
-	return d;
-}
-
 static void
-litest_add_tcase_for_device(struct suite *suite, void *func, enum litest_device_type device)
+litest_add_tcase_for_device(struct suite *suite, void *func, const struct device *dev)
 {
 	struct test *t;
-	const struct device *dev = lookup_device(device);
 	const char *test_name = dev->shortname;
 
 	list_for_each(t, &suite->tests, node) {
@@ -144,28 +135,36 @@ litest_add_tcase_for_device(struct suite *suite, void *func, enum litest_device_
 	t->name = strdup(test_name);
 	t->tc = tcase_create(test_name);
 	list_insert(&suite->tests, &t->node);
-	if (device != LITEST_NO_DEVICE)
-		tcase_add_checked_fixture(t->tc, dev->setup, dev->teardown);
+	tcase_add_checked_fixture(t->tc, dev->setup, dev->teardown);
 	tcase_add_test(t->tc, func);
 	suite_add_tcase(suite->suite, t->tc);
 }
 
 static void
-litest_add_tcase(struct suite *suite, void *func, enum litest_device_type devices)
+litest_add_tcase(struct suite *suite, void *func,
+		 enum litest_device_feature required,
+		 enum litest_device_feature excluded)
 {
-	if (devices != LITEST_NO_DEVICE) {
-		enum litest_device_type mask = LITEST_SYNAPTICS_CLICKPAD;
-		while (mask <= devices) {
-			if (devices & mask)
-				litest_add_tcase_for_device(suite, func, mask);
-			mask <<= 1;
+	const struct device *dev = devices;
+	if (required != LITEST_ANY || excluded != LITEST_ANY) {
+		while (dev->features != 0) {
+			if ((dev->features & required) == required &&
+			    (dev->features & excluded) == 0)
+				litest_add_tcase_for_device(suite, func, dev);
+			dev++;
 		}
-	} else
-		litest_add_tcase_for_device(suite, func, LITEST_NO_DEVICE);
+	} else {
+		while (dev->type != LITEST_NO_DEVICE) {
+			litest_add_tcase_for_device(suite, func, dev);
+			dev++;
+		}
+	}
 }
 
 void
-litest_add(const char *name, void *func, enum litest_device_type devices)
+litest_add(const char *name, void *func,
+	   enum litest_device_feature required,
+	   enum litest_device_feature excluded)
 {
 	struct suite *s;
 
@@ -174,7 +173,7 @@ litest_add(const char *name, void *func, enum litest_device_type devices)
 
 	list_for_each(s, &all_tests, node) {
 		if (strcmp(s->name, name) == 0) {
-			litest_add_tcase(s, func, devices);
+			litest_add_tcase(s, func, required, excluded);
 			return;
 		}
 	}
@@ -185,7 +184,7 @@ litest_add(const char *name, void *func, enum litest_device_type devices)
 
 	list_init(&s->tests);
 	list_insert(&all_tests, &s->node);
-	litest_add_tcase(s, func, devices);
+	litest_add_tcase(s, func, required, excluded);
 }
 
 int is_debugger_attached()
@@ -323,6 +322,7 @@ litest_create_device(enum litest_device_type which)
 			dev->create(d);
 			break;
 		}
+		dev++;
 	}
 
 	if (dev->type == LITEST_NO_DEVICE) {

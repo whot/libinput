@@ -34,15 +34,19 @@
 #include <libinput.h>
 
 enum litest_device_type {
-	LITEST_NO_DEVICE = 0,
-	LITEST_SYNAPTICS_CLICKPAD = (1 << 0),
-	LITEST_KEYBOARD = (1 << 1),
-	LITEST_TRACKPOINT = (1 << 2),
+	LITEST_NO_DEVICE,
+	LITEST_SYNAPTICS_CLICKPAD,
+	LITEST_KEYBOARD,
+	LITEST_TRACKPOINT,
+};
 
-	LITEST_ALL_TOUCHPADS = LITEST_SYNAPTICS_CLICKPAD,
-	LITEST_ALL_KEYBOARDS = LITEST_KEYBOARD,
-	LITEST_ALL_POINTERS = LITEST_TRACKPOINT,
-	LITEST_ALL_DEVICES = LITEST_ALL_TOUCHPADS|LITEST_ALL_KEYBOARDS|LITEST_ALL_POINTERS,
+enum litest_device_feature {
+	LITEST_ANY = 0,
+	LITEST_TOUCHPAD = 1 << 0,
+	LITEST_CLICKPAD = 1 << 1,
+	LITEST_BUTTON = 1 << 2,
+	LITEST_KEYS = 1 << 3,
+	LITEST_POINTER = 1 << 4,
 };
 
 struct litest_device {
@@ -52,7 +56,9 @@ struct litest_device {
 	struct litest_device_interface *interface;
 };
 
-void litest_add(const char *name, void *func, enum litest_device_type devices);
+void litest_add(const char *name, void *func,
+		enum litest_device_feature required_feature,
+		enum litest_device_feature excluded_feature);
 int litest_run(int argc, char **argv);
 struct litest_device * litest_create_device(enum litest_device_type which);
 struct litest_device *litest_current_device(void);
