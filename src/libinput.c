@@ -148,6 +148,7 @@ libinput_event_get_seat(struct libinput_event *event)
 		case LIBINPUT_EVENT_POINTER_MOTION:
 		case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 		case LIBINPUT_EVENT_POINTER_BUTTON:
+		case LIBINPUT_EVENT_POINTER_TAP:
 		case LIBINPUT_EVENT_POINTER_AXIS:
 		case LIBINPUT_EVENT_TOUCH_TOUCH:
 		case LIBINPUT_EVENT_TOUCH_FRAME:
@@ -178,6 +179,7 @@ libinput_event_get_device(struct libinput_event *event)
 		case LIBINPUT_EVENT_POINTER_MOTION:
 		case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 		case LIBINPUT_EVENT_POINTER_BUTTON:
+		case LIBINPUT_EVENT_POINTER_TAP:
 		case LIBINPUT_EVENT_POINTER_AXIS:
 		case LIBINPUT_EVENT_TOUCH_TOUCH:
 		case LIBINPUT_EVENT_TOUCH_FRAME:
@@ -205,6 +207,7 @@ libinput_event_get_pointer_event(struct libinput_event *event)
 		case LIBINPUT_EVENT_POINTER_MOTION:
 		case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 		case LIBINPUT_EVENT_POINTER_BUTTON:
+		case LIBINPUT_EVENT_POINTER_TAP:
 		case LIBINPUT_EVENT_POINTER_AXIS:
 			return (struct libinput_event_pointer*)event;
 		case LIBINPUT_EVENT_TOUCH_TOUCH:
@@ -231,6 +234,7 @@ libinput_event_get_keyboard_event(struct libinput_event *event)
 		case LIBINPUT_EVENT_POINTER_MOTION:
 		case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 		case LIBINPUT_EVENT_POINTER_BUTTON:
+		case LIBINPUT_EVENT_POINTER_TAP:
 		case LIBINPUT_EVENT_POINTER_AXIS:
 		case LIBINPUT_EVENT_TOUCH_TOUCH:
 		case LIBINPUT_EVENT_TOUCH_FRAME:
@@ -254,6 +258,7 @@ libinput_event_get_touch_event(struct libinput_event *event)
 		case LIBINPUT_EVENT_POINTER_MOTION:
 		case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 		case LIBINPUT_EVENT_POINTER_BUTTON:
+		case LIBINPUT_EVENT_POINTER_TAP:
 		case LIBINPUT_EVENT_POINTER_AXIS:
 			break;
 		case LIBINPUT_EVENT_TOUCH_TOUCH:
@@ -279,6 +284,7 @@ libinput_event_get_seat_notify_event(struct libinput_event *event)
 		case LIBINPUT_EVENT_POINTER_MOTION:
 		case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 		case LIBINPUT_EVENT_POINTER_BUTTON:
+		case LIBINPUT_EVENT_POINTER_TAP:
 		case LIBINPUT_EVENT_POINTER_AXIS:
 		case LIBINPUT_EVENT_TOUCH_TOUCH:
 		case LIBINPUT_EVENT_TOUCH_FRAME:
@@ -304,6 +310,7 @@ libinput_event_get_device_notify_event(struct libinput_event *event)
 		case LIBINPUT_EVENT_POINTER_MOTION:
 		case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 		case LIBINPUT_EVENT_POINTER_BUTTON:
+		case LIBINPUT_EVENT_POINTER_TAP:
 		case LIBINPUT_EVENT_POINTER_AXIS:
 		case LIBINPUT_EVENT_TOUCH_TOUCH:
 		case LIBINPUT_EVENT_TOUCH_FRAME:
@@ -337,6 +344,7 @@ libinput_event_get_device_capability_notify_event(struct libinput_event *event)
 		case LIBINPUT_EVENT_POINTER_MOTION:
 		case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 		case LIBINPUT_EVENT_POINTER_BUTTON:
+		case LIBINPUT_EVENT_POINTER_TAP:
 		case LIBINPUT_EVENT_POINTER_AXIS:
 		case LIBINPUT_EVENT_TOUCH_TOUCH:
 		case LIBINPUT_EVENT_TOUCH_FRAME:
@@ -575,6 +583,7 @@ libinput_event_get_class(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_MOTION:
 	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 	case LIBINPUT_EVENT_POINTER_BUTTON:
+	case LIBINPUT_EVENT_POINTER_TAP:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
 	case LIBINPUT_EVENT_TOUCH_FRAME:
@@ -946,6 +955,29 @@ pointer_notify_button(struct libinput_device *device,
 
 	post_pointer_event(device,
 			   LIBINPUT_EVENT_POINTER_BUTTON,
+			   time,
+			   &button_event->base);
+}
+
+void
+pointer_notify_tap(struct libinput_device *device,
+		      uint32_t time,
+		      int32_t nfingers,
+		      enum libinput_pointer_button_state state)
+{
+	struct libinput_event_pointer_button *button_event;
+
+	button_event = malloc(sizeof *button_event);
+	if (!button_event)
+		return;
+
+	*button_event = (struct libinput_event_pointer_button) {
+		.button = nfingers,
+		.state = state,
+	};
+
+	post_pointer_event(device,
+			   LIBINPUT_EVENT_POINTER_TAP,
 			   time,
 			   &button_event->base);
 }

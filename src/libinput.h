@@ -85,6 +85,16 @@ enum libinput_led {
 enum libinput_pointer_button_state {
 	LIBINPUT_POINTER_BUTTON_STATE_RELEASED = 0,
 	LIBINPUT_POINTER_BUTTON_STATE_PRESSED = 1,
+	/**
+	 * For API symmetry only, same value as @ref
+	 * LIBINPUT_POINTER_BUTTON_STATE_RELEASED
+	 */
+	LIBINPUT_POINTER_TAP_STATE_RELEASED = 0,
+	/**
+	 * For API symmetry only, same value as @ref
+	 * LIBINPUT_POINTER_BUTTON_STATE_PRESSED
+	 */
+	LIBINPUT_POINTER_TAP_STATE_PRESSED = 1,
 };
 
 
@@ -132,6 +142,7 @@ enum libinput_event_type {
 	LIBINPUT_EVENT_POINTER_MOTION = 400,
 	LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE,
 	LIBINPUT_EVENT_POINTER_BUTTON,
+	LIBINPUT_EVENT_POINTER_TAP,
 	LIBINPUT_EVENT_POINTER_AXIS,
 
 	LIBINPUT_EVENT_TOUCH_TOUCH = 500,
@@ -235,7 +246,8 @@ struct libinput_event_keyboard;
  * Pointer event representing movements, buttons and axis value changes.
  * Valid event types for this event are @ref LIBINPUT_EVENT_POINTER_MOTION,
  * @ref LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE, @ref
- * LIBINPUT_EVENT_POINTER_BUTTON and @ref LIBINPUT_EVENT_POINTER_AXIS.
+ * LIBINPUT_EVENT_POINTER_BUTTON, @ref LIBINPUT_EVENT_POINTER_TAP and @ref
+ * LIBINPUT_EVENT_POINTER_AXIS.
  */
 struct libinput_event_pointer;
 
@@ -556,13 +568,19 @@ libinput_event_pointer_get_absolute_y(
  * @ingroup event_pointer
  *
  * Return the button that triggered this event.
- * For pointer events that are not of type LIBINPUT_EVENT_POINTER_BUTTON,
- * this function returns 0.
+ * For pointer events that are not of type LIBINPUT_EVENT_POINTER_BUTTON or
+ * LIBINPUT_EVENT_POINTER_TAP, this function returns 0.
+ *
+ * For events of type @ref LIBINPUT_EVENT_POINTER_BUTTON, this function
+ * returns the button code as defined in linux/input.h (e.g. BTN_LEFT).
+ *
+ * For events of type @ref LIBINPUT_EVENT_POINTER_TAP, this function returns
+ * the number of fingers causing the tap event.
  *
  * @note It is an application bug to call this function for events other than
- * LIBINPUT_EVENT_POINTER_BUTTON.
+ * LIBINPUT_EVENT_POINTER_BUTTON or LIBINPUT_EVENT_POINTER_TAP.
  *
- * @return the button triggering this event
+ * @return The button or tap triggering this event
  */
 uint32_t
 libinput_event_pointer_get_button(
@@ -572,11 +590,11 @@ libinput_event_pointer_get_button(
  * @ingroup event_pointer
  *
  * Return the button state that triggered this event.
- * For pointer events that are not of type LIBINPUT_EVENT_POINTER_BUTTON,
- * this function returns 0.
+ * For pointer events that are not of type LIBINPUT_EVENT_POINTER_BUTTON or
+ * LIBINPUT_EVENT_POINTER_TAP, this function returns 0.
  *
  * @note It is an application bug to call this function for events other than
- * LIBINPUT_EVENT_POINTER_BUTTON.
+ * LIBINPUT_EVENT_POINTER_BUTTON or LIBINPUT_EVENT_POINTER_TAP.
  *
  * @return the button state triggering this event
  */

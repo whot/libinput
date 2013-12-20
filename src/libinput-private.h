@@ -139,6 +139,12 @@ pointer_notify_button(struct libinput_device *device,
 		      enum libinput_pointer_button_state state);
 
 void
+pointer_notify_tap(struct libinput_device *device,
+		   uint32_t time,
+		   int32_t nfingers,
+		   enum libinput_pointer_button_state state);
+
+void
 pointer_notify_axis(struct libinput_device *device,
 		    uint32_t time,
 		    enum libinput_pointer_axis axis,

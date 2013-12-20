@@ -42,7 +42,6 @@
 #define DEFAULT_MAX_ACCEL_FACTOR 1.0
 #define DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR 700.0
 
-#define DEFAULT_TOUCHPAD_SINGLE_TAP_BUTTON BTN_LEFT
 #define DEFAULT_TOUCHPAD_SINGLE_TAP_TIMEOUT 100
 
 enum touchpad_model {
@@ -288,20 +287,20 @@ filter_motion(struct touchpad_dispatch *touchpad,
 static void
 notify_button_pressed(struct touchpad_dispatch *touchpad, uint32_t time)
 {
-	pointer_notify_button(
+	pointer_notify_tap(
 		&touchpad->device->base,
 		time,
-		DEFAULT_TOUCHPAD_SINGLE_TAP_BUTTON,
+		1,
 		LIBINPUT_POINTER_BUTTON_STATE_PRESSED);
 }
 
 static void
 notify_button_released(struct touchpad_dispatch *touchpad, uint32_t time)
 {
-	pointer_notify_button(
+	pointer_notify_tap(
 		&touchpad->device->base,
 		time,
-		DEFAULT_TOUCHPAD_SINGLE_TAP_BUTTON,
+		1,
 		LIBINPUT_POINTER_BUTTON_STATE_RELEASED);
 }
 
