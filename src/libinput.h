@@ -1322,8 +1322,83 @@ enum libinput_config_status {
 const char *
 libinput_config_status_to_str(enum libinput_config_status status);
 
+/**
+ * @ingroup config
+ *
+ * Check if the device supports tap-to-click. See
+ * libinput_device_config_tap_set() for more information.
+ *
+ * @param device The device to configure
+ * @return The number of fingers that can generate a tap event, or 0 if the
+ * device does not support tapping.
+ *
+ * @see libinput_device_config_tap_set_button
+ * @see libinput_device_config_tap_get_button
+ * @see libinput_device_config_tap_reset
+ */
+int
+libinput_device_config_tap_get_finger_count(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Set the button event to be sent when tapping with a given number of
+ * fingers. Tapping is limited by the number of simultaneous touches
+ * supported by the device, see libinput_device_config_tap_get_finger_count()
+ * for how many are supported on a device.
+ *
+ * @param device The device to configure
+ * @param nfingers The number of fingers to configure
+ * @param button The button to be sent on tap, or 0 to disable tapping
+ *
+ * @return 0 on success or non-zero on failure.
+ * @retval -EINVAL nfingers is 0 or exceeds the number of touches on this device
+ *
+ * @see libinput_device_config_tap_get_finger_count
+ * @see libinput_device_config_tap_get_button
+ * @see libinput_device_config_tap_reset
+ */
+int
+libinput_device_config_tap_set_button(struct libinput_device *device,
+				      unsigned int nfingers,
+				      uint32_t button);
+
+/**
+ * @ingroup config
+ *
+ * Get the button sent for a tapping event with a given number of fingers.
+ *
+ * @param device The device to configure
+ * @param nfingers The number of fingers to query the tap configuration for
+ *
+ * @return The button or 0 if disabled or not available.
+ *
+ * @see libinput_device_config_tap_get_finger_count
+ * @see libinput_device_config_tap_set_button
+ * @see libinput_device_config_tap_reset
+ */
+uint32_t
+libinput_device_config_tap_get_button(struct libinput_device *device,
+				      unsigned int nfingers);
+
+/**
+ * @ingroup config
+ *
+ * Reset tapping to the default configuration for this device.
+ * @note The built-in configuration may vary between physical devices.
+ *
+ * @param device The device to configure
+ *
+ * @return 0 on success or non-zero on failure.
+ *
+ * @see libinput_device_config_tap_get_finger_count
+ * @see libinput_device_config_tap_set_button
+ * @see libinput_device_config_tap_get_button
+ */
+void
+libinput_device_config_tap_reset(struct libinput_device *device);
+
 #ifdef __cplusplus
 }
 #endif
-
 #endif /* LIBINPUT_H */

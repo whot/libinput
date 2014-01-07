@@ -1182,3 +1182,40 @@ libinput_event_touch_get_base_event(struct libinput_event_touch *event)
 {
 	return &event->base;
 }
+
+
+LIBINPUT_EXPORT int
+libinput_device_config_tap_get_finger_count(struct libinput_device *device)
+{
+	return device->config.tap ? device->config.tap->count(device) : 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_tap_set_button(struct libinput_device *device,
+			       unsigned int nfingers,
+			       uint32_t button)
+{
+	if (nfingers == 0 || (int)nfingers < 0 ||
+	    libinput_device_config_tap_get_finger_count(device) < (int)nfingers)
+		return -EINVAL;
+
+	return device->config.tap->set(device, nfingers, button);
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_device_config_tap_get_button(struct libinput_device *device,
+			       unsigned int nfingers)
+{
+	if (nfingers == 0 || (int)nfingers < 0 ||
+	    libinput_device_config_tap_get_finger_count(device) < (int)nfingers)
+		return 0;
+
+	return device->config.tap->get(device, nfingers);
+}
+
+LIBINPUT_EXPORT void
+libinput_device_config_tap_reset(struct libinput_device *device)
+{
+	if (libinput_device_config_tap_get_finger_count(device))
+		device->config.tap->reset(device);
+}

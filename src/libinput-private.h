@@ -69,12 +69,27 @@ struct libinput_seat {
 	uint32_t button_count[KEY_CNT];
 };
 
+struct libinput_device_config_tap {
+	int (*count)(struct libinput_device *device);
+	int (*set)(struct libinput_device *device,
+		   unsigned int nfingers,
+		   uint32_t button);
+	uint32_t (*get)(struct libinput_device *device,
+			unsigned int nfingers);
+	void (*reset)(struct libinput_device *device);
+};
+
+struct libinput_device_config {
+	struct libinput_device_config_tap *tap;
+};
+
 struct libinput_device {
 	struct libinput_seat *seat;
 	struct list link;
 	void *user_data;
 	int terminated;
 	int refcount;
+	struct libinput_device_config config;
 };
 
 typedef void (*libinput_source_dispatch_t)(void *data);
@@ -184,4 +199,5 @@ touch_notify_touch_up(struct libinput_device *device,
 void
 touch_notify_frame(struct libinput_device *device,
 		   uint32_t time);
+
 #endif /* LIBINPUT_PRIVATE_H */
