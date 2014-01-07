@@ -157,6 +157,15 @@ enum libinput_event_type {
 	LIBINPUT_EVENT_TOUCH_FRAME
 };
 
+/**
+ * @ingroup config
+ */
+enum libinput_config_tap {
+	LIBINPUT_CONFIG_TAP_ENABLED,
+	LIBINPUT_CONFIG_TAP_DISABLED
+};
+
+
 struct libinput;
 struct libinput_device;
 struct libinput_seat;
@@ -1038,5 +1047,84 @@ libinput_device_calibrate(struct libinput_device *device,
 int
 libinput_device_has_capability(struct libinput_device *device,
 			       enum libinput_device_capability capability);
+
+
+/**
+ * @defgroup config Device configuration
+ *
+ * Enable, disable and check for device-specific features.
+ */
+
+/**
+ * @ingroup config
+ *
+ * Check if the device supports tap-to-click.
+ *
+ * @param device The device to configure
+ * @return The number of fingers that can generate a tap event, or 0 if the
+ * device does not support tapping.
+ *
+ * @see libinput_device_config_set_tap
+ * @see libinput_device_config_get_tap
+ * @see libinput_device_config_reset_tap
+ */
+int
+libinput_device_config_has_tap(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Enable or disable tapping on this device.
+ * Once enabled, a tap with a single finger generates a left button click, a
+ * tap with two fingers generates a right button click, and a tap with three
+ * fingers generates a middle button click. Tapping is limited by the number
+ * of simultaneous touches supported by the device.
+ *
+ * @param device The device to configure
+ * @param enabled The new state to apply
+ * @return 0 on success or non-zero on failure.
+ *
+ * @see libinput_device_config_has_tap
+ * @see libinput_device_config_get_tap
+ * @see libinput_device_config_reset_tap
+ */
+int
+libinput_device_config_set_tap(struct libinput_device *device,
+			       enum libinput_config_tap enabled);
+
+/**
+ * @ingroup config
+ *
+ * Get the current tap configuration.
+ *
+ * @param device The device to configure
+ * @param[out] enabled Returns whether tapping is enabled or disabled
+ *
+ * @return 0 on success or non-zero on failure.
+ *
+ * @see libinput_device_config_has_tap
+ * @see libinput_device_config_set_tap
+ * @see libinput_device_config_reset_tap
+ */
+int
+libinput_device_config_get_tap(struct libinput_device *device,
+			       enum libinput_config_tap *enabled);
+
+/**
+ * @ingroup config
+ *
+ * Reset tapping to the built-in configuration.
+ * @note The built-in configuration may vary between physical devices.
+ *
+ * @param device The device to configure
+ *
+ * @return 0 on success or non-zero on failure.
+ *
+ * @see libinput_device_config_has_tap
+ * @see libinput_device_config_set_tap
+ * @see libinput_device_config_get_tap
+ */
+int
+libinput_device_config_reset_tap(struct libinput_device *device);
 
 #endif /* LIBINPUT_H */

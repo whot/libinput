@@ -520,6 +520,8 @@ libinput_device_init(struct libinput_device *device,
 {
 	device->seat = seat;
 	device->refcount = 1;
+
+	device->config.tap.available = 0;
 }
 
 LIBINPUT_EXPORT void
@@ -940,4 +942,47 @@ libinput_device_has_capability(struct libinput_device *device,
 {
 	return evdev_device_has_capability((struct evdev_device *) device,
 					   capability);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_has_tap(struct libinput_device *device)
+{
+	return device->config.tap.available;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_set_tap(struct libinput_device *device,
+			       enum libinput_config_tap enabled)
+{
+	if (!libinput_device_config_has_tap(device))
+		return -1;
+
+	device->config.tap.enabled = enabled;
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_get_tap(struct libinput_device *device,
+			       enum libinput_config_tap *enabled)
+{
+	if (!libinput_device_config_has_tap(device))
+		return -1;
+
+	*enabled = device->config.tap.enabled;
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_reset_tap(struct libinput_device *device)
+{
+	return libinput_device_config_set_tap(device, device->config.tap.dflt);
+}
+
+void
+libinput_device_config_init_tap(struct libinput_device *device,
+			        enum libinput_config_tap enabled)
+{
+	device->config.tap.available = 1;
+	device->config.tap.enabled = enabled;
+	device->config.tap.dflt = enabled;
 }

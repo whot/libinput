@@ -68,12 +68,23 @@ struct libinput_seat {
 	libinput_seat_destroy_func destroy;
 };
 
+struct libinput_device_config_tap {
+	int available;
+	enum libinput_config_tap enabled;
+	enum libinput_config_tap dflt;
+};
+
+struct libinput_device_config {
+	struct libinput_device_config_tap tap;
+};
+
 struct libinput_device {
 	struct libinput_seat *seat;
 	struct list link;
 	void *user_data;
 	int terminated;
 	int refcount;
+	struct libinput_device_config config;
 };
 
 typedef void (*libinput_source_dispatch_t)(void *data);
@@ -161,4 +172,8 @@ touch_notify_touch(struct libinput_device *device,
 void
 touch_notify_frame(struct libinput_device *device,
 		   uint32_t time);
+
+void
+libinput_device_config_init_tap(struct libinput_device *device,
+			        enum libinput_config_tap enabled);
 #endif /* LIBINPUT_PRIVATE_H */
