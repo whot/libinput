@@ -71,7 +71,8 @@ path_seat_create(struct path_input *input)
 
 	seat->name = "default";
 
-	libinput_seat_init(&seat->base, &input->base, seat->name, path_seat_destroy);
+	/* FIXME: get physical seat from udev */
+	libinput_seat_init(&seat->base, &input->base, seat->name, seat->name, path_seat_destroy);
 	list_insert(&input->base.seat_list, &seat->base.link);
 
 	return seat;

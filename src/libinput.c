@@ -490,12 +490,14 @@ close_restricted(struct libinput *libinput, int fd)
 void
 libinput_seat_init(struct libinput_seat *seat,
 		   struct libinput *libinput,
-		   const char *name,
+		   const char *physical_name,
+		   const char *logical_name,
 		   libinput_seat_destroy_func destroy)
 {
 	seat->refcount = 1;
 	seat->libinput = libinput;
-	seat->name = strdup(name);
+	seat->physical_name = strdup(physical_name);
+	seat->logical_name = strdup(logical_name);
 	seat->destroy = destroy;
 	list_init(&seat->devices_list);
 }
@@ -510,7 +512,8 @@ static void
 libinput_seat_destroy(struct libinput_seat *seat)
 {
 	list_remove(&seat->link);
-	free(seat->name);
+	free(seat->logical_name);
+	free(seat->physical_name);
 	seat->destroy(seat);
 }
 
@@ -536,9 +539,15 @@ libinput_seat_get_user_data(struct libinput_seat *seat)
 }
 
 LIBINPUT_EXPORT const char *
-libinput_seat_get_name(struct libinput_seat *seat)
+libinput_seat_get_physical_name(struct libinput_seat *seat)
 {
-	return seat->name;
+	return seat->physical_name;
+}
+
+LIBINPUT_EXPORT const char *
+libinput_seat_get_logical_name(struct libinput_seat *seat)
+{
+	return seat->logical_name;
 }
 
 void

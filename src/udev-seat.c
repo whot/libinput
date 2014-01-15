@@ -35,7 +35,9 @@ static const char default_seat[] = "seat0";
 static const char default_seat_name[] = "default";
 
 static struct udev_seat *
-udev_seat_create(struct udev_input *input, const char *seat_name);
+udev_seat_create(struct udev_input *input,
+		 const char *device_seat,
+		 const char *seat_name);
 static struct udev_seat *
 udev_seat_get_named(struct udev_input *input, const char *seat_name);
 
@@ -71,7 +73,7 @@ device_added(struct udev_device *udev_device, struct udev_input *input)
 	if (seat)
 		libinput_seat_ref(&seat->base);
 	else {
-		seat = udev_seat_create(input, seat_name);
+		seat = udev_seat_create(input, device_seat, seat_name);
 		if (!seat)
 			return -1;
 	}
@@ -223,7 +225,7 @@ udev_input_remove_devices(struct udev_input *input)
 				/* if the seat may be referenced by the
 				   client, so make sure it's dropped from
 				   the seat list now, to be freed whenever
-				   the device is removed */
+				 * the device is removed */
 				list_remove(&seat->base.link);
 				list_init(&seat->base.link);
 			}
@@ -314,7 +316,9 @@ udev_seat_destroy(struct libinput_seat *seat)
 }
 
 static struct udev_seat *
-udev_seat_create(struct udev_input *input, const char *seat_name)
+udev_seat_create(struct udev_input *input,
+		 const char *device_seat,
+		 const char *seat_name)
 {
 	struct udev_seat *seat;
 
@@ -322,7 +326,9 @@ udev_seat_create(struct udev_input *input, const char *seat_name)
 	if (!seat)
 		return NULL;
 
-	libinput_seat_init(&seat->base, &input->base, seat_name, udev_seat_destroy);
+	libinput_seat_init(&seat->base, &input->base,
+			   device_seat, seat_name,
+			   udev_seat_destroy);
 	list_insert(&input->base.seat_list, &seat->base.link);
 
 	return seat;
@@ -334,7 +340,7 @@ udev_seat_get_named(struct udev_input *input, const char *seat_name)
 	struct udev_seat *seat;
 
 	list_for_each(seat, &input->base.seat_list, base.link) {
-		if (strcmp(seat->base.name, seat_name) == 0)
+		if (strcmp(seat->base.logical_name, seat_name) == 0)
 			return seat;
 	}
 

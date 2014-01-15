@@ -57,7 +57,8 @@ struct libinput_seat {
 	struct list devices_list;
 	void *user_data;
 	int refcount;
-	char *name;
+	char *physical_name;
+	char *logical_name;
 	libinput_seat_destroy_func destroy;
 };
 
@@ -99,7 +100,8 @@ close_restricted(struct libinput *libinput, int fd);
 void
 libinput_seat_init(struct libinput_seat *seat,
 		   struct libinput *libinput,
-		   const char *name,
+		   const char *physical_name,
+		   const char *logical_name,
 		   libinput_seat_destroy_func destroy);
 
 void

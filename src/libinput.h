@@ -535,6 +535,28 @@ libinput_destroy(struct libinput *libinput);
 
 /**
  * @defgroup seat Initialization and manipulation of seats
+ *
+ * A seat has two identifiers, the physical name and the logical name. The
+ * physical name is summarized as the list of devices a process on the same
+ * physical seat has access to.
+ *
+ * The logical seat name is the seat name for a logical group of devices. A
+ * compositor may use that to create additonal seats as independent device
+ * sets. Alternatively, a compositor may limit itself to a single logical
+ * seat, leaving a second compositor to manage devices on the other logical
+ * seats.
+ *
+ * @code
+ * +---+--------+------------+------------------------+------------+
+ * |   | event0 |            |                        | log seat A |
+ * | K +--------+            |                        +------------+
+ * | e | event1 | phys seat0 |    libinput context 1  |            |
+ * | r +--------+            |                        | log seat B |
+ * | n | event2 |            |                        |            |
+ * | e +--------+------------+------------------------+------------+
+ * | l | event3 | phys seat1 |    libinput context 2  | log seat C |
+ * +---+--------+------------+------------------------+------------+
+ * @endcode
  */
 
 /**
@@ -592,11 +614,33 @@ libinput_seat_get_user_data(struct libinput_seat *seat);
 /**
  * @ingroup seat
  *
+ * Return the physical name of the seat. For libinput contexts created from
+ * udev, this is always the same value as passed into
+ * libinput_create_from_udev() and all seats from that context will have the
+ * same physical name.
+ *
+ * The physical name of the seat is one that is usually set by the system or
+ * lower levels of the stack. In most cases, this is the base filter for
+ * devices - devices assigned to seats outside the current seat will not
+ * be available to the caller.
+ *
  * @param seat A previously obtained seat
- * @return the name of this seat
+ * @return the physical name of this seat
  */
 const char *
-libinput_seat_get_name(struct libinput_seat *seat);
+libinput_seat_get_physical_name(struct libinput_seat *seat);
+
+/**
+ * @ingroup seat
+ *
+ * Return the logical name of the seat. This is an identifier to group sets
+ * of devices within the compositor.
+ *
+ * @param seat A previously obtained seat
+ * @return the logical name of this seat
+ */
+const char *
+libinput_seat_get_logical_name(struct libinput_seat *seat);
 
 /**
  * @defgroup device Initialization and manipulation of input devices
