@@ -60,12 +60,7 @@ struct libinput_event {
 	union libinput_event_target target;
 };
 
-struct libinput_event_added_device {
-	struct libinput_event base;
-	struct libinput_device *device;
-};
-
-struct libinput_event_removed_device {
+struct libinput_event_device_notify {
 	struct libinput_event base;
 	struct libinput_device *device;
 };
@@ -138,7 +133,7 @@ libinput_event_get_seat(struct libinput_event *event)
 		abort(); /* not used as actual event type */
 	case LIBINPUT_EVENT_ADDED_DEVICE:
 	case LIBINPUT_EVENT_REMOVED_DEVICE:
-		return ((struct libinput_event_added_device*)event)->device->seat;
+		return ((struct libinput_event_device_notify*)event)->device->seat;
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
 	case LIBINPUT_EVENT_POINTER_MOTION:
 	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
@@ -159,7 +154,7 @@ libinput_event_get_device(struct libinput_event *event)
 		abort(); /* not used as actual event type */
 	case LIBINPUT_EVENT_ADDED_DEVICE:
 	case LIBINPUT_EVENT_REMOVED_DEVICE:
-		return ((struct libinput_event_added_device*)event)->device;
+		return ((struct libinput_event_device_notify*)event)->device;
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
 	case LIBINPUT_EVENT_POINTER_MOTION:
 	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
@@ -643,13 +638,13 @@ post_device_event(struct libinput_device *device,
 void
 notify_added_device(struct libinput_device *device)
 {
-	struct libinput_event_added_device *added_device_event;
+	struct libinput_event_device_notify *added_device_event;
 
 	added_device_event = malloc(sizeof *added_device_event);
 	if (!added_device_event)
 		return;
 
-	*added_device_event = (struct libinput_event_added_device) {
+	*added_device_event = (struct libinput_event_device_notify) {
 		.device = device,
 	};
 
@@ -661,13 +656,13 @@ notify_added_device(struct libinput_device *device)
 void
 notify_removed_device(struct libinput_device *device)
 {
-	struct libinput_event_removed_device *removed_device_event;
+	struct libinput_event_device_notify *removed_device_event;
 
 	removed_device_event = malloc(sizeof *removed_device_event);
 	if (!removed_device_event)
 		return;
 
-	*removed_device_event = (struct libinput_event_removed_device) {
+	*removed_device_event = (struct libinput_event_device_notify) {
 		.device = device,
 	};
 
