@@ -30,7 +30,6 @@
 
 struct udev_seat {
 	struct libinput_seat base;
-	char *seat_name;
 };
 
 struct udev_input {
