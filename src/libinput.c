@@ -53,12 +53,7 @@ struct libinput_event {
 	struct libinput_device *device;
 };
 
-struct libinput_event_added_device {
-	struct libinput_event base;
-	struct libinput_device *device;
-};
-
-struct libinput_event_removed_device {
+struct libinput_event_device_notify {
 	struct libinput_event base;
 	struct libinput_device *device;
 };
@@ -598,13 +593,13 @@ post_device_event(struct libinput_device *device,
 void
 notify_added_device(struct libinput_device *device)
 {
-	struct libinput_event_added_device *added_device_event;
+	struct libinput_event_device_notify *added_device_event;
 
 	added_device_event = malloc(sizeof *added_device_event);
 	if (!added_device_event)
 		return;
 
-	*added_device_event = (struct libinput_event_added_device) {
+	*added_device_event = (struct libinput_event_device_notify) {
 		.device = device,
 	};
 
@@ -616,13 +611,13 @@ notify_added_device(struct libinput_device *device)
 void
 notify_removed_device(struct libinput_device *device)
 {
-	struct libinput_event_removed_device *removed_device_event;
+	struct libinput_event_device_notify *removed_device_event;
 
 	removed_device_event = malloc(sizeof *removed_device_event);
 	if (!removed_device_event)
 		return;
 
-	*removed_device_event = (struct libinput_event_removed_device) {
+	*removed_device_event = (struct libinput_event_device_notify) {
 		.device = device,
 	};
 
