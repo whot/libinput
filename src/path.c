@@ -47,7 +47,6 @@ path_input_disable(struct libinput *libinput)
 
 	/* should only be one seat anyway */
 	list_for_each_safe(seat, tmp, &libinput->seat_list, base.link) {
-		notify_removed_seat(&seat->base);
 		list_remove(&seat->base.link);
 		list_init(&seat->base.link);
 		libinput_seat_unref(&seat->base);
@@ -74,7 +73,6 @@ path_seat_create(struct path_input *input)
 
 	libinput_seat_init(&seat->base, &input->base, seat->name, path_seat_destroy);
 	list_insert(&input->base.seat_list, &seat->base.link);
-	notify_added_seat(&seat->base);
 
 	return seat;
 }

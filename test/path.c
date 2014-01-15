@@ -144,7 +144,7 @@ START_TEST(path_added_seat)
 	ck_assert(event != NULL);
 
 	type = libinput_event_get_type(event);
-	ck_assert_int_eq(type, LIBINPUT_EVENT_ADDED_SEAT);
+	ck_assert_int_eq(type, LIBINPUT_EVENT_ADDED_DEVICE);
 
 	seat = libinput_event_get_seat(event);
 	ck_assert(seat != NULL);

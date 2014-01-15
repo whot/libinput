@@ -124,8 +124,6 @@ enum libinput_touch_type {
  */
 enum libinput_event_type {
 	LIBINPUT_EVENT_NONE = 0,
-	LIBINPUT_EVENT_ADDED_SEAT,
-	LIBINPUT_EVENT_REMOVED_SEAT,
 	LIBINPUT_EVENT_ADDED_DEVICE,
 	LIBINPUT_EVENT_REMOVED_DEVICE,
 
@@ -144,8 +142,6 @@ struct libinput_device;
 struct libinput_seat;
 
 struct libinput_event;
-struct libinput_event_added_seat;
-struct libinput_event_removed_seat;
 struct libinput_event_added_device;
 struct libinput_event_removed_device;
 struct libinput_event_keyboard_key;
@@ -232,9 +228,7 @@ libinput_event_get_context(struct libinput_event *event);
 /**
  * @ingroup event
  *
- * Return the seat associated with this event. For seat added/removed events
- * this is the seat added or removed. For device events, this is the seat
- * the device belongs to.
+ * Return the seat associated with this event.
  *
  * This seat is not refcounted and its lifetime is that of the event. Use
  * libinput_seat_ref() before using the seat outside of this scope.

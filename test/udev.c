@@ -152,7 +152,7 @@ START_TEST(udev_added_seat_default)
 
 	while (!default_seat_found && (event = libinput_get_event(li))) {
 		type = libinput_event_get_type(event);
-		if (type != LIBINPUT_EVENT_ADDED_SEAT) {
+		if (type != LIBINPUT_EVENT_ADDED_DEVICE) {
 			libinput_event_destroy(event);
 			continue;
 		}
@@ -169,89 +169,6 @@ START_TEST(udev_added_seat_default)
 
 	libinput_destroy(li);
 	udev_unref(udev);
-}
-END_TEST
-
-START_TEST(udev_removed_seat)
-{
-	struct libinput *li;
-	struct libinput_event *event;
-	struct udev *udev;
-#define MAX_SEATS 30
-	char *seat_names[MAX_SEATS] = {0};
-	int idx = 0;
-
-	udev = udev_new();
-	ck_assert(udev != NULL);
-
-	li = libinput_create_from_udev(&simple_interface, NULL, udev, "seat0");
-	ck_assert(li != NULL);
-	libinput_dispatch(li);
-
-	while ((event = libinput_get_event(li))) {
-		enum libinput_event_type type;
-		struct libinput_seat *seat;
-		const char *seat_name;
-
-		type = libinput_event_get_type(event);
-		if (type != LIBINPUT_EVENT_ADDED_SEAT) {
-			libinput_event_destroy(event);
-			continue;
-		}
-
-		seat = libinput_event_get_seat(event);
-		ck_assert(seat != NULL);
-
-		seat_name = libinput_seat_get_name(seat);
-		seat_names[idx++] = strdup(seat_name);
-		ck_assert_int_lt(idx, MAX_SEATS);
-
-		libinput_event_destroy(event);
-	}
-
-	libinput_suspend(li);
-
-	while ((event = libinput_get_event(li))) {
-		enum libinput_event_type type;
-		struct libinput_seat *seat;
-		const char *seat_name;
-		int i;
-
-		type = libinput_event_get_type(event);
-		if (type != LIBINPUT_EVENT_REMOVED_SEAT) {
-			libinput_event_destroy(event);
-			continue;
-		}
-
-		seat = libinput_event_get_seat(event);
-		ck_assert(seat != NULL);
-
-		seat_name = libinput_seat_get_name(seat);
-
-		for (i = 0; i < idx; i++) {
-			if (seat_names[i] &&
-			    strcmp(seat_names[i], seat_name) == 0) {
-				free(seat_names[i]);
-				seat_names[i] = NULL;
-				break;
-			}
-		}
-		ck_assert_msg(i < idx,
-			      "Seat '%s' unknown or already removed\n",
-			      seat_name);
-
-		libinput_event_destroy(event);
-	}
-
-	while(idx--) {
-		ck_assert_msg(seat_names[idx] == NULL,
-			      "Seat '%s' not removed\n",
-			      seat_names[idx]);
-	}
-
-	libinput_destroy(li);
-	udev_unref(udev);
-#undef MAX_SEATS
 }
 END_TEST
 
@@ -382,7 +299,6 @@ int main (int argc, char **argv) {
 	litest_add_no_device("udev:create", udev_create_empty_seat);
 
 	litest_add_no_device("udev:seat events", udev_added_seat_default);
-	litest_add_no_device("udev:seat events", udev_removed_seat);
 
 	litest_add("udev:suspend", udev_double_suspend, LITEST_ANY, LITEST_ANY);
 	litest_add("udev:suspend", udev_double_resume, LITEST_ANY, LITEST_ANY);
