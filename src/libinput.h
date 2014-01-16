@@ -709,13 +709,26 @@ libinput_suspend(struct libinput *libinput);
 /**
  * @ingroup base
  *
- * Destroy the libinput context. After this, object references associated with
- * the destroyed context are invalid and may not be interacted with.
+ * Increase the ref count for the libinput context. A context is not
+ * destroyed until the refcount reaches 0.
  *
  * @param libinput A previously initialized libinput context
  */
 void
-libinput_destroy(struct libinput *libinput);
+libinput_ref(struct libinput *libinput);
+
+/**
+ * @ingroup base
+ *
+ * Decrease the ref count for the libinput context. A context is destroyed
+ * once the refcount reaches 0. Once a context is destroyed, object
+ * references associated with the destroyed context are invalid and may not
+ * be interacted with.
+ *
+ * @param libinput A previously initialized libinput context
+ */
+void
+libinput_unref(struct libinput *libinput);
 
 /**
  * @defgroup seat Initialization and manipulation of seats

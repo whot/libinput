@@ -97,7 +97,7 @@ START_TEST(udev_create_seat0)
 	ck_assert(event != NULL);
 
 	libinput_event_destroy(event);
-	libinput_destroy(li);
+	libinput_unref(li);
 	udev_unref(udev);
 }
 END_TEST
@@ -124,7 +124,7 @@ START_TEST(udev_create_empty_seat)
 	ck_assert(event == NULL);
 
 	libinput_event_destroy(event);
-	libinput_destroy(li);
+	libinput_unref(li);
 	udev_unref(udev);
 }
 END_TEST
@@ -169,7 +169,7 @@ START_TEST(udev_added_seat_default)
 
 	ck_assert(default_seat_found);
 
-	libinput_destroy(li);
+	libinput_unref(li);
 	udev_unref(udev);
 }
 END_TEST
@@ -200,7 +200,7 @@ START_TEST(udev_double_suspend)
 	libinput_resume(li);
 
 	libinput_event_destroy(event);
-	libinput_destroy(li);
+	libinput_unref(li);
 	udev_unref(udev);
 }
 END_TEST
@@ -231,7 +231,7 @@ START_TEST(udev_double_resume)
 	libinput_resume(li);
 
 	libinput_event_destroy(event);
-	libinput_destroy(li);
+	libinput_unref(li);
 	udev_unref(udev);
 }
 END_TEST
@@ -289,7 +289,7 @@ START_TEST(udev_suspend_resume)
 	process_events_count_devices(li, &num_devices);
 	ck_assert_int_gt(num_devices, 0);
 
-	libinput_destroy(li);
+	libinput_unref(li);
 	udev_unref(udev);
 }
 END_TEST

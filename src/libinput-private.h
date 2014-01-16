@@ -33,6 +33,7 @@ struct libinput_interface_backend {
 };
 
 struct libinput {
+	int refcount;
 	int epoll_fd;
 	struct list source_destroy_list;
 

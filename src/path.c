@@ -200,7 +200,7 @@ libinput_create_from_path(const struct libinput_interface *interface,
 	input->path = strdup(path);
 
 	if (path_input_enable(&input->base) < 0) {
-		libinput_destroy(&input->base);
+		libinput_unref(&input->base);
 		return NULL;
 	}
 

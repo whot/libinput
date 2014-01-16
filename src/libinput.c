@@ -354,6 +354,7 @@ libinput_init(struct libinput *libinput,
 	      const struct libinput_interface_backend *interface_backend,
 	      void *user_data)
 {
+	libinput->refcount = 1;
 	libinput->epoll_fd = epoll_create1(EPOLL_CLOEXEC);;
 	if (libinput->epoll_fd < 0)
 		return -1;
@@ -390,7 +391,7 @@ libinput_drop_destroyed_sources(struct libinput *libinput)
 	list_init(&libinput->source_destroy_list);
 }
 
-LIBINPUT_EXPORT void
+static void
 libinput_destroy(struct libinput *libinput)
 {
 	struct libinput_event *event;
@@ -422,6 +423,24 @@ libinput_destroy(struct libinput *libinput)
 
 	close(libinput->epoll_fd);
 	free(libinput);
+}
+
+LIBINPUT_EXPORT void
+libinput_ref(struct libinput *libinput)
+{
+	libinput->refcount++;
+}
+
+LIBINPUT_EXPORT void
+libinput_unref(struct libinput *libinput)
+{
+	if (!libinput)
+		return;
+
+	assert(libinput->refcount > 0);
+	libinput->refcount--;
+	if (libinput->refcount == 0)
+		libinput_destroy(libinput);
 }
 
 LIBINPUT_EXPORT void

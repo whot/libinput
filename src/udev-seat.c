@@ -379,7 +379,7 @@ libinput_create_from_udev(const struct libinput_interface *interface,
 
 	if (udev_input_enable(&input->base) < 0) {
 		udev_unref(udev);
-		libinput_destroy(&input->base);
+		libinput_unref(&input->base);
 		free(input);
 		return NULL;
 	}
