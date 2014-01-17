@@ -138,7 +138,6 @@ START_TEST(udev_added_seat_default)
 	struct libinput *li;
 	struct libinput_event *event;
 	struct udev *udev;
-	struct libinput_event_added_device *device_event;
 	struct libinput_device *device;
 	struct libinput_seat *seat;
 	const char *seat_name;
@@ -159,8 +158,7 @@ START_TEST(udev_added_seat_default)
 			continue;
 		}
 
-		device_event = (struct libinput_event_added_device*)event;
-		device = libinput_event_added_device_get_device(device_event);
+		device = libinput_event_get_device(event);
 		seat = libinput_device_get_seat(device);
 		ck_assert(seat != NULL);
 

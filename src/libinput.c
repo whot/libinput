@@ -50,7 +50,7 @@ struct libinput_source {
 
 struct libinput_event {
 	enum libinput_event_type type;
-	struct libinput *libinput;
+	struct libinput_device *device;
 	union libinput_event_target target;
 };
 
@@ -127,19 +127,11 @@ libinput_event_get_target(struct libinput_event *event)
 LIBINPUT_EXPORT struct libinput*
 libinput_event_get_context(struct libinput_event *event)
 {
-	return event->libinput;
+	return event->device->seat->libinput;
 }
 
-LIBINPUT_EXPORT struct libinput_device *
-libinput_event_added_device_get_device(
-	struct libinput_event_added_device *event)
-{
-	return event->device;
-}
-
-LIBINPUT_EXPORT struct libinput_device *
-libinput_event_removed_device_get_device(
-	struct libinput_event_removed_device *event)
+LIBINPUT_EXPORT struct libinput_device*
+libinput_event_get_device(struct libinput_event *event)
 {
 	return event->device;
 }
@@ -584,21 +576,22 @@ libinput_dispatch(struct libinput *libinput)
 
 static void
 init_event_base(struct libinput_event *event,
-		struct libinput *libinput,
+		struct libinput_device *device,
 		enum libinput_event_type type,
 		union libinput_event_target target)
 {
 	event->type = type;
-	event->libinput = libinput;
+	event->device = device;
 	event->target = target;
 }
 
 static void
-post_base_event(struct libinput *libinput,
+post_base_event(struct libinput_device *device,
 		enum libinput_event_type type,
 		struct libinput_event *event)
 {
-	init_event_base(event, libinput, type,
+	struct libinput *libinput = device->seat->libinput;
+	init_event_base(event, device, type,
 			(union libinput_event_target) { .libinput = libinput });
 	libinput_post_event(libinput, event);
 }
@@ -608,7 +601,7 @@ post_device_event(struct libinput_device *device,
 		  enum libinput_event_type type,
 		  struct libinput_event *event)
 {
-	init_event_base(event, device->seat->libinput, type,
+	init_event_base(event, device, type,
 			(union libinput_event_target) { .device = device });
 	libinput_post_event(device->seat->libinput, event);
 }
@@ -626,7 +619,7 @@ notify_added_device(struct libinput_device *device)
 		.device = device,
 	};
 
-	post_base_event(device->seat->libinput,
+	post_base_event(device,
 			LIBINPUT_EVENT_ADDED_DEVICE,
 			&added_device_event->base);
 }
@@ -644,7 +637,7 @@ notify_removed_device(struct libinput_device *device)
 		.device = device,
 	};
 
-	post_base_event(device->seat->libinput,
+	post_base_event(device,
 			LIBINPUT_EVENT_REMOVED_DEVICE,
 			&removed_device_event->base);
 }
