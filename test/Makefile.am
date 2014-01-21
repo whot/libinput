@@ -14,7 +14,7 @@ liblitest_la_SOURCES = \
 	litest-trackpoint.c \
 	litest.c
 
-run_tests = test-udev test-path
+run_tests = test-udev test-path test-pointer
 build_tests = test-build-linker test-build-pedantic-c99 test-build-std-gnuc90
 
 noinst_PROGRAMS = $(build_tests) $(run_tests)
@@ -29,6 +29,11 @@ test_path_SOURCES = path.c
 test_path_CFLAGS = $(AM_CPPFLAGS)
 test_path_LDADD = $(TEST_LIBS)
 test_path_LDFLAGS = -static
+
+test_pointer_SOURCES = pointer.c
+test_pointer_CFLAGS = $(AM_CPPFLAGS)
+test_pointer_LDADD = $(TEST_LIBS)
+test_pointer_LDFLAGS = -static
 
 # build-test only
 test_build_pedantic_c99_SOURCES = build-pedantic.c
