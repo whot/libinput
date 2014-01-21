@@ -29,6 +29,9 @@
 #include "path.h"
 #include "evdev.h"
 
+static const char default_seat[] = "seat0";
+static const char default_seat_name[] = "default";
+
 int path_input_process_event(struct libinput_event);
 static void path_seat_destroy(struct libinput_seat *seat);
 
@@ -61,7 +64,9 @@ path_seat_destroy(struct libinput_seat *seat)
 }
 
 static struct path_seat*
-path_seat_create(struct path_input *input)
+path_seat_create(struct path_input *input,
+		 const char *seat_name,
+		 const char *seat_logical_name)
 {
 	struct path_seat *seat;
 
@@ -69,22 +74,24 @@ path_seat_create(struct path_input *input)
 	if (!seat)
 		return NULL;
 
-	seat->name = "default";
-
-	/* FIXME: get physical seat from udev */
-	libinput_seat_init(&seat->base, &input->base, seat->name, seat->name, path_seat_destroy);
+	libinput_seat_init(&seat->base, &input->base, seat_name,
+			   seat_logical_name, path_seat_destroy);
 	list_insert(&input->base.seat_list, &seat->base.link);
 
 	return seat;
 }
 
-static char *
-path_get_sysname(const char *path)
+static int
+path_get_udev_properties(const char *path,
+			 char **syspath,
+			 char **seat_name,
+			 char **seat_logical_name)
 {
 	struct udev *udev = NULL;
 	struct udev_device *device = NULL;
 	struct stat st;
-	char *syspath = NULL;
+	const char *seat;
+	int rc = -1;
 
 	udev = udev_new();
 	if (!udev)
@@ -97,13 +104,22 @@ path_get_sysname(const char *path)
 	if (!device)
 		goto out;
 
-	syspath = strdup(udev_device_get_syspath(device));
+	*syspath = strdup(udev_device_get_syspath(device));
+
+	seat = udev_device_get_property_value(device, "ID_SEAT");
+	*seat_name = strdup(seat ? seat : default_seat);
+
+	seat = udev_device_get_property_value(device, "WL_SEAT");
+	*seat_logical_name = strdup(seat ? seat : default_seat_name);
+
+	rc = 0;
+
 out:
 	if (device)
 		udev_device_unref(device);
 	if (udev)
 		udev_unref(udev);
-	return syspath;
+	return rc;
 }
 
 static int
@@ -115,6 +131,7 @@ path_input_enable(struct libinput *libinput)
 	const char *devnode = input->path;
 	char *syspath;
 	int fd;
+	char *seat_name, *seat_logical_name;
 
 	if (input->device)
 		return 0;
@@ -125,14 +142,16 @@ path_input_enable(struct libinput *libinput)
 		return -1;
 	}
 
-	syspath = path_get_sysname(devnode);
-	if (!syspath) {
+	if (path_get_udev_properties(devnode, &syspath,
+				     &seat_name, &seat_logical_name) == -1) {
 		close_restricted(libinput, fd);
 		log_info("failed to obtain syspath for device '%s'.\n", devnode);
 		return -1;
 	}
 
-	seat = path_seat_create(input);
+	seat = path_seat_create(input, seat_name, seat_logical_name);
+	free(seat_name);
+	free(seat_logical_name);
 
 	device = evdev_device_create(&seat->base, devnode, syspath, fd);
 	free(syspath);

@@ -34,7 +34,6 @@ struct path_input {
 
 struct path_seat {
 	struct libinput_seat base;
-	const char *name;
 };
 
 int path_input_process_event(struct libinput_event);
