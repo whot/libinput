@@ -34,13 +34,6 @@
 #include "libinput-private.h"
 #include "evdev.h"
 
-enum libinput_event_class {
-	LIBINPUT_EVENT_CLASS_NONE,
-	LIBINPUT_EVENT_CLASS_BASE,
-	LIBINPUT_EVENT_CLASS_SEAT,
-	LIBINPUT_EVENT_CLASS_DEVICE,
-};
-
 struct libinput_source {
 	libinput_source_dispatch_t dispatch;
 	void *user_data;
@@ -432,17 +425,19 @@ libinput_destroy(struct libinput *libinput)
 	free(libinput);
 }
 
-static enum libinput_event_class
-libinput_event_get_class(struct libinput_event *event)
+LIBINPUT_EXPORT void
+libinput_event_destroy(struct libinput_event *event)
 {
-	switch (event->type) {
-	case LIBINPUT_EVENT_NONE:
-		return LIBINPUT_EVENT_CLASS_NONE;
+	if (event == NULL)
+		return;
 
+	switch (libinput_event_get_type(event)) {
+	case LIBINPUT_EVENT_NONE:
+		abort(); /* not used as actual event type */
 	case LIBINPUT_EVENT_DEVICE_ADDED:
 	case LIBINPUT_EVENT_DEVICE_REMOVED:
-		return LIBINPUT_EVENT_CLASS_BASE;
-
+		libinput_seat_unref(event->device->seat);
+		break;
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
 	case LIBINPUT_EVENT_POINTER_MOTION:
 	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
@@ -450,27 +445,6 @@ libinput_event_get_class(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_TOUCH_TOUCH:
 	case LIBINPUT_EVENT_TOUCH_FRAME:
-		return LIBINPUT_EVENT_CLASS_DEVICE;
-	}
-
-	/* We should never end up here. */
-	abort();
-}
-
-LIBINPUT_EXPORT void
-libinput_event_destroy(struct libinput_event *event)
-{
-	if (event == NULL)
-		return;
-
-	switch (libinput_event_get_class(event)) {
-	case LIBINPUT_EVENT_CLASS_NONE:
-	case LIBINPUT_EVENT_CLASS_BASE:
-		break;
-	case LIBINPUT_EVENT_CLASS_SEAT:
-		libinput_seat_unref(event->device->seat);
-		break;
-	case LIBINPUT_EVENT_CLASS_DEVICE:
 		libinput_device_unref(event->device);
 		break;
 	}
@@ -877,14 +851,20 @@ libinput_post_event(struct libinput *libinput,
 		libinput->events_len = events_len;
 	}
 
-	switch (libinput_event_get_class(event)) {
-	case LIBINPUT_EVENT_CLASS_NONE:
-	case LIBINPUT_EVENT_CLASS_BASE:
-		break;
-	case LIBINPUT_EVENT_CLASS_SEAT:
+	switch (libinput_event_get_type(event)) {
+	case LIBINPUT_EVENT_NONE:
+		abort(); /* not used as actual event type */
+	case LIBINPUT_EVENT_DEVICE_ADDED:
+	case LIBINPUT_EVENT_DEVICE_REMOVED:
 		libinput_seat_ref(event->device->seat);
 		break;
-	case LIBINPUT_EVENT_CLASS_DEVICE:
+	case LIBINPUT_EVENT_KEYBOARD_KEY:
+	case LIBINPUT_EVENT_POINTER_MOTION:
+	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
+	case LIBINPUT_EVENT_POINTER_BUTTON:
+	case LIBINPUT_EVENT_POINTER_AXIS:
+	case LIBINPUT_EVENT_TOUCH_TOUCH:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
 		libinput_device_ref(event->device);
 		break;
 	}
