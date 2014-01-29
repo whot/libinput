@@ -148,7 +148,7 @@ open_udev(struct libinput **li)
 		return 1;
 	}
 
-	*li = libinput_create_from_udev(&interface, NULL, udev, seat);
+	*li = libinput_udev_create_for_seat(&interface, NULL, udev, seat);
 	if (!*li) {
 		fprintf(stderr, "Failed to initialize context from udev\n");
 		return 1;
