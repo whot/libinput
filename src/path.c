@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <string.h>
 #include <libudev.h>
@@ -36,6 +37,31 @@ int path_input_process_event(struct libinput_event);
 static void path_seat_destroy(struct libinput_seat *seat);
 
 static void
+path_disable_device(struct libinput *libinput,
+		    struct evdev_device *device)
+{
+	struct libinput_seat *seat = device->base.seat;
+	struct evdev_device *dev, *next;
+
+	list_for_each_safe(dev, next,
+			   &seat->devices_list, base.link) {
+		if (dev != device)
+			continue;
+
+		evdev_device_remove(device);
+		if (list_empty(&seat->devices_list)) {
+			/* if the seat may be referenced by the
+			   client, so make sure it's dropped from
+			   the seat list now, to be freed whenever
+			 * the device is removed */
+			list_remove(&seat->link);
+			list_init(&seat->link);
+		}
+		break;
+	}
+}
+
+static void
 path_input_disable(struct libinput *libinput)
 {
 	struct path_input *input = (struct path_input*)libinput;
@@ -45,17 +71,8 @@ path_input_disable(struct libinput *libinput)
 	list_for_each_safe(seat, tmp, &input->base.seat_list, base.link) {
 		libinput_seat_ref(&seat->base);
 		list_for_each_safe(device, next,
-				   &seat->base.devices_list, base.link) {
-			evdev_device_remove(device);
-			if (list_empty(&seat->base.devices_list)) {
-				/* if the seat may be referenced by the
-				   client, so make sure it's dropped from
-				   the seat list now, to be freed whenever
-				 * the device is removed */
-				list_remove(&seat->base.link);
-				list_init(&seat->base.link);
-			}
-		}
+				   &seat->base.devices_list, base.link)
+			path_disable_device(libinput, device);
 		libinput_seat_unref(&seat->base);
 	}
 }
@@ -142,23 +159,22 @@ out:
 	return rc;
 }
 
-static int
+static struct libinput_device *
 path_device_enable(struct path_input *input, const char *devnode)
 {
 	struct libinput *libinput = &input->base;
 	struct path_seat *seat;
-	struct evdev_device *device;
+	struct evdev_device *device = NULL;
 	char *sysname = NULL;
 	int fd;
 	char *seat_name = NULL,
 	     *seat_logical_name = NULL;
-	int rc = -1;
 
 	fd = open_restricted(libinput, devnode, O_RDWR|O_NONBLOCK);
 	if (fd < 0) {
 		log_info("opening input device '%s' failed (%s).\n",
 			 devnode, strerror(-fd));
-		return -1;
+		return NULL;
 	}
 
 	if (path_get_udev_properties(devnode, &sysname,
@@ -183,6 +199,7 @@ path_device_enable(struct path_input *input, const char *devnode)
 	libinput_seat_unref(&seat->base);
 
 	if (device == EVDEV_UNHANDLED_DEVICE) {
+		device = NULL;
 		log_info("not using input device '%s'.\n", devnode);
 		goto out;
 	} else if (device == NULL) {
@@ -190,16 +207,15 @@ path_device_enable(struct path_input *input, const char *devnode)
 		goto out;
 	}
 
-	rc = 0;
 out:
-	if (rc != 0 && fd >= 0)
+	if (!device && fd >= 0)
 		close_restricted(libinput, fd);
 
 	free(sysname);
 	free(seat_name);
 	free(seat_logical_name);
 
-	return rc;
+	return device ? &device->base : NULL;
 }
 
 static int
@@ -210,7 +226,8 @@ path_input_enable(struct libinput *libinput)
 	int rc = 0;
 
 	list_for_each(dev, &input->path_list, link)
-		rc += path_device_enable(input, dev->path);
+		if (path_device_enable(input, dev->path) == NULL)
+			rc--;
 
 	return rc;
 }
@@ -281,4 +298,57 @@ libinput_create_from_path(const struct libinput_interface *interface,
 	}
 
 	return &input->base;
+}
+
+LIBINPUT_EXPORT struct libinput_device *
+libinput_path_add_device(struct libinput *libinput,
+			 const char *path)
+{
+	struct path_input *input = (struct path_input*)libinput;
+	struct path_device *dev;
+	struct libinput_device *device;
+
+	if (libinput->interface_backend->backend_type != BACKEND_PATH) {
+		log_info("Mismatching backends. This is an application bug.\n");
+		return NULL;
+	}
+
+	dev = zalloc(sizeof *dev);
+	if (!dev)
+		return NULL;
+
+	dev->path = strdup(path);
+	if (!dev->path) {
+		free(dev);
+		return NULL;
+	}
+
+	list_insert(&input->path_list, &dev->link);
+
+	device = path_device_enable(input, dev->path);
+
+	if (!device) {
+		list_remove(&dev->link);
+		free(dev->path);
+		free(dev);
+	}
+
+	return device;
+}
+
+LIBINPUT_EXPORT void
+libinput_path_remove_device(struct libinput_device *device)
+{
+	struct libinput *libinput = device->seat->libinput;
+	struct libinput_seat *seat;
+
+	if (libinput->interface_backend->backend_type != BACKEND_PATH) {
+		log_info("Mismatching backends. This is an application bug.\n");
+		return;
+	}
+
+	seat = device->seat;
+	libinput_seat_ref(seat);
+	path_disable_device(libinput, (struct evdev_device*)device);
+	libinput_seat_unref(seat);
 }

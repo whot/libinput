@@ -637,6 +637,51 @@ libinput_create_from_path(const struct libinput_interface *interface,
 /**
  * @ingroup base
  *
+ * Add a device to a libinput context initialized with
+ * libinput_path_create_from_device(). If successful, the device will be
+ * added to the internal list and re-opened on libinput_resume(). The device
+ * can be removed with libinput_path_remove_device().
+ *
+ * If the device was successfully initialized, it is returned in the device
+ * argument. The lifetime of the returned device pointer is limited until
+ * the next linput_dispatch(), use libinput_device_ref() to keep a permanent
+ * reference.
+ *
+ * @param libinput A previously initialized libinput context
+ * @param path Path to an input device
+ * @return The newly initiated device on success, or NULL on failure.
+ *
+ * @note It is an application bug to call this function on a libinput
+ * context initialize with libinput_udev_create_for_seat().
+ */
+struct libinput_device *
+libinput_path_add_device(struct libinput *libinput,
+			 const char *path);
+
+/**
+ * @ingroup base
+ *
+ * Remove a device from a libinput context initialized with
+ * libinput_path_create_from_device() or added to such a context with
+ * libinput_path_add_device().
+ *
+ * Events already processed from this input device are kept in the queue,
+ * the LIBINPUT_EVENT_DEVICE_REMOVED event marks the end of events for this
+ * device.
+ *
+ * If no matching device exists, this function does nothing.
+ *
+ * @param device A libinput device
+ *
+ * @note It is an application bug to call this function on a libinput
+ * context initialize with libinput_udev_create_for_seat().
+ */
+void
+libinput_path_remove_device(struct libinput_device *device);
+
+/**
+ * @ingroup base
+ *
  * libinput keeps a single file descriptor for all events. Call into
  * libinput_dispatch() if any events become available on this fd.
  *
