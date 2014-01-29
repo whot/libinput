@@ -637,6 +637,29 @@ libinput_path_add_device(struct libinput *libinput,
 /**
  * @ingroup base
  *
+ * Remove a device from a libinput context initialized with
+ * libinput_path_create_from_device() or added to such a context with
+ * libinput_path_add_device().
+ *
+ * Events already processed from this input device are kept in the queue,
+ * the LIBINPUT_EVENT_DEVICE_REMOVED event marks the end of events for this
+ * device.
+ *
+ * If no matching device exists, this function does nothing.
+ *
+ * @param libinput A previously initialized libinput context
+ * @param path Path to an input device
+ *
+ * @note It is an application bug to call this function on a libinput
+ * context initialize with libinput_udev_create_for_seat().
+ */
+void
+libinput_path_remove_device(struct libinput *libinput,
+			    const char *path);
+
+/**
+ * @ingroup base
+ *
  * libinput keeps a single file descriptor for all events. Call into
  * libinput_dispatch() if any events become available on this fd.
  *

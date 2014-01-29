@@ -37,6 +37,24 @@ int path_input_process_event(struct libinput_event);
 static void path_seat_destroy(struct libinput_seat *seat);
 
 static void
+path_disable_device(struct libinput *libinput,
+		    struct evdev_device *device)
+{
+	struct libinput_seat *seat = device->base.seat;
+
+	close_restricted(libinput, device->fd);
+	evdev_device_remove(device);
+	if (list_empty(&seat->devices_list)) {
+		/* if the seat may be referenced by the
+		   client, so make sure it's dropped from
+		   the seat list now, to be freed whenever
+		 * the device is removed */
+		list_remove(&seat->link);
+		list_init(&seat->link);
+	}
+}
+
+static void
 path_input_disable(struct libinput *libinput)
 {
 	struct path_input *input = (struct path_input*)libinput;
@@ -46,18 +64,8 @@ path_input_disable(struct libinput *libinput)
 	list_for_each_safe(seat, tmp, &input->base.seat_list, base.link) {
 		libinput_seat_ref(&seat->base);
 		list_for_each_safe(device, next,
-				   &seat->base.devices_list, base.link) {
-			close_restricted(&input->base, device->fd);
-			evdev_device_remove(device);
-			if (list_empty(&seat->base.devices_list)) {
-				/* if the seat may be referenced by the
-				   client, so make sure it's dropped from
-				   the seat list now, to be freed whenever
-				 * the device is removed */
-				list_remove(&seat->base.link);
-				list_init(&seat->base.link);
-			}
-		}
+				   &seat->base.devices_list, base.link)
+			path_disable_device(libinput, device);
 		libinput_seat_unref(&seat->base);
 	}
 }
@@ -315,4 +323,44 @@ libinput_path_add_device(struct libinput *libinput,
 	}
 
 	return 0;
+}
+
+LIBINPUT_EXPORT void
+libinput_path_remove_device(struct libinput *libinput,
+			    const char *path)
+{
+	struct path_input *input = (struct path_input*)libinput;
+	struct path_device *dev;
+	struct path_seat *seat, *tmp;
+	struct evdev_device *device, *next;
+
+	if (libinput->interface_backend->backend_type != BACKEND_PATH) {
+		log_info("Mismatching backends. This is an application bug.\n");
+		return;
+	}
+
+	list_for_each(dev, &input->path_list, link) {
+		if (strcmp(dev->path, path) == 0) {
+			list_remove(&dev->link);
+			free(dev->path);
+			free(dev);
+			break;
+		}
+	}
+
+	/* matching path not found */
+	if (!dev)
+		return;
+
+	list_for_each_safe(seat, tmp, &input->base.seat_list, base.link) {
+		libinput_seat_ref(&seat->base);
+		list_for_each_safe(device, next,
+				   &seat->base.devices_list, base.link) {
+			if (strcmp(device->devnode, path) == 0) {
+				path_disable_device(libinput, device);
+				break;
+			}
+		}
+		libinput_seat_unref(&seat->base);
+	}
 }
