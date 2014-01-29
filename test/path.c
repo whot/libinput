@@ -58,17 +58,15 @@ START_TEST(path_create_NULL)
 {
 	struct libinput *li;
 	const struct libinput_interface interface;
-	const char *path = "foo";
 
 	open_func_count = 0;
 	close_func_count = 0;
 
-	li = libinput_create_from_path(NULL, NULL, NULL);
+	li = libinput_path_create_context(NULL, NULL);
 	ck_assert(li == NULL);
-	li = libinput_create_from_path(&interface, NULL, NULL);
-	ck_assert(li == NULL);
-	li = libinput_create_from_path(NULL, NULL, path);
-	ck_assert(li == NULL);
+	li = libinput_path_create_context(&interface, NULL);
+	ck_assert(li != NULL);
+	libinput_destroy(li);
 
 	ck_assert_int_eq(open_func_count, 0);
 	ck_assert_int_eq(close_func_count, 0);
@@ -81,13 +79,16 @@ END_TEST
 START_TEST(path_create_invalid)
 {
 	struct libinput *li;
+	struct libinput_device *device;
 	const char *path = "/tmp";
 
 	open_func_count = 0;
 	close_func_count = 0;
 
-	li = libinput_create_from_path(&simple_interface, NULL, path);
-	ck_assert(li == NULL);
+	li = libinput_path_create_context(&simple_interface, NULL);
+	ck_assert(li != NULL);
+	device = libinput_path_add_device(li, path);
+	ck_assert(device == NULL);
 
 	ck_assert_int_eq(open_func_count, 1);
 	ck_assert_int_eq(close_func_count, 0);
@@ -103,6 +104,7 @@ END_TEST
 START_TEST(path_create_destroy)
 {
 	struct libinput *li;
+	struct libinput_device *device;
 	struct libevdev *evdev;
 	struct libevdev_uinput *uinput;
 	int rc;
@@ -123,10 +125,14 @@ START_TEST(path_create_destroy)
 	ck_assert_int_eq(rc, 0);
 	libevdev_free(evdev);
 
-	li = libinput_create_from_path(&simple_interface, userdata,
-				       libevdev_uinput_get_devnode(uinput));
+	li = libinput_path_create_context(&simple_interface, userdata);
 	ck_assert(li != NULL);
 	ck_assert(libinput_get_user_data(li) == userdata);
+
+	device = libinput_path_add_device(li,
+					  libevdev_uinput_get_devnode(uinput));
+	ck_assert(device != NULL);
+
 	ck_assert_int_eq(open_func_count, 1);
 
 	libevdev_uinput_destroy(uinput);
@@ -334,6 +340,7 @@ END_TEST
 START_TEST(path_suspend)
 {
 	struct libinput *li;
+	struct libinput_device *device;
 	struct libevdev *evdev;
 	struct libevdev_uinput *uinput;
 	int rc;
@@ -354,9 +361,12 @@ START_TEST(path_suspend)
 	ck_assert_int_eq(rc, 0);
 	libevdev_free(evdev);
 
-	li = libinput_create_from_path(&simple_interface, userdata,
-				       libevdev_uinput_get_devnode(uinput));
+	li = libinput_path_create_context(&simple_interface, userdata);
 	ck_assert(li != NULL);
+
+	device = libinput_path_add_device(li,
+					  libevdev_uinput_get_devnode(uinput));
+	ck_assert(device != NULL);
 
 	libinput_suspend(li);
 	libinput_resume(li);
@@ -372,6 +382,7 @@ END_TEST
 START_TEST(path_double_suspend)
 {
 	struct libinput *li;
+	struct libinput_device *device;
 	struct libevdev *evdev;
 	struct libevdev_uinput *uinput;
 	int rc;
@@ -392,9 +403,12 @@ START_TEST(path_double_suspend)
 	ck_assert_int_eq(rc, 0);
 	libevdev_free(evdev);
 
-	li = libinput_create_from_path(&simple_interface, userdata,
-				       libevdev_uinput_get_devnode(uinput));
+	li = libinput_path_create_context(&simple_interface, userdata);
 	ck_assert(li != NULL);
+
+	device = libinput_path_add_device(li,
+					  libevdev_uinput_get_devnode(uinput));
+	ck_assert(device != NULL);
 
 	libinput_suspend(li);
 	libinput_suspend(li);
@@ -411,6 +425,7 @@ END_TEST
 START_TEST(path_double_resume)
 {
 	struct libinput *li;
+	struct libinput_device *device;
 	struct libevdev *evdev;
 	struct libevdev_uinput *uinput;
 	int rc;
@@ -431,9 +446,12 @@ START_TEST(path_double_resume)
 	ck_assert_int_eq(rc, 0);
 	libevdev_free(evdev);
 
-	li = libinput_create_from_path(&simple_interface, userdata,
-				       libevdev_uinput_get_devnode(uinput));
+	li = libinput_path_create_context(&simple_interface, userdata);
 	ck_assert(li != NULL);
+
+	device = libinput_path_add_device(li,
+					  libevdev_uinput_get_devnode(uinput));
+	ck_assert(device != NULL);
 
 	libinput_suspend(li);
 	libinput_resume(li);

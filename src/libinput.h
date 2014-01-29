@@ -614,25 +614,26 @@ libinput_create_from_udev(const struct libinput_interface *interface,
 			  void *user_data,
 			  struct udev *udev,
 			  const char *seat_id);
+
 /**
  * @ingroup base
  *
- * Create a new libinput context from the given path. This context
- * represents one single device only, it will not respond to new devices
- * being added and reading from the device after it was removed will fail.
+ * Create a new libinput context that requires the caller to manuall add or
+ * remove devices with libinput_path_add_device() and
+ * libinput_path_remove_device().
+ *
+ * The context is fully initialized but will not generate events until at
+ * least one device has been added.
  *
  * @param interface The callback interface
  * @param user_data Caller-specific data passed to the various callback
  * interfaces.
- * @param path Path to an input device
  *
- * @return An initialized libinput context, ready to handle events or NULL on
- * error.
+ * @return An initialized, empty libinput context.
  */
 struct libinput *
-libinput_create_from_path(const struct libinput_interface *interface,
-			  void *user_data,
-			  const char *path);
+libinput_path_create_context(const struct libinput_interface *interface,
+			     void *user_data);
 
 /**
  * @ingroup base

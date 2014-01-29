@@ -160,11 +160,21 @@ open_udev(struct libinput **li)
 static int
 open_device(struct libinput **li, const char *path)
 {
-	*li = libinput_create_from_path(&interface, NULL, path);
+	struct libinput_device *device;
+
+	*li = libinput_path_create_context(&interface, NULL);
 	if (!*li) {
 		fprintf(stderr, "Failed to initialize context from %s\n", path);
 		return 1;
 	}
+
+	device = libinput_path_add_device(*li, path);
+	if (!device) {
+		fprintf(stderr, "Failed to initialized device %s\n", path);
+		libinput_destroy(*li);
+		return 1;
+	}
+
 	return 0;
 }
 

@@ -59,6 +59,7 @@ struct litest_device {
 	struct libevdev *evdev;
 	struct libevdev_uinput *uinput;
 	struct libinput *libinput;
+	struct libinput_device *libinput_device;
 	struct litest_device_interface *interface;
 };
 

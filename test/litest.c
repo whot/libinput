@@ -367,8 +367,12 @@ litest_create_device(enum litest_device_type which)
 	rc = libevdev_new_from_fd(fd, &d->evdev);
 	ck_assert_int_eq(rc, 0);
 
-	d->libinput = libinput_create_from_path(&interface, NULL, path);
+	d->libinput = libinput_path_create_context(&interface, NULL);
 	ck_assert(d->libinput != NULL);
+
+	d->libinput_device = libinput_path_add_device(d->libinput, path);
+	ck_assert(d->libinput_device != NULL);
+	libinput_device_ref(d->libinput_device);
 
 	d->interface->min[ABS_X] = libevdev_get_abs_minimum(d->evdev, ABS_X);
 	d->interface->max[ABS_X] = libevdev_get_abs_maximum(d->evdev, ABS_X);
@@ -397,6 +401,7 @@ litest_delete_device(struct litest_device *d)
 	if (!d)
 		return;
 
+	libinput_device_unref(d->libinput_device);
 	libinput_destroy(d->libinput);
 	libevdev_free(d->evdev);
 	libevdev_uinput_destroy(d->uinput);

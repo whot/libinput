@@ -253,49 +253,25 @@ static const struct libinput_interface_backend interface_backend = {
 };
 
 LIBINPUT_EXPORT struct libinput *
-libinput_create_from_path(const struct libinput_interface *interface,
-			  void *user_data,
-			  const char *path)
+libinput_path_create_context(const struct libinput_interface *interface,
+			     void *user_data)
 {
 	struct path_input *input;
-	struct path_device *dev;
 
-	if (!interface || !path)
+	if (!interface)
 		return NULL;
 
 	input = zalloc(sizeof *input);
 	if (!input)
 		return NULL;
 
-	dev = zalloc(sizeof *dev);
-	if (!dev) {
-		free(input);
-		free(dev);
-		return NULL;
-	}
-
 	if (libinput_init(&input->base, interface,
 			  &interface_backend, user_data) != 0) {
 		free(input);
-		free(dev);
 		return NULL;
 	}
 
 	list_init(&input->path_list);
-
-	dev->path = strdup(path);
-	if (!dev->path) {
-		free(input);
-		free(dev);
-		return NULL;
-	}
-
-	list_insert(&input->path_list, &dev->link);
-
-	if (path_input_enable(&input->base) < 0) {
-		libinput_destroy(&input->base);
-		return NULL;
-	}
 
 	return &input->base;
 }
