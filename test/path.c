@@ -164,9 +164,6 @@ START_TEST(path_added_seat)
 	ck_assert_int_eq(strcmp(seat_name, "default"), 0);
 
 	libinput_event_destroy(event);
-
-	open_func_count = 0;
-	close_func_count = 0;
 }
 END_TEST
 
@@ -197,8 +194,6 @@ START_TEST(path_added_device)
 
 	libinput_event_destroy(event);
 
-	open_func_count = 0;
-	close_func_count = 0;
 }
 END_TEST
 
