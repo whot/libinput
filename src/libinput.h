@@ -611,9 +611,9 @@ libinput_udev_create_for_seat(const struct libinput_interface *interface,
  * error.
  */
 struct libinput *
-libinput_create_from_path(const struct libinput_interface *interface,
-			  void *user_data,
-			  const char *path);
+libinput_path_create_from_device(const struct libinput_interface *interface,
+				 void *user_data,
+				 const char *path);
 
 /**
  * @ingroup base

@@ -184,9 +184,9 @@ static const struct libinput_interface_backend interface_backend = {
 };
 
 LIBINPUT_EXPORT struct libinput *
-libinput_create_from_path(const struct libinput_interface *interface,
-			  void *user_data,
-			  const char *path)
+libinput_path_create_from_device(const struct libinput_interface *interface,
+				 void *user_data,
+				 const char *path)
 {
 	struct path_input *input;
 

@@ -367,7 +367,7 @@ litest_create_device(enum litest_device_type which)
 	rc = libevdev_new_from_fd(fd, &d->evdev);
 	ck_assert_int_eq(rc, 0);
 
-	d->libinput = libinput_create_from_path(&interface, NULL, path);
+	d->libinput = libinput_path_create_from_device(&interface, NULL, path);
 	ck_assert(d->libinput != NULL);
 
 	d->interface->min[ABS_X] = libevdev_get_abs_minimum(d->evdev, ABS_X);

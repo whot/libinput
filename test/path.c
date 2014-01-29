@@ -63,11 +63,11 @@ START_TEST(path_create_NULL)
 	open_func_count = 0;
 	close_func_count = 0;
 
-	li = libinput_create_from_path(NULL, NULL, NULL);
+	li = libinput_path_create_from_device(NULL, NULL, NULL);
 	ck_assert(li == NULL);
-	li = libinput_create_from_path(&interface, NULL, NULL);
+	li = libinput_path_create_from_device(&interface, NULL, NULL);
 	ck_assert(li == NULL);
-	li = libinput_create_from_path(NULL, NULL, path);
+	li = libinput_path_create_from_device(NULL, NULL, path);
 	ck_assert(li == NULL);
 
 	ck_assert_int_eq(open_func_count, 0);
@@ -86,7 +86,7 @@ START_TEST(path_create_invalid)
 	open_func_count = 0;
 	close_func_count = 0;
 
-	li = libinput_create_from_path(&simple_interface, NULL, path);
+	li = libinput_path_create_from_device(&simple_interface, NULL, path);
 	ck_assert(li == NULL);
 
 	ck_assert_int_eq(open_func_count, 1);
@@ -123,8 +123,8 @@ START_TEST(path_create_destroy)
 	ck_assert_int_eq(rc, 0);
 	libevdev_free(evdev);
 
-	li = libinput_create_from_path(&simple_interface, userdata,
-				       libevdev_uinput_get_devnode(uinput));
+	li = libinput_path_create_from_device(&simple_interface, userdata,
+					      libevdev_uinput_get_devnode(uinput));
 	ck_assert(li != NULL);
 	ck_assert(libinput_get_user_data(li) == userdata);
 	ck_assert_int_eq(open_func_count, 1);
@@ -225,8 +225,8 @@ START_TEST(path_suspend)
 	ck_assert_int_eq(rc, 0);
 	libevdev_free(evdev);
 
-	li = libinput_create_from_path(&simple_interface, userdata,
-				       libevdev_uinput_get_devnode(uinput));
+	li = libinput_path_create_from_device(&simple_interface, userdata,
+					      libevdev_uinput_get_devnode(uinput));
 	ck_assert(li != NULL);
 
 	libinput_suspend(li);
@@ -263,8 +263,8 @@ START_TEST(path_double_suspend)
 	ck_assert_int_eq(rc, 0);
 	libevdev_free(evdev);
 
-	li = libinput_create_from_path(&simple_interface, userdata,
-				       libevdev_uinput_get_devnode(uinput));
+	li = libinput_path_create_from_device(&simple_interface, userdata,
+					      libevdev_uinput_get_devnode(uinput));
 	ck_assert(li != NULL);
 
 	libinput_suspend(li);
@@ -302,8 +302,8 @@ START_TEST(path_double_resume)
 	ck_assert_int_eq(rc, 0);
 	libevdev_free(evdev);
 
-	li = libinput_create_from_path(&simple_interface, userdata,
-				       libevdev_uinput_get_devnode(uinput));
+	li = libinput_path_create_from_device(&simple_interface, userdata,
+					      libevdev_uinput_get_devnode(uinput));
 	ck_assert(li != NULL);
 
 	libinput_suspend(li);
