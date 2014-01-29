@@ -618,6 +618,25 @@ libinput_path_create_from_device(const struct libinput_interface *interface,
 /**
  * @ingroup base
  *
+ * Add a device to a libinput context initialized with
+ * libinput_path_create_from_device(). If successful, the device will be
+ * added to the internal list and re-opened on libinput_resume(). The device
+ * can be removed with libinput_path_remove_device().
+ *
+ * @param libinput A previously initialized libinput context
+ * @param path Path to an input device
+ * @return 0 on success, or a negative errno on failure
+ *
+ * @note It is an application bug to call this function on a libinput
+ * context initialize with libinput_udev_create_for_seat().
+ */
+int
+libinput_path_add_device(struct libinput *libinput,
+			 const char *path);
+
+/**
+ * @ingroup base
+ *
  * libinput keeps a single file descriptor for all events. Call into
  * libinput_dispatch() if any events become available on this fd.
  *

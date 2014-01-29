@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <string.h>
 #include <libudev.h>
@@ -281,4 +282,37 @@ libinput_path_create_from_device(const struct libinput_interface *interface,
 	}
 
 	return &input->base;
+}
+
+LIBINPUT_EXPORT int
+libinput_path_add_device(struct libinput *libinput,
+			 const char *path)
+{
+	struct path_input *input = (struct path_input*)libinput;
+	struct path_device *dev;
+
+	if (libinput->interface_backend->backend_type != BACKEND_PATH) {
+		log_info("Mismatching backends. This is an application bug.\n");
+		return -EINVAL;
+	}
+
+	dev = zalloc(sizeof *dev);
+	if (!dev)
+		return -ENOMEM;
+
+	dev->path = strdup(path);
+	if (!dev->path) {
+		free(dev);
+		return -ENOMEM;
+	}
+
+	list_insert(&input->path_list, &dev->link);
+	if (path_device_enable(input, dev->path) < 0) {
+		list_remove(&dev->link);
+		free(dev->path);
+		free(dev);
+		return -ECANCELED; /* FIXME */
+	}
+
+	return 0;
 }
