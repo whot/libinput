@@ -345,6 +345,7 @@ udev_seat_get_named(struct udev_input *input, const char *seat_name)
 }
 
 static const struct libinput_interface_backend interface_backend = {
+	.backend_type = BACKEND_UDEV,
 	.resume = udev_input_enable,
 	.suspend = udev_input_disable,
 	.destroy = udev_input_destroy,

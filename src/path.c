@@ -182,6 +182,7 @@ path_input_destroy(struct libinput *input)
 }
 
 static const struct libinput_interface_backend interface_backend = {
+	.backend_type = BACKEND_PATH,
 	.resume = path_input_enable,
 	.suspend = path_input_disable,
 	.destroy = path_input_destroy,
