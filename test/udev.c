@@ -55,22 +55,22 @@ START_TEST(udev_create_NULL)
 	struct udev *udev = (struct udev*)0xdeadbeef;
 	const char *seat = (const char*)0xdeaddead;
 
-	li = libinput_create_from_udev(NULL, NULL, NULL, NULL);
+	li = libinput_udev_create_for_seat(NULL, NULL, NULL, NULL);
 	ck_assert(li == NULL);
 
-	li = libinput_create_from_udev(&interface, NULL, NULL, NULL);
+	li = libinput_udev_create_for_seat(&interface, NULL, NULL, NULL);
 	ck_assert(li == NULL);
-	li = libinput_create_from_udev(NULL, NULL, udev, NULL);
+	li = libinput_udev_create_for_seat(NULL, NULL, udev, NULL);
 	ck_assert(li == NULL);
-	li = libinput_create_from_udev(NULL, NULL, NULL, seat);
-	ck_assert(li == NULL);
-
-	li = libinput_create_from_udev(&interface, NULL, udev, NULL);
-	ck_assert(li == NULL);
-	li = libinput_create_from_udev(NULL, NULL, udev, seat);
+	li = libinput_udev_create_for_seat(NULL, NULL, NULL, seat);
 	ck_assert(li == NULL);
 
-	li = libinput_create_from_udev(&interface, NULL, NULL, seat);
+	li = libinput_udev_create_for_seat(&interface, NULL, udev, NULL);
+	ck_assert(li == NULL);
+	li = libinput_udev_create_for_seat(NULL, NULL, udev, seat);
+	ck_assert(li == NULL);
+
+	li = libinput_udev_create_for_seat(&interface, NULL, NULL, seat);
 	ck_assert(li == NULL);
 }
 END_TEST
@@ -85,7 +85,7 @@ START_TEST(udev_create_seat0)
 	udev = udev_new();
 	ck_assert(udev != NULL);
 
-	li = libinput_create_from_udev(&simple_interface, NULL, udev, "seat0");
+	li = libinput_udev_create_for_seat(&simple_interface, NULL, udev, "seat0");
 	ck_assert(li != NULL);
 
 	fd = libinput_get_fd(li);
@@ -113,7 +113,7 @@ START_TEST(udev_create_empty_seat)
 	ck_assert(udev != NULL);
 
 	/* expect a libinput reference, but no events */
-	li = libinput_create_from_udev(&simple_interface, NULL, udev, "seatdoesntexist");
+	li = libinput_udev_create_for_seat(&simple_interface, NULL, udev, "seatdoesntexist");
 	ck_assert(li != NULL);
 
 	fd = libinput_get_fd(li);
@@ -147,7 +147,7 @@ START_TEST(udev_added_seat_default)
 	udev = udev_new();
 	ck_assert(udev != NULL);
 
-	li = libinput_create_from_udev(&simple_interface, NULL, udev, "seat0");
+	li = libinput_udev_create_for_seat(&simple_interface, NULL, udev, "seat0");
 	ck_assert(li != NULL);
 	libinput_dispatch(li);
 
@@ -184,7 +184,7 @@ START_TEST(udev_double_suspend)
 	udev = udev_new();
 	ck_assert(udev != NULL);
 
-	li = libinput_create_from_udev(&simple_interface, NULL, udev, "seat0");
+	li = libinput_udev_create_for_seat(&simple_interface, NULL, udev, "seat0");
 	ck_assert(li != NULL);
 
 	fd = libinput_get_fd(li);
@@ -215,7 +215,7 @@ START_TEST(udev_double_resume)
 	udev = udev_new();
 	ck_assert(udev != NULL);
 
-	li = libinput_create_from_udev(&simple_interface, NULL, udev, "seat0");
+	li = libinput_udev_create_for_seat(&simple_interface, NULL, udev, "seat0");
 	ck_assert(li != NULL);
 
 	fd = libinput_get_fd(li);
@@ -266,7 +266,7 @@ START_TEST(udev_suspend_resume)
 	udev = udev_new();
 	ck_assert(udev != NULL);
 
-	li = libinput_create_from_udev(&simple_interface, NULL, udev, "seat0");
+	li = libinput_udev_create_for_seat(&simple_interface, NULL, udev, "seat0");
 	ck_assert(li != NULL);
 
 	fd = libinput_get_fd(li);

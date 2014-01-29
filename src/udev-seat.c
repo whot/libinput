@@ -354,10 +354,10 @@ static const struct libinput_interface_backend interface_backend = {
 };
 
 LIBINPUT_EXPORT struct libinput *
-libinput_create_from_udev(const struct libinput_interface *interface,
-			  void *user_data,
-			  struct udev *udev,
-			  const char *seat_id)
+libinput_udev_create_for_seat(const struct libinput_interface *interface,
+			      void *user_data,
+			      struct udev *udev,
+			      const char *seat_id)
 {
 	struct udev_input *input;
 

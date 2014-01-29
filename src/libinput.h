@@ -554,7 +554,7 @@ struct libinput_interface {
 	 * @param path The device path to open
 	 * @param flags Flags as defined by open(2)
 	 * @param user_data The user_data provided in
-	 * libinput_create_from_udev()
+	 * libinput_udev_create_for_seat()
 	 *
 	 * @return the file descriptor, or a negative errno on failure.
 	 */
@@ -564,7 +564,7 @@ struct libinput_interface {
 	 *
 	 * @param fd The file descriptor to close
 	 * @param user_data The user_data provided in
-	 * libinput_create_from_udev()
+	 * libinput_udev_create_for_seat()
 	 */
 	void (*close_restricted)(int fd, void *user_data);
 
@@ -591,7 +591,7 @@ struct libinput_interface {
  * error.
  */
 struct libinput *
-libinput_create_from_udev(const struct libinput_interface *interface,
+libinput_udev_create_for_seat(const struct libinput_interface *interface,
 			  void *user_data,
 			  struct udev *udev,
 			  const char *seat_id);
@@ -813,8 +813,8 @@ libinput_seat_get_user_data(struct libinput_seat *seat);
  *
  * Return the physical name of the seat. For libinput contexts created from
  * udev, this is always the same value as passed into
- * libinput_create_from_udev() and all seats from that context will have the
- * same physical name.
+ * libinput_udev_create_for_seat() and all seats from that context will have
+ * the same physical name.
  *
  * The physical name of the seat is one that is usually set by the system or
  * lower levels of the stack. In most cases, this is the base filter for
