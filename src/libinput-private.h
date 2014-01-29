@@ -26,7 +26,13 @@
 #include "libinput.h"
 #include "libinput-util.h"
 
+enum libinput_backend_type {
+	BACKEND_UDEV,
+	BACKEND_PATH,
+};
+
 struct libinput_interface_backend {
+	enum libinput_backend_type backend_type;
 	int (*resume)(struct libinput *libinput);
 	void (*suspend)(struct libinput *libinput);
 	void (*destroy)(struct libinput *libinput);
