@@ -169,7 +169,6 @@ static void
 evdev_udev_handler(void *data)
 {
 	struct udev_input *input = data;
-	struct libinput *libinput = &input->base;
 	struct udev_device *udev_device;
 	struct evdev_device *device, *next;
 	const char *action;
@@ -198,7 +197,6 @@ evdev_udev_handler(void *data)
 				if (!strcmp(device->devnode, devnode)) {
 					log_info("input device %s, %s removed\n",
 						 device->devname, device->devnode);
-					close_restricted(libinput, device->fd);
 					evdev_device_remove(device);
 					break;
 				}
@@ -219,7 +217,6 @@ udev_input_remove_devices(struct udev_input *input)
 		libinput_seat_ref(&seat->base);
 		list_for_each_safe(device, next,
 				   &seat->base.devices_list, base.link) {
-			close_restricted(&input->base, device->fd);
 			evdev_device_remove(device);
 			if (list_empty(&seat->base.devices_list)) {
 				/* if the seat may be referenced by the

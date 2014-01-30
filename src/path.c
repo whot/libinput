@@ -42,7 +42,6 @@ path_disable_device(struct libinput *libinput,
 {
 	struct libinput_seat *seat = device->base.seat;
 
-	close_restricted(libinput, device->fd);
 	evdev_device_remove(device);
 	if (list_empty(&seat->devices_list)) {
 		/* if the seat may be referenced by the
