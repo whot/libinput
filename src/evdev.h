@@ -63,6 +63,7 @@ struct evdev_device {
 	char *output_name;
 	char *devnode;
 	char *sysname;
+	char *syspath;
 	const char *devname;
 	int fd;
 	struct {
@@ -134,7 +135,8 @@ struct evdev_dispatch {
 struct evdev_device *
 evdev_device_create(struct libinput_seat *seat,
 		    const char *devnode,
-		    const char *sysname);
+		    const char *sysname,
+		    const char *syspath);
 
 struct evdev_dispatch *
 evdev_touchpad_create(struct evdev_device *device);

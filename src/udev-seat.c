@@ -47,6 +47,7 @@ device_added(struct udev_device *udev_device, struct udev_input *input)
 	struct evdev_device *device;
 	const char *devnode;
 	const char *sysname;
+	const char *syspath;
 	const char *device_seat, *seat_name, *output_name;
 	const char *calibration_values;
 	float calibration[6];
@@ -61,6 +62,7 @@ device_added(struct udev_device *udev_device, struct udev_input *input)
 
 	devnode = udev_device_get_devnode(udev_device);
 	sysname = udev_device_get_sysname(udev_device);
+	syspath = udev_device_get_syspath(udev_device);
 
 	/* Search for matching logical seat */
 	seat_name = udev_device_get_property_value(udev_device, "WL_SEAT");
@@ -77,7 +79,7 @@ device_added(struct udev_device *udev_device, struct udev_input *input)
 			return -1;
 	}
 
-	device = evdev_device_create(&seat->base, devnode, sysname);
+	device = evdev_device_create(&seat->base, devnode, sysname, syspath);
 	libinput_seat_unref(&seat->base);
 
 	if (device == EVDEV_UNHANDLED_DEVICE) {

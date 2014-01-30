@@ -971,7 +971,8 @@ evdev_configure_device(struct evdev_device *device)
 struct evdev_device *
 evdev_device_create(struct libinput_seat *seat,
 		    const char *devnode,
-		    const char *sysname)
+		    const char *sysname,
+		    const char *syspath)
 {
 	struct libinput *libinput = seat->libinput;
 	struct evdev_device *device;
@@ -1008,6 +1009,7 @@ evdev_device_create(struct libinput_seat *seat,
 	device->mtdev = NULL;
 	device->devnode = strdup(devnode);
 	device->sysname = strdup(sysname);
+	device->syspath = strdup(syspath);
 	device->rel.dx = 0;
 	device->rel.dy = 0;
 	device->abs.seat_slot = -1;
@@ -1255,6 +1257,36 @@ evdev_device_suspend(struct evdev_device *device)
 	return 0;
 }
 
+static int
+evdev_device_compare_syspath(struct evdev_device *device, int fd)
+{
+	struct udev *udev = NULL;
+	struct udev_device *udev_device = NULL;
+	const char *syspath;
+	struct stat st;
+	int rc = 1;
+
+	udev = udev_new();
+	if (!udev)
+		goto out;
+
+	if (fstat(fd, &st) < 0)
+		goto out;
+
+	udev_device = udev_device_new_from_devnum(udev, 'c', st.st_rdev);
+	if (!device)
+		goto out;
+
+	syspath = udev_device_get_syspath(udev_device);
+	rc = strcmp(syspath, device->syspath);
+out:
+	if (udev_device)
+		udev_device_unref(udev_device);
+	if (udev)
+		udev_unref(udev);
+	return rc;
+}
+
 int
 evdev_device_resume(struct evdev_device *device)
 {
@@ -1264,10 +1296,18 @@ evdev_device_resume(struct evdev_device *device)
 	if (device->fd != -1)
 		return 0;
 
+	if (device->syspath == NULL)
+		return -ENODEV;
+
 	fd = open_restricted(libinput, device->devnode, O_RDWR | O_NONBLOCK);
 
 	if (fd < 0)
 		return -errno;
+
+	if (evdev_device_compare_syspath(device, fd)) {
+		close_restricted(libinput, fd);
+		return -ENODEV;
+	}
 
 	device->fd = fd;
 
@@ -1294,6 +1334,11 @@ evdev_device_remove(struct evdev_device *device)
 {
 	evdev_device_suspend(device);
 
+	/* A device may be removed while suspended. Free the syspath to
+	 * skip re-opening a different device with the same node */
+	free(device->syspath);
+	device->syspath = NULL;
+
 	list_remove(&device->base.link);
 
 	notify_removed_device(&device->base);
@@ -1315,5 +1360,6 @@ evdev_device_destroy(struct evdev_device *device)
 	free(device->mt.slots);
 	free(device->devnode);
 	free(device->sysname);
+	free(device->syspath);
 	free(device);
 }
