@@ -699,13 +699,20 @@ evdev_device_has_capability(struct evdev_device *device,
 int
 evdev_device_suspend(struct evdev_device *device)
 {
-	if (device->source)
+	if (device->source) {
 		libinput_remove_source(device->base.seat->libinput,
 				       device->source);
+		device->source = NULL;
+	}
 
-	if (device->mtdev)
+	if (device->mtdev) {
 		mtdev_close_delete(device->mtdev);
-	close_restricted(device->base.seat->libinput, device->fd);
+		device->mtdev = NULL;
+	}
+	if (device->fd != -1) {
+		close_restricted(device->base.seat->libinput, device->fd);
+		device->fd = -1;
+	}
 
 	return 0;
 }
