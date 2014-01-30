@@ -42,7 +42,6 @@ path_input_disable(struct libinput *libinput)
 	struct evdev_device *device = input->device;
 
 	if (device) {
-		close_restricted(libinput, device->fd);
 		evdev_device_remove(device);
 		input->device = NULL;
 	}
