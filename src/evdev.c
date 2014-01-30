@@ -717,6 +717,64 @@ evdev_device_suspend(struct evdev_device *device)
 	return 0;
 }
 
+static int
+evdev_device_compare_syspath(struct evdev_device *device, int fd)
+{
+	struct udev *udev = NULL;
+	struct udev_device *udev_device = NULL;
+	const char *syspath;
+	struct stat st;
+	int rc = 1;
+
+	udev = udev_new();
+	if (!udev)
+		goto out;
+
+	if (fstat(fd, &st) < 0)
+		goto out;
+
+	udev_device = udev_device_new_from_devnum(udev, 'c', st.st_rdev);
+	if (!device)
+		goto out;
+
+	syspath = udev_device_get_syspath(udev_device);
+	rc = strcmp(syspath, device->syspath);
+out:
+	if (udev_device)
+		udev_device_unref(udev_device);
+	if (udev)
+		udev_unref(udev);
+	return rc;
+}
+
+int
+evdev_device_resume(struct evdev_device *device)
+{
+	struct libinput *libinput = device->base.seat->libinput;
+	int fd;
+
+	if (device->fd != -1)
+		return 0;
+
+	fd = open_restricted(libinput, device->devnode, O_RDWR | O_NONBLOCK);
+
+	if (fd < 0)
+		return fd;
+
+	if (evdev_device_compare_syspath(device, fd)) {
+		close_restricted(libinput, fd);
+		return -ENODEV;
+	}
+
+	device->fd = fd;
+	device->source =
+		libinput_add_fd(libinput, fd, evdev_device_dispatch, device);
+	if (!device->source)
+		return -ENOMEM;
+
+	return 0;
+}
+
 void
 evdev_device_remove(struct evdev_device *device)
 {

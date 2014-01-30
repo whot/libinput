@@ -149,6 +149,9 @@ evdev_device_has_capability(struct evdev_device *device,
 int
 evdev_device_suspend(struct evdev_device *device);
 
+int
+evdev_device_resume(struct evdev_device *device);
+
 void
 evdev_device_remove(struct evdev_device *device);
 

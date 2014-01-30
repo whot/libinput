@@ -900,6 +900,22 @@ libinput_suspend(struct libinput *libinput)
 	libinput->interface_backend->suspend(libinput);
 }
 
+LIBINPUT_EXPORT int
+libinput_device_suspend(struct libinput_device *device)
+{
+	struct evdev_device *dev = (struct evdev_device*)device;
+
+	return evdev_device_suspend(dev);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_resume(struct libinput_device *device)
+{
+	struct evdev_device *dev = (struct evdev_device*)device;
+
+	return evdev_device_resume(dev);
+}
+
 LIBINPUT_EXPORT void
 libinput_device_set_user_data(struct libinput_device *device, void *user_data)
 {

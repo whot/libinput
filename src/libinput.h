@@ -914,6 +914,47 @@ libinput_device_unref(struct libinput_device *device);
 /**
  * @ingroup device
  *
+ * Suspend the device but do not remove the device. This closes any file
+ * descriptors the device has open and thus stops the device from generating
+ * events in the future. Suspending a device does not generate a
+ * LIBINPUT_EVENT_DEVICE_REMOVED event.
+ *
+ * Events already processed from this device are unaffected and will be
+ * passed to the caller on the next call to libinput_get_event(). To avoid
+ * this, call libinput_device_suspend() once all pending events have been
+ * processed.
+ *
+ * If the device is already suspended, this function does nothing.
+ *
+ * @param device A previously obtained device
+ * @return 0 on success or a negative errno on failure
+ *
+ * @see libinput_device_resume
+ */
+int
+libinput_device_suspend(struct libinput_device *device);
+
+/**
+ * @ingroup device
+ *
+ * Resume a previously suspended device. This re-opens any file descriptors
+ * and will process events from this device on the next call to
+ * libinput_dispatch(). Suspending a device does not generate a
+ * LIBINPUT_EVENT_DEVICE_ADDED event.
+ *
+ * If the device is not currently suspended, this function does nothing.
+ *
+ * @param device A previously suspended device
+ * @return 0 on success or a negative errno on failure
+ *
+ * @see libinput_device_suspend
+ */
+int
+libinput_device_resume(struct libinput_device *device);
+
+/**
+ * @ingroup device
+ *
  * Set caller-specific data associated with this input device. libinput does
  * not manage, look at, or modify this data. The caller must ensure the
  * data is valid.
