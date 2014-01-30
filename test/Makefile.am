@@ -35,7 +35,8 @@ run_tests = \
 	test-log \
 	test-touchpad \
 	test-misc \
-	test-keyboard
+	test-keyboard \
+	test-device
 build_tests = \
 	test-build-cxx \
 	test-build-linker \
@@ -78,6 +79,10 @@ test_misc_LDFLAGS = -no-install
 test_keyboard_SOURCES = keyboard.c
 test_keyboard_LDADD = $(TEST_LIBS)
 test_keyboard_LDFLAGS = -no-install
+
+test_device_SOURCES = device.c
+test_device_LDADD = $(TEST_LIBS)
+test_device_LDFLAGS = -no-install
 
 # build-test only
 test_build_pedantic_c99_SOURCES = build-pedantic.c
