@@ -596,6 +596,7 @@ struct evdev_device *
 evdev_device_create(struct libinput_seat *seat,
 		    const char *devnode,
 		    const char *sysname,
+		    const char *syspath,
 		    int fd)
 {
 	struct libinput *libinput = seat->libinput;
@@ -613,6 +614,7 @@ evdev_device_create(struct libinput_seat *seat,
 	device->mtdev = NULL;
 	device->devnode = strdup(devnode);
 	device->sysname = strdup(sysname);
+	device->syspath = strdup(syspath);
 	device->mt.slot = -1;
 	device->rel.dx = 0;
 	device->rel.dy = 0;
@@ -800,5 +802,6 @@ evdev_device_destroy(struct evdev_device *device)
 	free(device->devname);
 	free(device->devnode);
 	free(device->sysname);
+	free(device->syspath);
 	free(device);
 }

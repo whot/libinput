@@ -58,6 +58,7 @@ struct evdev_device {
 	char *output_name;
 	char *devnode;
 	char *sysname;
+	char *syspath;
 	char *devname;
 	int fd;
 	struct {
@@ -119,6 +120,7 @@ struct evdev_device *
 evdev_device_create(struct libinput_seat *seat,
 		    const char *devnode,
 		    const char *sysname,
+		    const char *syspath,
 		    int fd);
 
 struct evdev_dispatch *
