@@ -16,7 +16,7 @@ liblitest_la_SOURCES = \
 	litest-wacom-touch.c \
 	litest.c
 
-run_tests = test-udev test-path test-pointer test-touch
+run_tests = test-udev test-path test-pointer test-touch test-device
 build_tests = test-build-linker test-build-pedantic-c99 test-build-std-gnuc90
 
 noinst_PROGRAMS = $(build_tests) $(run_tests)
@@ -41,6 +41,11 @@ test_touch_SOURCES = touch.c
 test_touch_CFLAGS = $(AM_CPPFLAGS)
 test_touch_LDADD = $(TEST_LIBS)
 test_touch_LDFLAGS = -static
+
+test_device_SOURCES = device.c
+test_device_CFLAGS = $(AM_CPPFLAGS)
+test_device_LDADD = $(TEST_LIBS)
+test_device_LDFLAGS = -static
 
 # build-test only
 test_build_pedantic_c99_SOURCES = build-pedantic.c
