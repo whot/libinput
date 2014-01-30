@@ -101,9 +101,18 @@ struct libinput_device_config_calibration {
 							  float matrix[6]);
 };
 
+struct libinput_device_config_send_events {
+	uint32_t (*get_modes)(struct libinput_device *device);
+	enum libinput_config_status (*set_mode)(struct libinput_device *device,
+						   enum libinput_config_send_events_mode mode);
+	enum libinput_config_send_events_mode (*get_mode)(struct libinput_device *device);
+	enum libinput_config_send_events_mode (*get_default_mode)(struct libinput_device *device);
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap *tap;
 	struct libinput_device_config_calibration *calibration;
+	struct libinput_device_config_send_events *sendevents;
 };
 
 struct libinput_device {

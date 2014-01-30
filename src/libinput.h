@@ -1634,6 +1634,106 @@ int
 libinput_device_config_calibration_get_default_matrix(struct libinput_device *device,
 						      float matrix[6]);
 
+/**
+ * The send-event mode of a device defines when a device may generate events
+ * and pass those events to the caller.
+ */
+enum libinput_config_send_events_mode {
+	/**
+	 * Send events from this device normally.
+	 */
+	LIBINPUT_CONFIG_SEND_EVENTS_ENABLED = (1 << 0),
+	/**
+	 * Do not send events through this device. Depending on the device,
+	 * this may close all file descriptors on the device or it may leave
+	 * the file descriptors open and route events through a different
+	 * device.
+	 */
+	LIBINPUT_CONFIG_SEND_EVENTS_DISABLED = (1 << 1),
+	/**
+	 * If an external pointer device is plugged in, do not send events
+	 * from this device. This option may be available on built-in
+	 * touchpads.
+	 */
+	LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE = (1 << 2),
+};
+
+/**
+ * @ingroup config
+ *
+ * Return the possible send-event modes for this device. These modes define
+ * when a device may process and send events.
+ *
+ * @param device The device to configure
+ *
+ * @return A bitmask of possible modes.
+ *
+ * @see libinput_device_config_send_events_set_mode
+ * @see libinput_device_config_send_events_get_mode
+ * @see libinput_device_config_send_events_get_default_mode
+ */
+uint32_t
+libinput_device_config_send_events_get_modes(struct libinput_device *device);
+
+/**
+ * Set the send-event mode for this device. The mode defines when the device
+ * processes and sends events to the caller.
+ *
+ * The selected mode may not take effect immediately. Events already
+ * received and processed from this device are unaffected and will be passed
+ * to the caller on the next call to libinput_get_event().
+ *
+ * If the mode is one of @ref LIBINPUT_CONFIG_SEND_EVENTS_DISABLED or
+ * @ref LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE, the device
+ * may wait for or generate events until it is in a neutral state.
+ * For example, this may include waiting for or generating button release
+ * events.
+ *
+ * If the device is already suspended, this function does nothing and
+ * returns success. Changing the send-event mode on a device that has been
+ * removed is permitted.
+ *
+ * @param device The device to configure
+ * @param mode The send-event mode for this device.
+ *
+ * @return A config status code.
+ *
+ * @see libinput_device_config_send_events_get_modes
+ * @see libinput_device_config_send_events_get_mode
+ * @see libinput_device_config_send_events_get_default_mode
+ */
+enum libinput_config_status
+libinput_device_config_send_events_set_mode(struct libinput_device *device,
+					    enum libinput_config_send_events_mode mode);
+
+/**
+ * Get the send-event mode for this device. The mode defines when the device
+ * processes and sends events to the caller.
+ *
+ * @param device The device to configure
+ * @return The current send-event mode for this device.
+ *
+ * @see libinput_device_config_send_events_get_modes
+ * @see libinput_device_config_send_events_set_mode
+ * @see libinput_device_config_send_events_get_default_mode
+ */
+enum libinput_config_send_events_mode
+libinput_device_config_send_events_get_mode(struct libinput_device *device);
+
+/**
+ * Get the default send-event mode for this device. The mode defines when
+ * the device processes and sends events to the caller.
+ *
+ * @param device The device to configure
+ * @return The current send-event mode for this device.
+ *
+ * @see libinput_device_config_send_events_get_modes
+ * @see libinput_device_config_send_events_set_mode
+ * @see libinput_device_config_send_events_get_default_mode
+ */
+enum libinput_config_send_events_mode
+libinput_device_config_send_events_get_default_mode(struct libinput_device *device);
+
 #ifdef __cplusplus
 }
 #endif
