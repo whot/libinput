@@ -186,6 +186,8 @@ double
 evdev_device_transform_y(struct evdev_device *device,
 			 double y,
 			 uint32_t height);
+int
+evdev_device_suspend(struct evdev_device *device);
 
 void
 evdev_keyboard_notify_key(struct evdev_device *device,
