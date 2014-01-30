@@ -146,6 +146,9 @@ int
 evdev_device_has_capability(struct evdev_device *device,
 			    enum libinput_device_capability capability);
 
+int
+evdev_device_suspend(struct evdev_device *device);
+
 void
 evdev_device_remove(struct evdev_device *device);
 

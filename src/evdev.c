@@ -696,8 +696,8 @@ evdev_device_has_capability(struct evdev_device *device,
 	}
 }
 
-void
-evdev_device_remove(struct evdev_device *device)
+int
+evdev_device_suspend(struct evdev_device *device)
 {
 	if (device->source)
 		libinput_remove_source(device->base.seat->libinput,
@@ -706,6 +706,15 @@ evdev_device_remove(struct evdev_device *device)
 	if (device->mtdev)
 		mtdev_close_delete(device->mtdev);
 	close_restricted(device->base.seat->libinput, device->fd);
+
+	return 0;
+}
+
+void
+evdev_device_remove(struct evdev_device *device)
+{
+	evdev_device_suspend(device);
+
 	list_remove(&device->base.link);
 
 	notify_removed_device(&device->base);
