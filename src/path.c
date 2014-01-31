@@ -120,9 +120,11 @@ path_input_enable(struct libinput *libinput)
 	struct path_seat *seat;
 	struct evdev_device *device;
 	const char *devnode = input->path;
-	char *sysname;
+	char *sysname = NULL;
 	int fd;
-	char *seat_name, *seat_logical_name;
+	char *seat_name = NULL,
+	     *seat_logical_name = NULL;
+	int rc = -1;
 
 	if (input->device)
 		return 0;
@@ -136,32 +138,35 @@ path_input_enable(struct libinput *libinput)
 
 	if (path_get_udev_properties(devnode, &sysname,
 				     &seat_name, &seat_logical_name) == -1) {
-		close_restricted(libinput, fd);
 		log_info("failed to obtain sysname for device '%s'.\n", devnode);
-		return -1;
+		goto out;
 	}
 
 	seat = path_seat_create(input, seat_name, seat_logical_name);
-	free(seat_name);
-	free(seat_logical_name);
 
 	device = evdev_device_create(&seat->base, devnode, sysname, fd);
-	free(sysname);
 	libinput_seat_unref(&seat->base);
 
 	if (device == EVDEV_UNHANDLED_DEVICE) {
-		close_restricted(libinput, fd);
 		log_info("not using input device '%s'.\n", devnode);
-		return -1;
+		goto out;
 	} else if (device == NULL) {
-		close_restricted(libinput, fd);
 		log_info("failed to create input device '%s'.\n", devnode);
-		return -1;
+		goto out;
 	}
 
 	input->device = device;
 
-	return 0;
+	rc = 0;
+out:
+	if (rc != 0 && fd >= 0)
+		close_restricted(libinput, fd);
+
+	free(sysname);
+	free(seat_name);
+	free(seat_logical_name);
+
+	return rc;
 }
 
 static void
