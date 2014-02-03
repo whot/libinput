@@ -214,6 +214,8 @@ START_TEST(path_device_sysname)
 		ck_assert(sysname != NULL && strlen(sysname) > 1);
 		ck_assert(strchr(sysname, '/') == NULL);
 		ck_assert_int_eq(strncmp(sysname, "event", 5), 0);
+
+		libinput_event_destroy(ev);
 	}
 }
 END_TEST
