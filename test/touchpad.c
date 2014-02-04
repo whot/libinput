@@ -353,6 +353,29 @@ START_TEST(clickpad_click_n_drag)
 }
 END_TEST
 
+START_TEST(touchpad_tap_is_available)
+{
+	struct litest_device *dev = litest_current_device();
+
+	ck_assert_int_ge(libinput_device_config_tap_get_finger_count(dev->libinput_device), 2);
+	ck_assert_int_eq(libinput_device_config_tap_get_button(dev->libinput_device, 1), BTN_LEFT);
+}
+END_TEST
+
+START_TEST(touchpad_tap_is_not_available)
+{
+	struct litest_device *dev = litest_current_device();
+
+	ck_assert_int_eq(libinput_device_config_tap_get_finger_count(dev->libinput_device), 0);
+	ck_assert_int_eq(libinput_device_config_tap_get_button(dev->libinput_device, 1), 0);
+	ck_assert_int_eq(libinput_device_config_tap_set_button(dev->libinput_device, 1, BTN_LEFT), -EINVAL);
+
+	/* doesn't do anything but tests for null-pointer derefernce */
+	libinput_device_config_tap_reset(dev->libinput_device);
+}
+END_TEST
+
+
 int main(int argc, char **argv) {
 
 	litest_add("touchpad:motion", touchpad_1fg_motion, LITEST_TOUCHPAD, LITEST_ANY);
@@ -361,6 +384,8 @@ int main(int argc, char **argv) {
 	litest_add("touchpad:tap", touchpad_1fg_tap, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:tap", touchpad_1fg_tap_n_drag, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:tap", touchpad_2fg_tap, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
+	litest_add("touchpad:tap", touchpad_tap_is_available, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("touchpad:tap", touchpad_tap_is_not_available, LITEST_ANY, LITEST_TOUCHPAD);
 
 	litest_add("touchpad:clickfinger", touchpad_1fg_clickfinger, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:clickfinger", touchpad_2fg_clickfinger, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
