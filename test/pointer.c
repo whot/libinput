@@ -183,11 +183,41 @@ START_TEST(pointer_scroll_wheel)
 }
 END_TEST
 
+START_TEST(touchpad_tap_is_available)
+{
+	struct litest_device *dev = litest_current_device();
+	enum libinput_config_tap state;
+
+	ck_assert_int_eq(libinput_device_config_has_tap(dev->libinput_device), 1);
+	ck_assert_int_eq(libinput_device_config_get_tap(dev->libinput_device, &state), 0);
+
+	if (libevdev_has_property(dev->evdev, INPUT_PROP_BUTTONPAD))
+		ck_assert_int_eq(state, LIBINPUT_CONFIG_TAP_DISABLED);
+	else
+		ck_assert_int_eq(state, LIBINPUT_CONFIG_TAP_ENABLED);
+}
+END_TEST
+
+START_TEST(touchpad_tap_is_not_available)
+{
+	struct litest_device *dev = litest_current_device();
+	enum libinput_config_tap state = LIBINPUT_CONFIG_TAP_ENABLED;
+
+	ck_assert_int_eq(libinput_device_config_has_tap(dev->libinput_device), 0);
+	ck_assert_int_eq(libinput_device_config_get_tap(dev->libinput_device, &state), -1);
+	ck_assert_int_eq(libinput_device_config_set_tap(dev->libinput_device, state), -1);
+	ck_assert_int_eq(libinput_device_config_reset_tap(dev->libinput_device), -1);
+}
+END_TEST
+
 int main (int argc, char **argv) {
 
 	litest_add("pointer:motion", pointer_motion_relative, LITEST_POINTER, LITEST_ANY);
 	litest_add("pointer:button", pointer_button, LITEST_BUTTON, LITEST_ANY);
 	litest_add("pointer:scroll", pointer_scroll_wheel, LITEST_WHEEL, LITEST_ANY);
+
+	litest_add("touchpad:tap", touchpad_tap_is_available, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("touchpad:tap", touchpad_tap_is_not_available, LITEST_ANY, LITEST_TOUCHPAD);
 
 	return litest_run(argc, argv);
 }
