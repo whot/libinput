@@ -128,6 +128,8 @@ litest_create_bcm5974(struct litest_device *d)
 	ARRAY_FOR_EACH(abs, a)
 		libevdev_enable_event_code(dev, EV_ABS, a->value, a);
 
+	libevdev_enable_property(dev, INPUT_PROP_BUTTONPAD);
+
 	rc = libevdev_uinput_create_from_device(dev,
 						LIBEVDEV_UINPUT_OPEN_MANAGED,
 						&d->uinput);
