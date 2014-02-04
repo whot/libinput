@@ -128,9 +128,6 @@ struct touchpad_dispatch {
 	int reset;
 
 	struct {
-		bool enable;
-
-
 		enum fsm_event *events;
 		size_t events_len;
 		size_t events_count;
@@ -315,11 +312,12 @@ notify_tap(struct touchpad_dispatch *touchpad, uint32_t time)
 static void
 process_fsm_events(struct touchpad_dispatch *touchpad, uint32_t time)
 {
+	struct libinput_device *device = &touchpad->device->base;
 	uint32_t timeout = UINT32_MAX;
 	enum fsm_event event;
 	unsigned int i;
 
-	if (!touchpad->fsm.enable)
+	if (device->config.tap.enabled != LIBINPUT_CONFIG_TAP_ENABLED)
 		return;
 
 	if (touchpad->fsm.events_count == 0)
@@ -414,10 +412,11 @@ static void
 push_fsm_event(struct touchpad_dispatch *touchpad,
 	       enum fsm_event event)
 {
+	struct libinput_device *device = &touchpad->device->base;
 	enum fsm_event *events;
 	size_t new_len = touchpad->fsm.events_len;
 
-	if (!touchpad->fsm.enable)
+	if (device->config.tap.enabled != LIBINPUT_CONFIG_TAP_ENABLED)
 		return;
 
 	if (touchpad->fsm.events_count + 1 >= touchpad->fsm.events_len) {
@@ -637,7 +636,8 @@ process_key(struct touchpad_dispatch *touchpad,
 	case BTN_FORWARD:
 	case BTN_BACK:
 	case BTN_TASK:
-		if (!touchpad->fsm.enable && e->code == BTN_LEFT &&
+		if (!device->base.config.tap.enabled == LIBINPUT_CONFIG_TAP_ENABLED &&
+		    e->code == BTN_LEFT &&
 		    touchpad->finger_state == TOUCHPAD_FINGERS_TWO)
 			code = BTN_RIGHT;
 		else
@@ -733,6 +733,7 @@ touchpad_init(struct touchpad_dispatch *touchpad,
 	unsigned long abs_bits[NBITS(ABS_MAX)];
 
 	bool has_buttonpad;
+	enum libinput_config_tap want_tap = LIBINPUT_CONFIG_TAP_DISABLED;
 
 	double width;
 	double height;
@@ -810,7 +811,9 @@ touchpad_init(struct touchpad_dispatch *touchpad,
 	}
 
 	/* Configure */
-	touchpad->fsm.enable = !has_buttonpad;
+	if (!has_buttonpad)
+		want_tap = LIBINPUT_CONFIG_TAP_ENABLED;
+	libinput_device_config_init_tap(&device->base, want_tap);
 
 	return 0;
 }
