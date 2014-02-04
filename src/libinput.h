@@ -165,6 +165,75 @@ enum libinput_config_tap {
 	LIBINPUT_CONFIG_TAP_DISABLED
 };
 
+/**
+ * @ingroup config
+ *
+ * A set of flags defining the scroll method supported or used by a device.
+ */
+enum libinput_config_scroll_method {
+	LIBINPUT_CONFIG_SCROLL_METHOD_NONE = 0,
+	LIBINPUT_CONFIG_SCROLL_METHOD_TWOFINGER = 1
+};
+
+/**
+ * @ingroup config
+ *
+ * A set of flags defining the scroll directions supported or used by a device.
+ */
+enum libinput_config_scroll_direction {
+	LIBINPUT_CONFIG_SCROLL_DIRECTION_NONE = 0,
+	LIBINPUT_CONFIG_SCROLL_DIRECTION_HORIZONTAL = 1,
+	LIBINPUT_CONFIG_SCROLL_DIRECTION_VERTICAL = 2
+};
+
+/**
+ * @ingroup config
+ *
+ * A list of flags for click method methods supported by a device. The click
+ * method decides how right and middle mouse button events are generated in
+ * the absence of physical right or middle mouse buttons.
+ */
+enum libinput_config_finger_click_method {
+	LIBINPUT_CONFIG_FINGER_CLICK_METHOD_NONE = 0,
+	/**
+	 * Right click is triggered by two fingers down while clicking.
+	 * Middle click is triggered by three fingers down while clicking.
+	 */
+	LIBINPUT_CONFIG_FINGER_CLICK_METHOD_CLICKFINGER = 1,
+	/**
+	 * Right click is triggered by pressing within a defined area.
+	 * Middle click is triggered by pressing within a defined area.
+	 */
+	LIBINPUT_CONFIG_FINGER_CLICK_METHOD_SOFTBUTTON = 2
+};
+
+/**
+ * @ingroup config
+ *
+ * A set of flags listing the selectable pointer modes supported by a device.
+ */
+enum libinput_config_pointer_mode {
+	/**
+	 * Changing pointer mode is not supported.
+	 */
+	LIBINPUT_CONFIG_POINTER_MODE_NONE = 0,
+	/**
+	 * Device can be used in absolute mode.
+	 */
+	LIBINPUT_CONFIG_POINTER_MODE_ABSOLUTE = 1,
+	/**
+	 * Device can be used in relative mode.
+	 */
+	LIBINPUT_CONFIG_POINTER_MODE_RELATIVE = 2
+};
+
+enum libinput_config_rotation {
+	LIBINPUT_CONFIG_ROTATION_CW_0,
+	LIBINPUT_CONFIG_ROTATION_CW_90,
+	LIBINPUT_CONFIG_ROTATION_CW_180,
+	LIBINPUT_CONFIG_ROTATION_CW_270
+};
+
 
 struct libinput;
 struct libinput_device;
@@ -1126,5 +1195,114 @@ libinput_device_config_get_tap(struct libinput_device *device,
  */
 int
 libinput_device_config_reset_tap(struct libinput_device *device);
+
+
+/**
+ * @ingroup config
+ *
+ * Check if this device supports a configurable scoll method. This includes
+ * two-finger scrolling and edge-scrolling on touchpads. It excludes
+ * physical scroll wheels, these are not configurable and always send scroll
+ * events.
+ *
+ * @param device The device to configure
+ * @return A bitmask of the available scroll methods on this device.
+ *
+ * @see libinput_device_config_set_scroll_method
+ * @see libinput_device_config_get_scroll_method
+ * @see libinput_device_config_reset_scroll_method
+ */
+int
+libinput_device_config_has_scroll_method(struct libinput_device *device);
+
+int
+libinput_device_config_set_scroll_method(struct libinput_device *device,
+					 enum libinput_config_scroll_method method,
+					 enum libinput_config_scroll_direction directions);
+int
+libinput_device_config_get_scroll_method(struct libinput_device *device,
+					 enum libinput_config_scroll_method *method,
+					 enum libinput_config_scroll_direction *directions);
+int
+libinput_device_config_reset_scroll_method(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Check if this device has a selectable click method.
+ *
+ * @param device The device to configure
+ * @return A bitmask of click finger methods available on this device.
+ *
+ * @see libinput_device_config_set_finger_click_method
+ * @see libinput_device_config_get_finger_click_method
+ * @see libinput_device_config_reset_finger_click_method
+ */
+int
+libinput_device_config_has_finger_click_method(struct libinput_device *device);
+
+int
+libinput_device_config_set_finger_click_method(struct libinput_device *device,
+					      enum libinput_config_finger_click_method method);
+int
+libinput_device_config_get_finger_click_method(struct libinput_device *device,
+					      enum libinput_config_finger_click_method *method);
+int
+libinput_device_config_reset_finger_click_method(struct libinput_device *device);
+
+
+/**
+ * @ingroup config
+ *
+ * Check if this device has a configurable pointer mode. Some devices, e.g.
+ * graphics tablets, can be used in absolute and relative mode.
+ *
+ * @param device The device to configure
+ * @return A bitmask of pointer modes available on this device.
+ *
+ * @see libinput_device_config_set_pointer_mode
+ * @see libinput_device_config_get_pointer_mode
+ * @see libinput_device_config_reset_pointer_mode
+ */
+int
+libinput_device_config_has_pointer_mode(struct libinput_device *device);
+
+int
+libinput_device_config_set_pointer_mode(struct libinput_device *device,
+					enum libinput_config_pointer_mode mode);
+
+int
+libinput_device_config_get_pointer_mode(struct libinput_device *device,
+					enum libinput_config_pointer_mode *mode);
+int
+libinput_device_config_reset_pointer_mode(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Check if this device can be rotated in software. Some devices, e.g.
+ * graphics tablets, can be used rotated sideways or upside down.
+ *
+ * Rotation is clockwise, in 90-degree increments. If rotation is required
+ * in finer increments, the caller must rotate event coordinates itself.
+ *
+ * @param device The device to configure
+ * @return A bitmask of pointer modes available on this device.
+ *
+ * @see libinput_device_config_set_rotation
+ * @see libinput_device_config_get_rotation
+ * @see libinput_device_config_reset_rotation
+ */
+int
+libinput_device_config_has_rotation(struct libinput_device *device);
+
+int
+libinput_device_config_set_rotation(struct libinput_device *device,
+				    enum libinput_config_rotation rotation);
+int
+libinput_device_config_get_rotation(struct libinput_device *device,
+				    enum libinput_config_rotation *rotation);
+int
+libinput_device_config_reset_rotation(struct libinput_device *device);
 
 #endif /* LIBINPUT_H */

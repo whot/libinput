@@ -74,8 +74,39 @@ struct libinput_device_config_tap {
 	enum libinput_config_tap dflt;
 };
 
+struct libinput_device_config_scroll {
+	enum libinput_config_scroll_method available;
+	enum libinput_config_scroll_method method;
+	enum libinput_config_scroll_method dflt;
+
+	enum libinput_config_scroll_direction directions;
+	enum libinput_config_scroll_direction directions_dflt;
+};
+
+struct libinput_device_config_finger_click {
+	enum libinput_config_finger_click_method available;
+	enum libinput_config_finger_click_method method;
+	enum libinput_config_finger_click_method dflt;
+};
+
+struct libinput_device_config_pointer_mode {
+	enum libinput_config_pointer_mode available;
+	enum libinput_config_tap mode;
+	enum libinput_config_tap dflt;
+};
+
+struct libinput_device_config_rotation {
+	int available;
+	enum libinput_config_rotation rotation;
+	enum libinput_config_rotation dflt;
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap tap;
+	struct libinput_device_config_scroll scroll;
+	struct libinput_device_config_finger_click finger_click;
+	struct libinput_device_config_pointer_mode pointer_mode;
+	struct libinput_device_config_rotation rotation;
 };
 
 struct libinput_device {
@@ -176,4 +207,17 @@ touch_notify_frame(struct libinput_device *device,
 void
 libinput_device_config_init_tap(struct libinput_device *device,
 			        enum libinput_config_tap enabled);
+void
+libinput_device_config_init_scroll_method(struct libinput_device *device,
+					  enum libinput_config_scroll_method available,
+					  enum libinput_config_scroll_method dflt,
+					  enum libinput_config_scroll_direction directions);
+void
+libinput_device_config_init_finger_click_method(struct libinput_device *device,
+						enum libinput_config_finger_click_method available,
+						enum libinput_config_finger_click_method dflt);
+void
+libinput_device_config_init_pointer_mode(struct libinput_device *device,
+					  enum libinput_config_pointer_mode available,
+					  enum libinput_config_pointer_mode dflt);
 #endif /* LIBINPUT_PRIVATE_H */

@@ -986,3 +986,231 @@ libinput_device_config_init_tap(struct libinput_device *device,
 	device->config.tap.enabled = enabled;
 	device->config.tap.dflt = enabled;
 }
+
+LIBINPUT_EXPORT int
+libinput_device_config_has_scroll_method(struct libinput_device *device)
+{
+	return device->config.scroll.available;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_set_scroll_method(struct libinput_device *device,
+					 enum libinput_config_scroll_method method,
+					 enum libinput_config_scroll_direction directions)
+{
+	if (!libinput_device_config_has_scroll_method(device))
+		return -1;
+
+	switch(method) {
+	case LIBINPUT_CONFIG_SCROLL_METHOD_NONE:
+	case LIBINPUT_CONFIG_SCROLL_METHOD_TWOFINGER:
+		break;
+	default:
+		return -1;
+	}
+
+	if ((directions &
+	    ~(LIBINPUT_CONFIG_SCROLL_DIRECTION_HORIZONTAL|LIBINPUT_CONFIG_SCROLL_DIRECTION_VERTICAL))
+		!= 0)
+		return -1;
+
+	if ((device->config.scroll.available & method) != method)
+		return -1;
+
+	device->config.scroll.method = method;
+	device->config.scroll.directions = directions;
+
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_get_scroll_method(struct libinput_device *device,
+					 enum libinput_config_scroll_method *method,
+					 enum libinput_config_scroll_direction *directions)
+{
+	if (!libinput_device_config_has_scroll_method(device))
+		return -1;
+
+	*method = device->config.scroll.method;
+	*directions = device->config.scroll.directions;
+
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_reset_scroll_method(struct libinput_device *device)
+{
+	struct libinput_device_config_scroll *scroll = &device->config.scroll;
+
+	return libinput_device_config_set_scroll_method(device,
+							scroll->dflt,
+							scroll->directions_dflt);
+}
+
+void
+libinput_device_config_init_scroll_method(struct libinput_device *device,
+					  enum libinput_config_scroll_method available,
+					  enum libinput_config_scroll_method dflt,
+					  enum libinput_config_scroll_direction directions)
+{
+	device->config.scroll.available = available;
+	device->config.scroll.dflt = dflt;
+	device->config.scroll.directions = directions;
+	device->config.scroll.directions_dflt = directions;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_has_finger_click_method(struct libinput_device *device)
+{
+	return device->config.finger_click.available;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_set_finger_click_method(struct libinput_device *device,
+					       enum libinput_config_finger_click_method method)
+{
+	if (!libinput_device_config_has_finger_click_method(device))
+		return -1;
+
+	switch(method) {
+	case LIBINPUT_CONFIG_FINGER_CLICK_METHOD_NONE:
+	case LIBINPUT_CONFIG_FINGER_CLICK_METHOD_CLICKFINGER:
+	case LIBINPUT_CONFIG_FINGER_CLICK_METHOD_SOFTBUTTON:
+		break;
+	default:
+		return -1;
+	}
+
+	if ((device->config.finger_click.available & method) != method)
+		return -1;
+
+	device->config.finger_click.method = method;
+
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_get_finger_click_method(struct libinput_device *device,
+					 enum libinput_config_finger_click_method *method)
+{
+	if (!libinput_device_config_has_finger_click_method(device))
+		return -1;
+
+	*method = device->config.finger_click.method;
+
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_reset_finger_click_method(struct libinput_device *device)
+{
+	return libinput_device_config_set_finger_click_method(device,
+							      device->config.finger_click.dflt);
+}
+
+void
+libinput_device_config_init_finger_click_method(struct libinput_device *device,
+					  enum libinput_config_finger_click_method available,
+					  enum libinput_config_finger_click_method dflt)
+{
+	device->config.finger_click.available = available;
+	device->config.finger_click.dflt = dflt;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_has_pointer_mode(struct libinput_device *device)
+{
+	return device->config.pointer_mode.available;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_set_pointer_mode(struct libinput_device *device,
+					enum libinput_config_pointer_mode mode)
+{
+	if (!libinput_device_config_has_pointer_mode(device))
+		return -1;
+
+	switch(mode) {
+	case LIBINPUT_CONFIG_POINTER_MODE_NONE:
+	case LIBINPUT_CONFIG_POINTER_MODE_RELATIVE:
+	case LIBINPUT_CONFIG_POINTER_MODE_ABSOLUTE:
+		break;
+	default:
+		return -1;
+	}
+
+	device->config.pointer_mode.mode = mode;
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_get_pointer_mode(struct libinput_device *device,
+					enum libinput_config_pointer_mode *mode)
+{
+	if (!libinput_device_config_has_pointer_mode(device))
+		return -1;
+
+	*mode = device->config.pointer_mode.mode;
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_reset_pointer_mode(struct libinput_device *device)
+{
+	return libinput_device_config_set_pointer_mode(device,
+						       device->config.pointer_mode.dflt);
+}
+
+void
+libinput_device_config_init_pointer_mode(struct libinput_device *device,
+					 enum libinput_config_pointer_mode available,
+					 enum libinput_config_pointer_mode dflt)
+{
+	device->config.pointer_mode.available = available;
+	device->config.pointer_mode.dflt = dflt;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_has_rotation(struct libinput_device *device)
+{
+	return device->config.rotation.available;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_set_rotation(struct libinput_device *device,
+				    enum libinput_config_rotation rotation)
+{
+	if (!libinput_device_config_has_rotation(device))
+		return -1;
+
+	switch(rotation) {
+	case LIBINPUT_CONFIG_ROTATION_CW_0:
+	case LIBINPUT_CONFIG_ROTATION_CW_90:
+	case LIBINPUT_CONFIG_ROTATION_CW_180:
+	case LIBINPUT_CONFIG_ROTATION_CW_270:
+		break;
+	default:
+		return -1;
+	}
+
+	device->config.rotation.rotation = rotation;
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_get_rotation(struct libinput_device *device,
+				    enum libinput_config_rotation *rotation)
+{
+	if (!libinput_device_config_has_rotation(device))
+		return -1;
+
+	*rotation = device->config.rotation.rotation;
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_reset_rotation(struct libinput_device *device)
+{
+	return libinput_device_config_set_rotation(device,
+						   LIBINPUT_CONFIG_ROTATION_CW_0);
+}
