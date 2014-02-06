@@ -23,10 +23,12 @@
 #include "config.h"
 
 #include <assert.h>
+#include <math.h>
 #include <stdbool.h>
 
 #include "evdev.h"
 
+#define DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR 700.0
 #define TOUCHPAD_HISTORY_LENGTH 4
 
 #define tp_for_each_touch(_tp, _t) \
@@ -56,6 +58,11 @@ struct tp_touch {
 		unsigned int index;
 		unsigned int count;
 	} history;
+
+	struct {
+		int32_t center_x;
+		int32_t center_y;
+	} hysteresis;
 };
 
 struct tp_dispatch {
@@ -66,7 +73,26 @@ struct tp_dispatch {
 
 	unsigned int ntouches;			/* number of slots */
 	struct tp_touch *touches;		/* len == ntouches */
+
+	struct {
+		int32_t margin_x;
+		int32_t margin_y;
+	} hysteresis;
 };
+
+static inline int
+tp_hysteresis(int in, int center, int margin)
+{
+	int diff = in - center;
+	if (abs(diff) <= margin)
+		return center;
+
+	if (diff > margin)
+		return center + diff - margin;
+	else if (diff < -margin)
+		return center + diff + margin;
+	return center + diff;
+}
 
 static inline struct tp_motion *
 tp_motion_history_offset(struct tp_touch *t, int offset)
@@ -89,6 +115,30 @@ tp_motion_history_push(struct tp_touch *t)
 	t->history.samples[motion_index].x = t->x;
 	t->history.samples[motion_index].y = t->y;
 	t->history.index = motion_index;
+}
+
+static inline void
+tp_motion_hysteresis(struct tp_dispatch *tp,
+		     struct tp_touch *t)
+{
+	int x = t->x,
+	    y = t->y;
+
+	if (t->history.count == 0) {
+		t->hysteresis.center_x = t->x;
+		t->hysteresis.center_y = t->y;
+	} else {
+		x = tp_hysteresis(x,
+				  t->hysteresis.center_x,
+				  tp->hysteresis.margin_x);
+		y = tp_hysteresis(y,
+				  t->hysteresis.center_y,
+				  tp->hysteresis.margin_y);
+		t->hysteresis.center_x = x;
+		t->hysteresis.center_y = y;
+		t->x = x;
+		t->y = y;
+	}
 }
 
 static inline void
@@ -210,6 +260,7 @@ tp_process_state(struct tp_dispatch *tp, uint32_t time)
 		if (!t->dirty)
 			continue;
 
+		tp_motion_hysteresis(tp, t);
 		tp_motion_history_push(t);
 	}
 }
@@ -311,11 +362,23 @@ static int
 tp_init(struct tp_dispatch *tp,
 	struct evdev_device *device)
 {
+	int width, height;
+	double diagonal;
+
 	tp->base.interface = &tp_interface;
 	tp->device = device;
 
 	if (tp_init_slots(tp, device) != 0)
 		return -1;
+
+	width = abs(device->abs.max_x - device->abs.min_x);
+	height = abs(device->abs.max_y - device->abs.min_y);
+	diagonal = sqrt(width*width + height*height);
+
+	tp->hysteresis.margin_x =
+		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
+	tp->hysteresis.margin_y =
+		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
 
 	return 0;
 }
