@@ -73,6 +73,9 @@ int list_empty(const struct list *list);
 #define ARRAY_FOR_EACH(_arr, _elem) \
 	for (int i = 0; (_elem = &_arr[i]) && i < ARRAY_LENGTH(_arr); i++)
 
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+
 /*
  * This fixed point implementation is a verbatim copy from wayland-util.h from
  * the Wayland project, with the wl_ prefix renamed li_.
