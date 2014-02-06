@@ -332,13 +332,55 @@ tp_post_process_state(struct tp_dispatch *tp, uint32_t time)
 }
 
 static void
+tp_post_twofinger_scroll(struct tp_dispatch *tp, uint32_t time)
+{
+	struct tp_touch *t;
+	int nchanged = 0;
+	double dx = 0, dy =0;
+	double tmpx, tmpy;
+
+	tp_for_each_touch(tp, t) {
+		if (t->dirty) {
+			nchanged++;
+			tp_get_delta(t, &tmpx, &tmpy);
+
+			dx += tmpx;
+			dy += tmpy;
+		}
+	}
+
+	if (nchanged == 0)
+		return;
+
+	dx /= nchanged;
+	dy /= nchanged;
+
+	tp_filter_motion(tp, &dx, &dy, time);
+
+	if (dx != 0.0)
+		pointer_notify_axis(&tp->device->base,
+				    time,
+				    LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL,
+				    li_fixed_from_double(dx));
+	if (dy != 0.0)
+		pointer_notify_axis(&tp->device->base,
+				    time,
+				    LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL,
+				    li_fixed_from_double(dy));
+}
+
+static void
 tp_post_events(struct tp_dispatch *tp, uint32_t time)
 {
 	struct tp_touch *t = tp_current_touch(tp);
 	double dx, dy;
 
-	if (tp->nfingers_down != 1)
+	if (tp->nfingers_down > 2) {
 		return;
+	} else if (tp->nfingers_down == 2) {
+		tp_post_twofinger_scroll(tp, time);
+		return;
+	}
 
 
 	if (t->history.count < 4)
