@@ -27,7 +27,11 @@
 #include <stdbool.h>
 
 #include "evdev.h"
+#include "filter.h"
 
+#define DEFAULT_CONSTANT_ACCEL_NUMERATOR 50
+#define DEFAULT_MIN_ACCEL_FACTOR 0.16
+#define DEFAULT_MAX_ACCEL_FACTOR 1.0
 #define DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR 700.0
 #define TOUCHPAD_HISTORY_LENGTH 4
 
@@ -78,6 +82,14 @@ struct tp_dispatch {
 		int32_t margin_x;
 		int32_t margin_y;
 	} hysteresis;
+
+	struct motion_filter *filter;
+
+	struct {
+		double constant_factor;
+		double min_factor;
+		double max_factor;
+	} accel;
 };
 
 static inline int
@@ -94,6 +106,27 @@ tp_hysteresis(int in, int center, int margin)
 	return center + diff;
 }
 
+static double
+tp_accel_profile(struct motion_filter *filter,
+		 void *data,
+		 double velocity,
+		 uint32_t time)
+{
+	struct tp_dispatch *tp =
+		(struct tp_dispatch *) data;
+
+	double accel_factor;
+
+	accel_factor = velocity * tp->accel.constant_factor;
+
+	if (accel_factor > tp->accel.max_factor)
+		accel_factor = tp->accel.max_factor;
+	else if (accel_factor < tp->accel.min_factor)
+		accel_factor = tp->accel.min_factor;
+
+	return accel_factor;
+}
+
 static inline struct tp_motion *
 tp_motion_history_offset(struct tp_touch *t, int offset)
 {
@@ -102,6 +135,21 @@ tp_motion_history_offset(struct tp_touch *t, int offset)
 		TOUCHPAD_HISTORY_LENGTH;
 
 	return &t->history.samples[offset_index];
+}
+
+static void
+tp_filter_motion(struct tp_dispatch *tp,
+	         double *dx, double *dy, uint32_t time)
+{
+	struct motion_params motion;
+
+	motion.dx = *dx;
+	motion.dy = *dy;
+
+	filter_dispatch(tp->filter, &motion, tp, time);
+
+	*dx = motion.dx;
+	*dy = motion.dy;
 }
 
 static inline void
@@ -292,7 +340,12 @@ tp_post_events(struct tp_dispatch *tp, uint32_t time)
 	if (tp->nfingers_down != 1)
 		return;
 
+
+	if (t->history.count < 4)
+		return;
+
 	tp_get_delta(t, &dx, &dy);
+	tp_filter_motion(tp, &dx, &dy, time);
 
 	if (dx != 0 || dy != 0)
 		pointer_notify_motion(
@@ -332,6 +385,8 @@ tp_destroy(struct evdev_dispatch *dispatch)
 	struct tp_dispatch *tp =
 		(struct tp_dispatch*)dispatch;
 
+	if (tp->filter)
+		tp->filter->interface->destroy(tp->filter);
 	free(tp->touches);
 	free(tp);
 }
@@ -357,6 +412,24 @@ tp_init_slots(struct tp_dispatch *tp,
 	return 0;
 }
 
+static int
+tp_init_accel(struct tp_dispatch *touchpad, double diagonal)
+{
+	struct motion_filter *accel;
+
+	touchpad->accel.constant_factor =
+		DEFAULT_CONSTANT_ACCEL_NUMERATOR / diagonal;
+	touchpad->accel.min_factor = DEFAULT_MIN_ACCEL_FACTOR;
+	touchpad->accel.max_factor = DEFAULT_MAX_ACCEL_FACTOR;
+
+	accel = create_pointer_accelator_filter(tp_accel_profile);
+	if (accel == NULL)
+		return -1;
+
+	touchpad->filter = accel;
+
+	return 0;
+}
 
 static int
 tp_init(struct tp_dispatch *tp,
@@ -379,6 +452,9 @@ tp_init(struct tp_dispatch *tp,
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
 	tp->hysteresis.margin_y =
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
+
+	if (tp_init_accel(tp, diagonal) != 0)
+		return -1;
 
 	return 0;
 }
