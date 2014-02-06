@@ -123,6 +123,9 @@ evdev_device_create(struct libinput_seat *seat,
 struct evdev_dispatch *
 evdev_touchpad_create(struct evdev_device *device);
 
+struct evdev_dispatch *
+evdev_mt_touchpad_create(struct evdev_device *device);
+
 void
 evdev_device_proces_event(struct libinput_event *event);
 
