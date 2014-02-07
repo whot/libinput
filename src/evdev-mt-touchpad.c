@@ -26,71 +26,12 @@
 #include <math.h>
 #include <stdbool.h>
 
-#include "evdev.h"
-#include "filter.h"
+#include "evdev-mt-touchpad.h"
 
 #define DEFAULT_CONSTANT_ACCEL_NUMERATOR 50
 #define DEFAULT_MIN_ACCEL_FACTOR 0.16
 #define DEFAULT_MAX_ACCEL_FACTOR 1.0
 #define DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR 700.0
-#define TOUCHPAD_HISTORY_LENGTH 4
-
-#define tp_for_each_touch(_tp, _t) \
-	for (unsigned int _i = 0; _i < (_tp)->ntouches && (_t = &(_tp)->touches[_i]); _i++)
-
-enum touch_state {
-	TOUCH_NONE = 0,
-	TOUCH_BEGIN,
-	TOUCH_UPDATE,
-	TOUCH_END
-};
-
-struct tp_motion {
-	int32_t x;
-	int32_t y;
-};
-
-struct tp_touch {
-	enum touch_state state;
-	bool dirty;
-	int32_t x;
-	int32_t y;
-	uint32_t millis;
-
-	struct {
-		struct tp_motion samples[TOUCHPAD_HISTORY_LENGTH];
-		unsigned int index;
-		unsigned int count;
-	} history;
-
-	struct {
-		int32_t center_x;
-		int32_t center_y;
-	} hysteresis;
-};
-
-struct tp_dispatch {
-	struct evdev_dispatch base;
-	struct evdev_device *device;
-	unsigned int nfingers_down;		/* number of fingers down */
-	unsigned int slot;			/* current slot */
-
-	unsigned int ntouches;			/* number of slots */
-	struct tp_touch *touches;		/* len == ntouches */
-
-	struct {
-		int32_t margin_x;
-		int32_t margin_y;
-	} hysteresis;
-
-	struct motion_filter *filter;
-
-	struct {
-		double constant_factor;
-		double min_factor;
-		double max_factor;
-	} accel;
-};
 
 static inline int
 tp_hysteresis(int in, int center, int margin)
