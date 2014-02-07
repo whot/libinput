@@ -533,11 +533,12 @@ touchpad_update_state(struct touchpad_dispatch *touchpad, uint32_t time)
 		filter_motion(touchpad, &dx, &dy, time);
 
 		if (touchpad->finger_state == TOUCHPAD_FINGERS_ONE) {
-			pointer_notify_motion(
-				base,
-				time,
-				li_fixed_from_double(dx),
-				li_fixed_from_double(dy));
+		    if (dx != 0 || dy != 0)
+				pointer_notify_motion(
+					base,
+					time,
+					li_fixed_from_double(dx),
+					li_fixed_from_double(dy));
 		} else if (touchpad->finger_state == TOUCHPAD_FINGERS_TWO) {
 			if (dx != 0.0)
 				pointer_notify_axis(
