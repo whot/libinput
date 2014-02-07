@@ -102,4 +102,7 @@ struct tp_dispatch {
 #define tp_for_each_touch(_tp, _t) \
 	for (unsigned int _i = 0; _i < (_tp)->ntouches && (_t = &(_tp)->touches[_i]); _i++)
 
+void
+tp_get_delta(struct tp_touch *t, double *dx, double *dy);
+
 #endif

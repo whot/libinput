@@ -174,7 +174,7 @@ tp_estimate_delta(int x0, int x1, int x2, int x3)
 	return (x0 + x1 - x2 - x3) / 4;
 }
 
-static void
+void
 tp_get_delta(struct tp_touch *t, double *dx, double *dy)
 {
 	if (t->history.count < 4) {
