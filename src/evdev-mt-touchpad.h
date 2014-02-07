@@ -45,6 +45,22 @@ enum touch_state {
 	TOUCH_END
 };
 
+enum tp_tap_state {
+	TAP_STATE_IDLE = 4,
+	TAP_STATE_TOUCH,
+	TAP_STATE_HOLD,
+	TAP_STATE_TAPPED,
+	TAP_STATE_TOUCH_2,
+	TAP_STATE_TOUCH_2_HOLD,
+	TAP_STATE_TOUCH_3,
+	TAP_STATE_TOUCH_3_HOLD,
+	TAP_STATE_DRAGGING_OR_DOUBLETAP,
+	TAP_STATE_DRAGGING,
+	TAP_STATE_DRAGGING_WAIT,
+	TAP_STATE_DRAGGING_2,
+	TAP_STATE_DEAD, /**< finger count exceeded */
+};
+
 struct tp_motion {
 	int32_t x;
 	int32_t y;
@@ -97,6 +113,14 @@ struct tp_dispatch {
 	} buttons;				/* physical buttons */
 
 	enum touchpad_event queued;
+
+	struct {
+		bool enabled;
+		int timer_fd;
+		struct libinput_source *source;
+		unsigned int timeout;
+		enum tp_tap_state state;
+	} tap;
 };
 
 #define tp_for_each_touch(_tp, _t) \
@@ -104,5 +128,14 @@ struct tp_dispatch {
 
 void
 tp_get_delta(struct tp_touch *t, double *dx, double *dy);
+
+int
+tp_tap_handle_state(struct tp_dispatch *tp, uint32_t time);
+
+unsigned int
+tp_tap_handle_timeout(struct tp_dispatch *tp, uint32_t time);
+
+int
+tp_init_tap(struct tp_dispatch *tp);
 
 #endif
