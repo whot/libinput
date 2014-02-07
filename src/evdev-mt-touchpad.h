@@ -31,6 +31,13 @@
 
 #define TOUCHPAD_HISTORY_LENGTH 4
 
+enum touchpad_event {
+	TOUCHPAD_EVENT_NONE		= 0,
+	TOUCHPAD_EVENT_MOTION		= (1 << 0),
+	TOUCHPAD_EVENT_BUTTON_PRESS	= (1 << 1),
+	TOUCHPAD_EVENT_BUTTON_RELEASE	= (1 << 2),
+};
+
 enum touch_state {
 	TOUCH_NONE = 0,
 	TOUCH_BEGIN,
@@ -83,6 +90,8 @@ struct tp_dispatch {
 		double min_factor;
 		double max_factor;
 	} accel;
+
+	enum touchpad_event queued;
 };
 
 #define tp_for_each_touch(_tp, _t) \

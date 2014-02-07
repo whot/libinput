@@ -151,6 +151,7 @@ tp_begin_touch(struct tp_dispatch *tp, struct tp_touch *t)
 		t->state = TOUCH_BEGIN;
 		tp->nfingers_down++;
 		assert(tp->nfingers_down >= 1);
+		tp->queued |= TOUCHPAD_EVENT_MOTION;
 	}
 }
 
@@ -164,6 +165,7 @@ tp_end_touch(struct tp_dispatch *tp, struct tp_touch *t)
 	t->state = TOUCH_END;
 	assert(tp->nfingers_down >= 1);
 	tp->nfingers_down--;
+	tp->queued |= TOUCHPAD_EVENT_MOTION;
 }
 
 static double
@@ -203,11 +205,13 @@ tp_process_absolute(struct tp_dispatch *tp,
 		t->x = e->value;
 		t->millis = time;
 		t->dirty = true;
+		tp->queued |= TOUCHPAD_EVENT_MOTION;
 		break;
 	case ABS_MT_POSITION_Y:
 		t->y = e->value;
 		t->millis = time;
 		t->dirty = true;
+		tp->queued |= TOUCHPAD_EVENT_MOTION;
 		break;
 	case ABS_MT_SLOT:
 		tp->slot = e->value;
@@ -270,6 +274,8 @@ tp_post_process_state(struct tp_dispatch *tp, uint32_t time)
 
 		t->dirty = false;
 	}
+
+	tp->queued = TOUCHPAD_EVENT_NONE;
 }
 
 static void
