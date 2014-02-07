@@ -369,6 +369,7 @@ tp_post_events(struct tp_dispatch *tp, uint32_t time)
 		return;
 	}
 
+	tp_tap_handle_state(tp, time);
 
 	if (t->history.count < 4)
 		return;
@@ -485,6 +486,9 @@ tp_init(struct tp_dispatch *tp,
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
 
 	if (tp_init_accel(tp, diagonal) != 0)
+		return -1;
+
+	if (tp_init_tap(tp) != 0)
 		return -1;
 
 	return 0;
