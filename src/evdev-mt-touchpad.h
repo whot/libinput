@@ -91,6 +91,11 @@ struct tp_dispatch {
 		double max_factor;
 	} accel;
 
+	struct {
+		uint32_t state;
+		uint32_t old_state;
+	} buttons;				/* physical buttons */
+
 	enum touchpad_event queued;
 };
 

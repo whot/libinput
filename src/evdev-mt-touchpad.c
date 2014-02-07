@@ -230,16 +230,20 @@ tp_process_key(struct tp_dispatch *tp,
 	       const struct input_event *e,
 	       uint32_t time)
 {
+	uint32_t mask;
+
 	switch (e->code) {
 		case BTN_LEFT:
 		case BTN_MIDDLE:
 		case BTN_RIGHT:
-			pointer_notify_button(
-				&tp->device->base,
-				time,
-				e->code,
-				e->value ? LIBINPUT_POINTER_BUTTON_STATE_PRESSED :
-					   LIBINPUT_POINTER_BUTTON_STATE_RELEASED);
+			mask = 1 << (e->code - BTN_LEFT);
+			if (e->value) {
+				tp->buttons.state |= mask;
+				tp->queued |= TOUCHPAD_EVENT_BUTTON_PRESS;
+			} else {
+				tp->buttons.state &= ~mask;
+				tp->queued |= TOUCHPAD_EVENT_BUTTON_RELEASE;
+			}
 			break;
 	}
 }
@@ -274,6 +278,8 @@ tp_post_process_state(struct tp_dispatch *tp, uint32_t time)
 
 		t->dirty = false;
 	}
+
+	tp->buttons.old_state = tp->buttons.state;
 
 	tp->queued = TOUCHPAD_EVENT_NONE;
 }
@@ -317,6 +323,40 @@ tp_post_twofinger_scroll(struct tp_dispatch *tp, uint32_t time)
 }
 
 static void
+tp_post_button_events(struct tp_dispatch *tp, uint32_t time)
+{
+	uint32_t current, old, button;
+
+	if ((tp->queued &
+		(TOUCHPAD_EVENT_BUTTON_PRESS|TOUCHPAD_EVENT_BUTTON_RELEASE)) == 0)
+				return;
+
+	current = tp->buttons.state;
+	old = tp->buttons.old_state;
+	button = BTN_LEFT;
+
+	while (current || old) {
+		enum libinput_pointer_button_state state;
+
+		if ((current & 0x1) ^ (old & 0x1)) {
+			if (!!(current & 0x1))
+				state = LIBINPUT_POINTER_BUTTON_STATE_PRESSED;
+			else
+				state = LIBINPUT_POINTER_BUTTON_STATE_RELEASED;
+
+			pointer_notify_button(&tp->device->base,
+					      time,
+					      button,
+					      state);
+		}
+
+		button++;
+		current >>= 1;
+		old >>= 1;
+	}
+}
+
+static void
 tp_post_events(struct tp_dispatch *tp, uint32_t time)
 {
 	struct tp_touch *t = tp_current_touch(tp);
@@ -342,6 +382,8 @@ tp_post_events(struct tp_dispatch *tp, uint32_t time)
 			time,
 			li_fixed_from_double(dx),
 			li_fixed_from_double(dy));
+
+	tp_post_button_events(tp, time);
 }
 
 static void
