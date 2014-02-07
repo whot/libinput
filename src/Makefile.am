@@ -11,6 +11,7 @@ libinput_la_SOURCES =			\
 	evdev.c				\
 	evdev.h				\
 	evdev-mt-touchpad.c		\
+	evdev-mt-touchpad.h		\
 	evdev-touchpad.c		\
 	filter.c			\
 	filter.h			\
