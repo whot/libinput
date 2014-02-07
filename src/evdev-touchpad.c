@@ -82,6 +82,7 @@ enum touchpad_state {
 };
 
 #define TOUCHPAD_HISTORY_LENGTH 4
+#define TOUCHPAD_MIN_SAMPLES 4	/* Number of samples before we start sending events */
 
 struct touchpad_motion {
 	int32_t x;
@@ -523,10 +524,10 @@ touchpad_update_state(struct touchpad_dispatch *touchpad, uint32_t time)
 	touchpad->motion_index = motion_index;
 	touchpad->motion_history[motion_index].x = touchpad->hw_abs.x;
 	touchpad->motion_history[motion_index].y = touchpad->hw_abs.y;
-	if (touchpad->motion_count < 4)
+	if (touchpad->motion_count < TOUCHPAD_HISTORY_LENGTH)
 		touchpad->motion_count++;
 
-	if (touchpad->motion_count >= 4) {
+	if (touchpad->motion_count >= TOUCHPAD_MIN_SAMPLES) {
 		touchpad_get_delta(touchpad, &dx, &dy);
 
 		filter_motion(touchpad, &dx, &dy, time);
