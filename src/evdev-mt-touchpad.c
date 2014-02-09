@@ -369,20 +369,20 @@ tp_post_events(struct tp_dispatch *tp, uint32_t time)
 		return;
 	}
 
-	tp_tap_handle_state(tp, time);
-
-	if (t->history.count < 4)
+	if (tp_tap_handle_state(tp, time) != 0)
 		return;
 
-	tp_get_delta(t, &dx, &dy);
-	tp_filter_motion(tp, &dx, &dy, time);
+	if (t->history.count >= TOUCHPAD_MIN_SAMPLES) {
+		tp_get_delta(t, &dx, &dy);
+		tp_filter_motion(tp, &dx, &dy, time);
 
-	if (dx != 0 || dy != 0)
-		pointer_notify_motion(
-			&tp->device->base,
-			time,
-			li_fixed_from_double(dx),
-			li_fixed_from_double(dy));
+		if (dx != 0 || dy != 0)
+			pointer_notify_motion(
+				&tp->device->base,
+				time,
+				li_fixed_from_double(dx),
+				li_fixed_from_double(dy));
+	}
 
 	tp_post_button_events(tp, time);
 }

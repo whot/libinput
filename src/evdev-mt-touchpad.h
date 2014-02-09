@@ -30,6 +30,7 @@
 #include "filter.h"
 
 #define TOUCHPAD_HISTORY_LENGTH 4
+#define TOUCHPAD_MIN_SAMPLES 4
 
 enum touchpad_event {
 	TOUCHPAD_EVENT_NONE		= 0,
