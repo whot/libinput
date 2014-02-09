@@ -504,6 +504,7 @@ int
 tp_tap_handle_state(struct tp_dispatch *tp, uint32_t time)
 {
 	struct tp_touch *t;
+	int filter_motion = 0;
 
 	if (tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS)
 		tp_tap_handle_event(tp, TAP_EVENT_BUTTON, time);
@@ -521,7 +522,27 @@ tp_tap_handle_state(struct tp_dispatch *tp, uint32_t time)
 			tp_tap_handle_event(tp, TAP_EVENT_MOTION, time);
 	}
 
-	return 0;
+	/**
+	 * In any state where motion exceeding the move threshold would
+	 * move to the next state, filter that motion until we actually
+	 * exceed it. This prevents small motion events while we're waiting
+	 * on a decision if a tap is a tap.
+	 */
+	switch (tp->tap.state) {
+	case TAP_STATE_TOUCH:
+	case TAP_STATE_TAPPED:
+	case TAP_STATE_DRAGGING_OR_DOUBLETAP:
+	case TAP_STATE_TOUCH_2:
+	case TAP_STATE_TOUCH_3:
+		filter_motion = 1;
+		break;
+
+	default:
+		break;
+
+	}
+
+	return filter_motion;
 }
 
 static void
