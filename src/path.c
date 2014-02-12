@@ -264,7 +264,7 @@ libinput_path_add_device(struct libinput *libinput,
 	struct libinput_device *device;
 
 	if (libinput->interface_backend != &interface_backend) {
-		log_info("Mismatching backends. This is an application bug.\n");
+		log_error("Mismatching backends. This is an application bug.\n");
 		return NULL;
 	}
 
@@ -301,7 +301,7 @@ libinput_path_remove_device(struct libinput_device *device)
 	struct path_device *dev;
 
 	if (libinput->interface_backend != &interface_backend) {
-		log_info("Mismatching backends. This is an application bug.\n");
+		log_error("Mismatching backends. This is an application bug.\n");
 		return;
 	}
 

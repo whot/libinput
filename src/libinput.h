@@ -42,6 +42,15 @@
 typedef int32_t li_fixed_t;
 
 /**
+ * Log priority for internal logging messages.
+ */
+enum libinput_log_priority {
+	LIBINPUT_LOG_PRIORITY_DEBUG = 10,
+	LIBINPUT_LOG_PRIORITY_INFO = 20,
+	LIBINPUT_LOG_PRIORITY_ERROR = 30,
+};
+
+/**
  * @ingroup device
  *
  * Capabilities on a device. A device may have one or more capabilities
@@ -873,6 +882,73 @@ libinput_suspend(struct libinput *libinput);
  */
 void
 libinput_destroy(struct libinput *libinput);
+
+/**
+ * @ingroup base
+ *
+ * Set the global log priority. Messages with priorities equal to or
+ * higher than the argument will be printed to the current log handler.
+ *
+ * The default log priority is LIBINPUT_LOG_PRIORITY_ERROR.
+ *
+ * @param priority The minimum priority of log messages to print.
+ *
+ * @see libinput_log_set_handler
+ */
+void
+libinput_log_set_priority(enum libinput_log_priority priority);
+
+/**
+ * @ingroup base
+ *
+ * Get the global log priority. Messages with priorities equal to or
+ * higher than the argument will be printed to the current log handler.
+ *
+ * The default log priority is LIBINPUT_LOG_PRIORITY_ERROR.
+ *
+ * @return The minimum priority of log messages to print.
+ *
+ * @see libinput_log_set_handler
+ */
+enum libinput_log_priority
+libinput_log_get_priority(void);
+
+/**
+ * @ingroup base
+ *
+ * Log handler type for custom logging.
+ *
+ * @param priority The priority of the current message
+ * @param user_data Caller-specific data pointer as previously passed into
+ * libinput_log_set_handler()
+ * @param format Message format in printf-style
+ * @param args Message arguments
+ *
+ * @see libinput_set_log_priority
+ * @see libinput_log_set_handler
+ */
+typedef void (*libinput_log_handler)(enum libinput_log_priority priority,
+				     void *user_data,
+				     const char *format, va_list args);
+
+/**
+ * @ingroup base
+ *
+ * Set the global log handler. Messages with priorities equal to or higher
+ * than the current log priority will be passed to the given
+ * log handler.
+ *
+ * The default log handler prints to stderr.
+ *
+ * @param log_handler The log handler for library messages.
+ * @param user_data Caller-specific data pointer, passed into the log
+ * handler.
+ *
+ * @see libinput_log_set_handler
+ */
+void
+libinput_log_set_handler(libinput_log_handler log_handler,
+			 void *user_data);
 
 /**
  * @defgroup seat Initialization and manipulation of seats

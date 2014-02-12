@@ -35,26 +35,6 @@
 #include "libinput-util.h"
 #include "libinput-private.h"
 
-static FILE *g_log_file = NULL;
-
-void
-set_logging_enabled(int enabled)
-{
-	g_log_file = enabled ? stdout : NULL;
-}
-
-void
-log_info(const char *format, ...)
-{
-	va_list ap;
-
-	if (g_log_file) {
-		va_start(ap, format);
-		vfprintf(g_log_file, format, ap);
-		va_end(ap);
-	}
-}
-
 void
 list_init(struct list *list)
 {

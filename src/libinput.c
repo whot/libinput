@@ -78,6 +78,68 @@ struct libinput_event_touch {
 };
 
 static void
+libinput_default_log_func(enum libinput_log_priority priority,
+			  void *data,
+			  const char *format, va_list args)
+{
+	const char *prefix;
+
+	switch(priority) {
+	case LIBINPUT_LOG_PRIORITY_DEBUG: prefix = "debug"; break;
+	case LIBINPUT_LOG_PRIORITY_INFO: prefix = "info"; break;
+	case LIBINPUT_LOG_PRIORITY_ERROR: prefix = "error"; break;
+	default: prefix="<invalid priority>"; break;
+	}
+
+	fprintf(stderr, "libinput %s: ", prefix);
+	vfprintf(stderr, format, args);
+}
+
+struct log_data {
+	enum libinput_log_priority priority;
+	libinput_log_handler handler;
+	void *user_data;
+};
+
+static struct log_data log_data = {
+	.priority = LIBINPUT_LOG_PRIORITY_ERROR,
+	.handler = libinput_default_log_func,
+	.user_data = NULL,
+};
+
+void
+log_msg(enum libinput_log_priority priority, const char *format, ...)
+{
+	va_list args;
+
+	if (log_data.handler && log_data.priority <= priority) {
+		va_start(args, format);
+		log_data.handler(priority, log_data.user_data, format, args);
+		va_end(args);
+	}
+}
+
+LIBINPUT_EXPORT void
+libinput_log_set_priority(enum libinput_log_priority priority)
+{
+	log_data.priority = priority;
+}
+
+LIBINPUT_EXPORT enum libinput_log_priority
+libinput_log_get_priority(void)
+{
+	return log_data.priority;
+}
+
+LIBINPUT_EXPORT void
+libinput_log_set_handler(libinput_log_handler log_handler,
+			 void *user_data)
+{
+	log_data.handler = log_handler;
+	log_data.user_data = user_data;
+}
+
+static void
 libinput_post_event(struct libinput *libinput,
 		    struct libinput_event *event);
 
