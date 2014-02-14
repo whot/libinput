@@ -46,6 +46,11 @@ enum touch_state {
 	TOUCH_END
 };
 
+enum scroll_state {
+	SCROLL_STATE_NONE,
+	SCROLL_STATE_SCROLLING
+};
+
 enum tp_tap_state {
 	TAP_STATE_IDLE = 4,
 	TAP_STATE_TOUCH,
@@ -112,6 +117,11 @@ struct tp_dispatch {
 		uint32_t state;
 		uint32_t old_state;
 	} buttons;				/* physical buttons */
+
+	struct {
+		enum scroll_state state;
+		enum libinput_pointer_axis direction;
+	} scroll;
 
 	enum touchpad_event queued;
 

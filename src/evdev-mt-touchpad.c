@@ -310,16 +310,64 @@ tp_post_twofinger_scroll(struct tp_dispatch *tp, uint32_t time)
 
 	tp_filter_motion(tp, &dx, &dy, time);
 
-	if (dx != 0.0)
-		pointer_notify_axis(&tp->device->base,
-				    time,
-				    LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL,
-				    li_fixed_from_double(dx));
-	if (dy != 0.0)
+	if (tp->scroll.state == SCROLL_STATE_NONE) {
+		/* Require at least one px scrolling to start */
+		if (dx <= -1.0 || dx >= 1.0) {
+			tp->scroll.state = SCROLL_STATE_SCROLLING;
+			tp->scroll.direction |= (1 << LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL);
+		}
+
+		if (dy <= -1.0 || dy >= 1.0) {
+			tp->scroll.state = SCROLL_STATE_SCROLLING;
+			tp->scroll.direction |= (1 << LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL);
+		}
+
+		if (tp->scroll.state == SCROLL_STATE_NONE)
+			return;
+	}
+
+	if (dy != 0.0 &&
+	    (tp->scroll.direction & (1 << LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL))) {
 		pointer_notify_axis(&tp->device->base,
 				    time,
 				    LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL,
 				    li_fixed_from_double(dy));
+	}
+
+	if (dx != 0.0 &&
+	    (tp->scroll.direction & (1 << LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL))) {
+		pointer_notify_axis(&tp->device->base,
+				    time,
+				    LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL,
+				    li_fixed_from_double(dx));
+	}
+}
+
+static int
+tp_post_scroll_events(struct tp_dispatch *tp, uint32_t time)
+{
+	if (tp->nfingers_down != 2) {
+		/* terminate scrolling with a zero scroll event to notify
+		 * caller that it really ended now */
+		if (tp->scroll.state != SCROLL_STATE_NONE) {
+			tp->scroll.state = SCROLL_STATE_NONE;
+			tp->scroll.direction = 0;
+			if (tp->scroll.direction & LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL)
+				pointer_notify_axis(&tp->device->base,
+						    time,
+						    LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL,
+						    0);
+			if (tp->scroll.direction & LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL)
+				pointer_notify_axis(&tp->device->base,
+						    time,
+						    LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL,
+						    0);
+		}
+	} else {
+		tp_post_twofinger_scroll(tp, time);
+		return 1;
+	}
+	return 0;
 }
 
 static void
@@ -362,14 +410,10 @@ tp_post_events(struct tp_dispatch *tp, uint32_t time)
 	struct tp_touch *t = tp_current_touch(tp);
 	double dx, dy;
 
-	if (tp->nfingers_down > 2) {
-		return;
-	} else if (tp->nfingers_down == 2) {
-		tp_post_twofinger_scroll(tp, time);
-		return;
-	}
-
 	if (tp_tap_handle_state(tp, time) != 0)
+		return;
+
+	if (tp_post_scroll_events(tp, time) != 0)
 		return;
 
 	if (t->history.count >= TOUCHPAD_MIN_SAMPLES) {
@@ -464,6 +508,15 @@ tp_init_accel(struct tp_dispatch *touchpad, double diagonal)
 }
 
 static int
+tp_init_scroll(struct tp_dispatch *tp)
+{
+	tp->scroll.direction = 0;
+	tp->scroll.state = SCROLL_STATE_NONE;
+
+	return 0;
+}
+
+static int
 tp_init(struct tp_dispatch *tp,
 	struct evdev_device *device)
 {
@@ -484,6 +537,9 @@ tp_init(struct tp_dispatch *tp,
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
 	tp->hysteresis.margin_y =
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
+
+	if (tp_init_scroll(tp) != 0)
+		return -1;
 
 	if (tp_init_accel(tp, diagonal) != 0)
 		return -1;
