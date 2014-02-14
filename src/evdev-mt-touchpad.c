@@ -142,6 +142,13 @@ tp_current_touch(struct tp_dispatch *tp)
 	return &tp->touches[min(tp->slot, tp->ntouches)];
 }
 
+static inline struct tp_touch *
+tp_get_touch(struct tp_dispatch *tp, unsigned int slot)
+{
+	assert(slot < tp->ntouches);
+	return &tp->touches[slot];
+}
+
 static inline void
 tp_begin_touch(struct tp_dispatch *tp, struct tp_touch *t)
 {
@@ -248,6 +255,54 @@ tp_process_absolute_st(struct tp_dispatch *tp,
 }
 
 static void
+tp_process_fake_touch(struct tp_dispatch *tp,
+		      const struct input_event *e,
+		      uint32_t time)
+{
+	struct tp_touch *t;
+	unsigned int fake_touches;
+	unsigned int nfake_touches;
+	unsigned int i;
+	unsigned int shift;
+
+	if (e->code != BTN_TOUCH &&
+	    (e->code < BTN_TOOL_DOUBLETAP || e->code > BTN_TOOL_QUADTAP))
+		return;
+
+	shift = e->code == BTN_TOUCH ? 0 : (e->code - BTN_TOOL_DOUBLETAP + 1);
+
+	if (e->value)
+		tp->fake_touches |= 1 << shift;
+	else
+		tp->fake_touches &= ~(0x1 << shift);
+
+	fake_touches = tp->fake_touches;
+	nfake_touches = 0;
+	while (fake_touches) {
+		nfake_touches++;
+		fake_touches >>= 1;
+	}
+
+	for (i = 0; i < tp->ntouches; i++) {
+		t = tp_get_touch(tp, i);
+		if (i >= nfake_touches) {
+			if (t->state != TOUCH_NONE) {
+				tp_end_touch(tp, t);
+				t->millis = time;
+			}
+		} else if (t->state != TOUCH_UPDATE &&
+			   t->state != TOUCH_BEGIN) {
+			t->state = TOUCH_NONE;
+			tp_begin_touch(tp, t);
+			t->millis = time;
+			t->fake =true;
+		}
+	}
+
+	assert(tp->nfingers_down == nfake_touches);
+}
+
+static void
 tp_process_key(struct tp_dispatch *tp,
 	       const struct input_event *e,
 	       uint32_t time)
@@ -268,16 +323,11 @@ tp_process_key(struct tp_dispatch *tp,
 			}
 			break;
 		case BTN_TOUCH:
-			if (!tp->has_mt) {
-				struct tp_touch *t = tp_current_touch(tp);
-				if (e->value) {
-					tp_begin_touch(tp, t);
-					t->fake = true;
-				} else {
-					tp_end_touch(tp, t);
-				}
-				t->millis = time;
-			}
+		case BTN_TOOL_DOUBLETAP:
+		case BTN_TOOL_TRIPLETAP:
+		case BTN_TOOL_QUADTAP:
+			if (!tp->has_mt)
+				tp_process_fake_touch(tp, e, time);
 			break;
 	}
 }
@@ -286,9 +336,15 @@ static void
 tp_process_state(struct tp_dispatch *tp, uint32_t time)
 {
 	struct tp_touch *t;
+	struct tp_touch *first = tp_get_touch(tp, 0);
 
 	tp_for_each_touch(tp, t) {
-		if (!t->dirty)
+		if (!tp->has_mt && t != first && first->fake) {
+			t->x = first->x;
+			t->y = first->y;
+			if (!t->dirty)
+				t->dirty = first->dirty;
+		} else if (!t->dirty)
 			continue;
 
 		tp_motion_hysteresis(tp, t);

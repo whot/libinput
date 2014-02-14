@@ -101,6 +101,7 @@ struct tp_dispatch {
 
 	unsigned int ntouches;			/* number of slots */
 	struct tp_touch *touches;		/* len == ntouches */
+	unsigned int fake_touches;		/* fake touch mask */
 
 	struct {
 		int32_t margin_x;
