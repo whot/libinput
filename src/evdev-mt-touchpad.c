@@ -416,7 +416,8 @@ tp_post_events(struct tp_dispatch *tp, uint32_t time)
 	if (tp_post_scroll_events(tp, time) != 0)
 		return;
 
-	if (t->history.count >= TOUCHPAD_MIN_SAMPLES) {
+	if (t->history.count >= TOUCHPAD_MIN_SAMPLES &&
+	    tp->nfingers_down == 1) {
 		tp_get_delta(t, &dx, &dy);
 		tp_filter_motion(tp, &dx, &dy, time);
 
