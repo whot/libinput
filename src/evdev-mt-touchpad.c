@@ -226,6 +226,28 @@ tp_process_absolute(struct tp_dispatch *tp,
 }
 
 static void
+tp_process_absolute_st(struct tp_dispatch *tp,
+		       const struct input_event *e,
+		       uint32_t time)
+{
+	struct tp_touch *t = tp_current_touch(tp);
+
+	switch(e->code) {
+	case ABS_X:
+		t->x = e->value;
+		t->millis = time;
+		t->dirty = true;
+		break;
+	case ABS_Y:
+		t->y = e->value;
+		t->millis = time;
+		t->dirty = true;
+		tp->queued |= TOUCHPAD_EVENT_MOTION;
+		break;
+	}
+}
+
+static void
 tp_process_key(struct tp_dispatch *tp,
 	       const struct input_event *e,
 	       uint32_t time)
@@ -243,6 +265,18 @@ tp_process_key(struct tp_dispatch *tp,
 			} else {
 				tp->buttons.state &= ~mask;
 				tp->queued |= TOUCHPAD_EVENT_BUTTON_RELEASE;
+			}
+			break;
+		case BTN_TOUCH:
+			if (!tp->has_mt) {
+				struct tp_touch *t = tp_current_touch(tp);
+				if (e->value) {
+					tp_begin_touch(tp, t);
+					t->fake = true;
+				} else {
+					tp_end_touch(tp, t);
+				}
+				t->millis = time;
 			}
 			break;
 	}
@@ -271,9 +305,10 @@ tp_post_process_state(struct tp_dispatch *tp, uint32_t time)
 		if (!t->dirty)
 			continue;
 
-		if (t->state == TOUCH_END)
+		if (t->state == TOUCH_END) {
 			t->state = TOUCH_NONE;
-		else if (t->state == TOUCH_BEGIN)
+			t->fake = false;
+		} else if (t->state == TOUCH_BEGIN)
 			t->state = TOUCH_UPDATE;
 
 		t->dirty = false;
@@ -443,7 +478,10 @@ tp_process(struct evdev_dispatch *dispatch,
 
 	switch (e->type) {
 	case EV_ABS:
-		tp_process_absolute(tp, e, time);
+		if (tp->has_mt)
+			tp_process_absolute(tp, e, time);
+		else
+			tp_process_absolute_st(tp, e, time);
 		break;
 	case EV_KEY:
 		tp_process_key(tp, e, time);
@@ -479,12 +517,17 @@ tp_init_slots(struct tp_dispatch *tp,
 {
 	struct input_absinfo absinfo = {0};
 
-	ioctl(device->fd, EVIOCGABS(ABS_MT_SLOT), &absinfo);
-
-	tp->ntouches = absinfo.maximum + 1;
+	if (ioctl(device->fd, EVIOCGABS(ABS_MT_SLOT), &absinfo) == -1) {
+		tp->ntouches = 5; /* FIXME: based on DOUBLETAP, etc. */
+		tp->slot = 0;
+		tp->has_mt = false;
+	} else {
+		tp->ntouches = absinfo.maximum + 1;
+		tp->slot = absinfo.value;
+		tp->has_mt = true;
+	}
 	tp->touches = calloc(tp->ntouches,
 			     sizeof(struct tp_touch));
-	tp->slot = absinfo.value;
 
 	return 0;
 }
