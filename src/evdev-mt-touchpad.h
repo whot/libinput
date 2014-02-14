@@ -75,6 +75,7 @@ struct tp_motion {
 struct tp_touch {
 	enum touch_state state;
 	bool dirty;
+	bool fake;				/* a fake touch */
 	int32_t x;
 	int32_t y;
 	uint32_t millis;
@@ -96,6 +97,7 @@ struct tp_dispatch {
 	struct evdev_device *device;
 	unsigned int nfingers_down;		/* number of fingers down */
 	unsigned int slot;			/* current slot */
+	bool has_mt;
 
 	unsigned int ntouches;			/* number of slots */
 	struct tp_touch *touches;		/* len == ntouches */
