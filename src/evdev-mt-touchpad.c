@@ -159,6 +159,9 @@ tp_begin_touch(struct tp_dispatch *tp, struct tp_touch *t)
 		tp->nfingers_down++;
 		assert(tp->nfingers_down >= 1);
 		tp->queued |= TOUCHPAD_EVENT_MOTION;
+
+		if (tp->nfingers_down == 1)
+			t->is_pointer = true;
 	}
 }
 
@@ -169,6 +172,7 @@ tp_end_touch(struct tp_dispatch *tp, struct tp_touch *t)
 		return;
 
 	t->dirty = true;
+	t->is_pointer = false;
 	t->state = TOUCH_END;
 	assert(tp->nfingers_down >= 1);
 	tp->nfingers_down--;
