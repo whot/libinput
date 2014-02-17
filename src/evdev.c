@@ -565,10 +565,7 @@ evdev_configure_device(struct evdev_device *device)
 		if (TEST_BIT(key_bits, BTN_TOOL_FINGER) &&
 		    !TEST_BIT(key_bits, BTN_TOOL_PEN) &&
 		    (has_abs || has_mt)) {
-			if (getenv("LIBINPUT_NEW_TOUCHPAD_DRIVER") && has_mt)
-				device->dispatch = evdev_mt_touchpad_create(device);
-			else
-				device->dispatch = evdev_touchpad_create(device);
+			device->dispatch = evdev_mt_touchpad_create(device);
 		}
 		for (i = KEY_ESC; i < KEY_MAX; i++) {
 			if (i >= BTN_MISC && i < KEY_OK)
