@@ -152,6 +152,8 @@ tp_get_touch(struct tp_dispatch *tp, unsigned int slot)
 static inline void
 tp_begin_touch(struct tp_dispatch *tp, struct tp_touch *t)
 {
+	struct tp_touch *tmp;
+
 	if (t->state != TOUCH_UPDATE) {
 		tp_motion_history_reset(t);
 		t->dirty = true;
@@ -160,8 +162,14 @@ tp_begin_touch(struct tp_dispatch *tp, struct tp_touch *t)
 		assert(tp->nfingers_down >= 1);
 		tp->queued |= TOUCHPAD_EVENT_MOTION;
 
-		if (tp->nfingers_down == 1)
+		tp_for_each_touch(tp, tmp) {
+			if (tmp->is_pointer)
+				break;
+		}
+
+		if (!tmp->is_pointer) {
 			t->is_pointer = true;
+		}
 	}
 }
 
@@ -337,6 +345,53 @@ tp_process_key(struct tp_dispatch *tp,
 }
 
 static void
+tp_unpin_finger(struct tp_dispatch *tp)
+{
+	struct tp_touch *t;
+	tp_for_each_touch(tp, t) {
+		if (t->is_pinned) {
+			t->is_pinned = false;
+
+			if (t->state != TOUCH_END &&
+			    tp->nfingers_down == 1)
+				t->is_pointer = true;
+			break;
+		}
+	}
+}
+
+static void
+tp_pin_finger(struct tp_dispatch *tp)
+{
+	struct tp_touch *t,
+			*pinned = NULL;
+
+	tp_for_each_touch(tp, t) {
+		if (t->is_pinned) {
+			pinned = t;
+			break;
+		}
+	}
+
+	assert(!pinned);
+
+	pinned = tp_current_touch(tp);
+
+	if (tp->nfingers_down != 1) {
+		tp_for_each_touch(tp, t) {
+			if (t == pinned)
+				continue;
+
+			if (t->y > pinned->y)
+				pinned = t;
+		}
+	}
+
+	pinned->is_pinned = true;
+	pinned->is_pointer = false;
+}
+
+static void
 tp_process_state(struct tp_dispatch *tp, uint32_t time)
 {
 	struct tp_touch *t;
@@ -354,6 +409,15 @@ tp_process_state(struct tp_dispatch *tp, uint32_t time)
 		tp_motion_hysteresis(tp, t);
 		tp_motion_history_push(t);
 	}
+
+	/* We have a physical button down event on a clickpad. For drag and
+	   drop, this means we try to identify which finger pressed the
+	   physical button and "pin" it, i.e. remove pointer-moving
+	   capabilities from it.
+	 */
+	if ((tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS) &&
+	    !tp->buttons.has_buttons)
+		tp_pin_finger(tp);
 }
 
 static void
@@ -375,6 +439,9 @@ tp_post_process_state(struct tp_dispatch *tp, uint32_t time)
 	}
 
 	tp->buttons.old_state = tp->buttons.state;
+
+	if (tp->queued & TOUCHPAD_EVENT_BUTTON_RELEASE)
+		tp_unpin_finger(tp);
 
 	tp->queued = TOUCHPAD_EVENT_NONE;
 }
@@ -441,6 +508,11 @@ tp_post_twofinger_scroll(struct tp_dispatch *tp, uint32_t time)
 static int
 tp_post_scroll_events(struct tp_dispatch *tp, uint32_t time)
 {
+	/* don't scroll if a clickpad is held down */
+	if (!tp->buttons.has_buttons &&
+	    (tp->buttons.state || tp->buttons.old_state))
+		return 0;
+
 	if (tp->nfingers_down != 2) {
 		/* terminate scrolling with a zero scroll event to notify
 		 * caller that it really ended now */
@@ -561,8 +633,17 @@ tp_post_events(struct tp_dispatch *tp, uint32_t time)
 	if (tp_post_scroll_events(tp, time) != 0)
 		return;
 
-	if (t->history.count >= TOUCHPAD_MIN_SAMPLES &&
-	    tp->nfingers_down == 1) {
+	if (t->history.count >= TOUCHPAD_MIN_SAMPLES) {
+		if (!t->is_pointer) {
+			tp_for_each_touch(tp, t) {
+				if (t->is_pointer)
+					break;
+			}
+		}
+
+		if (!t->is_pointer)
+			return;
+
 		tp_get_delta(t, &dx, &dy);
 		tp_filter_motion(tp, &dx, &dy, time);
 

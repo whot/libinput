@@ -77,6 +77,7 @@ struct tp_touch {
 	bool dirty;
 	bool fake;				/* a fake touch */
 	bool is_pointer;			/* the pointer-controlling touch */
+	bool is_pinned;				/* holds the phys. button */
 	int32_t x;
 	int32_t y;
 	uint32_t millis;
