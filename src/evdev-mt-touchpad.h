@@ -117,6 +117,7 @@ struct tp_dispatch {
 	} accel;
 
 	struct {
+		bool has_buttons;		/* true for physical LMR buttons */
 		uint32_t state;
 		uint32_t old_state;
 	} buttons;				/* physical buttons */
