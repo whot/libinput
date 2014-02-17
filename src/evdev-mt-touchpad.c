@@ -461,14 +461,42 @@ tp_post_scroll_events(struct tp_dispatch *tp, uint32_t time)
 	return 0;
 }
 
-static void
-tp_post_button_events(struct tp_dispatch *tp, uint32_t time)
+static int
+tp_post_clickfinger_buttons(struct tp_dispatch *tp, uint32_t time)
 {
 	uint32_t current, old, button;
+	enum libinput_pointer_button_state state;
 
-	if ((tp->queued &
-		(TOUCHPAD_EVENT_BUTTON_PRESS|TOUCHPAD_EVENT_BUTTON_RELEASE)) == 0)
-				return;
+	current = tp->buttons.state;
+	old = tp->buttons.old_state;
+
+	if (current == old)
+		return 0;
+
+	switch (tp->nfingers_down) {
+		case 1: button = BTN_LEFT; break;
+		case 2: button = BTN_RIGHT; break;
+		case 3: button = BTN_MIDDLE; break;
+		default:
+			return 0;
+	}
+
+	if (current)
+		state = LIBINPUT_POINTER_BUTTON_STATE_PRESSED;
+	else
+		state = LIBINPUT_POINTER_BUTTON_STATE_RELEASED;
+
+	pointer_notify_button(&tp->device->base,
+			      time,
+			      button,
+			      state);
+	return 1;
+}
+
+static int
+tp_post_physical_buttons(struct tp_dispatch *tp, uint32_t time)
+{
+	uint32_t current, old, button;
 
 	current = tp->buttons.state;
 	old = tp->buttons.old_state;
@@ -493,6 +521,25 @@ tp_post_button_events(struct tp_dispatch *tp, uint32_t time)
 		current >>= 1;
 		old >>= 1;
 	}
+
+	return 0;
+}
+
+static int
+tp_post_button_events(struct tp_dispatch *tp, uint32_t time)
+{
+	int rc;
+
+	if ((tp->queued &
+		(TOUCHPAD_EVENT_BUTTON_PRESS|TOUCHPAD_EVENT_BUTTON_RELEASE)) == 0)
+				return 0;
+
+	if (tp->buttons.has_buttons)
+		rc = tp_post_physical_buttons(tp, time);
+	else
+		rc = tp_post_clickfinger_buttons(tp, time);
+
+	return rc;
 }
 
 static void
@@ -500,6 +547,9 @@ tp_post_events(struct tp_dispatch *tp, uint32_t time)
 {
 	struct tp_touch *t = tp_current_touch(tp);
 	double dx, dy;
+
+	if (tp_post_button_events(tp, time) != 0)
+		return;
 
 	if (tp_tap_handle_state(tp, time) != 0)
 		return;
@@ -519,8 +569,6 @@ tp_post_events(struct tp_dispatch *tp, uint32_t time)
 				li_fixed_from_double(dx),
 				li_fixed_from_double(dy));
 	}
-
-	tp_post_button_events(tp, time);
 }
 
 static void
@@ -622,6 +670,7 @@ tp_init(struct tp_dispatch *tp,
 {
 	int width, height;
 	double diagonal;
+	unsigned long key_bits[NBITS(KEY_MAX)];
 
 	tp->base.interface = &tp_interface;
 	tp->device = device;
@@ -637,6 +686,10 @@ tp_init(struct tp_dispatch *tp,
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
 	tp->hysteresis.margin_y =
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
+
+	ioctl(device->fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), key_bits);
+	if (TEST_BIT(key_bits, BTN_RIGHT) || TEST_BIT(key_bits, BTN_MIDDLE))
+		tp->buttons.has_buttons = true;
 
 	if (tp_init_scroll(tp) != 0)
 		return -1;
