@@ -1169,6 +1169,8 @@ libinput_device_led_update(struct libinput_device *device,
  * @param device A current input device
  * @param keys An array filled with the bitmask for the keys
  * @param size Size of the keys array
+ *
+ * @return The number of valid bytes in keys, or a negative errno on failure
  */
 int
 libinput_device_get_keys(struct libinput_device *device,

@@ -715,8 +715,12 @@ err:
 int
 evdev_device_get_keys(struct evdev_device *device, char *keys, size_t size)
 {
+	int len;
+
 	memset(keys, 0, size);
-	return ioctl(device->fd, EVIOCGKEY(size), keys);
+	len = ioctl(device->fd, EVIOCGKEY(size), keys);
+
+	return (len == -1) ? -errno : len;
 }
 
 const char *
