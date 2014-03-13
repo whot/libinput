@@ -116,6 +116,26 @@ device_added(struct udev_device *udev_device, struct udev_input *input)
 	return 0;
 }
 
+static void
+device_removed(struct udev_device *udev_device, struct udev_input *input)
+{
+	const char *devnode;
+	struct evdev_device *device, *next;
+	struct udev_seat *seat;
+
+	devnode = udev_device_get_devnode(udev_device);
+	list_for_each(seat, &input->base.seat_list, base.link) {
+		list_for_each_safe(device, next,
+				&seat->base.devices_list, base.link)
+			if (!strcmp(device->devnode, devnode)) {
+				log_info("input device %s, %s removed\n",
+						device->devname, device->devnode);
+				evdev_device_remove(device);
+				break;
+			}
+	}
+}
+
 static int
 udev_input_add_devices(struct udev_input *input, struct udev *udev)
 {
@@ -155,10 +175,7 @@ evdev_udev_handler(void *data)
 {
 	struct udev_input *input = data;
 	struct udev_device *udev_device;
-	struct evdev_device *device, *next;
 	const char *action;
-	const char *devnode;
-	struct udev_seat *seat;
 
 	udev_device = udev_monitor_receive_device(input->udev_monitor);
 	if (!udev_device)
@@ -171,22 +188,10 @@ evdev_udev_handler(void *data)
 	if (strncmp("event", udev_device_get_sysname(udev_device), 5) != 0)
 		goto out;
 
-	if (!strcmp(action, "add")) {
+	if (!strcmp(action, "add"))
 		device_added(udev_device, input);
-	}
-	else if (!strcmp(action, "remove")) {
-		devnode = udev_device_get_devnode(udev_device);
-		list_for_each(seat, &input->base.seat_list, base.link) {
-			list_for_each_safe(device, next,
-					   &seat->base.devices_list, base.link)
-				if (!strcmp(device->devnode, devnode)) {
-					log_info("input device %s, %s removed\n",
-						 device->devname, device->devnode);
-					evdev_device_remove(device);
-					break;
-				}
-		}
-	}
+	else if (!strcmp(action, "remove"))
+		device_removed(udev_device, input);
 
 out:
 	udev_device_unref(udev_device);
