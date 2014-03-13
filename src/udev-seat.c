@@ -136,12 +136,28 @@ device_removed(struct udev_device *udev_device, struct udev_input *input)
 	}
 }
 
+static struct evdev_device*
+udev_input_find_device_by_sysname(struct udev_input *input, const char *sysname)
+{
+	struct udev_seat *seat;
+	struct evdev_device *device;
+
+	list_for_each(seat, &input->base.seat_list, base.link) {
+		list_for_each(device, &seat->base.devices_list, base.link)
+			if (!strcmp(device->sysname, sysname)) {
+				return device;
+			}
+	}
+	return NULL;
+}
+
 static int
 udev_input_add_devices(struct udev_input *input, struct udev *udev)
 {
 	struct udev_enumerate *e;
 	struct udev_list_entry *entry;
 	struct udev_device *device;
+	struct evdev_device *evdev;
 	const char *path, *sysname;
 
 	e = udev_enumerate_new(udev);
@@ -157,11 +173,15 @@ udev_input_add_devices(struct udev_input *input, struct udev *udev)
 			continue;
 		}
 
-		if (device_added(device, input) < 0) {
-			udev_device_unref(device);
-			udev_enumerate_unref(e);
-			return -1;
-		}
+		evdev = udev_input_find_device_by_sysname(input, sysname);
+		if (!evdev) {
+			if (device_added(device, input) < 0) {
+				udev_device_unref(device);
+				udev_enumerate_unref(e);
+				return -1;
+			}
+		} else if (!evdev_device_is_alive(evdev))
+			device_removed(device, input);
 
 		udev_device_unref(device);
 	}
@@ -363,4 +383,20 @@ libinput_udev_create_for_seat(const struct libinput_interface *interface,
 	}
 
 	return &input->base;
+}
+
+LIBINPUT_EXPORT void
+libinput_udev_rescan_devices(struct libinput *libinput)
+{
+	struct udev_input *udev_input = (struct udev_input*)libinput;
+
+	if (libinput->interface_backend != &interface_backend) {
+		log_error("Mismatching backends. This is an application bug.\n");
+		return;
+	}
+
+	if (udev_input->udev_monitor == NULL)
+		return;
+
+	udev_input_add_devices(udev_input, udev_input->udev);
 }

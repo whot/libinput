@@ -790,3 +790,18 @@ evdev_device_destroy(struct evdev_device *device)
 	free(device->sysname);
 	free(device);
 }
+
+int
+evdev_device_is_alive(struct evdev_device *device)
+{
+	int rc;
+	int version;
+
+	rc = ioctl(device->fd, EVIOCGVERSION, &version);
+
+	if (rc < 0 && errno != ENODEV)
+		log_info("evdev: %s failed with errno %d (%s)\n",
+			 __func__, errno, strerror(errno));
+
+	return rc != -1;
+}

@@ -156,4 +156,6 @@ evdev_device_remove(struct evdev_device *device);
 void
 evdev_device_destroy(struct evdev_device *device);
 
+int
+evdev_device_is_alive(struct evdev_device *device);
 #endif /* EVDEV_H */

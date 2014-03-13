@@ -715,6 +715,27 @@ libinput_udev_create_for_seat(const struct libinput_interface *interface,
 /**
  * @ingroup base
  *
+ * Re-scan the list of devices available to this context. Devices in the
+ * seat specified in libinput_udev_create_for_seat() that previously have
+ * failed to initialize are re-initialized. Devices that have successfully
+ * re-initialized but are now revoked are removed.
+ *
+ * Calling libinput_udev_rescan_devices() on a context suspended with
+ * libinput_suspend() does nothing.
+ *
+ * @note This function should not be used for detection of physically added
+ * or removed devices, libinput_dispatch() detects those. This function
+ * should only be used to re-open or close existing devices, e.g. if
+ * systemd-logind prevented access to a device before.
+ *
+ * @param libinput The previously initialized libinput context
+ */
+void
+libinput_udev_rescan_devices(struct libinput *libinput);
+
+/**
+ * @ingroup base
+ *
  * Create a new libinput context that requires the caller to manually add or
  * remove devices with libinput_path_add_device() and
  * libinput_path_remove_device().
