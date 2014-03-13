@@ -691,6 +691,12 @@ struct libinput_interface {
  * the given seat ID. New devices or devices removed will appear as events
  * during libinput_dispatch.
  *
+ * libinput_udev_create_for_seat() fails for internal values only. No
+ * guarantee is made that a device is available once the call finishes, and
+ * only devices handled by libinput are avialable. Devices that cannot be
+ * opened in @ref libinput_interface::open_restricted or do not match
+ * libinput requirements are ignored.
+ *
  * @param interface The callback interface
  * @param user_data Caller-specific data passed to the various callback
  * interfaces.
