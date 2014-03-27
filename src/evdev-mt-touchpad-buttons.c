@@ -75,23 +75,27 @@ tp_post_clickfinger_buttons(struct tp_dispatch *tp, uint32_t time)
 	if (current == old)
 		return 0;
 
-	switch (tp->nfingers_down) {
+	if (current) {
+		switch (tp->nfingers_down) {
 		case 1: button = BTN_LEFT; break;
 		case 2: button = BTN_RIGHT; break;
 		case 3: button = BTN_MIDDLE; break;
 		default:
 			return 0;
+		}
+		tp->buttons.active = button;
+		state = LIBINPUT_POINTER_BUTTON_STATE_PRESSED;
+	} else {
+		button = tp->buttons.active;
+		tp->buttons.active = 0;
+		state = LIBINPUT_POINTER_BUTTON_STATE_RELEASED;
 	}
 
-	if (current)
-		state = LIBINPUT_POINTER_BUTTON_STATE_PRESSED;
-	else
-		state = LIBINPUT_POINTER_BUTTON_STATE_RELEASED;
-
-	pointer_notify_button(&tp->device->base,
-			      time,
-			      button,
-			      state);
+	if (button)
+		pointer_notify_button(&tp->device->base,
+				      time,
+				      button,
+				      state);
 	return 1;
 }
 

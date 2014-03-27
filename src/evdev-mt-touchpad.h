@@ -132,6 +132,7 @@ struct tp_dispatch {
 		uint32_t state;
 		uint32_t old_state;
 		uint32_t motion_dist;		/* for pinned touches */
+		unsigned int active;		/* currently active button, for release event */
 	} buttons;				/* physical buttons */
 
 	struct {
