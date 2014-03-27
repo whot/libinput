@@ -46,6 +46,24 @@ enum touch_state {
 	TOUCH_END
 };
 
+enum button_event {
+       BUTTON_EVENT_IN_BOTTOM_R = 30,
+       BUTTON_EVENT_IN_BOTTOM_L,
+       BUTTON_EVENT_IN_AREA,
+       BUTTON_EVENT_UP,
+       BUTTON_EVENT_PRESS,
+       BUTTON_EVENT_RELEASE,
+       BUTTON_EVENT_TIMEOUT,
+};
+
+enum button_state {
+       BUTTON_STATE_NONE,
+       BUTTON_STATE_AREA,
+       BUTTON_STATE_BOTTOM,
+       BUTTON_STATE_BOTTOM_NEW,
+       BUTTON_STATE_BOTTOM_TO_AREA,
+};
+
 enum scroll_state {
 	SCROLL_STATE_NONE,
 	SCROLL_STATE_SCROLLING
@@ -101,6 +119,14 @@ struct tp_touch {
 		int32_t center_x;
 		int32_t center_y;
 	} pinned;
+
+	/* Software-button state and timeout if applicable */
+	struct {
+		enum button_state state;
+		/* We use button_event here so we can use == on events */
+		enum button_event curr;
+		uint32_t timeout;
+	} button;
 };
 
 struct tp_dispatch {
@@ -130,10 +156,26 @@ struct tp_dispatch {
 	struct {
 		bool has_buttons;		/* true for physical LMR buttons */
 		bool use_clickfinger;		/* number of fingers decides button number */
+		bool use_softbuttons;		/* use software-button area */
 		uint32_t state;
 		uint32_t old_state;
 		uint32_t motion_dist;		/* for pinned touches */
 		unsigned int active;		/* currently active button, for release event */
+
+		/* Only used if has_buttons is false. The software button area is always
+		 * a horizontal strip across the touchpad. Depending on the
+		 * rightbutton_left_edge value, the buttons are split according to the
+		 * edge settings.
+		  */
+		struct {
+			int32_t top_edge;
+			int32_t rightbutton_left_edge;
+		} area;
+
+		unsigned int timeout;		/* current timeout in ms */
+
+		int timer_fd;
+		struct libinput_source *source;
 	} buttons;				/* physical buttons */
 
 	struct {
@@ -173,6 +215,9 @@ tp_destroy_tap(struct tp_dispatch *tp);
 int
 tp_init_buttons(struct tp_dispatch *tp, struct evdev_device *device);
 
+void
+tp_destroy_buttons(struct tp_dispatch *tp);
+
 int
 tp_process_button(struct tp_dispatch *tp,
 		  const struct input_event *e,
@@ -180,5 +225,8 @@ tp_process_button(struct tp_dispatch *tp,
 
 int
 tp_post_button_events(struct tp_dispatch *tp, uint32_t time);
+
+int
+tp_button_handle_state(struct tp_dispatch *tp, uint32_t time);
 
 #endif

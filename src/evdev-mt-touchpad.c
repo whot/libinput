@@ -398,6 +398,8 @@ tp_process_state(struct tp_dispatch *tp, uint32_t time)
 		tp_unpin_finger(tp, t);
 	}
 
+	tp_button_handle_state(tp, time);
+
 	/*
 	 * We have a physical button down event on a clickpad. To avoid
 	 * spurious pointer moves by the clicking finger we pin all fingers.
@@ -595,6 +597,7 @@ tp_destroy(struct evdev_dispatch *dispatch)
 		(struct tp_dispatch*)dispatch;
 
 	tp_destroy_tap(tp);
+	tp_destroy_buttons(tp);
 
 	if (tp->filter)
 		tp->filter->interface->destroy(tp->filter);
@@ -607,10 +610,18 @@ static struct evdev_dispatch_interface tp_interface = {
 	tp_destroy
 };
 
+static void
+tp_init_touch(struct tp_dispatch *tp,
+	      struct tp_touch *t)
+{
+	t->button.state = BUTTON_STATE_NONE;
+}
+
 static int
 tp_init_slots(struct tp_dispatch *tp,
 	      struct evdev_device *device)
 {
+	size_t i;
 	const struct input_absinfo *absinfo;
 
 	absinfo = libevdev_get_abs_info(device->evdev, ABS_MT_SLOT);
@@ -645,6 +656,9 @@ tp_init_slots(struct tp_dispatch *tp,
 	}
 	tp->touches = calloc(tp->ntouches,
 			     sizeof(struct tp_touch));
+
+	for (i = 0; i < tp->ntouches; i++)
+		tp_init_touch(tp, &tp->touches[i]);
 
 	return 0;
 }
@@ -687,6 +701,7 @@ tp_init(struct tp_dispatch *tp,
 	tp->base.interface = &tp_interface;
 	tp->device = device;
 	tp->tap.timer_fd = -1;
+	tp->buttons.timer_fd = -1;
 
 	if (tp_init_slots(tp, device) != 0)
 		return -1;
