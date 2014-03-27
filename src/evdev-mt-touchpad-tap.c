@@ -508,7 +508,7 @@ tp_tap_handle_state(struct tp_dispatch *tp, uint32_t time)
 	struct tp_touch *t;
 	int filter_motion = 0;
 
-	if (tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS)
+	if (tp->buttons.state != 0)
 		tp_tap_handle_event(tp, TAP_EVENT_BUTTON, time);
 
 	tp_for_each_touch(tp, t) {
