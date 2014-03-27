@@ -217,7 +217,7 @@ END_TEST
 
 START_TEST(touchpad_1fg_clickfinger)
 {
-	struct litest_device *dev = litest_current_device();
+	struct litest_device *dev = litest_create_device(LITEST_BCM5974);
 	struct libinput *li = dev->libinput;
 	struct libinput_event *event;
 	struct libinput_event_pointer *ptrev;
@@ -237,12 +237,14 @@ START_TEST(touchpad_1fg_clickfinger)
 			    LIBINPUT_POINTER_BUTTON_STATE_PRESSED);
 	assert_button_event(li, BTN_LEFT,
 			    LIBINPUT_POINTER_BUTTON_STATE_RELEASED);
+
+	litest_delete_device(dev);
 }
 END_TEST
 
 START_TEST(touchpad_2fg_clickfinger)
 {
-	struct litest_device *dev = litest_current_device();
+	struct litest_device *dev = litest_create_device(LITEST_BCM5974);
 	struct libinput *li = dev->libinput;
 	struct libinput_event *event;
 	struct libinput_event_pointer *ptrev;
@@ -264,6 +266,8 @@ START_TEST(touchpad_2fg_clickfinger)
 			    LIBINPUT_POINTER_BUTTON_STATE_PRESSED);
 	assert_button_event(li, BTN_RIGHT,
 			    LIBINPUT_POINTER_BUTTON_STATE_RELEASED);
+
+	litest_delete_device(dev);
 }
 END_TEST
 
@@ -362,8 +366,8 @@ int main(int argc, char **argv) {
 	litest_add("touchpad:tap", touchpad_1fg_tap_n_drag, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:tap", touchpad_2fg_tap, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
 
-	litest_add("touchpad:clickfinger", touchpad_1fg_clickfinger, LITEST_TOUCHPAD, LITEST_ANY);
-	litest_add("touchpad:clickfinger", touchpad_2fg_clickfinger, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
+	litest_add_no_device("touchpad:clickfinger", touchpad_1fg_clickfinger);
+	litest_add_no_device("touchpad:clickfinger", touchpad_2fg_clickfinger);
 
 	litest_add("touchpad:click", touchpad_btn_left, LITEST_TOUCHPAD, LITEST_CLICKPAD);
 	litest_add("touchpad:click", clickpad_btn_left, LITEST_CLICKPAD, LITEST_ANY);

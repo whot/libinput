@@ -60,6 +60,11 @@ tp_init_buttons(struct tp_dispatch *tp,
 
 	tp->buttons.motion_dist = diagonal * DEFAULT_BUTTON_MOTION_THRESHOLD;
 
+	if (libevdev_get_id_vendor(device->evdev) == 0x5ac) /* Apple */
+		tp->buttons.use_clickfinger = true;
+	else
+		tp->buttons.use_clickfinger = false;
+
 	return 0;
 }
 
@@ -142,7 +147,7 @@ tp_post_button_events(struct tp_dispatch *tp, uint32_t time)
 
 	if (tp->buttons.has_buttons)
 		rc = tp_post_physical_buttons(tp, time);
-	else
+	else if (tp->buttons.use_clickfinger)
 		rc = tp_post_clickfinger_buttons(tp, time);
 
 	return rc;

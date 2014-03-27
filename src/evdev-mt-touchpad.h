@@ -129,6 +129,7 @@ struct tp_dispatch {
 
 	struct {
 		bool has_buttons;		/* true for physical LMR buttons */
+		bool use_clickfinger;		/* number of fingers decides button number */
 		uint32_t state;
 		uint32_t old_state;
 		uint32_t motion_dist;		/* for pinned touches */
