@@ -32,7 +32,6 @@
 #define DEFAULT_MIN_ACCEL_FACTOR 0.16
 #define DEFAULT_MAX_ACCEL_FACTOR 1.0
 #define DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR 700.0
-#define DEFAULT_BUTTON_MOTION_THRESHOLD 0.02 /* in percent of size */
 
 static inline int
 tp_hysteresis(int in, int center, int margin)
@@ -322,20 +321,11 @@ tp_process_key(struct tp_dispatch *tp,
 	       const struct input_event *e,
 	       uint32_t time)
 {
-	uint32_t mask;
-
 	switch (e->code) {
 		case BTN_LEFT:
 		case BTN_MIDDLE:
 		case BTN_RIGHT:
-			mask = 1 << (e->code - BTN_LEFT);
-			if (e->value) {
-				tp->buttons.state |= mask;
-				tp->queued |= TOUCHPAD_EVENT_BUTTON_PRESS;
-			} else {
-				tp->buttons.state &= ~mask;
-				tp->queued |= TOUCHPAD_EVENT_BUTTON_RELEASE;
-			}
+			tp_process_button(tp, e, time);
 			break;
 		case BTN_TOUCH:
 		case BTN_TOOL_DOUBLETAP:
@@ -533,87 +523,6 @@ tp_post_scroll_events(struct tp_dispatch *tp, uint32_t time)
 	return 0;
 }
 
-static int
-tp_post_clickfinger_buttons(struct tp_dispatch *tp, uint32_t time)
-{
-	uint32_t current, old, button;
-	enum libinput_pointer_button_state state;
-
-	current = tp->buttons.state;
-	old = tp->buttons.old_state;
-
-	if (current == old)
-		return 0;
-
-	switch (tp->nfingers_down) {
-		case 1: button = BTN_LEFT; break;
-		case 2: button = BTN_RIGHT; break;
-		case 3: button = BTN_MIDDLE; break;
-		default:
-			return 0;
-	}
-
-	if (current)
-		state = LIBINPUT_POINTER_BUTTON_STATE_PRESSED;
-	else
-		state = LIBINPUT_POINTER_BUTTON_STATE_RELEASED;
-
-	pointer_notify_button(&tp->device->base,
-			      time,
-			      button,
-			      state);
-	return 1;
-}
-
-static int
-tp_post_physical_buttons(struct tp_dispatch *tp, uint32_t time)
-{
-	uint32_t current, old, button;
-
-	current = tp->buttons.state;
-	old = tp->buttons.old_state;
-	button = BTN_LEFT;
-
-	while (current || old) {
-		enum libinput_pointer_button_state state;
-
-		if ((current & 0x1) ^ (old & 0x1)) {
-			if (!!(current & 0x1))
-				state = LIBINPUT_POINTER_BUTTON_STATE_PRESSED;
-			else
-				state = LIBINPUT_POINTER_BUTTON_STATE_RELEASED;
-
-			pointer_notify_button(&tp->device->base,
-					      time,
-					      button,
-					      state);
-		}
-
-		button++;
-		current >>= 1;
-		old >>= 1;
-	}
-
-	return 0;
-}
-
-static int
-tp_post_button_events(struct tp_dispatch *tp, uint32_t time)
-{
-	int rc;
-
-	if ((tp->queued &
-		(TOUCHPAD_EVENT_BUTTON_PRESS|TOUCHPAD_EVENT_BUTTON_RELEASE)) == 0)
-				return 0;
-
-	if (tp->buttons.has_buttons)
-		rc = tp_post_physical_buttons(tp, time);
-	else
-		rc = tp_post_clickfinger_buttons(tp, time);
-
-	return rc;
-}
-
 static void
 tp_post_events(struct tp_dispatch *tp, uint32_t time)
 {
@@ -791,12 +700,6 @@ tp_init(struct tp_dispatch *tp,
 	tp->hysteresis.margin_y =
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
 
-	tp->buttons.motion_dist = diagonal * DEFAULT_BUTTON_MOTION_THRESHOLD;
-
-	if (libevdev_has_event_code(device->evdev, EV_KEY, BTN_MIDDLE) ||
-	    libevdev_has_event_code(device->evdev, EV_KEY, BTN_RIGHT))
-		tp->buttons.has_buttons = true;
-
 	if (tp_init_scroll(tp) != 0)
 		return -1;
 
@@ -804,6 +707,9 @@ tp_init(struct tp_dispatch *tp,
 		return -1;
 
 	if (tp_init_tap(tp) != 0)
+		return -1;
+
+	if (tp_init_buttons(tp, device) != 0)
 		return -1;
 
 	return 0;

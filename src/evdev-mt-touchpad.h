@@ -168,4 +168,15 @@ tp_init_tap(struct tp_dispatch *tp);
 void
 tp_destroy_tap(struct tp_dispatch *tp);
 
+int
+tp_init_buttons(struct tp_dispatch *tp, struct evdev_device *device);
+
+int
+tp_process_button(struct tp_dispatch *tp,
+		  const struct input_event *e,
+		  uint32_t time);
+
+int
+tp_post_button_events(struct tp_dispatch *tp, uint32_t time);
+
 #endif
