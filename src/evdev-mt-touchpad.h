@@ -104,6 +104,7 @@ struct tp_touch {
 	enum touch_state state;
 	bool dirty;
 	bool is_pointer;			/* the pointer-controlling touch */
+	bool has_jumped;
 	int32_t x;
 	int32_t y;
 	uint64_t millis;
@@ -166,6 +167,8 @@ struct tp_dispatch {
 		int32_t margin_x;
 		int32_t margin_y;
 	} hysteresis;
+
+	int32_t jump_threshold;
 
 	struct motion_filter *filter;
 
@@ -263,7 +266,9 @@ int
 tp_post_button_events(struct tp_dispatch *tp, uint64_t time);
 
 int
-tp_button_handle_state(struct tp_dispatch *tp, uint64_t time);
+tp_button_handle_state(struct tp_dispatch *tp,
+		       uint64_t time,
+		       bool ignore_button_press);
 
 int
 tp_button_touch_active(struct tp_dispatch *tp, struct tp_touch *t);

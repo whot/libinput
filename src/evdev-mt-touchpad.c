@@ -160,6 +160,67 @@ tp_end_touch(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	tp->queued |= TOUCHPAD_EVENT_MOTION;
 }
 
+static inline void
+tp_disrupt_touch(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
+{
+	if (t->state == TOUCH_NONE)
+		return;
+
+	tp_end_touch(tp, t, time);
+	t->has_jumped = true;
+}
+
+static inline void
+tp_undisrupt_touch(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
+{
+	if (!t->has_jumped)
+		return;
+
+	t->has_jumped = false;
+	tp_begin_touch(tp, t, time);
+}
+
+static inline int
+tp_detect_jumps(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
+{
+	struct tp_motion *oldpos;
+	double dx, dy;
+
+	/* Detect cursor jumps. The sampling rate of touchpads limits what
+	 * we can detect, if one finger leaves touch and another sets down
+	 * quickly enough, the firmware may not notice the touch up/down
+	 * event but assume the finger moved.
+	 * See https://bugs.freedesktop.org/show_bug.cgi?id=76722
+	 *
+	 * We detect the jump here, mark the touch as jumped so we can end
+	 * it and then continue with the current touch as new touch.
+	 *
+	 * This is only done for MT touchpads, on ST touchpads two fingers
+	 * are problematic anyway.
+	 */
+	if (!tp->has_mt ||
+	    t->history.count == 0)
+		return 0;
+
+	/* This is called before tp_motion_history_push(),
+	   so the latest historical datum is at offset 0. */
+	oldpos = tp_motion_history_offset(t, 0);
+	dx = abs(t->x - oldpos->x);
+	dy = abs(t->y - oldpos->y);
+
+	if (tp->device->abs.absinfo_x->resolution > 1 &&
+	    tp->device->abs.absinfo_y->resolution > 1) {
+		dx /= tp->device->abs.absinfo_x->resolution;
+		dy /= tp->device->abs.absinfo_y->resolution;
+	}
+
+	if (dx * dx + dy * dy > tp->jump_threshold * tp->jump_threshold) {
+		tp_disrupt_touch(tp, t, time);
+		return 1;
+	}
+	return 0;
+}
+
 static double
 tp_estimate_delta(int x0, int x1, int x2, int x3)
 {
@@ -397,12 +458,13 @@ tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	t->palm.y = t->y;
 }
 
-static void
+static int
 tp_process_state(struct tp_dispatch *tp, uint64_t time)
 {
 	struct tp_touch *t;
 	struct tp_touch *first = tp_get_touch(tp, 0);
 	unsigned int i;
+	bool touch_jumps = false;
 
 	for (i = 0; i < tp->ntouches; i++) {
 		t = tp_get_touch(tp, i);
@@ -418,18 +480,29 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 				t->dirty = first->dirty;
 		}
 
+		tp_undisrupt_touch(tp, t, time);
 		if (!t->dirty)
 			continue;
 
 		tp_palm_detect(tp, t, time);
 
-		tp_motion_hysteresis(tp, t);
-		tp_motion_history_push(t);
+		if (tp_detect_jumps(tp, t, time)) {
+			touch_jumps = true;
+		} else {
+			tp_motion_hysteresis(tp, t);
+			tp_motion_history_push(t);
+		}
 
 		tp_unpin_finger(tp, t);
 	}
 
-	tp_button_handle_state(tp, time);
+	/* If we have a touch jump we ignore button presses.
+	 * We get called again, this time without a cursor jump
+	 * and continue normal then. */
+	tp_button_handle_state(tp, time, touch_jumps);
+
+	if (touch_jumps)
+		return 1;
 
 	/*
 	 * We have a physical button down event on a clickpad. To avoid
@@ -440,6 +513,8 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 	if ((tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS) &&
 	    tp->buttons.is_clickpad)
 		tp_pin_fingers(tp);
+
+	return 0;
 }
 
 static void
@@ -562,7 +637,27 @@ static void
 tp_handle_state(struct tp_dispatch *tp,
 		uint64_t time)
 {
-	tp_process_state(tp, time);
+	if (tp_process_state(tp, time)) {
+		/* some touches jumped position and were marked as
+		   TOUCH_END. Post events in the current state to
+		   release anything down, then re-process the
+		   current state which will move the touches to
+		   TOUCH_BEGIN */
+		enum touchpad_event queued = tp->queued;
+
+		/* ditch press events for now */
+		tp->queued &= ~TOUCHPAD_EVENT_BUTTON_PRESS;
+		tp_post_events(tp, time);
+		tp_post_process_state(tp, time);
+
+		/* ditch release events, re-instate press */
+		tp->queued &= ~TOUCHPAD_EVENT_BUTTON_RELEASE;
+		if (queued & TOUCHPAD_EVENT_BUTTON_PRESS)
+			tp->queued |= TOUCHPAD_EVENT_BUTTON_PRESS;
+
+		/* process again */
+		tp_process_state(tp, time);
+	}
 	tp_post_events(tp, time);
 	tp_post_process_state(tp, time);
 }
@@ -880,6 +975,22 @@ tp_init_palmdetect(struct tp_dispatch *tp,
 	return 0;
 }
 
+static void
+tp_init_jump_threshold(struct tp_dispatch *tp,
+		       struct evdev_device *device,
+		       double diagonal)
+{
+	int res_x, res_y;
+
+	res_x = device->abs.absinfo_x->resolution;
+	res_y = device->abs.absinfo_y->resolution;
+
+	if (res_x > 1 && res_y > 1)
+		tp->jump_threshold = 20; /* mm */
+	else
+		tp->jump_threshold = diagonal / 4;
+}
+
 static int
 tp_init(struct tp_dispatch *tp,
 	struct evdev_device *device)
@@ -903,6 +1014,8 @@ tp_init(struct tp_dispatch *tp,
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
 	tp->hysteresis.margin_y =
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
+
+	tp_init_jump_threshold(tp, device, diagonal);
 
 	if (tp_init_accel(tp, diagonal) != 0)
 		return -1;

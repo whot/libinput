@@ -416,7 +416,9 @@ tp_button_handle_event(struct tp_dispatch *tp,
 }
 
 int
-tp_button_handle_state(struct tp_dispatch *tp, uint64_t time)
+tp_button_handle_state(struct tp_dispatch *tp,
+		       uint64_t time,
+		       bool ignore_button_press)
 {
 	struct tp_touch *t;
 
@@ -440,9 +442,11 @@ tp_button_handle_state(struct tp_dispatch *tp, uint64_t time)
 			else
 				tp_button_handle_event(tp, t, BUTTON_EVENT_IN_AREA, time);
 		}
+
 		if (tp->queued & TOUCHPAD_EVENT_BUTTON_RELEASE)
 			tp_button_handle_event(tp, t, BUTTON_EVENT_RELEASE, time);
-		if (tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS)
+		if (!ignore_button_press &&
+		    tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS)
 			tp_button_handle_event(tp, t, BUTTON_EVENT_PRESS, time);
 	}
 
@@ -662,6 +666,14 @@ tp_post_physical_buttons(struct tp_dispatch *tp, uint64_t time)
 
 		if ((current & 0x1) ^ (old & 0x1)) {
 			bool skip = false;
+
+			/* we may have button state changes but only process
+			   them if the matching tp->queued mask is set.
+
+			   If a touch jump happens, the various post functions
+			   are called separately with the queued mask manually
+			   adjusted and we post release events before
+			   press events */
 			if (!!(current & 0x1) &&
 			    tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS)
 				state = LIBINPUT_BUTTON_STATE_PRESSED;
@@ -682,7 +694,6 @@ tp_post_physical_buttons(struct tp_dispatch *tp, uint64_t time)
 					tp->buttons.old_state &= ~mask;
 			}
 		}
-
 		button++;
 		current >>= 1;
 		old >>= 1;
