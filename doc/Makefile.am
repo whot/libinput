@@ -1,3 +1,5 @@
+EXTRA_DIST = touchpad-tap-state-machine.svg
+
 if HAVE_DOXYGEN
 
 noinst_DATA = html/index.html
@@ -12,7 +14,7 @@ clean-local:
 	$(AM_V_at)rm -rf html
 
 doc_src= $(shell find html -type f -printf "html/%P\n" 2>/dev/null)
-EXTRA_DIST = $(builddir)/html/index.html $(doc_src)
+EXTRA_DIST += $(builddir)/html/index.html $(doc_src)
 
 endif
 
