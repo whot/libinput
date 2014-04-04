@@ -600,3 +600,9 @@ tp_post_button_events(struct tp_dispatch *tp, uint32_t time)
 
 	return rc;
 }
+
+int
+tp_button_touch_active(struct tp_dispatch *tp, struct tp_touch *t)
+{
+	return t->button.state == BUTTON_STATE_AREA;
+}
