@@ -152,8 +152,6 @@ tp_get_touch(struct tp_dispatch *tp, unsigned int slot)
 static inline void
 tp_begin_touch(struct tp_dispatch *tp, struct tp_touch *t)
 {
-	struct tp_touch *tmp = NULL;
-
 	if (t->state != TOUCH_UPDATE) {
 		tp_motion_history_reset(t);
 		t->dirty = true;
@@ -161,15 +159,6 @@ tp_begin_touch(struct tp_dispatch *tp, struct tp_touch *t)
 		tp->nfingers_down++;
 		assert(tp->nfingers_down >= 1);
 		tp->queued |= TOUCHPAD_EVENT_MOTION;
-
-		tp_for_each_touch(tp, tmp) {
-			if (tmp->is_pointer)
-				break;
-		}
-
-		if (!tmp->is_pointer) {
-			t->is_pointer = true;
-		}
 	}
 }
 
@@ -341,7 +330,6 @@ static void
 tp_unpin_finger(struct tp_dispatch *tp, struct tp_touch *t)
 {
 	unsigned int xdist, ydist;
-	struct tp_touch *tmp;
 
 	if (!t->pinned.is_pinned)
 		return;
@@ -349,19 +337,9 @@ tp_unpin_finger(struct tp_dispatch *tp, struct tp_touch *t)
 	xdist = abs(t->x - t->pinned.center_x);
 	ydist = abs(t->y - t->pinned.center_y);
 
-	if (xdist * xdist + ydist * ydist <
+	if (xdist * xdist + ydist * ydist >=
 			tp->buttons.motion_dist * tp->buttons.motion_dist)
-		return;
-
-	t->pinned.is_pinned = false;
-
-	tp_for_each_touch(tp, tmp) {
-		if (tmp->is_pointer)
-			break;
-	}
-
-	if (t->state != TOUCH_END && !tmp->is_pointer)
-		t->is_pointer = true;
+		t->pinned.is_pinned = false;
 }
 
 static void
@@ -375,6 +353,13 @@ tp_pin_fingers(struct tp_dispatch *tp)
 		t->pinned.center_x = t->x;
 		t->pinned.center_y = t->y;
 	}
+}
+
+static int
+tp_touch_active(struct tp_dispatch *tp, struct tp_touch *t)
+{
+	return (t->state == TOUCH_BEGIN || t->state == TOUCH_UPDATE) &&
+		!t->pinned.is_pinned && tp_button_touch_active(tp, t);
 }
 
 static void
@@ -409,6 +394,20 @@ tp_process_state(struct tp_dispatch *tp, uint32_t time)
 	if ((tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS) &&
 	    !tp->buttons.has_buttons)
 		tp_pin_fingers(tp);
+
+	/* If we don't have a touch as pointer find a suitable one */
+	tp_for_each_touch(tp, t) {
+		if (t->is_pointer)
+			break;
+	}
+	if (!t->is_pointer) {
+		tp_for_each_touch(tp, t) {
+			if (tp_touch_active(tp, t)) {
+				t->is_pointer = true;
+				break;
+			}
+		}
+	}
 }
 
 static void

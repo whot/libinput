@@ -322,8 +322,11 @@ tp_button_handle_state(struct tp_dispatch *tp, uint32_t time)
 	tp_for_each_touch(tp, t) {
 		if (t->state == TOUCH_NONE)
 			continue;
-		if (t->fake)
+#if 0
+		if (t->fake) {
 			continue;
+		}
+#endif
 
 		if (t->state == TOUCH_END) {
 			tp_button_handle_event(tp, t, BUTTON_EVENT_UP, time);
