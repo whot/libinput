@@ -1,173 +1,390 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="516px" height="759px" version="1.1">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1560px" height="1624px" version="1.1">
 <defs/>
 <g transform="translate(0.5,0.5)">
-<path d="M 190 352 L 216 352" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 221 352 L 214 355 L 216 352 L 214 348 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<ellipse cx="113" cy="61" rx="49.5" ry="30" fill="#ccccff" stroke="#000000" stroke-width="2" pointer-events="none"/>
+<path d="M 232 441 L 257 441" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 263 441 L 256 445 L 257 441 L 256 438 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<ellipse cx="154" cy="151" rx="49.5" ry="30" fill="#ccccff" stroke="#000000" stroke-width="2" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="113" y="51">
+<text x="154" y="141">
 NONE</text>
-<text x="113" y="65">
+<text x="154" y="155">
 on-entry:</text>
-<text x="113" y="79">
+<text x="154" y="169">
 curr = none</text>
 </g>
-<rect x="40" y="301" width="150" height="101" rx="6" ry="6" fill="#ccffcc" stroke="#000000" stroke-width="2" pointer-events="none"/>
+<rect x="82" y="391" width="150" height="101" rx="6" ry="6" fill="#ccffcc" stroke="#000000" stroke-width="2" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="115" y="335">
+<text x="157" y="424">
 BOTTOM_NEW</text>
-<text x="115" y="349">
+<text x="157" y="438">
 on-entry:</text>
-<text x="115" y="363">
+<text x="157" y="452">
 curr = button</text>
-<text x="115" y="377">
+<text x="157" y="466">
 start inner timeout</text>
 </g>
-<rect x="351" y="303" width="130" height="100" rx="6" ry="6" fill="#ccffcc" stroke="#000000" stroke-width="2" pointer-events="none"/>
+<rect x="392" y="392" width="130" height="100" rx="6" ry="6" fill="#ccffcc" stroke="#000000" stroke-width="2" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="416" y="343">
+<text x="457" y="432">
 AREA</text>
-<text x="416" y="357">
+<text x="457" y="446">
 on-entry:</text>
-<text x="416" y="371">
+<text x="457" y="460">
 curr =area</text>
 </g>
-<path d="M 243 327 C 245 324 249 322 254 322 L 287 322 C 292 322 296 324 298 327 L 318 350 C 319 351 319 353 318 354 L 298 377 C 296 380 292 382 287 382 L 254 382 C 249 382 245 380 243 377 L 223 354 C 222 353 222 351 223 350 L 243 327 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 284 416 C 287 413 291 411 295 411 L 329 411 C 333 411 337 413 340 416 L 360 439 C 361 441 361 442 360 443 L 340 466 C 337 469 333 471 329 471 L 295 471 C 291 471 287 469 284 466 L 264 443 C 264 442 264 441 264 439 L 284 416 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="271" y="349">
+<text x="312" y="438">
 finger in</text>
-<text x="271" y="363">
+<text x="312" y="452">
 area</text>
 </g>
-<rect x="50" y="623" width="130" height="100" rx="6" ry="6" fill="#ccffcc" stroke="#000000" stroke-width="2" pointer-events="none"/>
+<rect x="92" y="712" width="130" height="100" rx="6" ry="6" fill="#ccffcc" stroke="#000000" stroke-width="2" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="115" y="677">
+<text x="157" y="766">
 BOTTOM</text>
 </g>
-<path d="M 243 6 C 245 3 249 1 254 1 L 287 1 C 292 1 296 3 298 6 L 318 29 C 319 31 319 32 318 33 L 298 56 C 296 59 292 61 287 61 L 254 61 C 249 61 245 59 243 56 L 223 33 C 222 32 222 31 223 29 L 243 6 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 129 7 C 132 4 136 2 140 2 L 174 2 C 178 2 182 4 185 7 L 205 30 C 205 31 205 33 205 34 L 185 57 C 182 60 178 62 174 62 L 140 62 C 136 62 132 60 129 57 L 109 34 C 108 33 108 31 109 30 L 129 7 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="271" y="28">
+<text x="157" y="29">
 finger</text>
-<text x="271" y="42">
+<text x="157" y="43">
 up</text>
 </g>
-<path d="M 22 482 C 25 479 29 477 33 477 L 67 477 C 71 477 75 479 78 482 L 98 505 C 99 506 99 508 98 509 L 78 532 C 75 535 71 537 67 537 L 33 537 C 29 537 25 535 22 532 L 2 509 C 2 508 2 506 2 505 L 22 482 Z" fill="#000000" stroke="#ffffff" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 64 571 C 67 568 71 566 75 566 L 109 566 C 113 566 117 568 120 571 L 140 594 C 140 596 140 597 140 598 L 120 621 C 117 624 113 626 109 626 L 75 626 C 71 626 67 624 64 621 L 44 598 C 43 597 43 596 44 594 L 64 571 Z" fill="#000000" stroke="#ffffff" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
 <g fill="#FFFFFF" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="50" y="497">
+<text x="92" y="586">
 phys</text>
-<text x="50" y="511">
+<text x="92" y="600">
 button</text>
-<text x="50" y="525">
+<text x="92" y="614">
 press</text>
 </g>
-<path d="M 319 352 L 344 352" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 350 352 L 343 356 L 344 352 L 343 349 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 136 482 C 138 479 142 477 147 477 L 180 477 C 185 477 189 479 191 482 L 211 505 C 212 506 212 508 211 509 L 191 532 C 189 535 185 537 180 537 L 147 537 C 142 537 138 535 136 532 L 116 509 C 115 508 115 506 116 505 L 136 482 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 361 441 L 386 442" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 391 442 L 384 445 L 386 442 L 384 438 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 177 571 C 180 568 184 566 188 566 L 222 566 C 226 566 230 568 233 571 L 253 594 C 254 596 254 597 253 598 L 233 621 C 230 624 226 626 222 626 L 188 626 C 184 626 180 624 177 621 L 157 598 C 157 597 157 596 157 594 L 177 571 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="163" y="504">
+<text x="205" y="593">
 inner</text>
-<text x="163" y="518">
+<text x="205" y="607">
 timeout</text>
 </g>
-<path d="M 115 403 L 147 471" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 149 476 L 143 471 L 147 471 L 149 468 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 155 537 L 131 616" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 130 621 L 129 614 L 131 616 L 135 616 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 223 604 C 226 601 230 599 234 599 L 268 599 C 272 599 276 601 279 604 L 299 627 C 299 628 299 629 299 631 L 279 654 C 276 657 272 659 268 659 L 234 659 C 230 659 226 657 223 654 L 203 631 C 202 629 202 628 203 627 L 223 604 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 157 492 L 189 560" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 191 565 L 185 560 L 189 560 L 191 557 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 196 626 L 173 706" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 172 711 L 170 703 L 173 706 L 177 705 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 265 693 C 267 690 271 688 275 688 L 309 688 C 314 688 318 690 320 693 L 340 716 C 341 717 341 719 340 720 L 320 743 C 318 746 314 748 309 748 L 275 748 C 271 748 267 746 265 743 L 245 720 C 244 719 244 717 245 716 L 265 693 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="251" y="626">
+<text x="292" y="715">
 finger in</text>
-<text x="251" y="640">
+<text x="292" y="729">
 AREA</text>
 </g>
-<path d="M 180 673 L 199 634" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 202 630 L 202 638 L 199 634 L 195 634 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<rect x="319" y="629" width="194" height="94" rx="6" ry="6" fill="#ccffcc" stroke="#000000" stroke-width="2" pointer-events="none"/>
+<path d="M 222 762 L 241 724" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 243 719 L 243 727 L 241 724 L 237 724 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<rect x="361" y="718" width="194" height="94" rx="6" ry="6" fill="#ccffcc" stroke="#000000" stroke-width="2" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="416" y="666">
+<text x="457" y="755">
 BOTTOM_TO_AREA</text>
-<text x="416" y="680">
+<text x="457" y="769">
 on-entry:</text>
-<text x="416" y="694">
+<text x="457" y="783">
 start outer timeout</text>
 </g>
-<path d="M 299 629 L 317 670" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 319 675 L 313 670 L 317 670 L 319 667 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 388 452 C 391 449 395 447 399 447 L 433 447 C 437 447 441 449 444 452 L 464 475 C 464 476 464 478 464 479 L 444 502 C 441 505 437 507 433 507 L 399 507 C 395 507 391 505 388 502 L 368 479 C 367 478 367 476 368 475 L 388 452 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 341 718 L 358 759" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 360 764 L 354 759 L 358 759 L 361 756 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 430 541 C 432 538 436 536 440 536 L 474 536 C 479 536 483 538 485 541 L 505 564 C 506 566 506 567 505 568 L 485 591 C 483 594 479 596 474 596 L 440 596 C 436 596 432 594 430 591 L 410 568 C 409 567 409 566 410 564 L 430 541 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="416" y="474">
+<text x="457" y="563">
 outer</text>
-<text x="416" y="488">
+<text x="457" y="577">
 timeout</text>
 </g>
-<path d="M 416 629 L 416 513" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 416 508 L 419 515 L 416 513 L 412 515 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 416 447 L 416 409" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 416 404 L 419 411 L 416 409 L 412 411 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 94 146 C 96 143 99 141 102 141 L 128 141 C 131 141 134 143 136 146 L 152 170 C 152 171 152 172 152 174 L 136 197 C 134 201 131 202 128 203 L 102 203 C 99 202 96 201 94 197 L 78 174 C 78 172 78 171 78 170 L 94 146 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 457 718 L 457 603" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 457 597 L 461 604 L 457 603 L 454 604 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 457 536 L 457 498" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 457 493 L 461 500 L 457 498 L 454 500 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 135 235 C 137 232 140 230 144 230 L 170 230 C 173 230 176 232 178 235 L 194 259 C 194 260 194 262 194 263 L 178 287 C 176 290 173 292 170 292 L 144 292 C 140 292 137 290 135 287 L 120 263 C 119 262 119 260 120 259 L 135 235 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="115" y="169">
+<text x="157" y="258">
 finger in</text>
-<text x="115" y="183">
+<text x="157" y="272">
 bottom</text>
 </g>
-<path d="M 113 91 L 114 134" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 114 140 L 111 133 L 114 134 L 118 132 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 115 203 L 115 295" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 115 300 L 111 293 L 115 295 L 118 293 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 396 146 C 398 143 401 141 404 141 L 428 141 C 431 141 433 143 435 146 L 449 170 C 450 171 450 173 449 174 L 435 197 C 433 201 431 202 428 203 L 404 203 C 401 202 398 201 396 197 L 382 174 C 382 173 382 171 382 170 L 396 146 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 155 181 L 156 224" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 156 229 L 152 222 L 156 224 L 159 222 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 157 292 L 157 384" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 157 389 L 153 382 L 157 384 L 160 382 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 438 236 C 440 233 443 231 446 231 L 469 231 C 472 231 475 233 477 236 L 491 259 C 492 260 492 262 491 263 L 477 287 C 475 290 472 292 469 292 L 446 292 C 443 292 440 290 438 287 L 424 263 C 423 262 423 260 424 259 L 438 236 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="416" y="169">
+<text x="457" y="258">
 finger in</text>
-<text x="416" y="183">
+<text x="457" y="272">
 area</text>
 </g>
-<path d="M 416 203 L 416 296" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 416 301 L 412 294 L 416 296 L 419 294 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 162 61 L 376 157" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 381 159 L 373 159 L 376 157 L 376 153 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 248 474 C 251 469 256 467 260 467 L 297 467 C 301 467 306 469 309 474 L 330 504 C 331 506 331 508 330 510 L 309 540 C 306 544 301 547 297 547 L 260 547 C 256 547 251 544 248 540 L 227 510 C 226 508 226 506 227 504 L 248 474 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 457 292 L 457 385" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 457 391 L 454 384 L 457 385 L 461 384 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 204 151 L 418 246" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 422 248 L 414 249 L 418 246 L 417 242 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 290 563 C 293 559 297 556 302 556 L 338 556 C 343 556 347 559 350 563 L 372 594 C 372 595 372 597 372 599 L 350 630 C 347 634 343 636 338 636 L 302 636 C 297 636 293 634 290 630 L 268 599 C 268 597 268 595 268 594 L 290 563 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="278" y="497">
+<text x="320" y="586">
 finger in</text>
-<text x="278" y="511">
+<text x="320" y="600">
 bottom</text>
-<text x="278" y="525">
+<text x="320" y="614">
 button != curr</text>
 </g>
-<path d="M 253 468 L 200 398" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 197 393 L 204 397 L 200 398 L 198 401 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 378 629 L 315 552" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 312 548 L 319 551 L 315 552 L 313 555 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<ellipse cx="413" cy="31" rx="49.5" ry="30" fill="#ccccff" stroke="#000000" stroke-width="2" pointer-events="none"/>
+<path d="M 295 558 L 242 487" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 238 483 L 245 486 L 242 487 L 240 490 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 419 718 L 357 641" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 353 637 L 360 640 L 357 641 L 355 645 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 92 626 L 153 707" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 156 711 L 149 708 L 153 707 L 155 703 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 157 492 L 96 561" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 92 565 L 94 558 L 96 561 L 100 562 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 266 772 C 269 767 273 765 278 765 L 314 765 C 318 765 323 767 326 772 L 347 802 C 347 804 347 806 347 808 L 326 838 C 323 842 318 845 314 845 L 278 845 C 273 845 269 842 266 838 L 245 808 C 244 806 244 804 245 802 L 266 772 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
 <g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="413" y="35">
-ANY</text>
-</g>
-<path d="M 364 31 L 325 31" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 320 31 L 327 28 L 325 31 L 327 35 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 222 31 L 168 50" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 163 51 L 169 46 L 168 50 L 171 53 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 50 537 L 111 617" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 114 622 L 107 618 L 111 617 L 113 614 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 115 403 L 54 472" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 51 476 L 53 468 L 54 472 L 58 473 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 224 682 C 227 678 231 676 236 676 L 272 676 C 277 676 281 678 284 682 L 305 713 C 306 715 306 717 305 718 L 284 749 C 281 753 277 756 272 756 L 236 756 C 231 756 227 753 224 749 L 203 718 C 202 717 202 715 203 713 L 224 682 Z" fill="#ffd966" stroke="#000000" stroke-width="2" stroke-miterlimit="10" pointer-events="none"/>
-<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
-<text x="254" y="699">
+<text x="296" y="788">
 finger in</text>
-<text x="254" y="713">
+<text x="296" y="802">
 bottom</text>
-<text x="254" y="727">
+<text x="296" y="816">
 button == curr</text>
 </g>
-<path d="M 319 676 L 308 710" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 306 715 L 305 707 L 308 710 L 312 709 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 202 716 L 183 678" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 181 674 L 187 678 L 183 678 L 181 681 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 164 623 L 234 551" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 238 548 L 236 555 L 234 551 L 231 550 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 136 403 L 221 465" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
-<path d="M 225 468 L 217 467 L 221 465 L 222 461 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 361 765 L 349 799" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 348 804 L 347 796 L 349 799 L 353 798 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 244 805 L 225 768" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 222 763 L 229 767 L 225 768 L 222 771 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 206 712 L 276 641" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 280 637 L 277 644 L 276 641 L 272 640 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 178 492 L 263 554" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 267 557 L 259 556 L 263 554 L 263 550 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 554 765 L 728 765 Q 738 765 738 755 L 738 42 Q 738 32 728 32 L 212 32" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 206 32 L 213 28 L 212 32 L 213 35 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 92 762 L 18 762 Q 8 762 8 752 L 8 42 Q 8 32 18 32 L 102 32" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 107 32 L 100 35 L 102 32 L 100 28 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 522 442 L 728 442 Q 738 442 738 432 L 738 42 Q 738 32 728 32 L 212 32" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 206 32 L 213 28 L 212 32 L 213 35 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 82 441 L 18 441 Q 8 441 8 431 L 8 42 Q 8 32 18 32 L 102 32" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 107 32 L 100 35 L 102 32 L 100 28 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 156 62 L 156 81 Q 156 91 156 101 L 156 114" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 156 119 L 152 112 L 156 114 L 159 112 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="none"/>
+<rect x="1123" y="472" width="120" height="40" rx="16" ry="16" fill="#ffffc0" stroke="#ff0000" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1183" y="489">
+Check state of</text>
+<text x="1183" y="503">
+all touches</text>
+</g>
+<path d="M 1183 512 L 1183 520 Q 1183 529 1183 536 L 1183 544" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1178 536 L 1183 545 L 1187 536" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<ellipse cx="1183" cy="72" rx="11" ry="11" fill="#000000" stroke="#ff0000" pointer-events="none"/>
+<path d="M 1183 87 L 1183 114 Q 1183 124 1183 134 L 1183 160" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1178 152 L 1183 161 L 1187 152" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<rect x="1133" y="17" width="100" height="40" fill="none" stroke="none" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1183" y="41">
+tp_post_softbutton_buttons()</text>
+</g>
+<path d="M 1183 212 L 1278 267 L 1183 322 L 1088 267 Z" fill="#ffffc0" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1183" y="264">
+!buttons.click_pend</text>
+<text x="1183" y="278">
+&amp;&amp; current == old</text>
+</g>
+<path d="M 1278 267 L 1338 267 Q 1348 267 1358 267 L 1425 267" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1418 271 L 1427 267 L 1418 262" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" font-size="11px">
+<rect fill="#ffffff" stroke="none" x="1368" y="247" width="24" height="18" stroke-width="0"/>
+<text x="1368" y="261">
+yes</text>
+</g>
+<path d="M 1183 322 L 1183 332 Q 1183 342 1183 351 L 1183 360" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1178 352 L 1183 361 L 1187 352" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" font-size="11px">
+<rect fill="#ffffff" stroke="none" x="1184" y="329" width="18" height="18" stroke-width="0"/>
+<text x="1185" y="339">
+no</text>
+</g>
+<ellipse cx="1443" cy="267" rx="11" ry="11" fill="#000000" stroke="#ff0000" pointer-events="none"/>
+<ellipse cx="1443" cy="267" rx="15" ry="15" fill="transparent" stroke="#ff0000" pointer-events="none"/>
+<rect x="1078" y="112" width="200" height="60" rx="24" ry="24" fill="#ffffc0" stroke="#ff0000" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1178" y="132">
+current = buttons.state &amp; 0x01</text>
+<text x="1178" y="146">
+old = buttons.old_state &amp; 0x01</text>
+<text x="1178" y="160">
+button = 0</text>
+</g>
+<path d="M 1183 172 L 1183 182 Q 1183 192 1183 201 L 1183 210" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1178 202 L 1183 211 L 1187 202" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1183 546 L 1298 617 L 1183 688 L 1068 617 Z" fill="#ffffc0" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1183" y="621">
+All touches are in state none</text>
+</g>
+<path d="M 1183 688 L 1183 696 Q 1183 703 1183 709 L 1183 716" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1178 708 L 1183 717 L 1187 708" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" font-size="11px">
+<rect fill="#ffffff" stroke="none" x="1184" y="685" width="18" height="18" stroke-width="0"/>
+<text x="1185" y="698">
+no</text>
+</g>
+<path d="M 1298 617 L 1308 617 Q 1318 617 1327 617 L 1335 617" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1328 622 L 1337 617 L 1328 613" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" font-size="11px">
+<rect fill="#ffffff" stroke="none" x="1299" y="625" width="24" height="18" stroke-width="0"/>
+<text x="1300" y="634">
+yes</text>
+</g>
+<rect x="1338" y="597" width="150" height="40" rx="16" ry="16" fill="#ffffc0" stroke="#ff0000" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1413" y="621">
+buttons.click_pend = 1</text>
+</g>
+<path d="M 1488 617 L 1498 617 Q 1508 617 1517 617 L 1525 617" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1518 622 L 1527 617 L 1518 613" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1183 718 L 1298 789 L 1183 860 L 1068 789 Z" fill="#ffffc0" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1183" y="793">
+(Some touches are in right) &amp;&amp;</text>
+<text x="1183" y="807">
+(Some touches are in left)</text>
+</g>
+<path d="M 1298 789 L 1308 789 Q 1318 789 1327 789 L 1335 789" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1328 794 L 1337 789 L 1328 785" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" font-size="11px">
+<rect fill="#ffffff" stroke="none" x="1301" y="797" width="24" height="18" stroke-width="0"/>
+<text x="1302" y="806">
+yes</text>
+</g>
+<rect x="1338" y="769" width="160" height="40" rx="16" ry="16" fill="#ffffc0" stroke="#ff0000" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1418" y="793">
+button = BTN_MIDDLE</text>
+</g>
+<path d="M 1498 789 L 1528 789 Q 1538 789 1538 799 L 1538 1207 Q 1538 1217 1528 1217 L 1282 1217" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1290 1212 L 1281 1217 L 1290 1221" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1183 362 L 1245 396 L 1183 431 L 1120 396 Z" fill="#ffffc0" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1183" y="400">
+current</text>
+</g>
+<path d="M 1120 396 L 971 396 Q 961 396 961 406 L 961 1172 Q 961 1182 961 1182 L 961 1182" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 965 1180 L 961 1182 L 965 1184" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" font-size="11px">
+<rect fill="#ffffff" stroke="none" x="1057" y="377" width="18" height="18" stroke-width="0"/>
+<text x="1058" y="390">
+no</text>
+</g>
+<path d="M 1183 431 L 1183 441 Q 1183 451 1183 460 L 1183 470" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1178 462 L 1183 471 L 1187 462" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" font-size="11px">
+<rect fill="#ffffff" stroke="none" x="1184" y="438" width="24" height="18" stroke-width="0"/>
+<text x="1185" y="448">
+yes</text>
+</g>
+<path d="M 1183 902 L 1279 967 L 1183 1032 L 1086 967 Z" fill="#ffffc0" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1183" y="971">
+Some touches are in right</text>
+</g>
+<path d="M 1279 967 L 1298 967 Q 1308 967 1318 967 L 1335 967" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1328 971 L 1337 967 L 1328 962" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" font-size="11px">
+<rect fill="#ffffff" stroke="none" x="1309" y="984" width="24" height="18" stroke-width="0"/>
+<text x="1310" y="994">
+yes</text>
+</g>
+<path d="M 1183 860 L 1183 871 Q 1183 881 1183 890 L 1183 900" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1178 892 L 1183 901 L 1187 892" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" font-size="11px">
+<rect fill="#ffffff" stroke="none" x="1184" y="863" width="18" height="18" stroke-width="0"/>
+<text x="1185" y="877">
+no</text>
+</g>
+<rect x="1338" y="947" width="160" height="40" rx="16" ry="16" fill="#ffffc0" stroke="#ff0000" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1418" y="971">
+button = BTN_RIGHT</text>
+</g>
+<rect x="1103" y="1082" width="160" height="40" rx="16" ry="16" fill="#ffffc0" stroke="#ff0000" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1183" y="1106">
+button = BTN_LEFT</text>
+</g>
+<path d="M 1183 1032 L 1183 1047 Q 1183 1057 1183 1067 L 1183 1080" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1178 1072 L 1183 1081 L 1187 1072" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" font-size="11px">
+<rect fill="#ffffff" stroke="none" x="1184" y="1039" width="18" height="18" stroke-width="0"/>
+<text x="1185" y="1053">
+no</text>
+</g>
+<rect x="1085" y="1182" width="195" height="70" rx="28" ry="28" fill="#ffffc0" stroke="#ff0000" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1183" y="1214">
+buttons.active = button</text>
+<text x="1183" y="1228">
+state = BUTTON_PRESSED</text>
+</g>
+<path d="M 1183 1252 L 1183 1282 Q 1183 1292 1173 1292 L 1083 1292 Q 1073 1292 1073 1302 L 1073 1330" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1068 1322 L 1073 1331 L 1077 1322" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1183 1122 L 1183 1142 Q 1183 1152 1183 1162 L 1183 1180" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1178 1172 L 1183 1181 L 1187 1172" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1498 967 L 1528 967 Q 1538 967 1538 977 L 1538 1207 Q 1538 1217 1528 1217 L 1282 1217" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1290 1212 L 1281 1217 L 1290 1221" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<rect x="863" y="1182" width="195" height="70" rx="28" ry="28" fill="#ffffc0" stroke="#ff0000" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="960" y="1207">
+button = buttons.active</text>
+<text x="960" y="1221">
+buttons.active = 0</text>
+<text x="960" y="1235">
+state = BUTTON_RELEASED</text>
+</g>
+<rect x="998" y="1332" width="150" height="40" rx="16" ry="16" fill="#ffffc0" stroke="#ff0000" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1073" y="1356">
+buttons.click_pend = 0</text>
+</g>
+<path d="M 1073 1372 L 1073 1379 Q 1073 1387 1073 1393 L 1073 1400" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1068 1392 L 1073 1401 L 1077 1392" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 960 1252 L 960 1282 Q 960 1292 970 1292 L 1063 1292 Q 1073 1292 1073 1302 L 1073 1330" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1068 1322 L 1073 1331 L 1077 1322" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1073 1402 L 1113 1422 L 1073 1442 L 1033 1422 Z" fill="#ffffc0" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1073" y="1426">
+button</text>
+</g>
+<path d="M 1113 1422 L 1178 1422 Q 1188 1422 1188 1432 L 1188 1597 Q 1188 1607 1178 1607 L 1090 1607" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1098 1602 L 1089 1607 L 1098 1611" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" font-size="11px">
+<rect fill="#ffffff" stroke="none" x="1114" y="1402" width="18" height="18" stroke-width="0"/>
+<text x="1115" y="1416">
+no</text>
+</g>
+<path d="M 1073 1442 L 1073 1452 Q 1073 1462 1073 1471 L 1073 1480" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1068 1472 L 1073 1481 L 1077 1472" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" font-size="11px">
+<rect fill="#ffffff" stroke="none" x="1074" y="1449" width="24" height="18" stroke-width="0"/>
+<text x="1075" y="1459">
+yes</text>
+</g>
+<rect x="988" y="1482" width="170" height="40" rx="16" ry="16" fill="#ffffc0" stroke="#ff0000" pointer-events="none"/>
+<g fill="#000000" font-family="Helvetica" text-anchor="middle" font-size="12px">
+<text x="1073" y="1499">
+pointer_notify_button(</text>
+<text x="1073" y="1513">
+button, state)</text>
+</g>
+<path d="M 1073 1522 L 1073 1542 Q 1073 1552 1073 1562 L 1073 1590" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<path d="M 1068 1582 L 1073 1591 L 1077 1582" fill="none" stroke="#ff0000" stroke-miterlimit="10" pointer-events="none"/>
+<ellipse cx="1073" cy="1607" rx="11" ry="11" fill="#000000" stroke="#ff0000" pointer-events="none"/>
+<ellipse cx="1073" cy="1607" rx="15" ry="15" fill="transparent" stroke="#ff0000" pointer-events="none"/>
+<ellipse cx="1543" cy="617" rx="11" ry="11" fill="#000000" stroke="#ff0000" pointer-events="none"/>
+<ellipse cx="1543" cy="617" rx="15" ry="15" fill="transparent" stroke="#ff0000" pointer-events="none"/>
 </g>
 </svg>

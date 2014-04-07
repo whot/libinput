@@ -548,51 +548,68 @@ tp_post_softbutton_buttons(struct tp_dispatch *tp, uint32_t time)
 {
 	uint32_t current, old, button;
 	enum libinput_pointer_button_state state;
+	enum { AREA = 0x01, LEFT = 0x02, RIGHT = 0x04 };
 
 	current = tp->buttons.state;
 	old = tp->buttons.old_state;
+	button = 0;
 
-	if (current == old)
-		return 0;
-
-	if (tp->nfingers_down == 0 || tp->nfingers_down > 2)
+	if (!tp->buttons.click_pending && current == old)
 		return 0;
 
 	if (current) {
 		struct tp_touch *t;
-		button = 0;
 
 		tp_for_each_touch(tp, t) {
-			if (t->button.curr == BUTTON_EVENT_IN_BOTTOM_R)
-				button |= 0x2;
-			else if (t->button.curr == BUTTON_EVENT_IN_BOTTOM_L)
-				button |= 0x1;
+			switch (t->button.curr) {
+			case BUTTON_EVENT_IN_AREA:
+				button |= AREA;
+				break;
+			case BUTTON_EVENT_IN_BOTTOM_L:
+				button |= LEFT;
+				break;
+			case BUTTON_EVENT_IN_BOTTOM_R:
+				button |= RIGHT;
+				break;
+			default:
+				break;
+			}
 		}
 
 		switch (button) {
-		case 0:	/* only in area */
-		case 1: /* only left area */
-			button = BTN_LEFT;
-			break;
-		case 2: /* only right area */
+		case 0:
+			/* No touches, wait for a touch before processing */
+			tp->buttons.click_pending = true;
+			return 0;
+		case RIGHT:
+		case RIGHT | AREA:
+			/* Some touches in right, no touches in left */
 			button = BTN_RIGHT;
 			break;
-		case 3: /* left + right area */
+		case LEFT | RIGHT:
+		case LEFT | RIGHT | AREA:
+			/* Some touches in left and some in right */
 			button = BTN_MIDDLE;
 			break;
+		default:
+			button = BTN_LEFT;
 		}
 
 		tp->buttons.active = button;
 		state = LIBINPUT_POINTER_BUTTON_STATE_PRESSED;
 	} else {
-		state = LIBINPUT_POINTER_BUTTON_STATE_RELEASED;
 		button = tp->buttons.active;
+		tp->buttons.active = 0;
+		state = LIBINPUT_POINTER_BUTTON_STATE_RELEASED;
 	}
 
-	pointer_notify_button(&tp->device->base,
-			      time,
-			      button,
-			      state);
+	tp->buttons.click_pending = false;
+
+	if (button)
+		pointer_notify_button(&tp->device->base,
+				      time,
+				      button,
+				      state);
 	return 1;
 }
 

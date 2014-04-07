@@ -156,6 +156,7 @@ struct tp_dispatch {
 	struct {
 		bool is_clickpad;		/* true for clickpads */
 		bool use_clickfinger;		/* number of fingers decides button number */
+		bool click_pending;
 		uint32_t state;
 		uint32_t old_state;
 		uint32_t motion_dist;		/* for pinned touches */
