@@ -371,6 +371,13 @@ tp_process_button(struct tp_dispatch *tp,
 		  uint32_t time)
 {
 	uint32_t mask = 1 << (e->code - BTN_LEFT);
+
+	/* Ignore other buttons on clickpads */
+	if (tp->buttons.is_clickpad && e->code != BTN_LEFT) {
+		log_bug("received non BTN_LEFT button event on a clickpad (kernel bug?)\n");
+		return 0;
+	}
+
 	if (e->value) {
 		tp->buttons.state |= mask;
 		tp->queued |= TOUCHPAD_EVENT_BUTTON_PRESS;
