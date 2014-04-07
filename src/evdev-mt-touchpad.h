@@ -154,19 +154,18 @@ struct tp_dispatch {
 	} accel;
 
 	struct {
-		bool has_buttons;		/* true for physical LMR buttons */
+		bool is_clickpad;		/* true for clickpads */
 		bool use_clickfinger;		/* number of fingers decides button number */
-		bool use_softbuttons;		/* use software-button area */
 		uint32_t state;
 		uint32_t old_state;
 		uint32_t motion_dist;		/* for pinned touches */
 		unsigned int active;		/* currently active button, for release event */
 
-		/* Only used if has_buttons is false. The software button area is always
+		/* Only used for clickpads. The software button area is always
 		 * a horizontal strip across the touchpad. Depending on the
 		 * rightbutton_left_edge value, the buttons are split according to the
 		 * edge settings.
-		  */
+		 */
 		struct {
 			int32_t top_edge;
 			int32_t rightbutton_left_edge;

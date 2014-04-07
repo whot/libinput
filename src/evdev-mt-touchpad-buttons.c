@@ -411,9 +411,17 @@ tp_init_buttons(struct tp_dispatch *tp,
 	int width, height;
 	double diagonal;
 
+	tp->buttons.is_clickpad = libevdev_has_property(device->evdev,
+							INPUT_PROP_BUTTONPAD);
+
 	if (libevdev_has_event_code(device->evdev, EV_KEY, BTN_MIDDLE) ||
-	    libevdev_has_event_code(device->evdev, EV_KEY, BTN_RIGHT))
-		tp->buttons.has_buttons = true;
+	    libevdev_has_event_code(device->evdev, EV_KEY, BTN_RIGHT)) {
+		if (tp->buttons.is_clickpad)
+			log_bug("clickpad advertising right button (kernel bug?)\n");
+	} else {
+		if (!tp->buttons.is_clickpad)
+			log_bug("non clickpad without right button (kernel bug)?\n");
+	}
 
 	width = abs(device->abs.max_x - device->abs.min_x);
 	height = abs(device->abs.max_y - device->abs.min_y);
@@ -424,10 +432,7 @@ tp_init_buttons(struct tp_dispatch *tp,
 	if (libevdev_get_id_vendor(device->evdev) == 0x5ac) /* Apple */
 		tp->buttons.use_clickfinger = true;
 
-	tp->buttons.use_softbuttons = !tp->buttons.use_clickfinger &&
-				      !tp->buttons.has_buttons;
-
-	if (tp->buttons.use_softbuttons) {
+	if (tp->buttons.is_clickpad && !tp->buttons.use_clickfinger) {
 		tp->buttons.area.top_edge = height * .8 + device->abs.min_y;
 		tp->buttons.area.rightbutton_left_edge = width/2 + device->abs.min_x;
 		tp->buttons.timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
@@ -587,21 +592,18 @@ tp_post_softbutton_buttons(struct tp_dispatch *tp, uint32_t time)
 int
 tp_post_button_events(struct tp_dispatch *tp, uint32_t time)
 {
-	int rc;
-
 	if ((tp->queued &
 		(TOUCHPAD_EVENT_BUTTON_PRESS|TOUCHPAD_EVENT_BUTTON_RELEASE)) == 0)
 				return 0;
 
-	if (tp->buttons.has_buttons)
-		rc = tp_post_physical_buttons(tp, time);
-	else if (tp->buttons.use_clickfinger)
-		rc = tp_post_clickfinger_buttons(tp, time);
-	else if (tp->buttons.use_softbuttons)
-		rc = tp_post_softbutton_buttons(tp, time);
+	if (tp->buttons.is_clickpad) {
+		if (tp->buttons.use_clickfinger)
+			return tp_post_clickfinger_buttons(tp, time);
+		else
+			return tp_post_softbutton_buttons(tp, time);
+	}
 
-
-	return rc;
+	return tp_post_physical_buttons(tp, time);
 }
 
 int

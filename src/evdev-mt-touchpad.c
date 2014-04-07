@@ -392,7 +392,7 @@ tp_process_state(struct tp_dispatch *tp, uint32_t time)
 	 * to allow drag and drop.
 	 */
 	if ((tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS) &&
-	    !tp->buttons.has_buttons)
+	    tp->buttons.is_clickpad)
 		tp_pin_fingers(tp);
 
 	/* If we don't have a touch as pointer find a suitable one */
@@ -496,7 +496,7 @@ static int
 tp_post_scroll_events(struct tp_dispatch *tp, uint32_t time)
 {
 	/* don't scroll if a clickpad is held down */
-	if (!tp->buttons.has_buttons &&
+	if (tp->buttons.is_clickpad &&
 	    (tp->buttons.state || tp->buttons.old_state))
 		return 0;
 
