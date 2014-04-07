@@ -599,10 +599,6 @@ tp_post_softbutton_buttons(struct tp_dispatch *tp, uint32_t time)
 int
 tp_post_button_events(struct tp_dispatch *tp, uint32_t time)
 {
-	if ((tp->queued &
-		(TOUCHPAD_EVENT_BUTTON_PRESS|TOUCHPAD_EVENT_BUTTON_RELEASE)) == 0)
-				return 0;
-
 	if (tp->buttons.is_clickpad) {
 		if (tp->buttons.use_clickfinger)
 			return tp_post_clickfinger_buttons(tp, time);
