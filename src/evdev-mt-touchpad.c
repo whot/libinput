@@ -442,7 +442,7 @@ tp_post_twofinger_scroll(struct tp_dispatch *tp, uint32_t time)
 	double tmpx, tmpy;
 
 	tp_for_each_touch(tp, t) {
-		if (t->dirty) {
+		if (tp_touch_active(tp, t) && t->dirty) {
 			nchanged++;
 			tp_get_delta(t, &tmpx, &tmpy);
 
@@ -495,12 +495,21 @@ tp_post_twofinger_scroll(struct tp_dispatch *tp, uint32_t time)
 static int
 tp_post_scroll_events(struct tp_dispatch *tp, uint32_t time)
 {
+	struct tp_touch *t;
+	int nfingers_down = 0;
+
 	/* don't scroll if a clickpad is held down */
 	if (tp->buttons.is_clickpad &&
 	    (tp->buttons.state || tp->buttons.old_state))
 		return 0;
 
-	if (tp->nfingers_down != 2) {
+	/* Only count active touches for 2 finger scrolling */
+	tp_for_each_touch(tp, t) {
+		if (tp_touch_active(tp, t))
+			nfingers_down++;
+	}
+
+	if (nfingers_down != 2) {
 		/* terminate scrolling with a zero scroll event to notify
 		 * caller that it really ended now */
 		if (tp->scroll.state != SCROLL_STATE_NONE) {
