@@ -347,22 +347,17 @@ tp_button_handle_state(struct tp_dispatch *tp, uint32_t time)
 	return 0;
 }
 
-static int
+static void
 tp_button_handle_timeout(struct tp_dispatch *tp, uint32_t now)
 {
 	struct tp_touch *t;
-	uint32_t min_timeout = INT_MAX;
 
 	tp_for_each_touch(tp, t) {
 		if (t->button.timeout != 0 && t->button.timeout <= now) {
 			tp_button_clear_timer(tp, t);
 			tp_button_handle_event(tp, t, BUTTON_EVENT_TIMEOUT, now);
 		}
-		if (t->button.timeout != 0)
-			min_timeout = min(t->button.timeout, min_timeout);
 	}
-
-	return min_timeout == INT_MAX ? 0 : min_timeout;
 }
 
 int
