@@ -110,7 +110,7 @@ evdev_device_transform_y(struct evdev_device *device,
 }
 
 static void
-evdev_flush_pending_event(struct evdev_device *device, uint32_t time)
+evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 {
 	int32_t cx, cy;
 	li_fixed_t x, y;
@@ -309,7 +309,7 @@ evdev_process_key(struct evdev_device *device, struct input_event *e, int time)
 static void
 evdev_process_touch(struct evdev_device *device,
 		    struct input_event *e,
-		    uint32_t time)
+		    uint64_t time)
 {
 	switch (e->code) {
 	case ABS_MT_SLOT:
@@ -358,7 +358,7 @@ evdev_process_absolute_motion(struct evdev_device *device,
 
 static inline void
 evdev_process_relative(struct evdev_device *device,
-		       struct input_event *e, uint32_t time)
+		       struct input_event *e, uint64_t time)
 {
 	struct libinput_device *base = &device->base;
 
@@ -406,7 +406,7 @@ evdev_process_relative(struct evdev_device *device,
 static inline void
 evdev_process_absolute(struct evdev_device *device,
 		       struct input_event *e,
-		       uint32_t time)
+		       uint64_t time)
 {
 	if (device->is_mt) {
 		evdev_process_touch(device, e, time);
@@ -441,7 +441,7 @@ static void
 fallback_process(struct evdev_dispatch *dispatch,
 		 struct evdev_device *device,
 		 struct input_event *event,
-		 uint32_t time)
+		 uint64_t time)
 {
 	int need_frame = 0;
 
@@ -491,7 +491,7 @@ static inline void
 evdev_process_event(struct evdev_device *device, struct input_event *e)
 {
 	struct evdev_dispatch *dispatch = device->dispatch;
-	uint32_t time = e->time.tv_sec * 1000 + e->time.tv_usec / 1000;
+	uint64_t time = e->time.tv_sec * 1000ULL + e->time.tv_usec / 1000;
 
 	dispatch->interface->process(dispatch, device, e, time);
 }

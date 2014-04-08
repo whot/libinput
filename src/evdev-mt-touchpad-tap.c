@@ -97,7 +97,7 @@ tap_event_to_str(enum tap_event event) {
 
 static void
 tp_tap_notify(struct tp_dispatch *tp,
-	      uint32_t time,
+	      uint64_t time,
 	      int nfingers,
 	      enum libinput_pointer_button_state state)
 {
@@ -118,9 +118,9 @@ tp_tap_notify(struct tp_dispatch *tp,
 }
 
 static void
-tp_tap_set_timer(struct tp_dispatch *tp, uint32_t time)
+tp_tap_set_timer(struct tp_dispatch *tp, uint64_t time)
 {
-	uint32_t timeout = time + DEFAULT_TAP_TIMEOUT_PERIOD;
+	uint64_t timeout = time + DEFAULT_TAP_TIMEOUT_PERIOD;
 	struct itimerspec its;
 
 	its.it_interval.tv_sec = 0;
@@ -139,7 +139,7 @@ tp_tap_clear_timer(struct tp_dispatch *tp)
 }
 
 static void
-tp_tap_idle_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_idle_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 
 	switch (event) {
@@ -160,7 +160,7 @@ tp_tap_idle_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t 
 }
 
 static void
-tp_tap_touch_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_touch_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 
 	switch (event) {
@@ -185,7 +185,7 @@ tp_tap_touch_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t
 }
 
 static void
-tp_tap_hold_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_hold_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 
 	switch (event) {
@@ -206,7 +206,7 @@ tp_tap_hold_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t 
 }
 
 static void
-tp_tap_tapped_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_tapped_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 
 	switch (event) {
@@ -230,7 +230,7 @@ tp_tap_tapped_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_
 }
 
 static void
-tp_tap_touch2_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_touch2_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 
 	switch (event) {
@@ -256,7 +256,7 @@ tp_tap_touch2_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_
 }
 
 static void
-tp_tap_touch2_hold_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_touch2_hold_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 
 	switch (event) {
@@ -278,7 +278,7 @@ tp_tap_touch2_hold_handle_event(struct tp_dispatch *tp, enum tap_event event, ui
 }
 
 static void
-tp_tap_touch3_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_touch3_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 
 	switch (event) {
@@ -303,7 +303,7 @@ tp_tap_touch3_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_
 }
 
 static void
-tp_tap_touch3_hold_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_touch3_hold_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 
 	switch (event) {
@@ -324,7 +324,7 @@ tp_tap_touch3_hold_handle_event(struct tp_dispatch *tp, enum tap_event event, ui
 }
 
 static void
-tp_tap_dragging_or_doubletap_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_dragging_or_doubletap_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 	switch (event) {
 	case TAP_EVENT_TOUCH:
@@ -349,7 +349,7 @@ tp_tap_dragging_or_doubletap_handle_event(struct tp_dispatch *tp, enum tap_event
 }
 
 static void
-tp_tap_dragging_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_dragging_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 
 	switch (event) {
@@ -372,7 +372,7 @@ tp_tap_dragging_handle_event(struct tp_dispatch *tp, enum tap_event event, uint3
 }
 
 static void
-tp_tap_dragging_wait_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_dragging_wait_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 
 	switch (event) {
@@ -395,7 +395,7 @@ tp_tap_dragging_wait_handle_event(struct tp_dispatch *tp, enum tap_event event, 
 }
 
 static void
-tp_tap_dragging2_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_dragging2_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 
 	switch (event) {
@@ -418,7 +418,7 @@ tp_tap_dragging2_handle_event(struct tp_dispatch *tp, enum tap_event event, uint
 }
 
 static void
-tp_tap_dead_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_dead_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 
 	switch (event) {
@@ -435,7 +435,7 @@ tp_tap_dead_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t 
 }
 
 static void
-tp_tap_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
+tp_tap_handle_event(struct tp_dispatch *tp, enum tap_event event, uint64_t time)
 {
 	enum tp_tap_state current;
 	if (!tp->tap.enabled)
@@ -503,7 +503,7 @@ tp_tap_exceeds_motion_threshold(struct tp_dispatch *tp, struct tp_touch *t)
 }
 
 int
-tp_tap_handle_state(struct tp_dispatch *tp, uint32_t time)
+tp_tap_handle_state(struct tp_dispatch *tp, uint64_t time)
 {
 	struct tp_touch *t;
 	int filter_motion = 0;
@@ -554,7 +554,7 @@ tp_tap_timeout_handler(void *data)
 	uint64_t expires;
 	int len;
 	struct timespec ts;
-	uint32_t now;
+	uint64_t now;
 
 	len = read(touchpad->tap.timer_fd, &expires, sizeof expires);
 	if (len != sizeof expires)
@@ -564,13 +564,13 @@ tp_tap_timeout_handler(void *data)
 		log_error("timerfd read error: %s\n", strerror(errno));
 
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	now = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+	now = ts.tv_sec * 1000ULL + ts.tv_nsec / 1000000;
 
 	tp_tap_handle_timeout(touchpad, now);
 }
 
 unsigned int
-tp_tap_handle_timeout(struct tp_dispatch *tp, uint32_t time)
+tp_tap_handle_timeout(struct tp_dispatch *tp, uint64_t time)
 {
 	if (!tp->tap.enabled)
 		return 0;

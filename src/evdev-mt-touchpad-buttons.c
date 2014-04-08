@@ -95,7 +95,7 @@ is_inside_left_area(struct tp_dispatch *tp, struct tp_touch *t)
 }
 
 static void
-tp_button_set_timer(struct tp_dispatch *tp, uint32_t timeout)
+tp_button_set_timer(struct tp_dispatch *tp, uint64_t timeout)
 {
 	struct itimerspec its;
 	its.it_interval.tv_sec = 0;
@@ -285,7 +285,7 @@ static void
 tp_button_handle_event(struct tp_dispatch *tp,
 		       struct tp_touch *t,
 		       enum button_event event,
-		       uint32_t time)
+		       uint64_t time)
 {
 	enum button_state current = t->button.state;
 
@@ -315,7 +315,7 @@ tp_button_handle_event(struct tp_dispatch *tp,
 }
 
 int
-tp_button_handle_state(struct tp_dispatch *tp, uint32_t time)
+tp_button_handle_state(struct tp_dispatch *tp, uint64_t time)
 {
 	struct tp_touch *t;
 
@@ -348,7 +348,7 @@ tp_button_handle_state(struct tp_dispatch *tp, uint32_t time)
 }
 
 static void
-tp_button_handle_timeout(struct tp_dispatch *tp, uint32_t now)
+tp_button_handle_timeout(struct tp_dispatch *tp, uint64_t now)
 {
 	struct tp_touch *t;
 
@@ -363,7 +363,7 @@ tp_button_handle_timeout(struct tp_dispatch *tp, uint32_t now)
 int
 tp_process_button(struct tp_dispatch *tp,
 		  const struct input_event *e,
-		  uint32_t time)
+		  uint64_t time)
 {
 	uint32_t mask = 1 << (e->code - BTN_LEFT);
 
@@ -391,7 +391,7 @@ tp_button_timeout_handler(void *data)
 	uint64_t expires;
 	int len;
 	struct timespec ts;
-	uint32_t now;
+	uint64_t now;
 
 	len = read(tp->buttons.timer_fd, &expires, sizeof expires);
 	if (len != sizeof expires)
@@ -401,7 +401,7 @@ tp_button_timeout_handler(void *data)
 		log_error("timerfd read error: %s\n", strerror(errno));
 
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	now = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+	now = ts.tv_sec * 1000ULL + ts.tv_nsec / 1000000;
 
 	tp_button_handle_timeout(tp, now);
 }
@@ -471,7 +471,7 @@ tp_destroy_buttons(struct tp_dispatch *tp)
 }
 
 static int
-tp_post_clickfinger_buttons(struct tp_dispatch *tp, uint32_t time)
+tp_post_clickfinger_buttons(struct tp_dispatch *tp, uint64_t time)
 {
 	uint32_t current, old, button;
 	enum libinput_pointer_button_state state;
@@ -507,7 +507,7 @@ tp_post_clickfinger_buttons(struct tp_dispatch *tp, uint32_t time)
 }
 
 static int
-tp_post_physical_buttons(struct tp_dispatch *tp, uint32_t time)
+tp_post_physical_buttons(struct tp_dispatch *tp, uint64_t time)
 {
 	uint32_t current, old, button;
 
@@ -539,7 +539,7 @@ tp_post_physical_buttons(struct tp_dispatch *tp, uint32_t time)
 }
 
 static int
-tp_post_softbutton_buttons(struct tp_dispatch *tp, uint32_t time)
+tp_post_softbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 {
 	uint32_t current, old, button;
 	enum libinput_pointer_button_state state;
@@ -609,7 +609,7 @@ tp_post_softbutton_buttons(struct tp_dispatch *tp, uint32_t time)
 }
 
 int
-tp_post_button_events(struct tp_dispatch *tp, uint32_t time)
+tp_post_button_events(struct tp_dispatch *tp, uint64_t time)
 {
 	if (tp->buttons.is_clickpad) {
 		if (tp->buttons.use_clickfinger)

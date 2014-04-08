@@ -32,7 +32,7 @@
 void
 filter_dispatch(struct motion_filter *filter,
 		struct motion_params *motion,
-		void *data, uint32_t time)
+		void *data, uint64_t time)
 {
 	filter->interface->filter(filter, motion, data, time);
 }
@@ -48,7 +48,7 @@ filter_dispatch(struct motion_filter *filter,
 struct pointer_tracker {
 	double dx;
 	double dy;
-	uint32_t time;
+	uint64_t time;
 	int dir;
 };
 
@@ -128,7 +128,7 @@ get_direction(int dx, int dy)
 static void
 feed_trackers(struct pointer_accelerator *accel,
 	      double dx, double dy,
-	      uint32_t time)
+	      uint64_t time)
 {
 	int i, current;
 	struct pointer_tracker *trackers = accel->trackers;
@@ -157,7 +157,7 @@ tracker_by_offset(struct pointer_accelerator *accel, unsigned int offset)
 }
 
 static double
-calculate_tracker_velocity(struct pointer_tracker *tracker, uint32_t time)
+calculate_tracker_velocity(struct pointer_tracker *tracker, uint64_t time)
 {
 	int dx;
 	int dy;
@@ -170,7 +170,7 @@ calculate_tracker_velocity(struct pointer_tracker *tracker, uint32_t time)
 }
 
 static double
-calculate_velocity(struct pointer_accelerator *accel, uint32_t time)
+calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
 {
 	struct pointer_tracker *tracker;
 	double velocity;
@@ -224,14 +224,14 @@ calculate_velocity(struct pointer_accelerator *accel, uint32_t time)
 
 static double
 acceleration_profile(struct pointer_accelerator *accel,
-		     void *data, double velocity, uint32_t time)
+		     void *data, double velocity, uint64_t time)
 {
 	return accel->profile(&accel->base, data, velocity, time);
 }
 
 static double
 calculate_acceleration(struct pointer_accelerator *accel,
-		       void *data, double velocity, uint32_t time)
+		       void *data, double velocity, uint64_t time)
 {
 	double factor;
 
@@ -273,7 +273,7 @@ apply_softening(struct pointer_accelerator *accel,
 static void
 accelerator_filter(struct motion_filter *filter,
 		   struct motion_params *motion,
-		   void *data, uint32_t time)
+		   void *data, uint64_t time)
 {
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;

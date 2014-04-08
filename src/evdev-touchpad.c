@@ -211,7 +211,7 @@ static double
 touchpad_profile(struct motion_filter *filter,
 		 void *data,
 		 double velocity,
-		 uint32_t time)
+		 uint64_t time)
 {
 	struct touchpad_dispatch *touchpad =
 		(struct touchpad_dispatch *) data;
@@ -273,7 +273,7 @@ touchpad_get_delta(struct touchpad_dispatch *touchpad, double *dx, double *dy)
 
 static void
 filter_motion(struct touchpad_dispatch *touchpad,
-	      double *dx, double *dy, uint32_t time)
+	      double *dx, double *dy, uint64_t time)
 {
 	struct motion_params motion;
 
@@ -287,7 +287,7 @@ filter_motion(struct touchpad_dispatch *touchpad,
 }
 
 static void
-notify_button_pressed(struct touchpad_dispatch *touchpad, uint32_t time)
+notify_button_pressed(struct touchpad_dispatch *touchpad, uint64_t time)
 {
 	pointer_notify_button(
 		&touchpad->device->base,
@@ -297,7 +297,7 @@ notify_button_pressed(struct touchpad_dispatch *touchpad, uint32_t time)
 }
 
 static void
-notify_button_released(struct touchpad_dispatch *touchpad, uint32_t time)
+notify_button_released(struct touchpad_dispatch *touchpad, uint64_t time)
 {
 	pointer_notify_button(
 		&touchpad->device->base,
@@ -307,16 +307,16 @@ notify_button_released(struct touchpad_dispatch *touchpad, uint32_t time)
 }
 
 static void
-notify_tap(struct touchpad_dispatch *touchpad, uint32_t time)
+notify_tap(struct touchpad_dispatch *touchpad, uint64_t time)
 {
 	notify_button_pressed(touchpad, time);
 	notify_button_released(touchpad, time);
 }
 
 static void
-process_fsm_events(struct touchpad_dispatch *touchpad, uint32_t time)
+process_fsm_events(struct touchpad_dispatch *touchpad, uint64_t time)
 {
-	uint32_t timeout = UINT32_MAX;
+	uint64_t timeout = UINT64_MAX;
 	enum fsm_event event;
 	unsigned int i;
 
@@ -398,7 +398,7 @@ process_fsm_events(struct touchpad_dispatch *touchpad, uint32_t time)
 		}
 	}
 
-	if (timeout != UINT32_MAX) {
+	if (timeout != UINT64_MAX) {
 		struct itimerspec its;
 
 		its.it_interval.tv_sec = 0;
@@ -447,7 +447,7 @@ fsm_timeout_handler(void *data)
 	uint64_t expires;
 	int len;
 	struct timespec ts;
-	uint32_t now;
+	uint64_t now;
 
 	len = read(touchpad->fsm.timer.fd, &expires, sizeof expires);
 	if (len != sizeof expires)
@@ -458,7 +458,7 @@ fsm_timeout_handler(void *data)
 
 	if (touchpad->fsm.events_count == 0) {
 		clock_gettime(CLOCK_MONOTONIC, &ts);
-		now = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+		now = ts.tv_sec * 1000ULL + ts.tv_nsec / 1000000;
 
 		push_fsm_event(touchpad, FSM_EVENT_TIMEOUT);
 		process_fsm_events(touchpad, now);
@@ -466,7 +466,7 @@ fsm_timeout_handler(void *data)
 }
 
 static void
-touchpad_update_state(struct touchpad_dispatch *touchpad, uint32_t time)
+touchpad_update_state(struct touchpad_dispatch *touchpad, uint64_t time)
 {
 	int motion_index;
 	int center_x, center_y;
@@ -618,7 +618,7 @@ static inline void
 process_key(struct touchpad_dispatch *touchpad,
 	    struct evdev_device *device,
 	    struct input_event *e,
-	    uint32_t time)
+	    uint64_t time)
 {
 	uint32_t code;
 
@@ -685,7 +685,7 @@ static void
 touchpad_process(struct evdev_dispatch *dispatch,
 		 struct evdev_device *device,
 		 struct input_event *e,
-		 uint32_t time)
+		 uint64_t time)
 {
 	struct touchpad_dispatch *touchpad =
 		(struct touchpad_dispatch *) dispatch;

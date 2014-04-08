@@ -34,13 +34,13 @@ struct motion_filter;
 void
 filter_dispatch(struct motion_filter *filter,
 		struct motion_params *motion,
-		void *data, uint32_t time);
+		void *data, uint64_t time);
 
 
 struct motion_filter_interface {
 	void (*filter)(struct motion_filter *filter,
 		       struct motion_params *motion,
-		       void *data, uint32_t time);
+		       void *data, uint64_t time);
 	void (*destroy)(struct motion_filter *filter);
 };
 
@@ -54,7 +54,7 @@ create_linear_acceleration_filter(double speed);
 typedef double (*accel_profile_func_t)(struct motion_filter *filter,
 				       void *data,
 				       double velocity,
-				       uint32_t time);
+				       uint64_t time);
 
 struct motion_filter *
 create_pointer_accelator_filter(accel_profile_func_t filter);

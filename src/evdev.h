@@ -101,7 +101,7 @@ struct evdev_dispatch_interface {
 	void (*process)(struct evdev_dispatch *dispatch,
 			struct evdev_device *device,
 			struct input_event *event,
-			uint32_t time);
+			uint64_t time);
 
 	/* Destroy an event dispatch handler and free all its resources. */
 	void (*destroy)(struct evdev_dispatch *dispatch);

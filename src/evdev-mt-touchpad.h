@@ -97,7 +97,7 @@ struct tp_touch {
 	bool is_pointer;			/* the pointer-controlling touch */
 	int32_t x;
 	int32_t y;
-	uint32_t millis;
+	uint64_t millis;
 
 	struct {
 		struct tp_motion samples[TOUCHPAD_HISTORY_LENGTH];
@@ -125,7 +125,7 @@ struct tp_touch {
 		enum button_state state;
 		/* We use button_event here so we can use == on events */
 		enum button_event curr;
-		uint32_t timeout;
+		uint64_t timeout;
 	} button;
 };
 
@@ -201,10 +201,10 @@ void
 tp_get_delta(struct tp_touch *t, double *dx, double *dy);
 
 int
-tp_tap_handle_state(struct tp_dispatch *tp, uint32_t time);
+tp_tap_handle_state(struct tp_dispatch *tp, uint64_t time);
 
 unsigned int
-tp_tap_handle_timeout(struct tp_dispatch *tp, uint32_t time);
+tp_tap_handle_timeout(struct tp_dispatch *tp, uint64_t time);
 
 int
 tp_init_tap(struct tp_dispatch *tp);
@@ -221,13 +221,13 @@ tp_destroy_buttons(struct tp_dispatch *tp);
 int
 tp_process_button(struct tp_dispatch *tp,
 		  const struct input_event *e,
-		  uint32_t time);
+		  uint64_t time);
 
 int
-tp_post_button_events(struct tp_dispatch *tp, uint32_t time);
+tp_post_button_events(struct tp_dispatch *tp, uint64_t time);
 
 int
-tp_button_handle_state(struct tp_dispatch *tp, uint32_t time);
+tp_button_handle_state(struct tp_dispatch *tp, uint64_t time);
 
 int
 tp_button_touch_active(struct tp_dispatch *tp, struct tp_touch *t);
