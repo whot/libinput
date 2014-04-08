@@ -498,11 +498,6 @@ tp_post_scroll_events(struct tp_dispatch *tp, uint32_t time)
 	struct tp_touch *t;
 	int nfingers_down = 0;
 
-	/* don't scroll if a clickpad is held down */
-	if (tp->buttons.is_clickpad &&
-	    (tp->buttons.state || tp->buttons.old_state))
-		return 0;
-
 	/* Only count active touches for 2 finger scrolling */
 	tp_for_each_touch(tp, t) {
 		if (tp_touch_active(tp, t))
