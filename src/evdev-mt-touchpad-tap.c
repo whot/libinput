@@ -615,6 +615,8 @@ tp_destroy_tap(struct tp_dispatch *tp)
 		libinput_remove_source(tp->device->base.seat->libinput, tp->tap.source);
 		tp->tap.source = NULL;
 	}
-	if (tp->tap.timer_fd > -1)
+	if (tp->tap.timer_fd > -1) {
 		close(tp->tap.timer_fd);
+		tp->tap.timer_fd = -1;
+	}
 }
