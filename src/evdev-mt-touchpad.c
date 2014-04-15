@@ -32,6 +32,7 @@
 #define DEFAULT_MIN_ACCEL_FACTOR 0.16
 #define DEFAULT_MAX_ACCEL_FACTOR 1.0
 #define DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR 700.0
+#define DEFAULT_BUTTON_MOTION_THRESHOLD 0.02 /* in percent of size */
 
 static inline int
 tp_hysteresis(int in, int center, int margin)
@@ -182,6 +183,7 @@ tp_end_touch(struct tp_dispatch *tp, struct tp_touch *t)
 	t->dirty = true;
 	t->is_pointer = false;
 	t->state = TOUCH_END;
+	t->pinned.is_pinned = false;
 	assert(tp->nfingers_down >= 1);
 	tp->nfingers_down--;
 	tp->queued |= TOUCHPAD_EVENT_MOTION;
@@ -346,50 +348,43 @@ tp_process_key(struct tp_dispatch *tp,
 }
 
 static void
-tp_unpin_finger(struct tp_dispatch *tp)
+tp_unpin_finger(struct tp_dispatch *tp, struct tp_touch *t)
 {
-	struct tp_touch *t;
-	tp_for_each_touch(tp, t) {
-		if (t->is_pinned) {
-			t->is_pinned = false;
+	unsigned int xdist, ydist;
+	struct tp_touch *tmp;
 
-			if (t->state != TOUCH_END &&
-			    tp->nfingers_down == 1)
-				t->is_pointer = true;
+	if (!t->pinned.is_pinned)
+		return;
+
+	xdist = abs(t->x - t->pinned.center_x);
+	ydist = abs(t->y - t->pinned.center_y);
+
+	if (xdist * xdist + ydist * ydist <
+			tp->buttons.motion_dist * tp->buttons.motion_dist)
+		return;
+
+	t->pinned.is_pinned = false;
+
+	tp_for_each_touch(tp, tmp) {
+		if (tmp->is_pointer)
 			break;
-		}
 	}
+
+	if (t->state != TOUCH_END && !tmp->is_pointer)
+		t->is_pointer = true;
 }
 
 static void
-tp_pin_finger(struct tp_dispatch *tp)
+tp_pin_fingers(struct tp_dispatch *tp)
 {
-	struct tp_touch *t,
-			*pinned = NULL;
+	struct tp_touch *t;
 
 	tp_for_each_touch(tp, t) {
-		if (t->is_pinned) {
-			pinned = t;
-			break;
-		}
+		t->is_pointer = false;
+		t->pinned.is_pinned = true;
+		t->pinned.center_x = t->x;
+		t->pinned.center_y = t->y;
 	}
-
-	assert(!pinned);
-
-	pinned = tp_current_touch(tp);
-
-	if (tp->nfingers_down != 1) {
-		tp_for_each_touch(tp, t) {
-			if (t == pinned)
-				continue;
-
-			if (t->y > pinned->y)
-				pinned = t;
-		}
-	}
-
-	pinned->is_pinned = true;
-	pinned->is_pointer = false;
 }
 
 static void
@@ -409,16 +404,19 @@ tp_process_state(struct tp_dispatch *tp, uint32_t time)
 
 		tp_motion_hysteresis(tp, t);
 		tp_motion_history_push(t);
+
+		tp_unpin_finger(tp, t);
 	}
 
-	/* We have a physical button down event on a clickpad. For drag and
-	   drop, this means we try to identify which finger pressed the
-	   physical button and "pin" it, i.e. remove pointer-moving
-	   capabilities from it.
+	/*
+	 * We have a physical button down event on a clickpad. To avoid
+	 * spurious pointer moves by the clicking finger we pin all fingers.
+	 * We unpin fingers when they move more then a certain threshold to
+	 * to allow drag and drop.
 	 */
 	if ((tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS) &&
 	    !tp->buttons.has_buttons)
-		tp_pin_finger(tp);
+		tp_pin_fingers(tp);
 }
 
 static void
@@ -440,9 +438,6 @@ tp_post_process_state(struct tp_dispatch *tp, uint32_t time)
 	}
 
 	tp->buttons.old_state = tp->buttons.state;
-
-	if (tp->queued & TOUCHPAD_EVENT_BUTTON_RELEASE)
-		tp_unpin_finger(tp);
 
 	tp->queued = TOUCHPAD_EVENT_NONE;
 }
@@ -795,6 +790,8 @@ tp_init(struct tp_dispatch *tp,
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
 	tp->hysteresis.margin_y =
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
+
+	tp->buttons.motion_dist = diagonal * DEFAULT_BUTTON_MOTION_THRESHOLD;
 
 	if (libevdev_has_event_code(device->evdev, EV_KEY, BTN_MIDDLE) ||
 	    libevdev_has_event_code(device->evdev, EV_KEY, BTN_RIGHT))

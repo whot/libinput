@@ -77,7 +77,6 @@ struct tp_touch {
 	bool dirty;
 	bool fake;				/* a fake touch */
 	bool is_pointer;			/* the pointer-controlling touch */
-	bool is_pinned;				/* holds the phys. button */
 	int32_t x;
 	int32_t y;
 	uint32_t millis;
@@ -92,6 +91,16 @@ struct tp_touch {
 		int32_t center_x;
 		int32_t center_y;
 	} hysteresis;
+
+	/* A pinned touchpoint is the one that pressed the physical button
+	 * on a clickpad. After the release, it won't move until the center
+	 * moves more than a threshold away from the original coordinates
+	 */
+	struct {
+		bool is_pinned;
+		int32_t center_x;
+		int32_t center_y;
+	} pinned;
 };
 
 struct tp_dispatch {
@@ -122,6 +131,7 @@ struct tp_dispatch {
 		bool has_buttons;		/* true for physical LMR buttons */
 		uint32_t state;
 		uint32_t old_state;
+		uint32_t motion_dist;		/* for pinned touches */
 	} buttons;				/* physical buttons */
 
 	struct {
