@@ -715,9 +715,29 @@ tp_init_slots(struct tp_dispatch *tp,
 		tp->slot = absinfo->value;
 		tp->has_mt = true;
 	} else {
-		tp->ntouches = 5; /* FIXME: based on DOUBLETAP, etc. */
+		struct map {
+			unsigned int code;
+			int ntouches;
+		} max_touches[] = {
+			{ BTN_TOOL_QUINTTAP, 5 },
+			{ BTN_TOOL_QUADTAP, 4 },
+			{ BTN_TOOL_TRIPLETAP, 3 },
+			{ BTN_TOOL_DOUBLETAP, 2 },
+		};
+		struct map *m;
+
 		tp->slot = 0;
 		tp->has_mt = false;
+		tp->ntouches = 1;
+
+		ARRAY_FOR_EACH(max_touches, m) {
+			if (libevdev_has_event_code(device->evdev,
+						    EV_KEY,
+						    m->code)) {
+				tp->ntouches = m->ntouches;
+				break;
+			}
+		}
 	}
 	tp->touches = calloc(tp->ntouches,
 			     sizeof(struct tp_touch));
