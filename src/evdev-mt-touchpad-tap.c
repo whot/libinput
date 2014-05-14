@@ -104,9 +104,11 @@ tp_tap_notify(struct tp_dispatch *tp,
 	int32_t button;
 
 	switch (nfingers) {
-	case 1: button = BTN_LEFT; break;
-	case 2: button = BTN_RIGHT; break;
-	case 3: button = BTN_MIDDLE; break;
+	case 1:
+	case 2:
+	case 3:
+		button = tp->tap.btnmap[nfingers];
+		break;
 	default:
 		return;
 	}
@@ -438,8 +440,6 @@ static void
 tp_tap_handle_event(struct tp_dispatch *tp, enum tap_event event, uint32_t time)
 {
 	enum tp_tap_state current;
-	if (!tp->tap.enabled)
-		return;
 
 	current = tp->tap.state;
 
@@ -572,9 +572,6 @@ tp_tap_timeout_handler(void *data)
 unsigned int
 tp_tap_handle_timeout(struct tp_dispatch *tp, uint32_t time)
 {
-	if (!tp->tap.enabled)
-		return 0;
-
 	if (tp->tap.timeout && tp->tap.timeout <= time) {
 		tp_tap_clear_timer(tp);
 		tp_tap_handle_event(tp, TAP_EVENT_TIMEOUT, time);
@@ -583,9 +580,74 @@ tp_tap_handle_timeout(struct tp_dispatch *tp, uint32_t time)
 	return tp->tap.timeout;
 }
 
+static int
+tp_tap_config_count(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch = ((struct evdev_device *)device)->dispatch;
+	struct tp_dispatch *tp = container_of(dispatch, tp, base);
+
+	return min(tp->ntouches, 3); /* we only do up to 3 finger tap */
+}
+
+static int
+tp_tap_config_set(struct libinput_device *device,
+		   unsigned int nfingers,
+		   uint32_t button)
+{
+	struct evdev_dispatch *dispatch = ((struct evdev_device *)device)->dispatch;
+	struct tp_dispatch *tp = container_of(dispatch, tp, base);
+
+	if (nfingers == 0 || (int)nfingers < 0 ||
+	    (int)nfingers > tp_tap_config_count(device))
+		return -EINVAL;
+
+	tp->tap.btnmap[nfingers] = button;
+
+	return 0;
+}
+
+static uint32_t
+tp_tap_config_get(struct libinput_device *device,
+		  unsigned int nfingers)
+{
+	struct evdev_dispatch *dispatch = ((struct evdev_device *)device)->dispatch;
+	struct tp_dispatch *tp = container_of(dispatch, tp, base);
+
+	if (nfingers == 0 || (int)nfingers < 0 ||
+	    (int)nfingers > tp_tap_config_count(device))
+		return 0;
+
+	return tp->tap.btnmap[nfingers];
+}
+
+static void
+tp_tap_config_set_default_buttonmap(struct tp_dispatch *tp)
+{
+	tp->tap.btnmap[0] = 0;
+	tp->tap.btnmap[1] = BTN_LEFT;
+	tp->tap.btnmap[2] = BTN_RIGHT;
+	tp->tap.btnmap[3] = BTN_MIDDLE;
+}
+
+static void
+tp_tap_config_reset(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch = ((struct evdev_device *)device)->dispatch;
+	struct tp_dispatch *tp = container_of(dispatch, tp, base);
+
+	tp_tap_config_set_default_buttonmap(tp);
+}
+
 int
 tp_init_tap(struct tp_dispatch *tp)
 {
+	tp->tap.config.count = tp_tap_config_count;
+	tp->tap.config.set = tp_tap_config_set;
+	tp->tap.config.get = tp_tap_config_get;
+	tp->tap.config.reset = tp_tap_config_reset;
+	tp->device->base.config.tap = &tp->tap.config;
+	tp_tap_config_set_default_buttonmap(tp);
+
 	tp->tap.state = TAP_STATE_IDLE;
 	tp->tap.timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
 
@@ -602,8 +664,6 @@ tp_init_tap(struct tp_dispatch *tp)
 		close(tp->tap.timer_fd);
 		return -1;
 	}
-
-	tp->tap.enabled = 1; /* FIXME */
 
 	return 0;
 }

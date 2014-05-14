@@ -132,11 +132,12 @@ struct tp_dispatch {
 	enum touchpad_event queued;
 
 	struct {
-		bool enabled;
+		struct libinput_device_config_tap config;
 		int timer_fd;
 		struct libinput_source *source;
 		unsigned int timeout;
 		enum tp_tap_state state;
+		uint32_t btnmap[4];	/* nfingers_down is index */
 	} tap;
 };
 
