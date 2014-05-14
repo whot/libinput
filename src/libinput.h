@@ -1398,6 +1398,80 @@ libinput_device_config_tap_get_button(struct libinput_device *device,
 void
 libinput_device_config_tap_reset(struct libinput_device *device);
 
+/**
+ * @ingroup config
+ *
+ * Devices without a physical scroll wheel (such as touchpads) may emulate
+ * scroll events in software through one or more methods.
+ */
+enum libinput_scroll_method {
+	/**
+	 * No scroll method available or selected.
+	 */
+	LIBINPUT_SCROLL_METHOD_NONE = 0,
+	/**
+	 * Scrolling is triggered by moving a finger at the edge of the
+	 * touchpad.
+	 */
+	LIBINPUT_SCROLL_METHOD_EDGE = (1 << 0),
+	/**
+	 * Scrolling is triggered by moving two fingers simultaneously.
+	 */
+	LIBINPUT_SCROLL_METHOD_TWOFINGER = (1 << 1),
+};
+
+/**
+ * @ingroup config
+ *
+ * Check the available scroll methods on this device.
+ *
+ * @return A bitmask of the available scroll methods
+ */
+unsigned int
+libinput_device_config_scroll_get_methods(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Set the scroll method on this device. Only one method at a time may be
+ * chosen for each device.
+ *
+ * @param device The device to configure
+ * @param method The scroll method to chose
+ *
+ * @return 0 on success or a negative errno on failure
+ * @retval -EINVAL The specified scroll method is invalid or not available
+ * on this device
+ */
+int
+libinput_device_config_scroll_set_method(struct libinput_device *device,
+					 enum libinput_scroll_method method);
+
+
+/**
+ * @ingroup config
+ *
+ * Get the currently selected scroll method on this device.
+ *
+ * @param device The device to configure
+ *
+ * @return The currently selected scroll method
+ * @retval LIBINPUT_SCROLL_METHOD_NONE This device does not support
+ * software-emulated scrolling or has no method configured
+ */
+enum libinput_scroll_method
+libinput_device_config_scroll_get_method(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Reset to the default scroll method for this device, if any.
+ *
+ * @param device The device to configure
+ */
+void
+libinput_device_config_scroll_reset(struct libinput_device *device);
+
 #ifdef __cplusplus
 }
 #endif
