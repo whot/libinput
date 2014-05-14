@@ -89,8 +89,17 @@ struct libinput_device_config_tap {
 	int (*get_default)(struct libinput_device *device);
 };
 
+struct libinput_device_config_scroll {
+	int (*methods)(struct libinput_device *device);
+	enum libinput_config_status (*set)(struct libinput_device *device,
+					   enum libinput_scroll_method method);
+	enum libinput_scroll_method (*get)(struct libinput_device *device);
+	enum libinput_scroll_method (*get_default)(struct libinput_device *device);
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap *tap;
+	struct libinput_device_config_scroll *scroll;
 };
 
 struct libinput_device {

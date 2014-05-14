@@ -1310,3 +1310,40 @@ libinput_device_config_tap_get_default_enabled(struct libinput_device *device)
 
 	return device->config.tap->get_default(device);
 }
+
+LIBINPUT_EXPORT unsigned int
+libinput_device_config_scroll_get_methods(struct libinput_device *device)
+{
+	return device->config.scroll ?
+			device->config.scroll->methods(device) :
+			LIBINPUT_SCROLL_METHOD_NONE;
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_scroll_set_method(struct libinput_device *device,
+					 enum libinput_scroll_method method)
+{
+	if ((method & libinput_device_config_scroll_get_methods(device)) == 0)
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+
+	return device->config.scroll->set(device, method);
+}
+
+LIBINPUT_EXPORT enum libinput_scroll_method
+libinput_device_config_scroll_get_method(struct libinput_device *device)
+{
+	if (libinput_device_config_scroll_get_methods(device) ==
+	    LIBINPUT_SCROLL_METHOD_NONE)
+		return LIBINPUT_SCROLL_METHOD_NONE;
+
+	return device->config.scroll->get(device);
+}
+
+LIBINPUT_EXPORT enum libinput_scroll_method
+libinput_device_config_scroll_get_default_method(struct libinput_device *device)
+{
+	if (libinput_device_config_scroll_get_methods(device) == 0)
+		return LIBINPUT_SCROLL_METHOD_NONE;
+
+	return device->config.scroll->get_default(device);
+}

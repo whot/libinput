@@ -1508,6 +1508,96 @@ libinput_device_config_tap_get_enabled(struct libinput_device *device);
 int
 libinput_device_config_tap_get_default_enabled(struct libinput_device *device);
 
+/**
+ * @ingroup config
+ *
+ * Devices without a physical scroll wheel (such as touchpads) may emulate
+ * scroll events in software through one or more methods.
+ */
+enum libinput_scroll_method {
+	/**
+	 * No scroll method available or selected.
+	 */
+	LIBINPUT_SCROLL_METHOD_NONE = 0,
+	/**
+	 * Scrolling is triggered by moving a finger at the edge of the
+	 * touchpad.
+	 */
+	LIBINPUT_SCROLL_METHOD_EDGE = (1 << 0),
+	/**
+	 * Scrolling is triggered by moving two fingers simultaneously.
+	 */
+	LIBINPUT_SCROLL_METHOD_TWOFINGER = (1 << 1),
+};
+
+/**
+ * @ingroup config
+ *
+ * Check the available scroll methods on this device.
+ *
+ * @param device The device to configure
+ *
+ * @return A bitmask of the available scroll methods
+ *
+ * @see libinput_device_config_scroll_set_method
+ * @see libinput_device_config_scroll_get_method
+ * @see libinput_device_config_scroll_get_default_method
+ */
+unsigned int
+libinput_device_config_scroll_get_methods(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Set the scroll method on this device. Only one method at a time may be
+ * chosen for each device.
+ *
+ * @param device The device to configure
+ * @param method The scroll method to chose
+ *
+ * @return A config status code
+ *
+ * @see libinput_device_config_scroll_get_methods
+ * @see libinput_device_config_scroll_get_method
+ * @see libinput_device_config_scroll_get_default_method
+ */
+enum libinput_config_status
+libinput_device_config_scroll_set_method(struct libinput_device *device,
+					 enum libinput_scroll_method method);
+
+/**
+ * @ingroup config
+ *
+ * Get the currently selected scroll method on this device. If a device does
+ * not support configurable scroll methods, the return value is always
+ * LIBINPUT_SCROLL_METHOD_NONE.
+ *
+ * @param device The device to configure
+ *
+ * @return The currently selected scroll method
+ *
+ * @see libinput_device_config_scroll_get_methods
+ * @see libinput_device_config_scroll_set_method
+ * @see libinput_device_config_scroll_get_default_method
+ */
+enum libinput_scroll_method
+libinput_device_config_scroll_get_method(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Get the default scroll method for this device, if any.
+ *
+ * @param device The device to configure
+ * @return The default scroll method for this device
+ *
+ * @see libinput_device_config_scroll_get_methods
+ * @see libinput_device_config_scroll_set_method
+ * @see libinput_device_config_scroll_get_method
+ */
+enum libinput_scroll_method
+libinput_device_config_scroll_get_default_method(struct libinput_device *device);
+
 #ifdef __cplusplus
 }
 #endif
