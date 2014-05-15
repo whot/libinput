@@ -1290,6 +1290,38 @@ int
 libinput_device_has_capability(struct libinput_device *device,
 			       enum libinput_device_capability capability);
 
+/**
+ * @defgroup config Device configuration
+ *
+ * Enable, disable and check for device-specific features. For all features,
+ * libinput assigns a default based on the hardware configuration. This
+ * default can be restored with the matching reset function call.
+ *
+ * Some configuration option may be dependent on other configuration options
+ * or mutually exclusive with other options. The behavior is
+ * implementation-defined, the caller must ensure that mutually exclusive
+ * options are avoided.
+ */
+
+enum libinput_config_status {
+	LIBINPUT_CONFIG_STATUS_SUCCESS = 0,	/**< Config applied successfully */
+	LIBINPUT_CONFIG_STATUS_UNSUPPORTED,	/**< Configuration not available on
+						     this device */
+	LIBINPUT_CONFIG_STATUS_INVALID,		/**< Invalid parameter range */
+};
+
+/**
+ * @ingroup config Device configuration
+ *
+ * Return string describing the error.
+ *
+ * @param status The status to translate to a string
+ * @return A human-readable string representing the error or NULL for an
+ * invalid status.
+ */
+const char *
+libinput_config_status_to_str(enum libinput_config_status status);
+
 #ifdef __cplusplus
 }
 #endif
