@@ -105,10 +105,23 @@ struct libinput_device_config_rotation {
 	int (*get_default)(struct libinput_device *device);
 };
 
+struct libinput_device_config_accel {
+	int (*available)(struct libinput_device *device);
+	enum libinput_config_status (*set_speed)(struct libinput_device *device,
+						 unsigned int speed);
+	enum libinput_config_status (*set_precision)(struct libinput_device *device,
+						     unsigned int precision);
+	int (*get_speed)(struct libinput_device *device);
+	int (*get_precision)(struct libinput_device *device);
+	int (*get_default_speed)(struct libinput_device *device);
+	int (*get_default_precision)(struct libinput_device *device);
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap *tap;
 	struct libinput_device_config_scroll *scroll;
 	struct libinput_device_config_rotation *rotation;
+	struct libinput_device_config_accel *accel;
 };
 
 struct libinput_device {
