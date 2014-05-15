@@ -97,9 +97,18 @@ struct libinput_device_config_scroll {
 	enum libinput_scroll_method (*get_default)(struct libinput_device *device);
 };
 
+struct libinput_device_config_rotation {
+	int (*increment)(struct libinput_device *device);
+	enum libinput_config_status (*set)(struct libinput_device *device,
+					   int degrees_cw);
+	int (*get)(struct libinput_device *device);
+	int (*get_default)(struct libinput_device *device);
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap *tap;
 	struct libinput_device_config_scroll *scroll;
+	struct libinput_device_config_rotation *rotation;
 };
 
 struct libinput_device {

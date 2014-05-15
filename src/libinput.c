@@ -1347,3 +1347,38 @@ libinput_device_config_scroll_get_default_method(struct libinput_device *device)
 
 	return device->config.scroll->get_default(device);
 }
+
+LIBINPUT_EXPORT int
+libinput_device_config_rotation_get_increment(struct libinput_device *device)
+{
+	return device->config.rotation ?
+		device->config.rotation->increment(device) : 0;
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_rotation_set(struct libinput_device *device,
+				    int degrees_cw)
+{
+	if (libinput_device_config_rotation_get_increment(device) == 0)
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+
+	return device->config.rotation->set(device, degrees_cw);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_rotation_get(struct libinput_device *device)
+{
+	if (libinput_device_config_rotation_get_increment(device) == 0)
+		return 0;
+
+	return device->config.rotation->get(device);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_rotation_get_default(struct libinput_device *device)
+{
+	if (libinput_device_config_rotation_get_increment(device) != 0)
+		return 0;
+
+	return device->config.rotation->get_default(device);
+}
