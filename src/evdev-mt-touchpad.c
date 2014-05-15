@@ -695,8 +695,60 @@ tp_init_accel(struct tp_dispatch *tp, double diagonal)
 }
 
 static int
+tp_config_scroll_methods(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch;
+	struct tp_dispatch *tp;
+
+	dispatch = ((struct evdev_device *) device)->dispatch;
+	tp = container_of(dispatch, tp, base);
+
+	return LIBINPUT_SCROLL_METHOD_TWOFINGER;
+}
+
+static enum libinput_config_status
+tp_config_scroll_set(struct libinput_device *device,
+		     enum libinput_scroll_method method)
+{
+	struct evdev_dispatch *dispatch;
+	struct tp_dispatch *tp;
+
+	dispatch = ((struct evdev_device *) device)->dispatch;
+	tp = container_of(dispatch, tp, base);
+
+	if (method != LIBINPUT_SCROLL_METHOD_TWOFINGER)
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static enum libinput_scroll_method
+tp_config_scroll_get(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch;
+	struct tp_dispatch *tp;
+
+	dispatch = ((struct evdev_device *) device)->dispatch;
+	tp = container_of(dispatch, tp, base);
+
+	return LIBINPUT_SCROLL_METHOD_TWOFINGER;
+}
+
+static enum libinput_scroll_method
+tp_config_scroll_get_default(struct libinput_device *device)
+{
+	return LIBINPUT_SCROLL_METHOD_TWOFINGER;
+}
+
+static int
 tp_init_scroll(struct tp_dispatch *tp)
 {
+	tp->scroll.config.methods = tp_config_scroll_methods;
+	tp->scroll.config.set = tp_config_scroll_set;
+	tp->scroll.config.get = tp_config_scroll_get;
+	tp->scroll.config.get_default = tp_config_scroll_get_default;
+	tp->device->base.config.scroll = &tp->scroll.config;
+
 	tp->scroll.direction = 0;
 
 	return 0;
