@@ -103,11 +103,19 @@ struct libinput_device_config_accel {
 	void (*reset)(struct libinput_device *device);
 };
 
+struct libinput_device_config_disable_while_typing {
+	int (*available)(struct libinput_device *device);
+	int (*enable)(struct libinput_device *device, int enable);
+	int (*is_enabled)(struct libinput_device *device);
+	void (*reset)(struct libinput_device *device);
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap *tap;
 	struct libinput_device_config_scroll *scroll;
 	struct libinput_device_config_rotation *rotation;
 	struct libinput_device_config_accel *accel;
+	struct libinput_device_config_disable_while_typing *dwt;
 };
 
 struct libinput_device {

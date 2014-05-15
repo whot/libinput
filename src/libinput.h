@@ -1617,6 +1617,63 @@ libinput_device_config_accel_get_precision(struct libinput_device *device);
 void
 libinput_device_config_accel_reset(struct libinput_device *device);
 
+
+/**
+ * @ingroup config
+ *
+ * Check if this device supports a disable-while-typing feature. This
+ * feature is usually available on built-in touchpads where hand placement
+ * may cause erroneous events on the touchpad while typing.
+ *
+ * This feature is available on the device that is being disabled (i.e. the
+ * touchpad), not on the device causing the device to be disabled.
+ *
+ * @param device The device to configure
+ * @return non-zero if disable while typing is available for this device
+ */
+int
+libinput_device_config_disable_while_typing_is_available(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Enable or disable the disable-while-typing feature. When enabled, the
+ * device will not send events while and shortly after another device
+ * generates events.
+ *
+ * @param device The device to configure
+ * @param enable 0 to disable, 1 to enable
+ *
+ * @return 0 on success or a negative errno on failure
+ * @retval -EINVAL The device does not support this feature or enable is an
+ * invalid value
+ */
+int
+libinput_device_config_disable_while_typing_enable(struct libinput_device *device,
+						   int enable);
+
+/**
+ * @ingroup config
+ *
+ * Check if the feature is currently enabled.
+ *
+ * @param device The device to configure
+ *
+ * @return 0 if the feature is disabled, non-zero if the feature is enabled
+ */
+int
+libinput_device_config_disable_while_typing_is_enabled(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Reset to the default settings.
+ *
+ * @param device The device to configure
+ */
+void
+libinput_device_config_disable_while_typing_reset(struct libinput_device *device);
+
 #ifdef __cplusplus
 }
 #endif

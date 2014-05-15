@@ -1341,3 +1341,36 @@ libinput_device_config_accel_reset(struct libinput_device *device)
 	if (libinput_device_config_accel_is_available(device))
 		device->config.accel->reset(device);
 }
+
+LIBINPUT_EXPORT int
+libinput_device_config_disable_while_typing_is_available(struct libinput_device *device)
+{
+	return device->config.dwt ?
+		device->config.dwt->available(device) : 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_disable_while_typing_enable(struct libinput_device *device,
+						   int enable)
+{
+	if (!libinput_device_config_disable_while_typing_is_available(device))
+		return -EINVAL;
+
+	return device->config.dwt->enable(device, enable);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_disable_while_typing_is_enabled(struct libinput_device *device)
+{
+	if (!libinput_device_config_disable_while_typing_is_available(device))
+		return 0;
+
+	return device->config.dwt->is_enabled(device);
+}
+
+LIBINPUT_EXPORT void
+libinput_device_config_disable_while_typing_reset(struct libinput_device *device)
+{
+	if (libinput_device_config_disable_while_typing_is_available(device))
+		device->config.dwt->reset(device);
+}
