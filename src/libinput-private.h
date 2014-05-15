@@ -125,12 +125,21 @@ struct libinput_device_config_disable_while_typing {
 	int (*get_default)(struct libinput_device *device);
 };
 
+struct libinput_device_config_pointer_mode {
+	int (*modes)(struct libinput_device *device);
+	enum libinput_config_status (*set)(struct libinput_device *device,
+					   enum libinput_device_pointer_mode);
+	enum libinput_device_pointer_mode (*get)(struct libinput_device *device);
+	enum libinput_device_pointer_mode (*get_default)(struct libinput_device *device);
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap *tap;
 	struct libinput_device_config_scroll *scroll;
 	struct libinput_device_config_rotation *rotation;
 	struct libinput_device_config_accel *accel;
 	struct libinput_device_config_disable_while_typing *dwt;
+	struct libinput_device_config_pointer_mode *mode;
 };
 
 struct libinput_device {
