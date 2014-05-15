@@ -1598,6 +1598,93 @@ libinput_device_config_scroll_get_method(struct libinput_device *device);
 enum libinput_scroll_method
 libinput_device_config_scroll_get_default_method(struct libinput_device *device);
 
+
+/**
+ * @ingroup config
+ *
+ * Query the rotation increment for this device, if any. The return value is
+ * the increment in degrees. For example, a device that returns 90 may only
+ * be rotated in 90-degree increments.
+ *
+ * @param device The device to configure
+ *
+ * @return The rotation increment in degrees, or 0 if the device cannot be
+ * rotated
+ *
+ * @see libinput_device_config_rotation_set
+ * @see libinput_device_config_rotation_get
+ * @see libinput_device_config_rotation_get_default
+ */
+int
+libinput_device_config_rotation_get_increment(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Set the rotation for this device, in degrees clockwise. This rotation
+ * applies to the physical orientation of the device, i.e. if a tablet is
+ * moved from landscape to portrait format, clockwise, this represents a
+ * 90-degree rotation. In the diagram below, if a is the device origin 0/0,
+ * after the rotation the coordinate b sends 0/0 coordinates and a sends
+ * xmax/0.
+ *
+ * @code
+ *   +-------------+    +---------+
+ *   |a            |    |b       a|
+ *   |             | -> |         |
+ *   |b            |    |         |
+ *   +-------------+    |         |
+ *                      |         |
+ *                      +---------+
+ * @endcode
+ *
+ * @param device The device to configure
+ * @param degrees_cw The number of degrees to rotate clockwise
+ *
+ * @return A config status code
+ *
+ * @see libinput_device_config_rotation_get_increment
+ * @see libinput_device_config_rotation_get
+ * @see libinput_device_config_rotation_get_default
+ */
+enum libinput_config_status
+libinput_device_config_rotation_set(struct libinput_device *device,
+				    int degrees_cw);
+
+/**
+ * @ingroup config
+ *
+ * Get the current rotation for this device, in degrees clockwise. If the
+ * device does not support rotation, this function always returns 0.
+ *
+ * @param device The device to configure
+ *
+ * @return The rotation in degrees clockwise
+ *
+ * @see libinput_device_config_rotation_get_increment
+ * @see libinput_device_config_rotation_set
+ * @see libinput_device_config_rotation_get_default
+ */
+int
+libinput_device_config_rotation_get(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Return the default rotation for this device. If the device does not
+ * support rotation, this function does nothing.
+ *
+ * @param device The device to configure
+ *
+ * @return The default rotation for this device, in degrees clockwise.
+ *
+ * @see libinput_device_config_rotation_get_increment
+ * @see libinput_device_config_rotation_set
+ * @see libinput_device_config_rotation_get
+ */
+int
+libinput_device_config_rotation_get_default(struct libinput_device *device);
+
 #ifdef __cplusplus
 }
 #endif
