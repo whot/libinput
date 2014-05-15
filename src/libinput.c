@@ -1411,3 +1411,36 @@ libinput_device_config_pointer_mode_reset(struct libinput_device *device)
 		    LIBINPUT_POINTER_MODE_NATIVE_ONLY)
 		device->config.mode->reset(device);
 }
+
+LIBINPUT_EXPORT int
+libinput_device_config_middlebutton_emulation_is_available(struct libinput_device *device)
+{
+	return device->config.mbemu ?
+		device->config.mbemu->available(device) : 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_middlebutton_emulation_enable(struct libinput_device *device,
+						     int enable)
+{
+	if (!libinput_device_config_middlebutton_emulation_is_available(device))
+		return -EINVAL;
+
+	return device->config.mbemu->enable(device, enable);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_middlebutton_emulation_is_enabled(struct libinput_device *device)
+{
+	if (!libinput_device_config_middlebutton_emulation_is_available(device))
+		return 0;
+
+	return device->config.mbemu->is_enabled(device);
+}
+
+LIBINPUT_EXPORT void
+libinput_device_config_middlebutton_emulation_reset(struct libinput_device *device)
+{
+	if (libinput_device_config_middlebutton_emulation_is_available(device))
+		device->config.mbemu->reset(device);
+}
