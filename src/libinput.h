@@ -1674,6 +1674,84 @@ libinput_device_config_disable_while_typing_is_enabled(struct libinput_device *d
 void
 libinput_device_config_disable_while_typing_reset(struct libinput_device *device);
 
+/**
+ * @ingroup config
+ */
+enum libinput_device_pointer_mode {
+	/**
+	 * The device only works in native mode and does not support mode
+	 * switching. Native mode may be absolute or relative, depending on
+	 * the device.
+	 */
+	LIBINPUT_POINTER_MODE_NATIVE_ONLY = 0,
+	/**
+	 * The device behaves like an absolute input device, e.g. like a
+	 * touchscreen.
+	 */
+	LIBINPUT_POINTER_MODE_ABSOLUTE = 1 << 0,
+	/**
+	 * The device behaves like a relative input device, e.g. like a
+	 * touchpad.
+	 */
+	LIBINPUT_POINTER_MODE_RELATIVE = 1 << 1,
+};
+
+/**
+ * @ingroup config
+ *
+ * Get the supported device modes for this device. Absolute pointer devices
+ * such as graphics tablet may be used in absolute mode or relative mode.
+ *
+ * @note A device that supports relative and absolute mode may be
+ * pointer-accelerated in relative mode.
+ *
+ * @param device The device to configure
+ *
+ * @return A bitmask of the available pointer modes, or
+ * POINTER_MODE_NATIVE_ONLY if the device does not allow mode switching
+ */
+unsigned int
+libinput_device_config_pointer_mode_get_modes(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Set the pointer mode for this device.
+ *
+ * @param device The device to configure
+ * @param mode The pointer mode to switch the device to
+ *
+ * @return 0 on success, or a negative errno otherwise
+ * @retval -EINVAL The mode is not supported by this device, or mode is
+ * POINTER_MODE_NATIVE_ONLY
+ */
+int
+libinput_device_config_pointer_mode_set_mode(struct libinput_device *device,
+					     enum libinput_device_pointer_mode mode);
+
+/**
+ * @ingroup config
+ *
+ * Get the current pointer mode for this device.
+ *
+ * @param device The device to configure
+ *
+ * @return The current pointer mode this device is in
+ */
+enum libinput_device_pointer_mode
+libinput_device_config_pointer_mode_get_mode(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Reset to the default mode
+ *
+ * @param device The device to configure
+ */
+void
+libinput_device_config_pointer_mode_reset(struct libinput_device *device);
+
+
 #ifdef __cplusplus
 }
 #endif

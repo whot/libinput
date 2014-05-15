@@ -1374,3 +1374,40 @@ libinput_device_config_disable_while_typing_reset(struct libinput_device *device
 	if (libinput_device_config_disable_while_typing_is_available(device))
 		device->config.dwt->reset(device);
 }
+
+LIBINPUT_EXPORT unsigned int
+libinput_device_config_pointer_mode_get_modes(struct libinput_device *device)
+{
+	return device->config.mode ?
+		device->config.mode->modes(device) :
+		LIBINPUT_POINTER_MODE_NATIVE_ONLY;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_pointer_mode_set_mode(struct libinput_device *device,
+					     enum libinput_device_pointer_mode mode)
+{
+	if (libinput_device_config_pointer_mode_get_modes(device) ==
+		    LIBINPUT_POINTER_MODE_NATIVE_ONLY)
+		return -EINVAL;
+
+	return device->config.mode->set(device, mode);
+}
+
+LIBINPUT_EXPORT enum libinput_device_pointer_mode
+libinput_device_config_pointer_mode_get_mode(struct libinput_device *device)
+{
+	if (libinput_device_config_pointer_mode_get_modes(device) ==
+		    LIBINPUT_POINTER_MODE_NATIVE_ONLY)
+		return LIBINPUT_POINTER_MODE_NATIVE_ONLY;
+
+	return device->config.mode->get(device);
+}
+
+LIBINPUT_EXPORT void
+libinput_device_config_pointer_mode_reset(struct libinput_device *device)
+{
+	if (libinput_device_config_pointer_mode_get_modes(device) !=
+		    LIBINPUT_POINTER_MODE_NATIVE_ONLY)
+		device->config.mode->reset(device);
+}
