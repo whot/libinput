@@ -1542,6 +1542,81 @@ libinput_device_config_rotation_get(struct libinput_device *device);
 void
 libinput_device_config_rotation_reset(struct libinput_device *device);
 
+/**
+ * @ingroup config
+ *
+ * Check if a device uses libinput-internal pointer-acceleration.
+ *
+ * @param device The device to configure
+ *
+ * @return 0 if the device is not accelerated, nonzero if it is accelerated
+ */
+int
+libinput_device_config_accel_is_available(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Set the speed of this pointer device, where 0% is the minimum pointer
+ * acceleration to be applied (none or slowed down, depending on the device)
+ * and 100% is the maximum amount of acceleration to be applied.
+ *
+ * @param device The device to configure
+ * @param speed The abstract speed identifier, ranged 0% to 100%.
+ *
+ * @return 0 on success, or a negative errno otherwise
+ * @retval -EINVAL This device has no pointer acceleration, or speed is
+ * outside the permitted range.
+ */
+int
+libinput_device_config_accel_set_speed(struct libinput_device *device,
+				       unsigned int speed);
+/**
+ * @ingroup config
+ *
+ * Set the precision or sensibility of this pointer device. This affects the
+ * movement of the pointer when moving relatively slowly towards a target.
+ * The range is an abstract range,  0% is the minimum pointer precision and
+ * 100% is the maximum precision).
+ *
+ * @param device The device to configure
+ * @param precision The abstract precision identifier, range 0% to 100%.
+ *
+ * @return 0 on success, or a negative errno otherwise
+ * @retval -EINVAL This device has no pointer acceleration, or precision is
+ * outside the permitted range.
+ */
+int
+libinput_device_config_accel_set_precision(struct libinput_device *device,
+					   unsigned int precision);
+
+/**
+ * @ingroup config
+ *
+ * Get the current speed setting for this pointer device.
+ *
+ * @param device The device to configure
+ *
+ * @return The current speed, range 0% to 100%.
+ */
+unsigned int
+libinput_device_config_accel_get_speed(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Get the current precision setting for this pointer device.
+ *
+ * @param device The device to configure
+ *
+ * @return The current precision, range 0% to 100%.
+ */
+unsigned int
+libinput_device_config_accel_get_precision(struct libinput_device *device);
+
+void
+libinput_device_config_accel_reset(struct libinput_device *device);
+
 #ifdef __cplusplus
 }
 #endif

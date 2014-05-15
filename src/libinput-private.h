@@ -94,10 +94,20 @@ struct libinput_device_config_rotation {
 	void (*reset)(struct libinput_device *device);
 };
 
+struct libinput_device_config_accel {
+	int (*available)(struct libinput_device *device);
+	int (*set_speed)(struct libinput_device *device, unsigned int speed);
+	int (*set_precision)(struct libinput_device *device, unsigned int precision);
+	int (*get_speed)(struct libinput_device *device);
+	int (*get_precision)(struct libinput_device *device);
+	void (*reset)(struct libinput_device *device);
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap *tap;
 	struct libinput_device_config_scroll *scroll;
 	struct libinput_device_config_rotation *rotation;
+	struct libinput_device_config_accel *accel;
 };
 
 struct libinput_device {

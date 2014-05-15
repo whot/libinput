@@ -1288,3 +1288,56 @@ libinput_device_config_rotation_reset(struct libinput_device *device)
 	if (libinput_device_config_rotation_get_increment(device) != 0)
 		device->config.rotation->reset(device);
 }
+
+
+LIBINPUT_EXPORT int
+libinput_device_config_accel_is_available(struct libinput_device *device)
+{
+	return device->config.accel ?
+		device->config.accel->available(device) : 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_accel_set_speed(struct libinput_device *device,
+				       unsigned int speed)
+{
+	if (!libinput_device_config_accel_is_available(device))
+		return -EINVAL;
+
+	return device->config.accel->set_speed(device, speed);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_accel_set_precision(struct libinput_device *device,
+					   unsigned int precision)
+{
+	if (!libinput_device_config_accel_is_available(device))
+		return -EINVAL;
+
+	return device->config.accel->set_precision(device, precision);
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_device_config_accel_get_speed(struct libinput_device *device)
+{
+	if (!libinput_device_config_accel_is_available(device))
+		return 0;
+
+	return device->config.accel->get_speed(device);
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_device_config_accel_get_precision(struct libinput_device *device)
+{
+	if (!libinput_device_config_accel_is_available(device))
+		return 0;
+
+	return device->config.accel->get_precision(device);
+}
+
+LIBINPUT_EXPORT void
+libinput_device_config_accel_reset(struct libinput_device *device)
+{
+	if (libinput_device_config_accel_is_available(device))
+		device->config.accel->reset(device);
+}
