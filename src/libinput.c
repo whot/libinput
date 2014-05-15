@@ -1481,3 +1481,43 @@ libinput_device_config_disable_while_typing_get_default_enabled(struct libinput_
 
 	return device->config.dwt->get_default(device);
 }
+
+LIBINPUT_EXPORT unsigned int
+libinput_device_config_pointer_mode_get_modes(struct libinput_device *device)
+{
+	return device->config.mode ?
+		device->config.mode->modes(device) :
+		LIBINPUT_POINTER_MODE_NATIVE_ONLY;
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_pointer_mode_set_mode(struct libinput_device *device,
+					     enum libinput_device_pointer_mode mode)
+{
+	if (libinput_device_config_pointer_mode_get_modes(device) ==
+		    LIBINPUT_POINTER_MODE_NATIVE_ONLY &&
+	    mode != LIBINPUT_POINTER_MODE_NATIVE_ONLY)
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+
+	return device->config.mode->set(device, mode);
+}
+
+LIBINPUT_EXPORT enum libinput_device_pointer_mode
+libinput_device_config_pointer_mode_get_mode(struct libinput_device *device)
+{
+	if (libinput_device_config_pointer_mode_get_modes(device) ==
+		    LIBINPUT_POINTER_MODE_NATIVE_ONLY)
+		return LIBINPUT_POINTER_MODE_NATIVE_ONLY;
+
+	return device->config.mode->get(device);
+}
+
+LIBINPUT_EXPORT enum libinput_device_pointer_mode
+libinput_device_config_pointer_mode_get_default(struct libinput_device *device)
+{
+	if (libinput_device_config_pointer_mode_get_modes(device) ==
+		    LIBINPUT_POINTER_MODE_NATIVE_ONLY)
+		return LIBINPUT_POINTER_MODE_NATIVE_ONLY;
+
+	return device->config.mode->get_default(device);
+}
