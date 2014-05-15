@@ -125,6 +125,7 @@ struct tp_dispatch {
 	} buttons;				/* physical buttons */
 
 	struct {
+		struct libinput_device_config_scroll config;
 		enum scroll_state state;
 		enum libinput_pointer_axis direction;
 	} scroll;

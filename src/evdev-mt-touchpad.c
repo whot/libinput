@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <math.h>
 #include <stdbool.h>
 
@@ -747,8 +748,51 @@ tp_init_accel(struct tp_dispatch *touchpad, double diagonal)
 }
 
 static int
+tp_config_scroll_methods(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch = ((struct evdev_device *)device)->dispatch;
+	struct tp_dispatch *tp = container_of(dispatch, tp, base);
+
+	return LIBINPUT_SCROLL_METHOD_TWOFINGER;
+}
+
+static int
+tp_config_scroll_set(struct libinput_device *device,
+		     enum libinput_scroll_method method)
+{
+	struct evdev_dispatch *dispatch = ((struct evdev_device *)device)->dispatch;
+	struct tp_dispatch *tp = container_of(dispatch, tp, base);
+
+	if (method != LIBINPUT_SCROLL_METHOD_TWOFINGER)
+		return -EINVAL;
+
+	return 0;
+}
+
+static enum libinput_scroll_method
+tp_config_scroll_get(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch = ((struct evdev_device *)device)->dispatch;
+	struct tp_dispatch *tp = container_of(dispatch, tp, base);
+
+	return LIBINPUT_SCROLL_METHOD_TWOFINGER;
+}
+
+static void
+tp_config_scroll_reset(struct libinput_device *device)
+{
+	/* two-finger scrolling is hardcoded, nothing to do */
+}
+
+static int
 tp_init_scroll(struct tp_dispatch *tp)
 {
+	tp->scroll.config.methods = tp_config_scroll_methods;
+	tp->scroll.config.set = tp_config_scroll_set;
+	tp->scroll.config.get = tp_config_scroll_get;
+	tp->scroll.config.reset = tp_config_scroll_reset;
+	tp->device->base.config.scroll = &tp->scroll.config;
+
 	tp->scroll.direction = 0;
 	tp->scroll.state = SCROLL_STATE_NONE;
 
