@@ -133,6 +133,13 @@ struct libinput_device_config_pointer_mode {
 	enum libinput_device_pointer_mode (*get_default)(struct libinput_device *device);
 };
 
+struct libinput_device_config_middlebutton_emulation {
+	int (*available)(struct libinput_device *device);
+	int (*set_enabled)(struct libinput_device *device, int enable);
+	int (*get_enabled)(struct libinput_device *device);
+	int (*get_default)(struct libinput_device *device);
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap *tap;
 	struct libinput_device_config_scroll *scroll;
@@ -140,6 +147,7 @@ struct libinput_device_config {
 	struct libinput_device_config_accel *accel;
 	struct libinput_device_config_disable_while_typing *dwt;
 	struct libinput_device_config_pointer_mode *mode;
+	struct libinput_device_config_middlebutton_emulation *mbemu;
 };
 
 struct libinput_device {

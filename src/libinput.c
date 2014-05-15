@@ -1521,3 +1521,38 @@ libinput_device_config_pointer_mode_get_default(struct libinput_device *device)
 
 	return device->config.mode->get_default(device);
 }
+
+LIBINPUT_EXPORT int
+libinput_device_config_middlebutton_emulation_is_available(struct libinput_device *device)
+{
+	return device->config.mbemu ?
+		device->config.mbemu->available(device) : 0;
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_middlebutton_emulation_set_enabled(struct libinput_device *device,
+							  int enable)
+{
+	if (!libinput_device_config_middlebutton_emulation_is_available(device))
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+
+	return device->config.mbemu->set_enabled(device, enable);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_middlebutton_emulation_get_enabled(struct libinput_device *device)
+{
+	if (!libinput_device_config_middlebutton_emulation_is_available(device))
+		return 0;
+
+	return device->config.mbemu->get_enabled(device);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_middlebutton_emulation_get_default_enabled(struct libinput_device *device)
+{
+	if (!libinput_device_config_middlebutton_emulation_is_available(device))
+		return 0;
+
+	return device->config.mbemu->get_default(device);
+}

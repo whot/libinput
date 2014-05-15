@@ -1909,6 +1909,60 @@ libinput_device_config_pointer_mode_get_mode(struct libinput_device *device);
 enum libinput_device_pointer_mode
 libinput_device_config_pointer_mode_get_default(struct libinput_device *device);
 
+/**
+ * @ingroup config
+ *
+ * Devices without a physical middle button may provide middle-button
+ * emulation by pressing the left and the right button simultaneously.
+ *
+ * @param device The device to configure
+ *
+ * @return 1 if available, 0 if not available
+ */
+int
+libinput_device_config_middlebutton_emulation_is_available(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Enable or disable middle button emulation on this device. Note that
+ * enabling middle button emulation causes a delay in the delivery of button
+ * events.
+ *
+ * @param device The device to configure
+ * @param enable 1 to enable, 0 to disable
+ *
+ * @return A config status code
+ */
+enum libinput_config_status
+libinput_device_config_middlebutton_emulation_set_enabled(struct libinput_device *device,
+							  int enable);
+
+/**
+ * @ingroup config
+ *
+ * Check if middle button emulation is enabled on this device. If the device
+ * does not support middle button emulation, this function returns 0.
+ *
+ * @param device The device to configure
+ *
+ * @return 0 if disabled, 1 if enabled
+ */
+int
+libinput_device_config_middlebutton_emulation_get_enabled(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Return the default emulation status.
+ *
+ * @param device The device to configure
+ *
+ * @return The default middle button emulation status
+ */
+int
+libinput_device_config_middlebutton_emulation_get_default_enabled(struct libinput_device *device);
+
 #ifdef __cplusplus
 }
 #endif
