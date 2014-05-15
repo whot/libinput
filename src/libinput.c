@@ -1446,3 +1446,38 @@ libinput_device_config_accel_get_default_precision(struct libinput_device *devic
 
 	return device->config.accel->get_default_precision(device);
 }
+
+LIBINPUT_EXPORT int
+libinput_device_config_disable_while_typing_is_available(struct libinput_device *device)
+{
+	return device->config.dwt ?
+		device->config.dwt->available(device) : 0;
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_disable_while_typing_set_enabled(struct libinput_device *device,
+							int enable)
+{
+	if (!libinput_device_config_disable_while_typing_is_available(device))
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+
+	return device->config.dwt->set_enabled(device, enable);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_disable_while_typing_get_enabled(struct libinput_device *device)
+{
+	if (!libinput_device_config_disable_while_typing_is_available(device))
+		return 0;
+
+	return device->config.dwt->get_enabled(device);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_disable_while_typing_get_default_enabled(struct libinput_device *device)
+{
+	if (!libinput_device_config_disable_while_typing_is_available(device))
+		return 0;
+
+	return device->config.dwt->get_default(device);
+}
