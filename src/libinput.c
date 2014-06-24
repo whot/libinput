@@ -512,6 +512,9 @@ LIBINPUT_EXPORT double
 libinput_event_tablet_get_axis_value(struct libinput_event_tablet *event,
 				     enum libinput_tablet_axis axis)
 {
+	if (event->base.type != LIBINPUT_EVENT_TABLET_AXIS)
+		return 0;
+
 	return (axis >= 0 && axis < LIBINPUT_TABLET_AXIS_CNT) ?
 		event->axes[axis] : 0;
 }
@@ -522,6 +525,9 @@ libinput_event_tablet_get_x_transformed(struct libinput_event_tablet *event,
 {
 	struct evdev_device *device =
 		(struct evdev_device *) event->base.device;
+
+	if (event->base.type != LIBINPUT_EVENT_TABLET_AXIS)
+		return 0;
 
 	return evdev_device_transform_x(device,
 					event->axes[LIBINPUT_TABLET_AXIS_X],
@@ -534,6 +540,9 @@ libinput_event_tablet_get_y_transformed(struct libinput_event_tablet *event,
 {
 	struct evdev_device *device =
 		(struct evdev_device *) event->base.device;
+
+	if (event->base.type != LIBINPUT_EVENT_TABLET_AXIS)
+		return 0;
 
 	return evdev_device_transform_y(device,
 					event->axes[LIBINPUT_TABLET_AXIS_Y],
