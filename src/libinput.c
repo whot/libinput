@@ -517,7 +517,8 @@ LIBINPUT_EXPORT double
 libinput_event_tablet_get_axis_value(struct libinput_event_tablet *event,
 				     enum libinput_tablet_axis axis)
 {
-	if (event->base.type != LIBINPUT_EVENT_TABLET_AXIS)
+	if (event->base.type != LIBINPUT_EVENT_TABLET_AXIS &&
+	    event->base.type != LIBINPUT_EVENT_TABLET_AXIS_RELATIVE)
 		return 0;
 
 	return (axis >= 0 && axis < LIBINPUT_TABLET_AXIS_CNT) ?
@@ -1232,6 +1233,36 @@ tablet_notify_axis(struct libinput_device *device,
 
 	post_device_event(device,
 			  LIBINPUT_EVENT_TABLET_AXIS,
+			  &axis_event->base);
+}
+
+void
+tablet_notify_axis_relative(struct libinput_device *device,
+			    uint32_t time,
+			    unsigned char *changed_axes,
+			    double dx,
+			    double dy,
+			    double *axes)
+{
+	struct libinput_event_tablet *axis_event;
+
+	axis_event = zalloc(sizeof *axis_event);
+	if (!axis_event)
+		return;
+
+	*axis_event = (struct libinput_event_tablet) {
+		.time = time,
+	};
+
+	memcpy(&axis_event->changed_axes,
+	       changed_axes,
+	       sizeof(axis_event->changed_axes));
+	memcpy(&axis_event->axes, axes, sizeof(axis_event->axes));
+	axis_event->axes[LIBINPUT_TABLET_AXIS_X] = dx;
+	axis_event->axes[LIBINPUT_TABLET_AXIS_Y] = dy;
+
+	post_device_event(device,
+			  LIBINPUT_EVENT_TABLET_AXIS_RELATIVE,
 			  &axis_event->base);
 }
 

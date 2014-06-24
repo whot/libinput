@@ -210,6 +210,14 @@ tablet_notify_axis(struct libinput_device *device,
 		   double *axes);
 
 void
+tablet_notify_axis_relative(struct libinput_device *device,
+			    uint32_t time,
+			    unsigned char *changed_axes,
+			    double dx,
+			    double dy,
+			    double *axes);
+
+void
 tablet_notify_tool_update(struct libinput_device *device,
 			  uint32_t time,
 			  struct libinput_tool *tool);

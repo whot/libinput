@@ -128,6 +128,7 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	struct libinput_device *base = &device->base;
 	bool axis_update_needed = false;
 	int a;
+	double dx, dy;
 
 	for (a = 0; a < LIBINPUT_TABLET_AXIS_CNT; a++) {
 		const struct input_absinfo *absinfo;
@@ -140,9 +141,16 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 
 		switch (a) {
 		case LIBINPUT_TABLET_AXIS_X:
-		case LIBINPUT_TABLET_AXIS_Y:
+			dx = -tablet->axes[a];
 			tablet->axes[a] = evdev_convert_to_mm(absinfo,
 							      absinfo->value);
+			dx += tablet->axes[a];
+			break;
+		case LIBINPUT_TABLET_AXIS_Y:
+			dy = -tablet->axes[a];
+			tablet->axes[a] = evdev_convert_to_mm(absinfo,
+							      absinfo->value);
+			dy += tablet->axes[a];
 			break;
 		case LIBINPUT_TABLET_AXIS_DISTANCE:
 		case LIBINPUT_TABLET_AXIS_PRESSURE:
@@ -161,11 +169,21 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	}
 
 	if (axis_update_needed &&
-	    !tablet_has_status(tablet, TABLET_TOOL_OUT_OF_PROXIMITY))
-		tablet_notify_axis(base,
-				   time,
-				   tablet->changed_axes,
-				   tablet->axes);
+	    !tablet_has_status(tablet, TABLET_TOOL_OUT_OF_PROXIMITY)) {
+		if (tablet->current_tool_type != LIBINPUT_TOOL_MOUSE) {
+			tablet_notify_axis(base,
+					   time,
+					   tablet->changed_axes,
+					   tablet->axes);
+		} else {
+			tablet_notify_axis_relative(base,
+						    time,
+						    tablet->changed_axes,
+						    dx,
+						    dy,
+						    tablet->axes);
+		}
+	}
 
 	memset(tablet->changed_axes, 0, sizeof(tablet->changed_axes));
 }
