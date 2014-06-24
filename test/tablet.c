@@ -239,6 +239,88 @@ START_TEST(motion)
 }
 END_TEST
 
+START_TEST(motion_event_state)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
+	struct libinput_event_tablet *tablet_event;
+	int test_x, test_y;
+	double last_x, last_y;
+
+	struct axis_replacement axes[] = {
+		{ ABS_DISTANCE, 10 },
+		{ -1, -1 }
+	};
+
+	litest_drain_events(li);
+	litest_tablet_proximity_in(dev, 5, 100, axes);
+	litest_drain_events(li);
+
+	/* couple of events that go left/bottom to right/top */
+	for (test_x = 0, test_y = 100; test_x < 100; test_x += 10, test_y -= 10)
+		litest_tablet_proximity_in(dev, test_x, test_y, axes);
+
+	libinput_dispatch(li);
+
+	while ((event = libinput_get_event(li))) {
+		if (libinput_event_get_type(event) == LIBINPUT_EVENT_TABLET_AXIS)
+			break;
+		libinput_event_destroy(event);
+	}
+
+	/* pop the first event off */
+	ck_assert_notnull(event);
+	tablet_event = libinput_event_get_tablet_event(event);
+	ck_assert_notnull(tablet_event);
+
+	last_x = libinput_event_tablet_get_axis_value(tablet_event,
+						      LIBINPUT_TABLET_AXIS_X);
+	last_y = libinput_event_tablet_get_axis_value(tablet_event,
+						      LIBINPUT_TABLET_AXIS_Y);
+
+	/* mark with a button event, then go back to bottom/left */
+	litest_event(dev, EV_KEY, BTN_STYLUS, 1);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+
+	for (test_x = 100, test_y = 0; test_x > 0; test_x -= 10, test_y += 10)
+		litest_tablet_proximity_in(dev, test_x, test_y, axes);
+
+	libinput_event_destroy(event);
+	libinput_dispatch(li);
+	ck_assert_int_eq(libinput_next_event_type(li),
+			 LIBINPUT_EVENT_TABLET_AXIS);
+
+	/* we expect all events up to the button event to go from
+	   bottom/left to top/right */
+	while ((event = libinput_get_event(li))) {
+		double x, y;
+
+		if (libinput_event_get_type(event) != LIBINPUT_EVENT_TABLET_AXIS)
+			break;
+
+		tablet_event = libinput_event_get_tablet_event(event);
+		ck_assert_notnull(tablet_event);
+
+		x = libinput_event_tablet_get_axis_value(tablet_event,
+							 LIBINPUT_TABLET_AXIS_X);
+		y = libinput_event_tablet_get_axis_value(tablet_event,
+							 LIBINPUT_TABLET_AXIS_Y);
+
+		ck_assert(x > last_x);
+		ck_assert(y < last_y);
+
+		last_x = x;
+		last_y = y;
+		libinput_event_destroy(event);
+	}
+
+	ck_assert_int_eq(libinput_event_get_type(event),
+			 LIBINPUT_EVENT_TABLET_BUTTON);
+	libinput_event_destroy(event);
+}
+END_TEST
+
 START_TEST(bad_distance_events)
 {
 	struct litest_device *dev = litest_current_device();
@@ -596,6 +678,7 @@ main(int argc, char **argv)
 	litest_add("tablet:proximity", proximity_in_out, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:proximity", bad_distance_events, LITEST_TABLET | LITEST_DISTANCE, LITEST_ANY);
 	litest_add("tablet:motion", motion, LITEST_TABLET, LITEST_ANY);
+	litest_add("tablet:motion", motion_event_state, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:normalization", normalization, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:pad", pad_buttons_ignored, LITEST_TABLET, LITEST_ANY);
 

@@ -86,7 +86,7 @@ struct libinput_event_tablet {
 	enum libinput_button_state state;
 	uint32_t seat_button_count;
 	uint32_t time;
-	double *axes;
+	double axes[LIBINPUT_TABLET_AXIS_CNT];
 	unsigned char changed_axes[NCHARS(LIBINPUT_TABLET_AXIS_CNT)];
 	struct libinput_tool *tool;
 };
@@ -1218,12 +1218,12 @@ tablet_notify_axis(struct libinput_device *device,
 
 	*axis_event = (struct libinput_event_tablet) {
 		.time = time,
-		.axes = axes,
 	};
 
 	memcpy(&axis_event->changed_axes,
 	       changed_axes,
 	       sizeof(axis_event->changed_axes));
+	memcpy(&axis_event->axes, axes, sizeof(axis_event->axes));
 
 	post_device_event(device,
 			  LIBINPUT_EVENT_TABLET_AXIS,
