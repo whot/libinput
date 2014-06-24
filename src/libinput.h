@@ -942,11 +942,11 @@ libinput_event_tablet_get_tool(struct libinput_event_tablet *event);
  * @ingroup event_tablet
  *
  * Return the button that triggered this event.
- * For tablet events that are not of type LIBINPUT_EVENT_TABLET_BUTTON, this
+ * For tablet events that are not of type @ref LIBINPUT_EVENT_TABLET_BUTTON, this
  * function returns 0.
  *
  * @note It is an application bug to call this function for events other than
- * LIBINPUT_EVENT_TABLET_BUTTON.
+ * @ref LIBINPUT_EVENT_TABLET_BUTTON.
  *
  * @param event The libinput tablet event
  * @return the button triggering this event
@@ -960,7 +960,7 @@ libinput_event_tablet_get_button(struct libinput_event_tablet *event);
  * Return the button state of the event.
  *
  * @note It is an application bug to call this function for events other than
- * LIBINPUT_EVENT_TABLET_BUTTON.
+ * @ref LIBINPUT_EVENT_TABLET_BUTTON.
  *
  * @param event The libinput tablet event
  * @return the button state triggering this event
@@ -971,12 +971,12 @@ libinput_event_tablet_get_button_state(struct libinput_event_tablet *event);
 /**
  * @ingroup event_tablet
  *
- * For the button of a LIBINPUT_EVENT_TABLET_BUTTON event, return the total
+ * For the button of a @ref LIBINPUT_EVENT_TABLET_BUTTON event, return the total
  * number of buttons pressed on all devices on the associated seat after the
  * the event was triggered.
  *
  " @note It is an application bug to call this function for events other than
- * LIBINPUT_EVENT_TABLET_BUTTON. For other events, this function returns 0.
+ * @ref LIBINPUT_EVENT_TABLET_BUTTON. For other events, this function returns 0.
  *
  * @return the seat wide pressed button count for the key of this event
  */
