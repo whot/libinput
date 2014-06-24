@@ -218,6 +218,9 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_TABLET_AXIS:
 		type = "TABLET_AXIS";
 		break;
+	case LIBINPUT_EVENT_TABLET_AXIS_RELATIVE:
+		type = "TABLET_AXIS_RELATIVE";
+		break;
 	case LIBINPUT_EVENT_TABLET_TOOL_UPDATE:
 		type = "TABLET_TOOL_UPDATE";
 		break;
@@ -516,6 +519,7 @@ handle_and_print_events(struct libinput *li)
 			print_touch_event_without_coords(ev);
 			break;
 		case LIBINPUT_EVENT_TABLET_AXIS:
+		case LIBINPUT_EVENT_TABLET_AXIS_RELATIVE:
 			print_tablet_axis_event(ev);
 			break;
 		case LIBINPUT_EVENT_TABLET_TOOL_UPDATE:
