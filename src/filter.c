@@ -82,6 +82,9 @@ struct pointer_accelerator {
 
 	struct pointer_tracker *trackers;
 	int cur_tracker;
+
+	double threshold;	/* units/ms */
+	double accel;		/* unitless factor */
 };
 
 enum directions {
@@ -314,6 +317,9 @@ create_pointer_accelator_filter(accel_profile_func_t profile)
 		calloc(NUM_POINTER_TRACKERS, sizeof *filter->trackers);
 	filter->cur_tracker = 0;
 
+	filter->threshold = DEFAULT_THRESHOLD;
+	filter->accel = DEFAULT_ACCELERATION;
+
 	return &filter->base;
 }
 
@@ -331,8 +337,11 @@ pointer_accel_profile_smooth_simple(struct motion_filter *filter,
 				    double velocity, /* units/ms */
 				    uint64_t time)
 {
-	double threshold = DEFAULT_THRESHOLD; /* units/ms */
-	double accel = DEFAULT_ACCELERATION; /* unitless factor */
+	struct pointer_accelerator *accel_filter =
+		(struct pointer_accelerator *) filter;
+
+	double threshold = accel_filter->threshold; /* units/ms */
+	double accel = accel_filter->accel; /* unitless factor */
 	double smooth_accel_coefficient; /* unitless factor */
 	double factor; /* unitless factor */
 
