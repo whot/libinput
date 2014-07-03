@@ -24,6 +24,7 @@
 
 #include <linux/input.h>
 
+#include <assert.h>
 #include <cairo.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -47,6 +48,11 @@ struct touch {
 	int x, y;
 };
 
+struct device {
+	struct list node;
+	struct libinput_device *dev;
+};
+
 struct window {
 	GtkWidget *win;
 	GtkWidget *area;
@@ -67,6 +73,8 @@ struct window {
 
 	/* l/m/r mouse buttons */
 	int l, m, r;
+
+	struct list device_list;
 };
 
 static int
@@ -209,12 +217,34 @@ window_init(struct window *w)
 	gtk_widget_set_events(w->area, 0);
 	gtk_container_add(GTK_CONTAINER(w->win), w->area);
 	gtk_widget_show_all(w->win);
+
+	list_init(&w->device_list);
+}
+
+static void
+device_remove(struct device *d)
+{
+	list_remove(&d->node);
+	libinput_device_unref(d->dev);
+	free(d);
+}
+
+static void
+window_cleanup(struct window *w)
+{
+	struct device *d, *tmp;
+
+	list_for_each_safe(d, tmp, &w->device_list, node)
+		device_remove(d);
 }
 
 static void
 handle_event_device_notify(struct libinput_event *ev)
 {
 	struct libinput_device *dev = libinput_event_get_device(ev);
+	struct libinput *li;
+	struct window *w;
+	struct device *d;
 	const char *type;
 
 	if (libinput_event_get_type(ev) == LIBINPUT_EVENT_DEVICE_ADDED)
@@ -223,6 +253,24 @@ handle_event_device_notify(struct libinput_event *ev)
 		type = "removed";
 
 	msg("%s %s\n", libinput_device_get_sysname(dev), type);
+
+	li = libinput_event_get_context(ev);
+	w = libinput_get_user_data(li);
+
+	if (libinput_event_get_type(ev) == LIBINPUT_EVENT_DEVICE_ADDED) {
+		d = malloc(sizeof(*d));
+		assert(d != NULL);
+
+		d->dev = libinput_device_ref(dev);
+		list_insert(&w->device_list, &d->node);
+	} else  {
+		list_for_each(d, &w->device_list, node) {
+			if (d->dev == dev) {
+				device_remove(d);
+				break;
+			}
+		}
+	}
 }
 
 static void
@@ -466,6 +514,7 @@ main(int argc, char *argv[])
 
 	gtk_main();
 
+	window_cleanup(&w);
 	libinput_unref(li);
 	udev_unref(udev);
 
