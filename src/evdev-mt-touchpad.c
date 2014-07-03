@@ -645,6 +645,45 @@ tp_init_slots(struct tp_dispatch *tp,
 }
 
 static int
+tp_accel_config_available(struct libinput_device *device)
+{
+	return 1;
+}
+
+static enum libinput_config_status
+tp_accel_config_set_speed(struct libinput_device *device, double speed)
+{
+	struct evdev_dispatch *dispatch;
+	struct tp_dispatch *tp;
+
+	dispatch = ((struct evdev_device *) device)->dispatch;
+	tp = container_of(dispatch, tp, base);
+
+	if (!filter_set_speed(tp->filter, speed))
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static double
+tp_accel_config_get_speed(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch;
+	struct tp_dispatch *tp;
+
+	dispatch = ((struct evdev_device *) device)->dispatch;
+	tp = container_of(dispatch, tp, base);
+
+	return filter_get_speed(tp->filter);
+}
+
+static double
+tp_accel_config_get_default_speed(struct libinput_device *device)
+{
+	return 0;
+}
+
+static int
 tp_init_accel(struct tp_dispatch *tp, double diagonal)
 {
 	struct motion_filter *accel;
@@ -690,6 +729,12 @@ tp_init_accel(struct tp_dispatch *tp, double diagonal)
 		return -1;
 
 	tp->filter = accel;
+
+	tp->accel.config.available = tp_accel_config_available;
+	tp->accel.config.set_speed = tp_accel_config_set_speed;
+	tp->accel.config.get_speed = tp_accel_config_get_speed;
+	tp->accel.config.get_default_speed = tp_accel_config_get_default_speed;
+	tp->device->base.config.accel = &tp->accel.config;
 
 	return 0;
 }

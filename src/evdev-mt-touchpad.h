@@ -160,6 +160,7 @@ struct tp_dispatch {
 	struct motion_filter *filter;
 
 	struct {
+		struct libinput_device_config_accel config;
 		double x_scale_coeff;
 		double y_scale_coeff;
 	} accel;
