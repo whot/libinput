@@ -17,6 +17,7 @@ libinput_la_SOURCES =			\
 	evdev-mt-touchpad-buttons.c	\
 	filter.c			\
 	filter.h			\
+	filter-private.h		\
 	path.h				\
 	path.c				\
 	udev-seat.c			\

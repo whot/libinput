@@ -28,7 +28,7 @@
 #include <limits.h>
 #include <math.h>
 
-#include "filter.h"
+#include "filter-private.h"
 
 void
 filter_dispatch(struct motion_filter *filter,
