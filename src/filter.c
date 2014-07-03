@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -45,6 +46,19 @@ filter_destroy(struct motion_filter *filter)
 		return;
 
 	filter->interface->destroy(filter);
+}
+
+bool
+filter_set_speed(struct motion_filter *filter,
+		 double speed)
+{
+	return filter->interface->set_speed(filter, speed);
+}
+
+double
+filter_get_speed(struct motion_filter *filter)
+{
+	return filter->speed;
 }
 
 /*
@@ -316,9 +330,48 @@ accelerator_destroy(struct motion_filter *filter)
 	free(accel);
 }
 
+static bool
+accelerator_set_speed(struct motion_filter *filter,
+		      double speed)
+{
+	struct pointer_accelerator *accel =
+		(struct pointer_accelerator *) filter;
+
+	/* speed is in the [-1, 1] range, divide it into a couple of
+	   discrete step.  */
+	const struct accel {
+		double threshold;
+		double accel;
+	} lut[11] = {
+		{ 10, 0.7 },
+		{ 8, 0.9 },
+		{ 7, 1.0 },
+		{ 6, 1.4 },
+		{ 5, 1.7 },
+		{ DEFAULT_THRESHOLD, DEFAULT_ACCELERATION },
+		{ 3, 2.5 },
+		{ 2, 3.0 },
+		{ 1, 4.0 },
+		{ 1, 5.0 },
+		{ 1, 6.0 },
+	};
+	int idx;
+
+	assert(speed >= -1.0 && speed <= 1.0);
+
+	idx = (speed + 1.0)/2.0 * 10;
+	accel->accel = lut[idx].accel;
+	accel->threshold = lut[idx].threshold;
+
+	filter->speed = (double)idx/10.0 * 2.0 - 1;
+
+	return true;
+}
+
 struct motion_filter_interface accelerator_interface = {
 	accelerator_filter,
-	accelerator_destroy
+	accelerator_destroy,
+	accelerator_set_speed,
 };
 
 struct motion_filter *

@@ -25,6 +25,8 @@
 
 #include "config.h"
 
+#include <stdbool.h>
+
 struct motion_params {
 	double dx, dy;
 };
@@ -37,6 +39,12 @@ filter_dispatch(struct motion_filter *filter,
 		void *data, uint64_t time);
 void
 filter_destroy(struct motion_filter *filter);
+
+bool
+filter_set_speed(struct motion_filter *filter,
+		 double speed);
+double
+filter_get_speed(struct motion_filter *filter);
 
 struct motion_filter *
 create_linear_acceleration_filter(double speed);
