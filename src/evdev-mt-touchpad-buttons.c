@@ -506,7 +506,11 @@ tp_init_buttons(struct tp_dispatch *tp,
 				       "%s: clickpad advertising right button\n",
 				       device->sysname);
 	} else {
-		if (!tp->buttons.is_clickpad)
+		/* Wacom Intuos touch interface is not a clickpad but
+		   doesn't have BTN_MIDDLE/RIGHT. Doesn't have BTN_LEFT
+		   either, so don't warn about it */
+		if (!tp->buttons.is_clickpad &&
+		    libevdev_has_event_code(device->evdev, EV_KEY, BTN_LEFT))
 			log_bug_kernel(libinput,
 				       "%s: non clickpad without right button?\n",
 				       device->sysname);
