@@ -35,6 +35,8 @@ void
 filter_dispatch(struct motion_filter *filter,
 		struct motion_params *motion,
 		void *data, uint64_t time);
+void
+filter_destroy(struct motion_filter *filter);
 
 struct motion_filter *
 create_linear_acceleration_filter(double speed);
@@ -47,8 +49,6 @@ typedef double (*accel_profile_func_t)(struct motion_filter *filter,
 struct motion_filter *
 create_pointer_accelator_filter(accel_profile_func_t filter);
 
-void
-motion_filter_destroy(struct motion_filter *filter);
 
 /*
  * Pointer acceleration profiles.

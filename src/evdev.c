@@ -943,7 +943,7 @@ evdev_device_destroy(struct evdev_device *device)
 	if (dispatch)
 		dispatch->interface->destroy(dispatch);
 
-	motion_filter_destroy(device->pointer.filter);
+	filter_destroy(device->pointer.filter);
 	libinput_seat_unref(device->base.seat);
 	libevdev_free(device->evdev);
 	free(device->mt.slots);

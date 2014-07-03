@@ -38,6 +38,15 @@ filter_dispatch(struct motion_filter *filter,
 	filter->interface->filter(filter, motion, data, time);
 }
 
+void
+filter_destroy(struct motion_filter *filter)
+{
+	if (!filter)
+		return;
+
+	filter->interface->destroy(filter);
+}
+
 /*
  * Default parameters for pointer acceleration profiles.
  */
@@ -330,15 +339,6 @@ create_pointer_accelator_filter(accel_profile_func_t profile)
 	filter->cur_tracker = 0;
 
 	return &filter->base;
-}
-
-void
-motion_filter_destroy(struct motion_filter *filter)
-{
-	if (!filter)
-		return;
-
-	filter->interface->destroy(filter);
 }
 
 static inline double
