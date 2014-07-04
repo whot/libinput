@@ -274,27 +274,6 @@ calculate_acceleration(struct pointer_accelerator *accel,
 	return factor;
 }
 
-static double
-soften_delta(double last_delta, double delta)
-{
-	if (delta < -1.0 || delta > 1.0) {
-		if (delta > last_delta)
-			return delta - 0.5;
-		else if (delta < last_delta)
-			return delta + 0.5;
-	}
-
-	return delta;
-}
-
-static void
-apply_softening(struct pointer_accelerator *accel,
-		struct motion_params *motion)
-{
-	motion->dx = soften_delta(accel->last_dx, motion->dx);
-	motion->dy = soften_delta(accel->last_dy, motion->dy);
-}
-
 static void
 accelerator_filter(struct motion_filter *filter,
 		   struct motion_params *motion,
@@ -311,8 +290,6 @@ accelerator_filter(struct motion_filter *filter,
 
 	motion->dx = accel_value * motion->dx;
 	motion->dy = accel_value * motion->dy;
-
-	apply_softening(accel, motion);
 
 	accel->last_dx = motion->dx;
 	accel->last_dy = motion->dy;
