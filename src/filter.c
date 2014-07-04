@@ -405,8 +405,8 @@ pointer_accel_profile_smooth_simple(struct motion_filter *filter,
 
 	velocity *= DEFAULT_CONSTANT_ACCELERATION;
 
-	if (velocity < 1.0)
-		return calc_penumbral_gradient(0.5 + velocity * 0.5) * 2.0 - 1.0;
+	if (velocity < (threshold / 2.0))
+		return calc_penumbral_gradient(0.5 + velocity / threshold) * 2.0 - 1.0;
 
 	if (velocity <= threshold)
 		return 1.0;
