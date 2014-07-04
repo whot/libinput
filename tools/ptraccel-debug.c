@@ -32,6 +32,66 @@
 #include <string.h>
 #include <unistd.h>
 
+static double
+units_to_m_per_s(double units)
+{
+	units *= 125; /* units/s */
+	units /= 400.0; /* assume 400 dpi -> in/s */
+	units = units * 2.54 / 100; /* m/s */
+
+	return units;
+}
+
+static void
+print_ptraccel_speed(struct motion_filter *filter)
+{
+	struct motion_params motion;
+	const int nevents = 30;
+	uint64_t time = 0;
+	double dx;
+
+	printf("# gnuplot:\n");
+	printf("# set xlabel const unaccel speed in m/s\n");
+	printf("# set ylabel accelerated speed in m/s\n");
+	printf("# plot \"gnuplot.data\" using 1:2 title \"m/s\"\n");
+	printf("# plot \"gnuplot.data\" using 1:3 title \"gain\"\n");
+	printf("#\n");
+
+	/* for all deltas in 0..127, sent a set of events and total up the
+	   pointer movements. Then use the avg movement of that total to
+	   calculate speed in m/s, then map input speed to output speed.
+	   127 is the max dx possible in a 7-bit report field */
+	for (dx = 0; dx <= 127; dx += 0.5) {
+		int i;
+		double sum = 0;
+		double speed,
+		       gain; /* difference between input and output speed */
+
+		/* use 30 events to hide the tracker startup */
+		for (i = 0; i < nevents; i++) {
+			motion.dx = dx;
+			motion.dy = 0;
+			time += 8; /* ms */
+
+			filter_dispatch(filter, &motion, NULL, time);
+
+			sum += motion.dx;
+		}
+
+		speed = units_to_m_per_s(sum/nevents);
+		gain = speed - units_to_m_per_s(dx);
+
+		printf("%.2f %.2f %2f\n",
+		       units_to_m_per_s(dx),
+		       speed,
+		       gain);
+
+		time += 1000; /* reset trackers with fake timeout */
+	}
+
+
+}
+
 static void
 print_ptraccel_deltas(struct motion_filter *filter, double step)
 {
@@ -162,6 +222,7 @@ usage(void)
 	       "	delta    ... print delta to accelerated delta\n"
 	       "	velocity ... print velocity to accel factor\n"
 	       "	sequence ... print motion for custom delta sequence\n"
+	       "	speed    ... print speed to gain mapping\n"
 	       "--maxdx=<double>\n  ... in motion mode only. Stop increasing dx at maxdx\n"
 	       "--mindx=<double>\n  ... in motion mode only. Start dx at mindx\n"
 	       "--steps=<double>\n  ... in motion and delta modes only. Increase dx by step each round\n"
@@ -182,10 +243,14 @@ main(int argc, char **argv) {
 	       max_dx = 10,
 	       min_dx = 0;
 	int nevents = 0;
-	bool print_velocity = false,
-	     print_motion = true,
-	     print_delta = false,
-	     print_sequence = false;
+	enum mode {
+		MODE_NONE,
+		MODE_VELOCITY,
+		MODE_MOTION,
+		MODE_DELTA,
+		MODE_SEQUENCE,
+		MODE_SPEED,
+	} mode = MODE_NONE;
 	double custom_deltas[1024];
 
 	filter = create_pointer_accelator_filter(pointer_accel_profile_smooth_simple);
@@ -212,13 +277,15 @@ main(int argc, char **argv) {
 		switch (c) {
 		case 'm': /* --mode=? */
 			if (strcmp(optarg, "velocity") == 0)
-				print_velocity = true;
+				mode= MODE_VELOCITY;
 			else if (strcmp(optarg, "motion") == 0)
-				print_motion = true;
+				mode = MODE_MOTION;
 			else if (strcmp(optarg, "delta") == 0)
-				print_delta = true;
+				mode = MODE_DELTA;
 			else if (strcmp(optarg, "sequence") == 0)
-				print_sequence = true;
+				mode = MODE_SEQUENCE;
+			else if (strcmp(optarg, "speed") == 0)
+				mode = MODE_SPEED;
 			else {
 				usage();
 				return 1;
@@ -262,8 +329,7 @@ main(int argc, char **argv) {
 
 	if (!isatty(STDIN_FILENO)) {
 		char buf[12];
-		print_sequence = true;
-		print_motion = false;
+		mode = MODE_SEQUENCE;
 		nevents = 0;
 		memset(custom_deltas, 0, sizeof(custom_deltas));
 
@@ -271,22 +337,31 @@ main(int argc, char **argv) {
 			custom_deltas[nevents++] = strtod(buf, NULL);
 		}
 	} else if (optind < argc) {
-		print_sequence = true;
-		print_motion = false;
+		mode = MODE_SEQUENCE;
 		nevents = 0;
 		memset(custom_deltas, 0, sizeof(custom_deltas));
 		while (optind < argc)
 			custom_deltas[nevents++] = strtod(argv[optind++], NULL);
 	}
 
-	if (print_velocity)
+	switch (mode) {
+	case MODE_VELOCITY:
 		print_accel_func(filter);
-	else if (print_delta)
+		break;
+	case MODE_DELTA:
 		print_ptraccel_deltas(filter, step);
-	else if (print_motion)
+		break;
+	case MODE_NONE:
+	case MODE_MOTION:
 		print_ptraccel_movement(filter, nevents, min_dx, max_dx, step);
-	else if (print_sequence)
+		break;
+	case MODE_SEQUENCE:
 		print_ptraccel_sequence(filter, nevents, custom_deltas);
+		break;
+	case MODE_SPEED:
+		print_ptraccel_speed(filter);
+		break;
+	}
 
 	filter_destroy(filter);
 
