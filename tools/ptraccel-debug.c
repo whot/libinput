@@ -60,6 +60,7 @@ print_ptraccel_deltas(struct motion_filter *filter, double step)
 static void
 print_ptraccel_movement(struct motion_filter *filter,
 			int nevents,
+			double min_dx,
 			double max_dx,
 			double step)
 {
@@ -86,7 +87,7 @@ print_ptraccel_movement(struct motion_filter *filter,
 		nevents *= 1.5;
 	}
 
-	dx = 0;
+	dx = min_dx;
 
 	for (i = 0; i < nevents; i++) {
 		motion.dx = dx;
@@ -162,6 +163,7 @@ usage(void)
 	       "	velocity ... print velocity to accel factor\n"
 	       "	sequence ... print motion for custom delta sequence\n"
 	       "--maxdx=<double>\n  ... in motion mode only. Stop increasing dx at maxdx\n"
+	       "--mindx=<double>\n  ... in motion mode only. Start dx at mindx\n"
 	       "--steps=<double>\n  ... in motion and delta modes only. Increase dx by step each round\n"
 	       "\n"
 	       "If extra arguments are present and mode is not given, mode is changed to 'sequence'\n"
@@ -177,7 +179,8 @@ int
 main(int argc, char **argv) {
 	struct motion_filter *filter;
 	double step = 0.1,
-	       max_dx = 10;
+	       max_dx = 10,
+	       min_dx = 0;
 	int nevents = 0;
 	bool print_velocity = false,
 	     print_motion = true,
@@ -195,6 +198,7 @@ main(int argc, char **argv) {
 		static struct option long_options[] = {
 			{"mode", 1, 0, 'm'},
 			{"nevents", 1, 0, 'n'},
+			{"mindx", 1, 0, '>'},
 			{"maxdx", 1, 0, '<'},
 			{"step", 1, 0, 's'},
 			{0, 0, 0, 0}
@@ -223,6 +227,13 @@ main(int argc, char **argv) {
 		case 'n':
 			nevents = atoi(optarg);
 			if (nevents == 0) {
+				usage();
+				return 1;
+			}
+			break;
+		case '>': /* --mindx=? */
+			min_dx = strtod(optarg, NULL);
+			if (min_dx == 0.0) {
 				usage();
 				return 1;
 			}
@@ -273,7 +284,7 @@ main(int argc, char **argv) {
 	else if (print_delta)
 		print_ptraccel_deltas(filter, step);
 	else if (print_motion)
-		print_ptraccel_movement(filter, nevents, max_dx, step);
+		print_ptraccel_movement(filter, nevents, min_dx, max_dx, step);
 	else if (print_sequence)
 		print_ptraccel_sequence(filter, nevents, custom_deltas);
 
