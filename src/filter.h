@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 
 struct motion_params {
 	double dx, dy;
