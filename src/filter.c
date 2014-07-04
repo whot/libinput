@@ -398,20 +398,23 @@ pointer_accel_profile_smooth_simple(struct motion_filter *filter,
 	double accel = accel_filter->accel;
 	double smooth_accel_coefficient;
 
+	if (threshold < 1.0)
+		threshold = 1.0;
+	if (accel < 1.0)
+		accel = 1.0;
+
 	velocity *= DEFAULT_CONSTANT_ACCELERATION;
 
 	if (velocity < 1.0)
 		return calc_penumbral_gradient(0.5 + velocity * 0.5) * 2.0 - 1.0;
-	if (threshold < 1.0)
-		threshold = 1.0;
+
 	if (velocity <= threshold)
-		return 1;
+		return 1.0;
+
 	velocity /= threshold;
-	if (velocity >= accel) {
+	if (velocity >= accel)
 		return accel;
-	} else {
-		smooth_accel_coefficient =
-			calc_penumbral_gradient(velocity / accel);
-		return 1.0 + (smooth_accel_coefficient * (accel - 1.0));
-	}
+
+	smooth_accel_coefficient = calc_penumbral_gradient(velocity / accel);
+	return 1.0 + (smooth_accel_coefficient * (accel - 1.0));
 }
