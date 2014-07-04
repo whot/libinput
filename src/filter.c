@@ -415,6 +415,8 @@ pointer_accel_profile_smooth_simple(struct motion_filter *filter,
 	if (velocity >= accel)
 		return accel;
 
-	smooth_accel_coefficient = calc_penumbral_gradient(velocity / accel);
+	/* Velocity is between 1.0 and accel, scale this to 0.0 - 1.0 */
+	velocity = (velocity - 1.0) / (accel - 1.0);
+	smooth_accel_coefficient = calc_penumbral_gradient(velocity);
 	return 1.0 + (smooth_accel_coefficient * (accel - 1.0));
 }
