@@ -23,6 +23,7 @@
 #include <config.h>
 
 #include <assert.h>
+#include <alloca.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -31,6 +32,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <libinput-util.h>
 
 static double
 units_to_m_per_s(double units)
@@ -43,29 +46,48 @@ units_to_m_per_s(double units)
 }
 
 static void
+print_gnuplot_header(const char *xlabel,
+		     const char *ylabel)
+{
+	printf("#!/usr/bin/gnuplot\n"
+	       "set style data lines\n"
+	       "set xlabel '%s'\n"
+	       "set ylabel '%s'\n", xlabel, ylabel);
+}
+
+static void
+print_gnuplot_footer(void)
+{
+	printf("pause -1\n");
+}
+
+static void
 print_ptraccel_speed(struct motion_filter *filter)
 {
 	struct motion_params motion;
 	const int nevents = 30;
 	uint64_t time = 0;
 	double dx;
+	const double step = 0.5;
+	double *speed,
+	       *gain; /* difference between input and output speed */
+	int i;
+	int idx;
 
-	printf("# gnuplot:\n");
-	printf("# set xlabel const unaccel speed in m/s\n");
-	printf("# set ylabel accelerated speed in m/s\n");
-	printf("# plot \"gnuplot.data\" using 1:2 title \"m/s\"\n");
-	printf("# plot \"gnuplot.data\" using 1:3 title \"gain\"\n");
-	printf("#\n");
+	print_gnuplot_header("unaccel dx in m/s",
+			     "accelerated dx in m/s");
+	printf("plot '-' using 1:2 title 'm/s',"
+	       "     '-' using 1:2 title 'gain m/s'\n");
+
+	speed = alloca(128/step * sizeof(double));
+	gain = alloca(128/step * sizeof(double));
 
 	/* for all deltas in 0..127, sent a set of events and total up the
 	   pointer movements. Then use the avg movement of that total to
 	   calculate speed in m/s, then map input speed to output speed.
 	   127 is the max dx possible in a 7-bit report field */
-	for (dx = 0; dx <= 127; dx += 0.5) {
-		int i;
+	for (dx = 0; dx <= 127; dx += step) {
 		double sum = 0;
-		double speed,
-		       gain; /* difference between input and output speed */
 
 		/* use 30 events to hide the tracker startup */
 		for (i = 0; i < nevents; i++) {
@@ -78,18 +100,30 @@ print_ptraccel_speed(struct motion_filter *filter)
 			sum += motion.dx;
 		}
 
-		speed = units_to_m_per_s(sum/nevents);
-		gain = speed - units_to_m_per_s(dx);
+		idx = dx/step;
 
-		printf("%.2f %.2f %2f\n",
-		       units_to_m_per_s(dx),
-		       speed,
-		       gain);
+		speed[idx] = units_to_m_per_s(sum/nevents);
+		gain[idx] = speed[idx] - units_to_m_per_s(dx);
 
 		time += 1000; /* reset trackers with fake timeout */
 	}
 
+	for (i = 0; i <= idx; i++) {
+		printf("\t%.2f %.2f\n",
+		       units_to_m_per_s(i * step),
+		       speed[i]);
+	}
+	printf("\te\n");
 
+	for (i = 0; i <= idx; i++) {
+		printf("\t%.2f %.2f\n",
+		       units_to_m_per_s(i * step),
+		       gain[i]);
+	}
+
+	printf("\te\n");
+
+	print_gnuplot_footer();
 }
 
 static void
@@ -99,11 +133,9 @@ print_ptraccel_deltas(struct motion_filter *filter, double step)
 	uint64_t time = 0;
 	double i;
 
-	printf("# gnuplot:\n");
-	printf("# set xlabel dx unaccelerated\n");
-	printf("# set ylabel dx accelerated\n");
-	printf("# plot \"gnuplot.data\" using 1:2 title \"step %.2f\"\n", step);
-	printf("#\n");
+	print_gnuplot_header("dx unaccelerated",
+			     "dx accelerated");
+	printf("plot '-' using 1:2 title 'step %.2f'\n", step);
 
 	/* Accel flattens out after 15 and becomes linear */
 	for (i = 0.0; i < 15.0; i += step) {
@@ -113,8 +145,11 @@ print_ptraccel_deltas(struct motion_filter *filter, double step)
 
 		filter_dispatch(filter, &motion, NULL, time);
 
-		printf("%.2f	%.3f\n", i, motion.dx);
+		printf("\t%.2f	%.3f\n", i, motion.dx);
 	}
+
+	printf("\te\n");
+	print_gnuplot_footer();
 }
 
 static void
@@ -128,13 +163,12 @@ print_ptraccel_movement(struct motion_filter *filter,
 	uint64_t time = 0;
 	double dx;
 	int i;
+	double dx_out[nevents],
+	       dx_in[nevents];
 
-	printf("# gnuplot:\n");
-	printf("# set xlabel \"event number\"\n");
-	printf("# set ylabel \"delta motion\"\n");
-	printf("# plot \"gnuplot.data\" using 1:2 title \"dx out\", \\\n");
-	printf("#      \"gnuplot.data\" using 1:3 title \"dx in\"\n");
-	printf("#\n");
+	print_gnuplot_header("event number", "delta motion");
+	printf("plot '-' using 1:2 title 'dx out' with lines,"
+	       "     '-' using 1:2 title 'dx in' with lines\n");
 
 	if (nevents == 0) {
 		if (step > 1.0)
@@ -156,11 +190,25 @@ print_ptraccel_movement(struct motion_filter *filter,
 
 		filter_dispatch(filter, &motion, NULL, time);
 
-		printf("%d	%.3f	%.3f\n", i, motion.dx, dx);
+		dx_in[i] = dx;
+		dx_out[i] = motion.dx;
 
 		if (dx < max_dx)
 			dx += step;
 	}
+
+	for (i = 0; i < ARRAY_LENGTH(dx_in); i++) {
+		printf("\t%d	%.3f\n", i, dx_out[i]);
+	}
+
+	printf("\te\n");
+
+	for (i = 0; i < ARRAY_LENGTH(dx_in); i++) {
+		printf("\t%d	%.3f\n", i, dx_in[i]);
+	}
+
+	printf("\te\n");
+	print_gnuplot_footer();
 }
 
 static void
@@ -173,12 +221,9 @@ print_ptraccel_sequence(struct motion_filter *filter,
 	double *dx;
 	int i;
 
-	printf("# gnuplot:\n");
-	printf("# set xlabel \"event number\"\n");
-	printf("# set ylabel \"delta motion\"\n");
-	printf("# plot \"gnuplot.data\" using 1:2 title \"dx out\", \\\n");
-	printf("#      \"gnuplot.data\" using 1:3 title \"dx in\"\n");
-	printf("#\n");
+	print_gnuplot_header("event number", "delta motion");
+	printf("plot '-' using 1:2 title 'dx out', "
+	       "     '-' using 1:2 title 'dx in'\n");
 
 	dx = deltas;
 
@@ -189,8 +234,18 @@ print_ptraccel_sequence(struct motion_filter *filter,
 
 		filter_dispatch(filter, &motion, NULL, time);
 
-		printf("%d	%.3f	%.3f\n", i, motion.dx, *dx);
+		printf("%d	%.3f\n", i, motion.dx);
 	}
+
+	dx = deltas;
+
+	printf("\te\n");
+
+	for (i = 0; i < nevents; i++, dx++)
+		printf("%d	%.3f\n", i, *dx);
+
+	printf("\te\n");
+	print_gnuplot_footer();
 }
 
 static void
@@ -198,17 +253,17 @@ print_accel_func(struct motion_filter *filter)
 {
 	double vel;
 
-	printf("# gnuplot:\n");
-	printf("# set xlabel \"velocity\"\n");
-	printf("# set ylabel \"raw accel factor\"\n");
-	printf("# plot \"gnuplot.data\"\n");
+	print_gnuplot_header("velocity", "raw accel factor");
+	printf("plot '-' using 1:2 title ''\n");
 	for (vel = 0.0; vel < 3.0; vel += .0001) {
 		double result = pointer_accel_profile_smooth_simple(filter,
 								    NULL,
 								    vel,
 								    0 /* time */);
-		printf("%.4f\t%.4f\n", vel, result);
+		printf("\t%.4f\t%.4f\n", vel, result);
 	}
+	printf("\te\n");
+	print_gnuplot_footer();
 }
 
 static void
@@ -233,7 +288,7 @@ usage(void)
 	       "If stdin is a pipe, mode is changed to 'sequence' and the pipe is read \n"
 	       "for delta coordinates\n"
 	       "\n"
-	       "Output best viewed with gnuplot. See output for gnuplot commands\n");
+	       "The output is a executable gnuplot command set.\n");
 }
 
 int
