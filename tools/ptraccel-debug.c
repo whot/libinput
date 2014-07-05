@@ -110,14 +110,14 @@ print_ptraccel_speed(struct motion_filter *filter)
 	}
 
 	for (i = 0; i <= idx; i++) {
-		printf("\t%.2f %.2f\n",
+		printf("\t%f %f\n",
 		       units_to_m_per_s(i * step),
 		       speed[i]);
 	}
 	printf("\te\n");
 
 	for (i = 0; i <= idx; i++) {
-		printf("\t%.2f %.2f\n",
+		printf("\t%f %f\n",
 		       units_to_m_per_s(i * step),
 		       gain[i]);
 	}
@@ -129,7 +129,7 @@ print_ptraccel_speed(struct motion_filter *filter)
 		double unitless_gain = 0;
 		if (speed[i] != 0.0)
 			unitless_gain = gain[i]/speed[i];
-		printf("\t%.2f %.2f\n",
+		printf("\t%f %f\n",
 		       units_to_m_per_s(i * step),
 		       unitless_gain);
 	}
@@ -147,7 +147,7 @@ print_ptraccel_deltas(struct motion_filter *filter, double step)
 
 	print_gnuplot_header("dx unaccelerated",
 			     "dx accelerated");
-	printf("plot '-' using 1:2 title 'step %.2f'\n", step);
+	printf("plot '-' using 1:2 title 'step %f'\n", step);
 
 	/* Accel flattens out after 15 and becomes linear */
 	for (i = 0.0; i < 15.0; i += step) {
@@ -157,7 +157,7 @@ print_ptraccel_deltas(struct motion_filter *filter, double step)
 
 		filter_dispatch(filter, &motion, NULL, time);
 
-		printf("\t%.2f	%.3f\n", i, motion.dx);
+		printf("\t%f	%.3f\n", i, motion.dx);
 	}
 
 	printf("\te\n");
