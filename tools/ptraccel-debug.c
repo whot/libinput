@@ -284,11 +284,11 @@ usage(void)
 	printf("\n"
 	       "Options:\n"
 	       "--mode=<motion|velocity|delta|sequence> \n"
-	       "	motion   ... print motion to accelerated motion (default)\n"
+	       "	motion   ... print motion to accelerated motion\n"
 	       "	delta    ... print delta to accelerated delta\n"
 	       "	velocity ... print velocity to accel factor\n"
 	       "	sequence ... print motion for custom delta sequence\n"
-	       "	speed    ... print speed to gain mapping\n"
+	       "	speed    ... print speed to gain mapping (default)\n"
 	       "--maxdx=<double>\n  ... in motion mode only. Stop increasing dx at maxdx\n"
 	       "--mindx=<double>\n  ... in motion mode only. Start dx at mindx\n"
 	       "--steps=<double>\n  ... in motion, delta and speed modes only. Increase dx by step each round\n"
@@ -417,13 +417,13 @@ main(int argc, char **argv) {
 	case MODE_DELTA:
 		print_ptraccel_deltas(filter, step);
 		break;
-	case MODE_NONE:
 	case MODE_MOTION:
 		print_ptraccel_movement(filter, nevents, min_dx, max_dx, step);
 		break;
 	case MODE_SEQUENCE:
 		print_ptraccel_sequence(filter, nevents, custom_deltas);
 		break;
+	case MODE_NONE:
 	case MODE_SPEED:
 		print_ptraccel_speed(filter, step);
 		break;
