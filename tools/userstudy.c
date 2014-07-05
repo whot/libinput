@@ -194,7 +194,7 @@ show_text(cairo_t *cr, struct window *w)
 		 "",
 		 "You can abort any time by hitting Esc, or closing the window",
 		 "",
-		 "When you're ready to go, please click on the green circle",
+		 "When you're ready to go, please click on the blue circle",
 		 "with your mouse. This will also confirm the device you will",
 		 "be using for this study",
 		 NULL};
@@ -213,7 +213,7 @@ show_text(cairo_t *cr, struct window *w)
 		"  There is no benefit in training for this study to get ",
 		"  better results, it just skews the data",
 		"",
-		 "When you're ready to go, please click on the green circle",
+		 "When you're ready to go, please click on the blue circle",
 		 "with your mouse. This starts training for this study.",
 		 "No data is collected during training",
 		"",
@@ -229,7 +229,7 @@ show_text(cairo_t *cr, struct window *w)
 	const char *training_done_message[] = {
 		"Thanks. Training is now complete.",
 		"",
-		"To start the study, click on the green circle. This",
+		"To start the study, click on the blue circle. This",
 		"will start event collection",
 		"During the stury, click on the targets as they appear.",
 		"",
@@ -241,7 +241,7 @@ show_text(cairo_t *cr, struct window *w)
 
 	const char *done_message[] = {
 		"Thank you for completing the study.",
-		"Click on the green circle to exit",
+		"Click on the blue circle to exit",
 		"",
 		"Your results are available in the file shown below.",
 		"Please send them unmodified to peter.hutterer@who-t.net, with a subject",
@@ -311,7 +311,10 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 	/* draw the click object */
 	cairo_save(cr);
-	cairo_set_source_rgb(cr, .4, .8, 0);
+	if (w->state == STATE_TRAINING || w->state  == STATE_STUDY)
+		cairo_set_source_rgb(cr, .4, .8, 0);
+	else
+		cairo_set_source_rgb(cr, .0, .2, .8);
 	cairo_arc(cr, w->object_x, w->object_y, w->object_radius, 0, 2 * M_PI);
 	cairo_fill(cr);
 	cairo_restore(cr);
@@ -420,6 +423,7 @@ window_init(struct window *w)
 	gtk_window_set_title(GTK_WINDOW(w->win), "libinput debugging tool");
 	gtk_window_set_default_size(GTK_WINDOW(w->win), 1024, 768);
 	gtk_window_maximize(GTK_WINDOW(w->win));
+	gtk_window_fullscreen(GTK_WINDOW(w->win));
 	gtk_window_set_resizable(GTK_WINDOW(w->win), TRUE);
 	gtk_widget_realize(w->win);
 	g_signal_connect(G_OBJECT(w->win), "map-event", G_CALLBACK(map_event_cb), w);
