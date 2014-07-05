@@ -76,6 +76,7 @@ print_ptraccel_speed(struct motion_filter *filter)
 
 	print_gnuplot_header("unaccel dx in m/s",
 			     "accelerated dx in m/s");
+	printf("set multiplot layout 1,2\n");
 	printf("plot '-' using 1:2 title 'm/s',"
 	       "     '-' using 1:2 title 'gain m/s'\n");
 
@@ -121,6 +122,17 @@ print_ptraccel_speed(struct motion_filter *filter)
 		       gain[i]);
 	}
 
+	printf("\te\n");
+
+	printf("plot '-' using 1:2 title 'gain'\n");
+	for (i = 0; i < idx; i++) {
+		double unitless_gain = 0;
+		if (speed[i] != 0.0)
+			unitless_gain = gain[i]/speed[i];
+		printf("\t%.2f %.2f\n",
+		       units_to_m_per_s(i * step),
+		       unitless_gain);
+	}
 	printf("\te\n");
 
 	print_gnuplot_footer();
