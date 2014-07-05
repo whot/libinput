@@ -112,6 +112,15 @@ fi
 AM_CONDITIONAL(HAVE_VALGRIND, [test "x$VALGRIND" != "x"])
 AM_CONDITIONAL(BUILD_TESTS, [test "x$build_tests" = "xyes"])
 
+# Uses non-exported symbols and needs to be statically linked, otherwise we
+# get linker errors.
+if test "x$enable_static" != "xyes"; then
+	AC_MSG_WARN([Static libraries disabled, cannot build the the
+		     pointer acceleration debug tool.])
+fi
+build_ptraccel_debug="$enable_static"
+AM_CONDITIONAL(BUILD_PTRACCEL_DEBUG, [test "x$build_ptraccel_debug" = "xyes"])
+
 AC_CONFIG_FILES([Makefile
 		 doc/Makefile
 		 doc/libinput.doxygen
@@ -125,8 +134,9 @@ AC_OUTPUT
 AC_MSG_RESULT([
 	Prefix			${prefix}
 
-	Build documentation	${have_doxygen}
-	Build tests		${build_tests}
-	Tests use valgrind	${VALGRIND}
-	Build GUI event tool	${build_eventgui}
+	Build documentation		${have_doxygen}
+	Build tests			${build_tests}
+	Tests use valgrind		${VALGRIND}
+	Build GUI event tool		${build_eventgui}
+	Build ptraccel debug tool	${build_ptraccel_debug}
 	])

@@ -8,9 +8,11 @@ event_debug_LDADD = ../src/libinput.la $(LIBUDEV_LIBS)
 event_debug_LDFLAGS = -static
 event_debug_CFLAGS = $(LIBUDEV_CFLAGS)
 
+if BUILD_PTRACCEL_DEBUG
 ptraccel_debug_SOURCES = ptraccel-debug.c
 ptraccel_debug_LDADD = ../src/libinput.la
 ptraccel_debug_LDFLAGS = -static
+endif
 
 if BUILD_EVENTGUI
 noinst_PROGRAMS += event-gui
