@@ -39,6 +39,7 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 
+#include <libevdev/libevdev.h>
 #include <libinput.h>
 #include <libinput-util.h>
 
@@ -96,6 +97,10 @@ struct window {
 	int object_radius;
 
 	int ntargets;
+
+	int fd;
+	char *filename;
+	char *cwd;
 };
 
 static int
@@ -145,7 +150,7 @@ usage(void)
 }
 
 static void
-show_text(cairo_t *cr, enum study_state which)
+show_text(cairo_t *cr, struct window *w)
 {
 	const int font_size = 14;
 	const char **str;
@@ -222,16 +227,16 @@ show_text(cairo_t *cr, enum study_state which)
 
 	const char *done_message[] = {
 		"Thank you for completing the study.",
+		"Click on the green circle to exit",
 		"",
 		"Your results are available in the file shown below.",
 		"Please send them unmodified to peter.hutterer@who-t.net, with a subject",
 		"of \"userstudy results\"",
 		"",
-		"Click on the green circle to exit",
 		NULL
 	};
 
-	switch(which) {
+	switch(w->state) {
 	case STATE_WELCOME:
 		str = welcome_message;
 		break;
@@ -239,6 +244,7 @@ show_text(cairo_t *cr, enum study_state which)
 		str = confirm_message;
 		break;
 	case STATE_TRAINING:
+	case STATE_STUDY:
 		str = training_message;
 		break;
 	case STATE_TRAINING_DONE:
@@ -264,6 +270,13 @@ show_text(cairo_t *cr, enum study_state which)
 		line++;
 	}
 
+	if (w->state == STATE_DONE) {
+		char buf[PATH_MAX];
+		cairo_move_to(cr, 400, 100 + line * font_size * 1.2);
+		snprintf(buf, sizeof(buf), "%s/%s", w->cwd, w->filename);
+		cairo_show_text(cr, buf);
+	}
+
 	cairo_restore(cr);
 
 }
@@ -280,7 +293,7 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 	cairo_rectangle(cr, 0, 0, w->width, w->height);
 	cairo_fill(cr);
 
-	show_text(cr, w->state);
+	show_text(cr, w);
 
 	/* draw the click object */
 	cairo_save(cr);
@@ -412,6 +425,8 @@ study_init(struct window *w)
 {
 	w->object_radius = 50;
 	w->state = STATE_WELCOME;
+	w->filename = NULL;
+	w->cwd = NULL;
 }
 
 static void
@@ -429,6 +444,12 @@ window_cleanup(struct window *w)
 
 	list_for_each_safe(d, tmp, &w->device_list, node)
 		device_remove(d);
+
+	if (w->state != STATE_DONE)
+		unlink(w->filename);
+
+	free(w->filename);
+	free(w->cwd);
 }
 
 static void
@@ -643,18 +664,134 @@ new_target(struct window *w)
 	w->object_x = xoff + (r % 4) * point_dist;
 	w->object_y = yoff + (r/4) * point_dist;
 
+	if (w->state == STATE_STUDY) {
+		dprintf(w->fd,
+			"<target time=\"%d\" number=\"%d\" x=\"%d\" y=\"%d\" r=\"%d\" />\n",
+			time,
+			w->ntargets,
+			w->object_x,
+			w->object_y,
+			w->object_radius);
+	}
+
 	w->ntargets--;
 }
 
 static void
 start_recording(struct window *w)
 {
+	struct libevdev *evdev;
+	int fd;
+	int code, type;
+	char path[PATH_MAX];
+
 	w->ntargets = 3; /* FIXME */
+
+	w->filename = strdup("userstudy-results.xml.XXXXXX");
+	w->fd = mkstemp(w->filename);
+	assert(w->fd > -1);
+	w->cwd = get_current_dir_name();
+
+	dprintf(w->fd, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	dprintf(w->fd, "<results>\n");
+	dprintf(w->fd, "<device name=\"%s\" pid=\"%#x\" vid=\"%#x\">\n",
+		libinput_device_get_name(w->device),
+		libinput_device_get_id_product(w->device),
+		libinput_device_get_id_vendor(w->device));
+
+	snprintf(path,
+		 sizeof(path),
+		 "/dev/input/%s",
+		 libinput_device_get_sysname(w->device));
+	fd = open(path, O_RDONLY);
+	assert(fd > 0);
+
+	assert(libevdev_new_from_fd(fd, &evdev) == 0);
+
+	for (type = EV_KEY; type < EV_MAX; type++) {
+		int max = libevdev_event_type_get_max(type);
+
+		if (!libevdev_has_event_type(evdev, type))
+			continue;
+
+		for (code = 0; code < max; code++) {
+			if (!libevdev_has_event_code(evdev, type, code))
+				continue;
+
+			dprintf(w->fd,
+				"<bit type=\"%d\" code=\"%d\"/> <!-- %s %s -->\n",
+				type, code,
+				libevdev_event_type_get_name(type),
+				libevdev_event_code_get_name(type, code));
+		}
+	}
+
+	libevdev_free(evdev);
+	close(fd);
+
+	dprintf(w->fd, "</device>\n");
+	dprintf(w->fd, "<events>\n");
 }
 
 static void
 stop_recording(struct window *w)
 {
+	dprintf(w->fd, "</events>\n");
+	dprintf(w->fd, "</results>\n");
+	close(w->fd);
+}
+
+static void
+record_event(struct window *w, struct libinput_event *ev)
+{
+	struct libinput_device *device;
+	struct libinput_event_pointer *ptrev;
+	enum libinput_event_type type;
+
+	if (w->state != STATE_STUDY)
+		return;
+
+	device = libinput_event_get_device(ev);
+	if (device != w->device)
+		return;
+	type = libinput_event_get_type(ev);
+	switch (type) {
+	case LIBINPUT_EVENT_NONE:
+		abort();
+	case LIBINPUT_EVENT_DEVICE_ADDED:
+	case LIBINPUT_EVENT_DEVICE_REMOVED:
+	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
+	case LIBINPUT_EVENT_TOUCH_DOWN:
+	case LIBINPUT_EVENT_TOUCH_MOTION:
+	case LIBINPUT_EVENT_TOUCH_UP:
+	case LIBINPUT_EVENT_POINTER_AXIS:
+	case LIBINPUT_EVENT_TOUCH_CANCEL:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
+	case LIBINPUT_EVENT_KEYBOARD_KEY:
+		return;
+	case LIBINPUT_EVENT_POINTER_MOTION:
+	case LIBINPUT_EVENT_POINTER_BUTTON:
+		break;
+	}
+
+	ptrev = libinput_event_get_pointer_event(ev);
+
+	if (type == LIBINPUT_EVENT_POINTER_BUTTON) {
+		dprintf(w->fd,
+			"<button time=\"%d\" x=\"%f\" y=\"%f\" button=\"%d\" state=\"%d\" hit=\"%d\"/>\n",
+			libinput_event_pointer_get_time(ptrev),
+			w->x, w->y,
+			libinput_event_pointer_get_button(ptrev),
+			libinput_event_pointer_get_button_state(ptrev),
+			(int)click_in_circle(w, w->x, w->y));
+	} else {
+		dprintf(w->fd,
+			"<motion time=\"%d\"  x=\"%f\" y=\"%f\" dx=\"%f\" dy=\"%f\"/>\n",
+			libinput_event_pointer_get_time(ptrev),
+			w->x, w->y,
+			libinput_event_pointer_get_dx(ptrev),
+			libinput_event_pointer_get_dy(ptrev));
+	}
 }
 
 static void
@@ -740,6 +877,9 @@ handle_event_button(struct libinput_event *ev, struct window *w)
 			return;
 
 		gtk_main_quit();
+		printf("Your results are in %s/%s\n",
+		       w->cwd,
+		       w->filename);
 		break;
 	default:
 		return;
@@ -756,6 +896,7 @@ handle_event_libinput(GIOChannel *source, GIOCondition condition, gpointer data)
 	libinput_dispatch(li);
 
 	while ((ev = libinput_get_event(li))) {
+		record_event(w, ev);
 		switch (libinput_event_get_type(ev)) {
 		case LIBINPUT_EVENT_NONE:
 			abort();
