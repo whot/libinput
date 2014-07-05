@@ -45,6 +45,9 @@
 
 #define clip(val_, min_, max_) min((max_), max((min_), (val_)))
 
+#define NUM_TRAINING_TARGETS 3
+#define NUM_STUDY_TARGETS 3
+
 enum study_state {
 	STATE_WELCOME,
 	STATE_CONFIRM,
@@ -92,6 +95,8 @@ struct window {
 
 
 	enum study_state state;
+	enum study_state new_state; /* changed on release */
+
 	int object_x,
 	    object_y;
 	int object_radius;
@@ -147,6 +152,14 @@ usage(void)
 	       "\n");
 	usage_device();
 
+}
+
+static void
+default_target(struct window *w)
+{
+	w->object_x = w->width/2;
+	w->object_y = w->height * 0.75;
+	w->object_radius = 50;
 }
 
 static void
@@ -393,8 +406,7 @@ map_event_cb(GtkWidget *widget, GdkEvent *event, gpointer data)
 	}
 
 
-	w->object_x = w->width/2;
-	w->object_y = w->height * 0.75;
+	default_target(w);
 }
 
 static void
@@ -423,10 +435,9 @@ window_init(struct window *w)
 static void
 study_init(struct window *w)
 {
-	w->object_radius = 50;
+	default_target(w);
 	w->state = STATE_WELCOME;
-	w->filename = NULL;
-	w->cwd = NULL;
+	w->new_state = STATE_WELCOME;
 }
 
 static void
@@ -685,7 +696,7 @@ start_recording(struct window *w)
 	int code, type;
 	char path[PATH_MAX];
 
-	w->ntargets = 3; /* FIXME */
+	w->ntargets = NUM_STUDY_TARGETS;
 
 	w->filename = strdup("userstudy-results.xml.XXXXXX");
 	w->fd = mkstemp(w->filename);
@@ -820,46 +831,57 @@ handle_event_button(struct libinput_event *ev, struct window *w)
 	}
 
 	/* userstudy state transitions */
-	if (!is_press)
+	if (!is_press) {
+		if (w->new_state != w->state) {
+			w->state = w->new_state;
+
+			switch(w->state) {
+			case STATE_TRAINING:
+			case STATE_STUDY:
+				new_target(w);
+				break;
+			default:
+				break;
+			}
+		}
 		return;
+	}
 
 	switch(w->state) {
 	case STATE_WELCOME:
 		if (!click_in_circle(w, w->x, w->y))
 		    return;
-		w->state = STATE_CONFIRM;
+		w->new_state = STATE_CONFIRM;
 		assert(w->device == NULL);
 		w->device = libinput_event_get_device(ev);
+		default_target(w);
 		break;
 	case STATE_CONFIRM:
 		if (!click_in_circle(w, w->x, w->y))
 		    return;
-		w->state = STATE_TRAINING;
-		w->ntargets = 3; /* FIXME */
-		new_target(w);
+		w->new_state = STATE_TRAINING;
+		w->ntargets = NUM_TRAINING_TARGETS;
+		default_target(w);
 		break;
 	case STATE_TRAINING:
 		if (!click_in_circle(w, w->x, w->y))
 			return;
 
 		if (w->ntargets == 0) {
-			w->state = STATE_TRAINING_DONE;
+			w->new_state = STATE_TRAINING_DONE;
+			default_target(w);
 			return;
 		}
-
 		new_target(w);
-
 		break;
 	case STATE_TRAINING_DONE:
 		if (!click_in_circle(w, w->x, w->y)) {
-			w->ntargets= 3; /* FIXME */
-			w->state = STATE_TRAINING;
-			new_target(w);
+			w->ntargets = NUM_TRAINING_TARGETS;
+			w->new_state = STATE_TRAINING;
 			return;
 		}
 		start_recording(w);
-		new_target(w);
-		w->state = STATE_STUDY;
+		w->new_state = STATE_STUDY;
 		break;
 	case STATE_STUDY:
 		if (!click_in_circle(w, w->x, w->y))
@@ -868,6 +890,8 @@ handle_event_button(struct libinput_event *ev, struct window *w)
 		if (w->ntargets == 0) {
 			stop_recording(w);
 			w->state = STATE_DONE;
+			w->new_state = STATE_DONE;
+			default_target(w);
 			return;
 		}
 		new_target(w);
