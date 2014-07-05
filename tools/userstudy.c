@@ -111,6 +111,7 @@ struct window {
 	char *cwd;
 
 	int set;
+	int radii[NUM_SETS];
 };
 
 static int
@@ -741,8 +742,20 @@ start_recording(struct window *w)
 	int fd;
 	int code, type;
 	char path[PATH_MAX];
+	int radii[] = { 15, 30, 45 };
+	int i;
 
 	w->ntargets = NUM_STUDY_TARGETS;
+
+	/* Define order at startup, but randomly */
+	for (i = 0; i < NUM_SETS; i++)
+		w->radii[i] = radii[i];
+	for (i = NUM_SETS - 1; i > 0; i--) {
+		int j = rand() % (i + 1);
+		int tmp = w->radii[j];
+		w->radii[j] = w->radii[i];
+		w->radii[i] = tmp;
+	}
 
 	w->filename = strdup("userstudy-results.xml.XXXXXX");
 	w->fd = mkstemp(w->filename);
@@ -886,7 +899,11 @@ handle_event_button(struct libinput_event *ev, struct window *w)
 
 			switch(w->state) {
 			case STATE_TRAINING:
+				w->object_radius = 50;
+				new_target(w);
+				break;
 			case STATE_STUDY:
+				w->object_radius = w->radii[w->set];
 				new_target(w);
 				break;
 			default:
@@ -938,7 +955,8 @@ handle_event_button(struct libinput_event *ev, struct window *w)
 
 		if (w->ntargets == 0) {
 			default_target(w);
-			if (w->set++ < NUM_SETS) {
+			w->set++;
+			if (w->set < NUM_SETS) {
 				mark_set_stop(w);
 				w->state = STATE_INTERMISSION;
 				w->new_state = STATE_INTERMISSION;
