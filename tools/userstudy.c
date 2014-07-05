@@ -127,7 +127,9 @@ static gboolean
 draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
 	struct window *w = data;
+#if 0
 	struct touch *t;
+#endif
 
 	cairo_set_source_rgb(cr, 1, 1, 1);
 	cairo_rectangle(cr, 0, 0, w->width, w->height);
@@ -143,6 +145,7 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 	cairo_fill(cr);
 	cairo_restore(cr);
 
+#if 0
 	/* draw scroll bars */
 	cairo_set_source_rgb(cr, .4, .8, 0);
 
@@ -189,6 +192,7 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 	cairo_rectangle(cr, w->width/2 + 30, w->height - 200, 70, 30);
 	cairo_stroke(cr);
 	cairo_restore(cr);
+#endif
 
 	return TRUE;
 }
