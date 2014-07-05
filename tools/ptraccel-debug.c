@@ -293,11 +293,9 @@ usage(void)
 	       "--mindx=<double>\n  ... in motion mode only. Start dx at mindx\n"
 	       "--steps=<double>\n  ... in motion, delta and speed modes only. Increase dx by step each round\n"
 	       "\n"
-	       "If extra arguments are present and mode is not given, mode is changed to 'sequence'\n"
-	       "and the arguments are interpreted as sequence of delta x coordinates\n"
-	       "\n"
-	       "If stdin is a pipe, mode is changed to 'sequence' and the pipe is read \n"
-	       "for delta coordinates\n"
+	       "In sequence mode, extra arguments are a sequence of delta x coordinates.\n"
+	       "In sequence mode, if stdin is a pipe, the pipe is read \n"
+	       "for delta coordinates and extra arguments are ignored.\n"
 	       "\n"
 	       "The output is a executable gnuplot command set.\n");
 }
@@ -393,21 +391,25 @@ main(int argc, char **argv) {
 
 	}
 
-	if (!isatty(STDIN_FILENO)) {
-		char buf[12];
-		mode = MODE_SEQUENCE;
+	if (mode == MODE_SEQUENCE) {
 		nevents = 0;
-		memset(custom_deltas, 0, sizeof(custom_deltas));
+		if (!isatty(STDIN_FILENO)) {
+			char buf[12];
+			memset(custom_deltas, 0, sizeof(custom_deltas));
 
-		while(fgets(buf, sizeof(buf), stdin) && nevents < 1024) {
-			custom_deltas[nevents++] = strtod(buf, NULL);
+			while(fgets(buf, sizeof(buf), stdin) && nevents < 1024) {
+				custom_deltas[nevents++] = strtod(buf, NULL);
+			}
+		} else if (optind < argc) {
+			nevents = 0;
+			memset(custom_deltas, 0, sizeof(custom_deltas));
+			while (optind < argc)
+				custom_deltas[nevents++] = strtod(argv[optind++], NULL);
+		} else {
+			usage();
+			return 1;
 		}
-	} else if (optind < argc) {
-		mode = MODE_SEQUENCE;
-		nevents = 0;
-		memset(custom_deltas, 0, sizeof(custom_deltas));
-		while (optind < argc)
-			custom_deltas[nevents++] = strtod(argv[optind++], NULL);
+
 	}
 
 	switch (mode) {
