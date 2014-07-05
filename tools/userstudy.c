@@ -30,6 +30,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,6 +43,15 @@
 #include <libinput-util.h>
 
 #define clip(val_, min_, max_) min((max_), max((min_), (val_)))
+
+enum study_state {
+	STATE_WELCOME,
+	STATE_CONFIRM,
+	STATE_TRAINING,
+	STATE_TRAINING_DONE,
+	STATE_STUDY,
+	STATE_DONE,
+};
 
 struct touch {
 	int active;
@@ -75,6 +85,17 @@ struct window {
 	int l, m, r;
 
 	struct list device_list;
+
+	/* the device used during the study */
+	struct libinput_device *device;
+
+
+	enum study_state state;
+	int object_x,
+	    object_y;
+	int object_radius;
+
+	int ntargets;
 };
 
 static int
@@ -123,6 +144,130 @@ usage(void)
 
 }
 
+static void
+show_text(cairo_t *cr, enum study_state which)
+{
+	const int font_size = 14;
+	const char **str;
+	int line;
+
+	const char *welcome_message[] =
+		{"Thank you for participating in this study. The goal of this study",
+		 "is to analyze the pointer acceleration code. The study",
+		 "consists of several randomized sets of moving targets.",
+		 "Your task is to simply click on these targets as they appear,",
+		 "using a mouse-like input device.",
+		 "",
+		 "The data collected by this program is limited to:",
+		 "- input device name and capabilities (what evtest(1) would see)",
+		 "- input events with timestamps",
+		 "- converted events and timestamps",
+		 "",
+		 "No data that can personally identify you is collected.",
+		 "Key events are received by this program but not collected or",
+		 "analyzed. Only the Esc key is handled.",
+		 "",
+		 "If you are worried about key event handling, restart as user (not as root)",
+		 "or specify the mouse device path on the commandline.",
+		 "",
+		 "The data collected is available in a plain text file and must",
+		 "be sent to me via email. This tool does not send any data.",
+		 "",
+		 "You can abort any time by hitting Esc, or closing the window",
+		 "",
+		 "When you're ready to go, please click on the green circle",
+		 "with your mouse. This will also confirm the device you will",
+		 "be using for this study",
+		 NULL};
+
+	const char *confirm_message[] = {
+		"Thanks again for participipating. I know which device you",
+		"will be using now. Almost ready to go, please confirm the following:",
+		"",
+		"- events from other devices will be ignored (except the Esc key).",
+		"  if the device you just used wasn't the right one, please restart",
+		"- you have normal or corrected vision and you are able to see the target below",
+		"- you are familiar with using a mouse-like input device",
+		"- the input device is NOT a touchpad or trackball",
+		"  (sorry, we'll be evaluating those separately)",
+		"- this is the first time you are running this study.",
+		"  There is no benefit in training for this study to get ",
+		"  better results, it just skews the data",
+		"",
+		 "When you're ready to go, please click on the green circle",
+		 "with your mouse. This starts training for this study.",
+		 "No data is collected during training",
+		"",
+		"You can abort any time by hitting Esc, or closing the window",
+		NULL
+	};
+
+	const char *training_message[] = {
+		"Click on the targets as they appear.",
+		NULL
+	};
+
+	const char *training_done_message[] = {
+		"Thanks. Training is now complete.",
+		"",
+		"To start the study, click on the green circle. This",
+		"will start event collection",
+		"During the stury, click on the targets as they appear.",
+		"",
+		"To run through the training again, click anywhere else",
+		"",
+		"You can abort any time by hitting Esc, or closing the window",
+		NULL
+	};
+
+	const char *done_message[] = {
+		"Thank you for completing the study.",
+		"",
+		"Your results are available in the file shown below.",
+		"Please send them unmodified to peter.hutterer@who-t.net, with a subject",
+		"of \"userstudy results\"",
+		"",
+		"Click on the green circle to exit",
+		NULL
+	};
+
+	switch(which) {
+	case STATE_WELCOME:
+		str = welcome_message;
+		break;
+	case STATE_CONFIRM:
+		str = confirm_message;
+		break;
+	case STATE_TRAINING:
+		str = training_message;
+		break;
+	case STATE_TRAINING_DONE:
+		str = training_done_message;
+		break;
+	case STATE_DONE:
+		str = done_message;
+		break;
+	default:
+			    return;
+	}
+
+	cairo_save(cr);
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_set_font_size(cr, font_size);
+
+	line = 0;
+
+	while (*str != 0) {
+		cairo_move_to(cr, 400, 100 + line * font_size * 1.2);
+		cairo_show_text(cr, *str);
+		str++;
+		line++;
+	}
+
+	cairo_restore(cr);
+
+}
+
 static gboolean
 draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
@@ -135,6 +280,15 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 	cairo_rectangle(cr, 0, 0, w->width, w->height);
 	cairo_fill(cr);
 
+	show_text(cr, w->state);
+
+	/* draw the click object */
+	cairo_save(cr);
+	cairo_set_source_rgb(cr, .4, .8, 0);
+	cairo_arc(cr, w->object_x, w->object_y, w->object_radius, 0, 2 * M_PI);
+	cairo_fill(cr);
+	cairo_restore(cr);
+
 	/* draw pointer sprite */
 	cairo_set_source_rgb(cr, 0, 0, 0);
 	cairo_save(cr);
@@ -144,6 +298,7 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 	cairo_rel_line_to(cr, 0, -15);
 	cairo_fill(cr);
 	cairo_restore(cr);
+
 
 #if 0
 	/* draw scroll bars */
@@ -216,6 +371,17 @@ map_event_cb(GtkWidget *widget, GdkEvent *event, gpointer data)
 
 	gdk_window_set_cursor(gtk_widget_get_window(w->win),
 			      gdk_cursor_new(GDK_BLANK_CURSOR));
+
+
+	if (w->width < 1024 || w->height < 768) {
+		fprintf(stderr, "Sorry, your screen is too small\n");
+		gtk_main_quit();
+		return;
+	}
+
+
+	w->object_x = w->width/2;
+	w->object_y = w->height * 0.75;
 }
 
 static void
@@ -239,6 +405,13 @@ window_init(struct window *w)
 	gtk_widget_show_all(w->win);
 
 	list_init(&w->device_list);
+}
+
+static void
+study_init(struct window *w)
+{
+	w->object_radius = 50;
+	w->state = STATE_WELCOME;
 }
 
 static void
@@ -428,12 +601,72 @@ handle_event_keyboard(struct libinput_event *ev, struct window *w)
 	return 0;
 }
 
+static bool
+click_in_circle(struct window *w, int x, int y)
+{
+	double dist;
+
+	if (x < w->object_x - w->object_radius ||
+	    x > w->object_x + w->object_radius ||
+	    y < w->object_y - w->object_radius ||
+	    y > w->object_y + w->object_radius)
+		return false;
+
+	dist = (x - w->object_x) * (x - w->object_x) +
+		(y - w->object_y) * (y - w->object_y);
+
+	if (dist > w->object_radius * w->object_radius)
+		return false;
+
+	return true;
+}
+
+static void
+new_target(struct window *w)
+{
+	struct timespec tp;
+	uint32_t time;
+	int r;
+
+	int point_dist = 300;
+	int max_radius = 30;
+
+	int xoff = w->width/2 - point_dist * 1.5;
+	int yoff = w->height/2 - point_dist;
+
+	clock_gettime(CLOCK_MONOTONIC, &tp);
+	time = tp.tv_sec * 1000 + tp.tv_nsec/1000000;
+
+	/* Grid of 4x3 positions */
+	r = rand() % 12;
+
+	w->object_x = xoff + (r % 4) * point_dist;
+	w->object_y = yoff + (r/4) * point_dist;
+
+	w->ntargets--;
+}
+
+static void
+start_recording(struct window *w)
+{
+	w->ntargets = 3; /* FIXME */
+}
+
+static void
+stop_recording(struct window *w)
+{
+}
+
 static void
 handle_event_button(struct libinput_event *ev, struct window *w)
 {
 	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
 	unsigned int button = libinput_event_pointer_get_button(p);
 	int is_press;
+	struct libinput_device *device = libinput_event_get_device(ev);
+
+	if (w->device && device != w->device)
+		return;
 
 	is_press = libinput_event_pointer_get_button_state(p) == LIBINPUT_BUTTON_STATE_PRESSED;
 
@@ -449,6 +682,68 @@ handle_event_button(struct libinput_event *ev, struct window *w)
 		break;
 	}
 
+	/* userstudy state transitions */
+	if (!is_press)
+		return;
+
+	switch(w->state) {
+	case STATE_WELCOME:
+		if (!click_in_circle(w, w->x, w->y))
+		    return;
+		w->state = STATE_CONFIRM;
+		assert(w->device == NULL);
+		w->device = libinput_event_get_device(ev);
+		break;
+	case STATE_CONFIRM:
+		if (!click_in_circle(w, w->x, w->y))
+		    return;
+		w->state = STATE_TRAINING;
+		w->ntargets = 3; /* FIXME */
+		new_target(w);
+		break;
+	case STATE_TRAINING:
+		if (!click_in_circle(w, w->x, w->y))
+			return;
+
+		if (w->ntargets == 0) {
+			w->state = STATE_TRAINING_DONE;
+			return;
+		}
+
+		new_target(w);
+
+		break;
+	case STATE_TRAINING_DONE:
+		if (!click_in_circle(w, w->x, w->y)) {
+			w->ntargets= 3; /* FIXME */
+			w->state = STATE_TRAINING;
+			new_target(w);
+			return;
+		}
+		start_recording(w);
+		new_target(w);
+		w->state = STATE_STUDY;
+		break;
+	case STATE_STUDY:
+		if (!click_in_circle(w, w->x, w->y))
+			return;
+
+		if (w->ntargets == 0) {
+			stop_recording(w);
+			w->state = STATE_DONE;
+			return;
+		}
+		new_target(w);
+		break;
+	case STATE_DONE:
+		if (!click_in_circle(w, w->x, w->y))
+			return;
+
+		gtk_main_quit();
+		break;
+	default:
+		return;
+	}
 }
 
 static gboolean
@@ -602,6 +897,7 @@ main(int argc, char *argv[])
 	}
 
 	window_init(&w);
+	study_init(&w);
 	sockets_init(li);
 
 	gtk_main();
