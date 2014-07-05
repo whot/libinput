@@ -100,6 +100,7 @@ struct window {
 	int object_x,
 	    object_y;
 	int object_radius;
+	int last_random;
 
 	int ntargets;
 
@@ -670,7 +671,11 @@ new_target(struct window *w)
 	time = tp.tv_sec * 1000 + tp.tv_nsec/1000000;
 
 	/* Grid of 4x3 positions */
-	r = rand() % 12;
+	do {
+		r = rand() % 12;
+	} while(r == w->last_random);
+
+	w->last_random = r;
 
 	w->object_x = xoff + (r % 4) * point_dist;
 	w->object_y = yoff + (r/4) * point_dist;
