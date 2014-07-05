@@ -45,8 +45,8 @@
 
 #define clip(val_, min_, max_) min((max_), max((min_), (val_)))
 
-#define NUM_TRAINING_TARGETS 3
-#define NUM_STUDY_TARGETS 3
+#define NUM_TRAINING_TARGETS 5
+#define NUM_STUDY_TARGETS 15
 #define NUM_SETS 3
 
 enum study_state {
@@ -57,6 +57,28 @@ enum study_state {
 	STATE_STUDY,
 	STATE_INTERMISSION,
 	STATE_DONE,
+};
+
+struct study {
+	enum study_state state;
+	enum study_state new_state; /* changed on release */
+
+	int object_x,
+	    object_y;
+	int object_radius;
+	int last_random;
+
+	int ntargets;
+
+	int fd;
+	char *filename;
+	char *cwd;
+
+	int set;
+	int radii[NUM_SETS];
+
+	/* the device used during the study */
+	struct libinput_device *device;
 };
 
 struct touch {
@@ -70,6 +92,8 @@ struct device {
 };
 
 struct window {
+	struct study base;
+
 	GtkWidget *win;
 	GtkWidget *area;
 	int width, height; /* of window */
@@ -91,27 +115,6 @@ struct window {
 	int l, m, r;
 
 	struct list device_list;
-
-	/* the device used during the study */
-	struct libinput_device *device;
-
-
-	enum study_state state;
-	enum study_state new_state; /* changed on release */
-
-	int object_x,
-	    object_y;
-	int object_radius;
-	int last_random;
-
-	int ntargets;
-
-	int fd;
-	char *filename;
-	char *cwd;
-
-	int set;
-	int radii[NUM_SETS];
 };
 
 static int
@@ -161,16 +164,17 @@ usage(void)
 }
 
 static void
-default_target(struct window *w)
+study_default_target(struct window *w)
 {
-	w->object_x = w->width/2;
-	w->object_y = w->height * 0.75;
-	w->object_radius = 50;
+	w->base.object_x = w->width/2;
+	w->base.object_y = w->height * 0.75;
+	w->base.object_radius = 50;
 }
 
 static void
-show_text(cairo_t *cr, struct window *w)
+study_show_text(cairo_t *cr, struct window *w)
 {
+	struct study *s = &w->base;
 	const int font_size = 14;
 	const char **str;
 	int line;
@@ -267,7 +271,7 @@ show_text(cairo_t *cr, struct window *w)
 		NULL
 	};
 
-	switch(w->state) {
+	switch(s->state) {
 	case STATE_WELCOME:
 		str = welcome_message;
 		break;
@@ -288,7 +292,7 @@ show_text(cairo_t *cr, struct window *w)
 		str = intermission_message;
 		break;
 	default:
-			    return;
+		return;
 	}
 
 	cairo_save(cr);
@@ -304,15 +308,52 @@ show_text(cairo_t *cr, struct window *w)
 		line++;
 	}
 
-	if (w->state == STATE_DONE) {
+	if (s->state == STATE_DONE) {
 		char buf[PATH_MAX];
 		cairo_move_to(cr, 400, 100 + line * font_size * 1.2);
-		snprintf(buf, sizeof(buf), "%s/%s", w->cwd, w->filename);
+		snprintf(buf, sizeof(buf), "%s/%s", s->cwd, s->filename);
 		cairo_show_text(cr, buf);
 	}
 
 	cairo_restore(cr);
 
+}
+
+static void
+study_init(struct window *w)
+{
+	struct study *s = &w->base;
+	study_default_target(w);
+	s->state = STATE_WELCOME;
+	s->new_state = STATE_WELCOME;
+	s->filename = NULL;
+	s->cwd = NULL;
+}
+
+static void
+study_cleanup(struct window *w)
+{
+	struct study *s = &w->base;
+
+	free(s->filename);
+	free(s->cwd);
+}
+
+static void
+study_draw_object(cairo_t *cr, struct window *w)
+{
+	struct study *s = &w->base;
+
+	/* draw the click object */
+	cairo_save(cr);
+	if (s->state == STATE_TRAINING ||
+	    s->state  == STATE_STUDY)
+		cairo_set_source_rgb(cr, .4, .8, 0);
+	else
+		cairo_set_source_rgb(cr, .0, .2, .8);
+	cairo_arc(cr, s->object_x, s->object_y, s->object_radius, 0, 2 * M_PI);
+	cairo_fill(cr);
+	cairo_restore(cr);
 }
 
 static gboolean
@@ -327,18 +368,9 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 	cairo_rectangle(cr, 0, 0, w->width, w->height);
 	cairo_fill(cr);
 
-	show_text(cr, w);
-
-	/* draw the click object */
-	cairo_save(cr);
-	if (w->state == STATE_TRAINING ||
-	    w->state  == STATE_STUDY)
-		cairo_set_source_rgb(cr, .4, .8, 0);
-	else
-		cairo_set_source_rgb(cr, .0, .2, .8);
-	cairo_arc(cr, w->object_x, w->object_y, w->object_radius, 0, 2 * M_PI);
-	cairo_fill(cr);
-	cairo_restore(cr);
+	/* Study elements */
+	study_show_text(cr, w);
+	study_draw_object(cr, w);
 
 	/* draw pointer sprite */
 	cairo_set_source_rgb(cr, 0, 0, 0);
@@ -404,6 +436,18 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 }
 
 static void
+study_map_event_cb(struct window *w)
+{
+	if (w->width < 1024 || w->height < 768) {
+		fprintf(stderr, "Sorry, your screen is too small\n");
+		gtk_main_quit();
+		return;
+	}
+
+	study_default_target(w);
+}
+
+static void
 map_event_cb(GtkWidget *widget, GdkEvent *event, gpointer data)
 {
 	struct window *w = data;
@@ -424,14 +468,7 @@ map_event_cb(GtkWidget *widget, GdkEvent *event, gpointer data)
 			      gdk_cursor_new(GDK_BLANK_CURSOR));
 
 
-	if (w->width < 1024 || w->height < 768) {
-		fprintf(stderr, "Sorry, your screen is too small\n");
-		gtk_main_quit();
-		return;
-	}
-
-
-	default_target(w);
+	study_map_event_cb(w);
 }
 
 static void
@@ -459,14 +496,6 @@ window_init(struct window *w)
 }
 
 static void
-study_init(struct window *w)
-{
-	default_target(w);
-	w->state = STATE_WELCOME;
-	w->new_state = STATE_WELCOME;
-}
-
-static void
 device_remove(struct device *d)
 {
 	list_remove(&d->node);
@@ -481,12 +510,6 @@ window_cleanup(struct window *w)
 
 	list_for_each_safe(d, tmp, &w->device_list, node)
 		device_remove(d);
-
-	if (w->state != STATE_DONE)
-		unlink(w->filename);
-
-	free(w->filename);
-	free(w->cwd);
 }
 
 static void
@@ -660,28 +683,30 @@ handle_event_keyboard(struct libinput_event *ev, struct window *w)
 }
 
 static bool
-click_in_circle(struct window *w, int x, int y)
+study_click_in_circle(struct window *w, int x, int y)
 {
+	struct study *s = &w->base;
 	double dist;
 
-	if (x < w->object_x - w->object_radius ||
-	    x > w->object_x + w->object_radius ||
-	    y < w->object_y - w->object_radius ||
-	    y > w->object_y + w->object_radius)
+	if (x < s->object_x - s->object_radius ||
+	    x > s->object_x + s->object_radius ||
+	    y < s->object_y - s->object_radius ||
+	    y > s->object_y + s->object_radius)
 		return false;
 
-	dist = (x - w->object_x) * (x - w->object_x) +
-		(y - w->object_y) * (y - w->object_y);
+	dist = (x - s->object_x) * (x - s->object_x) +
+		(y - s->object_y) * (y - s->object_y);
 
-	if (dist > w->object_radius * w->object_radius)
+	if (dist > s->object_radius * s->object_radius)
 		return false;
 
 	return true;
 }
 
 static void
-new_target(struct window *w)
+study_new_target(struct window *w)
 {
+	struct study *s = &w->base;
 	struct timespec tp;
 	uint32_t time;
 	int r;
@@ -697,47 +722,51 @@ new_target(struct window *w)
 	/* Grid of 4x3 positions */
 	do {
 		r = rand() % 12;
-	} while(r == w->last_random);
+	} while(r == s->last_random);
 
-	w->last_random = r;
+	s->last_random = r;
 
-	w->object_x = xoff + (r % 4) * point_dist;
-	w->object_y = yoff + (r/4) * point_dist;
+	s->object_x = xoff + (r % 4) * point_dist;
+	s->object_y = yoff + (r/4) * point_dist;
 
-	if (w->state == STATE_STUDY) {
-		dprintf(w->fd,
+	if (s->state == STATE_STUDY) {
+		dprintf(s->fd,
 			"<target time=\"%d\" number=\"%d\" x=\"%d\" y=\"%d\" r=\"%d\" />\n",
 			time,
-			w->ntargets,
-			w->object_x,
-			w->object_y,
-			w->object_radius);
+			s->ntargets,
+			s->object_x,
+			s->object_y,
+			s->object_radius);
 	}
 
-	w->ntargets--;
+	s->ntargets--;
 }
 
 static void
-mark_set_start(struct window *w)
+study_mark_set_start(struct window *w)
 {
+	struct study *s = &w->base;
 	struct timespec tp;
 	uint32_t time;
 
 	clock_gettime(CLOCK_MONOTONIC, &tp);
 	time = tp.tv_sec * 1000 + tp.tv_nsec/1000000;
 
-	dprintf(w->fd, "<set time=\"%d\" id=\"%d\">\n", time, w->set);
+	dprintf(s->fd, "<set time=\"%d\" id=\"%d\">\n", time, s->set);
 }
 
 static void
-mark_set_stop(struct window *w)
+study_mark_set_stop(struct window *w)
 {
-	dprintf(w->fd, "</set>\n");
+	struct study *s = &w->base;
+
+	dprintf(s->fd, "</set>\n");
 }
 
 static void
-start_recording(struct window *w)
+study_start_recording(struct window *w)
 {
+	struct study *s = &w->base;
 	struct libevdev *evdev;
 	int fd;
 	int code, type;
@@ -745,34 +774,34 @@ start_recording(struct window *w)
 	int radii[] = { 15, 30, 45 };
 	int i;
 
-	w->ntargets = NUM_STUDY_TARGETS;
+	s->ntargets = NUM_STUDY_TARGETS;
 
 	/* Define order at startup, but randomly */
 	for (i = 0; i < NUM_SETS; i++)
-		w->radii[i] = radii[i];
+		s->radii[i] = radii[i];
 	for (i = NUM_SETS - 1; i > 0; i--) {
 		int j = rand() % (i + 1);
-		int tmp = w->radii[j];
-		w->radii[j] = w->radii[i];
-		w->radii[i] = tmp;
+		int tmp = s->radii[j];
+		s->radii[j] = s->radii[i];
+		s->radii[i] = tmp;
 	}
 
-	w->filename = strdup("userstudy-results.xml.XXXXXX");
-	w->fd = mkstemp(w->filename);
-	assert(w->fd > -1);
-	w->cwd = get_current_dir_name();
+	s->filename = strdup("userstudy-results.xml.XXXXXX");
+	s->fd = mkstemp(s->filename);
+	assert(s->fd > -1);
+	s->cwd = get_current_dir_name();
 
-	dprintf(w->fd, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-	dprintf(w->fd, "<results>\n");
-	dprintf(w->fd, "<device name=\"%s\" pid=\"%#x\" vid=\"%#x\">\n",
-		libinput_device_get_name(w->device),
-		libinput_device_get_id_product(w->device),
-		libinput_device_get_id_vendor(w->device));
+	dprintf(s->fd, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	dprintf(s->fd, "<results>\n");
+	dprintf(s->fd, "<device name=\"%s\" pid=\"%#x\" vid=\"%#x\">\n",
+		libinput_device_get_name(s->device),
+		libinput_device_get_id_product(s->device),
+		libinput_device_get_id_vendor(s->device));
 
 	snprintf(path,
 		 sizeof(path),
 		 "/dev/input/%s",
-		 libinput_device_get_sysname(w->device));
+		 libinput_device_get_sysname(s->device));
 	fd = open(path, O_RDONLY);
 	assert(fd > 0);
 
@@ -788,7 +817,7 @@ start_recording(struct window *w)
 			if (!libevdev_has_event_code(evdev, type, code))
 				continue;
 
-			dprintf(w->fd,
+			dprintf(s->fd,
 				"<bit type=\"%d\" code=\"%d\"/> <!-- %s %s -->\n",
 				type, code,
 				libevdev_event_type_get_name(type),
@@ -799,34 +828,37 @@ start_recording(struct window *w)
 	libevdev_free(evdev);
 	close(fd);
 
-	dprintf(w->fd, "</device>\n");
-	dprintf(w->fd, "<sets>\n");
+	dprintf(s->fd, "</device>\n");
+	dprintf(s->fd, "<sets>\n");
 
-	mark_set_start(w);
+	study_mark_set_start(w);
 }
 
 static void
-stop_recording(struct window *w)
+study_stop_recording(struct window *w)
 {
-	dprintf(w->fd, "</set>\n");
-	dprintf(w->fd, "</sets>\n");
-	dprintf(w->fd, "</results>\n");
-	close(w->fd);
+	struct study *s = &w->base;
+	dprintf(s->fd, "</set>\n");
+	dprintf(s->fd, "</sets>\n");
+	dprintf(s->fd, "</results>\n");
+	close(s->fd);
 }
 
 static void
-record_event(struct window *w, struct libinput_event *ev)
+study_record_event(struct window *w, struct libinput_event *ev)
 {
+	struct study *s = &w->base;
 	struct libinput_device *device;
 	struct libinput_event_pointer *ptrev;
 	enum libinput_event_type type;
 
-	if (w->state != STATE_STUDY)
+	if (s->state != STATE_STUDY)
 		return;
 
 	device = libinput_event_get_device(ev);
-	if (device != w->device)
+	if (device != s->device)
 		return;
+
 	type = libinput_event_get_type(ev);
 	switch (type) {
 	case LIBINPUT_EVENT_NONE:
@@ -850,15 +882,15 @@ record_event(struct window *w, struct libinput_event *ev)
 	ptrev = libinput_event_get_pointer_event(ev);
 
 	if (type == LIBINPUT_EVENT_POINTER_BUTTON) {
-		dprintf(w->fd,
+		dprintf(s->fd,
 			"<button time=\"%d\" x=\"%f\" y=\"%f\" button=\"%d\" state=\"%d\" hit=\"%d\"/>\n",
 			libinput_event_pointer_get_time(ptrev),
 			w->x, w->y,
 			libinput_event_pointer_get_button(ptrev),
 			libinput_event_pointer_get_button_state(ptrev),
-			(int)click_in_circle(w, w->x, w->y));
+			(int)study_click_in_circle(w, w->x, w->y));
 	} else {
-		dprintf(w->fd,
+		dprintf(s->fd,
 			"<motion time=\"%d\"  x=\"%f\" y=\"%f\" dx=\"%f\" dy=\"%f\"/>\n",
 			libinput_event_pointer_get_time(ptrev),
 			w->x, w->y,
@@ -868,15 +900,122 @@ record_event(struct window *w, struct libinput_event *ev)
 }
 
 static void
+study_handle_event_button(struct libinput_event *ev, struct window *w)
+{
+	struct study *s = &w->base;
+	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
+	int is_press;
+	struct libinput_device *device = libinput_event_get_device(ev);
+
+	is_press = libinput_event_pointer_get_button_state(p) == LIBINPUT_BUTTON_STATE_PRESSED;
+
+	if (s->device && device != s->device)
+		return;
+
+	/* userstudy state transitions */
+	if (!is_press) {
+		if (s->new_state != s->state) {
+			s->state = s->new_state;
+
+			switch(s->state) {
+			case STATE_TRAINING:
+				s->object_radius = 50;
+				study_new_target(w);
+				break;
+			case STATE_STUDY:
+				s->object_radius = s->radii[s->set];
+				study_new_target(w);
+				break;
+			default:
+				break;
+			}
+		}
+		return;
+	}
+
+	switch(s->state) {
+	case STATE_WELCOME:
+		if (!study_click_in_circle(w, w->x, w->y))
+		    return;
+		s->new_state = STATE_CONFIRM;
+		assert(s->device == NULL);
+		s->device = libinput_event_get_device(ev);
+		study_default_target(w);
+		break;
+	case STATE_CONFIRM:
+		if (!study_click_in_circle(w, w->x, w->y))
+		    return;
+		s->new_state = STATE_TRAINING;
+		s->ntargets = NUM_TRAINING_TARGETS;
+		study_default_target(w);
+		break;
+	case STATE_TRAINING:
+		if (!study_click_in_circle(w, w->x, w->y))
+			return;
+
+		if (s->ntargets == 0) {
+			s->new_state = STATE_TRAINING_DONE;
+			study_default_target(w);
+			return;
+		}
+		study_new_target(w);
+		break;
+	case STATE_TRAINING_DONE:
+		if (!study_click_in_circle(w, w->x, w->y)) {
+			s->ntargets = NUM_TRAINING_TARGETS;
+			s->new_state = STATE_TRAINING;
+			return;
+		}
+		study_start_recording(w);
+		s->new_state = STATE_STUDY;
+		break;
+	case STATE_STUDY:
+		if (!study_click_in_circle(w, w->x, w->y))
+			return;
+
+		if (s->ntargets == 0) {
+			study_default_target(w);
+			s->set++;
+			if (s->set < NUM_SETS) {
+				study_mark_set_stop(w);
+				s->state = STATE_INTERMISSION;
+				s->new_state = STATE_INTERMISSION;
+			} else {
+				study_stop_recording(w);
+				s->state = STATE_DONE;
+				s->new_state = STATE_DONE;
+			}
+			return;
+		}
+		study_new_target(w);
+		break;
+	case STATE_INTERMISSION:
+		if (!study_click_in_circle(w, w->x, w->y))
+			return;
+		study_mark_set_start(w);
+		s->ntargets = NUM_STUDY_TARGETS;
+		s->new_state = STATE_STUDY;
+		break;
+	case STATE_DONE:
+		if (!study_click_in_circle(w, w->x, w->y))
+			return;
+
+		gtk_main_quit();
+		printf("Your results are in %s/%s\n",
+		       s->cwd,
+		       s->filename);
+		break;
+	default:
+		return;
+	}
+}
+
+static void
 handle_event_button(struct libinput_event *ev, struct window *w)
 {
 	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
 	unsigned int button = libinput_event_pointer_get_button(p);
 	int is_press;
-	struct libinput_device *device = libinput_event_get_device(ev);
-
-	if (w->device && device != w->device)
-		return;
 
 	is_press = libinput_event_pointer_get_button_state(p) == LIBINPUT_BUTTON_STATE_PRESSED;
 
@@ -892,102 +1031,7 @@ handle_event_button(struct libinput_event *ev, struct window *w)
 		break;
 	}
 
-	/* userstudy state transitions */
-	if (!is_press) {
-		if (w->new_state != w->state) {
-			w->state = w->new_state;
-
-			switch(w->state) {
-			case STATE_TRAINING:
-				w->object_radius = 50;
-				new_target(w);
-				break;
-			case STATE_STUDY:
-				w->object_radius = w->radii[w->set];
-				new_target(w);
-				break;
-			default:
-				break;
-			}
-		}
-		return;
-	}
-
-	switch(w->state) {
-	case STATE_WELCOME:
-		if (!click_in_circle(w, w->x, w->y))
-		    return;
-		w->new_state = STATE_CONFIRM;
-		assert(w->device == NULL);
-		w->device = libinput_event_get_device(ev);
-		default_target(w);
-		break;
-	case STATE_CONFIRM:
-		if (!click_in_circle(w, w->x, w->y))
-		    return;
-		w->new_state = STATE_TRAINING;
-		w->ntargets = NUM_TRAINING_TARGETS;
-		default_target(w);
-		break;
-	case STATE_TRAINING:
-		if (!click_in_circle(w, w->x, w->y))
-			return;
-
-		if (w->ntargets == 0) {
-			w->new_state = STATE_TRAINING_DONE;
-			default_target(w);
-			return;
-		}
-		new_target(w);
-		break;
-	case STATE_TRAINING_DONE:
-		if (!click_in_circle(w, w->x, w->y)) {
-			w->ntargets = NUM_TRAINING_TARGETS;
-			w->new_state = STATE_TRAINING;
-			return;
-		}
-		start_recording(w);
-		w->new_state = STATE_STUDY;
-		break;
-	case STATE_STUDY:
-		if (!click_in_circle(w, w->x, w->y))
-			return;
-
-		if (w->ntargets == 0) {
-			default_target(w);
-			w->set++;
-			if (w->set < NUM_SETS) {
-				mark_set_stop(w);
-				w->state = STATE_INTERMISSION;
-				w->new_state = STATE_INTERMISSION;
-			} else {
-				stop_recording(w);
-				w->state = STATE_DONE;
-				w->new_state = STATE_DONE;
-			}
-			return;
-		}
-		new_target(w);
-		break;
-	case STATE_INTERMISSION:
-		if (!click_in_circle(w, w->x, w->y))
-			return;
-		mark_set_start(w);
-		w->ntargets = NUM_TRAINING_TARGETS;
-		w->new_state = STATE_STUDY;
-		break;
-	case STATE_DONE:
-		if (!click_in_circle(w, w->x, w->y))
-			return;
-
-		gtk_main_quit();
-		printf("Your results are in %s/%s\n",
-		       w->cwd,
-		       w->filename);
-		break;
-	default:
-		return;
-	}
+	study_handle_event_button(ev, w);
 }
 
 static gboolean
@@ -1000,7 +1044,8 @@ handle_event_libinput(GIOChannel *source, GIOCondition condition, gpointer data)
 	libinput_dispatch(li);
 
 	while ((ev = libinput_get_event(li))) {
-		record_event(w, ev);
+		study_record_event(w, ev);
+
 		switch (libinput_event_get_type(ev)) {
 		case LIBINPUT_EVENT_NONE:
 			abort();
@@ -1148,6 +1193,7 @@ main(int argc, char *argv[])
 	gtk_main();
 
 	window_cleanup(&w);
+	study_cleanup(&w);
 	libinput_unref(li);
 	udev_unref(udev);
 
