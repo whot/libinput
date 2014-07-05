@@ -9,10 +9,15 @@ event_debug_LDFLAGS = -static
 event_debug_CFLAGS = $(LIBUDEV_CFLAGS)
 
 if BUILD_EVENTGUI
-noinst_PROGRAMS += event-gui
+noinst_PROGRAMS += event-gui userstudy
 
 event_gui_SOURCES = event-gui.c
 event_gui_LDADD = ../src/libinput.la $(CAIRO_LIBS) $(GTK_LIBS) $(LIBUDEV_LIBS)
 event_gui_CFLAGS = $(CAIRO_CFLAGS) $(GTK_CFLAGS) $(LIBUDEV_CFLAGS)
 event_gui_LDFLAGS = -static
+
+userstudy_SOURCES = userstudy.c
+userstudy_LDADD = ../src/libinput.la $(CAIRO_LIBS) $(GTK_LIBS) $(LIBUDEV_LIBS)
+userstudy_CFLAGS = $(CAIRO_CFLAGS) $(GTK_CFLAGS) $(LIBUDEV_CFLAGS)
+userstudy_LDFLAGS = -static
 endif
