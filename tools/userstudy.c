@@ -47,6 +47,7 @@
 
 #define NUM_TRAINING_TARGETS 3
 #define NUM_STUDY_TARGETS 3
+#define NUM_SETS 3
 
 enum study_state {
 	STATE_WELCOME,
@@ -54,6 +55,7 @@ enum study_state {
 	STATE_TRAINING,
 	STATE_TRAINING_DONE,
 	STATE_STUDY,
+	STATE_INTERMISSION,
 	STATE_DONE,
 };
 
@@ -107,6 +109,8 @@ struct window {
 	int fd;
 	char *filename;
 	char *cwd;
+
+	int set;
 };
 
 static int
@@ -250,6 +254,18 @@ show_text(cairo_t *cr, struct window *w)
 		NULL
 	};
 
+	const char *intermission_message[] = {
+		"This set is now complete. Please have a short rest before",
+		"we continue with the next set. Target sizes may change",
+		"between sets",
+		"",
+		"To start the next set, click on the green circle.",
+		"",
+		"You can abort any time by hitting Esc, or closing the window",
+		"",
+		NULL
+	};
+
 	switch(w->state) {
 	case STATE_WELCOME:
 		str = welcome_message;
@@ -266,6 +282,9 @@ show_text(cairo_t *cr, struct window *w)
 		break;
 	case STATE_DONE:
 		str = done_message;
+		break;
+	case STATE_INTERMISSION:
+		str = intermission_message;
 		break;
 	default:
 			    return;
@@ -311,7 +330,8 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 	/* draw the click object */
 	cairo_save(cr);
-	if (w->state == STATE_TRAINING || w->state  == STATE_STUDY)
+	if (w->state == STATE_TRAINING ||
+	    w->state  == STATE_STUDY)
 		cairo_set_source_rgb(cr, .4, .8, 0);
 	else
 		cairo_set_source_rgb(cr, .0, .2, .8);
@@ -666,7 +686,6 @@ new_target(struct window *w)
 	int r;
 
 	int point_dist = 300;
-	int max_radius = 30;
 
 	int xoff = w->width/2 - point_dist * 1.5;
 	int yoff = w->height/2 - point_dist;
@@ -695,6 +714,24 @@ new_target(struct window *w)
 	}
 
 	w->ntargets--;
+}
+
+static void
+mark_set_start(struct window *w)
+{
+	struct timespec tp;
+	uint32_t time;
+
+	clock_gettime(CLOCK_MONOTONIC, &tp);
+	time = tp.tv_sec * 1000 + tp.tv_nsec/1000000;
+
+	dprintf(w->fd, "<set time=\"%d\" id=\"%d\">\n", time, w->set);
+}
+
+static void
+mark_set_stop(struct window *w)
+{
+	dprintf(w->fd, "</set>\n");
 }
 
 static void
@@ -750,13 +787,16 @@ start_recording(struct window *w)
 	close(fd);
 
 	dprintf(w->fd, "</device>\n");
-	dprintf(w->fd, "<events>\n");
+	dprintf(w->fd, "<sets>\n");
+
+	mark_set_start(w);
 }
 
 static void
 stop_recording(struct window *w)
 {
-	dprintf(w->fd, "</events>\n");
+	dprintf(w->fd, "</set>\n");
+	dprintf(w->fd, "</sets>\n");
 	dprintf(w->fd, "</results>\n");
 	close(w->fd);
 }
@@ -897,13 +937,26 @@ handle_event_button(struct libinput_event *ev, struct window *w)
 			return;
 
 		if (w->ntargets == 0) {
-			stop_recording(w);
-			w->state = STATE_DONE;
-			w->new_state = STATE_DONE;
 			default_target(w);
+			if (w->set++ < NUM_SETS) {
+				mark_set_stop(w);
+				w->state = STATE_INTERMISSION;
+				w->new_state = STATE_INTERMISSION;
+			} else {
+				stop_recording(w);
+				w->state = STATE_DONE;
+				w->new_state = STATE_DONE;
+			}
 			return;
 		}
 		new_target(w);
+		break;
+	case STATE_INTERMISSION:
+		if (!click_in_circle(w, w->x, w->y))
+			return;
+		mark_set_start(w);
+		w->ntargets = NUM_TRAINING_TARGETS;
+		w->new_state = STATE_STUDY;
 		break;
 	case STATE_DONE:
 		if (!click_in_circle(w, w->x, w->y))
