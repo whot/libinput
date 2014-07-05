@@ -62,13 +62,12 @@ print_gnuplot_footer(void)
 }
 
 static void
-print_ptraccel_speed(struct motion_filter *filter)
+print_ptraccel_speed(struct motion_filter *filter, double step)
 {
 	struct motion_params motion;
 	const int nevents = 30;
 	uint64_t time = 0;
 	double dx;
-	const double step = 0.5;
 	double *speed,
 	       *gain; /* difference between input and output speed */
 	int i;
@@ -292,7 +291,7 @@ usage(void)
 	       "	speed    ... print speed to gain mapping\n"
 	       "--maxdx=<double>\n  ... in motion mode only. Stop increasing dx at maxdx\n"
 	       "--mindx=<double>\n  ... in motion mode only. Start dx at mindx\n"
-	       "--steps=<double>\n  ... in motion and delta modes only. Increase dx by step each round\n"
+	       "--steps=<double>\n  ... in motion, delta and speed modes only. Increase dx by step each round\n"
 	       "\n"
 	       "If extra arguments are present and mode is not given, mode is changed to 'sequence'\n"
 	       "and the arguments are interpreted as sequence of delta x coordinates\n"
@@ -426,7 +425,7 @@ main(int argc, char **argv) {
 		print_ptraccel_sequence(filter, nevents, custom_deltas);
 		break;
 	case MODE_SPEED:
-		print_ptraccel_speed(filter);
+		print_ptraccel_speed(filter, step);
 		break;
 	}
 
