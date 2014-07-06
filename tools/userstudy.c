@@ -900,20 +900,15 @@ study_click_in_circle(struct window *w, int x, int y)
 }
 
 static void
-study_new_target(struct window *w)
+study_new_training_target(struct window *w)
 {
 	struct study *s = &w->base;
-	struct timespec tp;
-	uint32_t time;
 	int r;
 
 	int point_dist = 300;
 
 	int xoff = w->width/2 - point_dist * 1.5;
 	int yoff = w->height/2 - point_dist;
-
-	clock_gettime(CLOCK_MONOTONIC, &tp);
-	time = tp.tv_sec * 1000 + tp.tv_nsec/1000000;
 
 	/* Grid of 4x3 positions */
 	do {
@@ -924,18 +919,28 @@ study_new_target(struct window *w)
 
 	s->object_x = xoff + (r % 4) * point_dist;
 	s->object_y = yoff + (r/4) * point_dist;
-
-	if (s->state == STATE_STUDY) {
-		dprintf(s->fd,
-			"<target time=\"%d\" number=\"%d\" x=\"%d\" y=\"%d\" r=\"%d\" />\n",
-			time,
-			s->ntargets,
-			s->object_x,
-			s->object_y,
-			s->object_radius);
-	}
-
 	s->ntargets--;
+}
+
+static void
+study_new_target(struct window *w)
+{
+	struct study *s = &w->base;
+	struct timespec tp;
+	uint32_t time;
+
+	study_new_training_target(w);
+
+	clock_gettime(CLOCK_MONOTONIC, &tp);
+	time = tp.tv_sec * 1000 + tp.tv_nsec/1000000;
+
+	dprintf(s->fd,
+		"<target time=\"%d\" number=\"%d\" x=\"%d\" y=\"%d\" r=\"%d\" />\n",
+		time,
+		NUM_STUDY_TARGETS - s->ntargets,
+		s->object_x,
+		s->object_y,
+		s->object_radius);
 }
 
 static void
@@ -1145,8 +1150,12 @@ study_handle_event_button(struct libinput_event *ev, struct window *w)
 		return;
 
 	/* Drop the release event after confirming dialogs */
-	if (!is_press && s->new_state != s->state) {
-		s->state = s->new_state;
+	if (!is_press) {
+		if (s->new_state == STATE_STUDY &&
+		    s->state != s->new_state) {
+			s->state = s->new_state;
+			study_new_target(w);
+		}
 		return;
 	}
 
@@ -1154,12 +1163,14 @@ study_handle_event_button(struct libinput_event *ev, struct window *w)
 	case STATE_CONFIRM_DEVICE:
 		if (!study_click_in_circle(w, w->x, w->y))
 		    return;
+
 		assert(s->device == NULL);
 		s->device = libinput_event_get_device(ev);
 
 		study_show_training_start(w);
 
 		s->new_state = STATE_TRAINING;
+		s->state = STATE_TRAINING;
 		s->ntargets = NUM_TRAINING_TARGETS;
 		study_default_target(w);
 		break;
@@ -1171,8 +1182,9 @@ study_handle_event_button(struct libinput_event *ev, struct window *w)
 			study_show_training_done(w);
 			s->new_state = STATE_STUDY;
 			study_start_recording(w);
+			break;
 		}
-		study_new_target(w);
+		study_new_training_target(w);
 		break;
 	case STATE_STUDY:
 		if (!study_click_in_circle(w, w->x, w->y))
