@@ -1119,13 +1119,19 @@ study_record_event(struct window *w, struct libinput_event *ev)
 	ptrev = libinput_event_get_pointer_event(ev);
 
 	if (type == LIBINPUT_EVENT_POINTER_BUTTON) {
+		enum libinput_button_state state =
+			libinput_event_pointer_get_button_state(ptrev);
 		dprintf(s->fd,
-			"<button time=\"%d\" x=\"%f\" y=\"%f\" button=\"%d\" state=\"%d\" hit=\"%d\"/>\n",
+			"<button time=\"%d\" x=\"%f\" y=\"%f\" button=\"%d\" state=\"%d\"",
 			libinput_event_pointer_get_time(ptrev),
 			w->x, w->y,
 			libinput_event_pointer_get_button(ptrev),
-			libinput_event_pointer_get_button_state(ptrev),
-			(int)study_click_in_circle(w, w->x, w->y));
+			state);
+		if (state == LIBINPUT_BUTTON_STATE_PRESSED)
+			dprintf(s->fd,
+				" hit=\"%d\"",
+				(int)study_click_in_circle(w, w->x, w->y));
+		dprintf(s->fd, "/>\n");
 	} else {
 		dprintf(s->fd,
 			"<motion time=\"%d\"  x=\"%f\" y=\"%f\" dx=\"%f\" dy=\"%f\"/>\n",
