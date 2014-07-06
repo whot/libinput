@@ -51,11 +51,9 @@
 
 enum study_state {
 	STATE_WELCOME,
-	STATE_CONFIRM,
+	STATE_CONFIRM_DEVICE,
 	STATE_TRAINING,
-	STATE_TRAINING_DONE,
 	STATE_STUDY,
-	STATE_INTERMISSION,
 	STATE_DONE,
 };
 
@@ -179,117 +177,15 @@ study_show_text(cairo_t *cr, struct window *w)
 	const char **str;
 	int line;
 
-	const char *welcome_message[] =
-		{"Thank you for participating in this study. The goal of this study",
-		 "is to analyze the pointer acceleration code. The study",
-		 "consists of several randomized sets of moving targets.",
-		 "Your task is to simply click on these targets as they appear,",
-		 "using a mouse-like input device.",
-		 "",
-		 "The data collected by this program is limited to:",
-		 "- input device name and capabilities (what evtest(1) would see)",
-		 "- input events with timestamps",
-		 "- converted events and timestamps",
-		 "",
-		 "No data that can personally identify you is collected.",
-		 "Key events are received by this program but not collected or",
-		 "analyzed. Only the Esc key is handled.",
-		 "",
-		 "If you are worried about key event handling, restart as user (not as root)",
-		 "or specify the mouse device path on the commandline.",
-		 "",
-		 "The data collected is available in a plain text file and must",
-		 "be sent to me via email. This tool does not send any data.",
-		 "",
-		 "You can abort any time by hitting Esc, or closing the window",
-		 "",
-		 "When you're ready to go, please click on the blue circle",
-		 "with your mouse. This will also confirm the device you will",
-		 "be using for this study",
-		 NULL};
-
-	const char *confirm_message[] = {
-		"Thanks again for participipating. I know which device you",
-		"will be using now. Almost ready to go, please confirm the following:",
-		"",
-		"- events from other devices will be ignored (except the Esc key).",
-		"  if the device you just used wasn't the right one, please restart",
-		"- you have normal or corrected vision and you are able to see the target below",
-		"- you are familiar with using a mouse-like input device",
-		"- the input device is NOT a touchpad or trackball",
-		"  (sorry, we'll be evaluating those separately)",
-		"- this is the first time you are running this study.",
-		"  There is no benefit in training for this study to get ",
-		"  better results, it just skews the data",
-		"",
-		 "When you're ready to go, please click on the blue circle",
-		 "with your mouse. This starts training for this study.",
-		 "No data is collected during training",
-		"",
-		"You can abort any time by hitting Esc, or closing the window",
-		NULL
-	};
-
 	const char *training_message[] = {
 		"Click on the targets as they appear.",
 		NULL
 	};
 
-	const char *training_done_message[] = {
-		"Thanks. Training is now complete.",
-		"",
-		"To start the study, click on the blue circle. This",
-		"will start event collection",
-		"During the stury, click on the targets as they appear.",
-		"",
-		"To run through the training again, click anywhere else",
-		"",
-		"You can abort any time by hitting Esc, or closing the window",
-		NULL
-	};
-
-	const char *done_message[] = {
-		"Thank you for completing the study.",
-		"Click on the blue circle to exit",
-		"",
-		"Your results are available in the file shown below.",
-		"Please send them unmodified to peter.hutterer@who-t.net, with a subject",
-		"of \"userstudy results\"",
-		"",
-		NULL
-	};
-
-	const char *intermission_message[] = {
-		"This set is now complete. Please have a short rest before",
-		"we continue with the next set. Target sizes may change",
-		"between sets",
-		"",
-		"To start the next set, click on the green circle.",
-		"",
-		"You can abort any time by hitting Esc, or closing the window",
-		"",
-		NULL
-	};
-
 	switch(s->state) {
-	case STATE_WELCOME:
-		str = welcome_message;
-		break;
-	case STATE_CONFIRM:
-		str = confirm_message;
-		break;
 	case STATE_TRAINING:
 	case STATE_STUDY:
 		str = training_message;
-		break;
-	case STATE_TRAINING_DONE:
-		str = training_done_message;
-		break;
-	case STATE_DONE:
-		str = done_message;
-		break;
-	case STATE_INTERMISSION:
-		str = intermission_message;
 		break;
 	default:
 		return;
@@ -306,13 +202,6 @@ study_show_text(cairo_t *cr, struct window *w)
 		cairo_show_text(cr, *str);
 		str++;
 		line++;
-	}
-
-	if (s->state == STATE_DONE) {
-		char buf[PATH_MAX];
-		cairo_move_to(cr, 400, 100 + line * font_size * 1.2);
-		snprintf(buf, sizeof(buf), "%s/%s", s->cwd, s->filename);
-		cairo_show_text(cr, buf);
 	}
 
 	cairo_restore(cr);
@@ -360,6 +249,7 @@ static gboolean
 draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
 	struct window *w = data;
+	struct study *s = &w->base;
 #if 0
 	struct touch *t;
 #endif
@@ -367,6 +257,11 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 	cairo_set_source_rgb(cr, 1, 1, 1);
 	cairo_rectangle(cr, 0, 0, w->width, w->height);
 	cairo_fill(cr);
+
+	if (s->state != STATE_CONFIRM_DEVICE &&
+	    s->state != STATE_TRAINING &&
+	    s->state != STATE_STUDY)
+		return TRUE;
 
 	/* Study elements */
 	study_show_text(cr, w);
@@ -436,15 +331,314 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 }
 
 static void
+study_screen_too_small_error(struct window *w)
+{
+	const char *message;
+	GtkWidget *dialog;
+
+	message = "Sorry, your screen does not meet the"
+		  " minimum requirements for this study.";
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+
+	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
+					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+					GTK_MESSAGE_ERROR,
+					GTK_BUTTONS_CLOSE,
+					message);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+}
+
+static int
+study_show_welcome_message(struct window *w)
+{
+	const char *message;
+	GtkWidget *dialog;
+	gint response;
+
+	message = "Thank you for participating in this study. The goal of this study\n"
+		 "is to analyze the pointer acceleration code. The study\n"
+		 "consists of several randomized sets of moving targets.\n"
+		 "Your task is to simply click on these targets as they appear\n"
+		 "using a mouse-like input device.\n"
+		 "\n"
+		 "The data collected by this program is limited to:\n"
+		 "- your kernel version (see uname(2))\n"
+		 "- DMI device information (see /sys/class/dmi/id)\n"
+		 "- input device name and capabilities (see evtest(1))\n"
+		 "- input events with timestamps\n"
+		 "- converted events and timestamps\n"
+		 "\n"
+		 "No data that can personally identify you is collected.\n"
+		 "Key events are received by this program but not collected or\n"
+		 "analyzed.\n"
+		 "\n"
+		 "The data collected is available in a plain text file and must\n"
+		 "be sent to me via email. This tool does not send any data.\n"
+		 "\n"
+		 "You can abort any time by hitting Esc.\n"
+		 "\n"
+		 "When you're ready to go please click OK\n"
+		 "Press Cancel to abort and exit this study\n";
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+
+	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
+					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+					GTK_MESSAGE_INFO,
+					GTK_BUTTONS_OK_CANCEL,
+					message);
+	response = gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	if (response == GTK_RESPONSE_CANCEL) {
+		gtk_main_quit();
+		return -1;
+	}
+
+	return 0;
+}
+
+static int
+study_show_confirm_message(struct window *w)
+{
+	const char *message;
+	GtkWidget *dialog;
+	gint response;
+
+	message = "Almost ready to go. This is an unsupervised study and\n"
+		  "we ask you to confirm the following:\n"
+		  "\n"
+		  "1) You have normal or corrected vision and you can identify\n"
+		  "   objects on the screen easily\n"
+		  "2) You acknowledge that this tool will collect real-time events\n"
+		  "   from the device used during the study, and only that device\n"
+		  "3) You are familiar with interacting a computer desktop environment\n"
+		  "   and you have no motoric challenges that impede on using a mouse\n"
+		  "4) You accept that the collected data may be used to alter and improve\n"
+		  "   interactions with the desktop environment.\n"
+		  "5) You accept that the data may be used in a publicly available\n"
+		  "6) You accept that the raw data may be made available to other\n"
+		  "   researchers for further analysis. All effort is made to avoid\n"
+		  "   any attempt at personal identification of the data.\n"
+		  "7) You agree not to modify the collected data of this study\n"
+		  "   before submission\n"
+		  "\n"
+		  "If you agree with the above, please hit Yes\n"
+		  "If you disagree with the above, please hit No to quit\n"
+		  "\n"
+		 "You can abort any time by hitting Esc.\n";
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+
+	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
+					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+					GTK_MESSAGE_INFO,
+					GTK_BUTTONS_YES_NO,
+					message);
+	response = gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	if (response == GTK_RESPONSE_NO) {
+		gtk_main_quit();
+		return -1;
+	}
+
+	return 0;
+}
+
+static void
+study_show_confirm_device(struct window *w)
+{
+	const char *message;
+	GtkWidget *dialog;
+
+	message = "On the next screen, you will see a circle on white background.\n"
+		  "Please click on the circle with the device you want to use during\n"
+		  "the study. Only data from that device will be collected.\n"
+		  "\n"
+		  "The device should be a mouse-like device or a touchpad\n"
+		  "\n"
+		  "Note that the cursor used to select the target is not\n"
+		  "your normal system cursor\n"
+		  "\n"
+		  "You can abort any time by hitting Esc.\n";
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+
+	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
+					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+					GTK_MESSAGE_INFO,
+					GTK_BUTTONS_OK,
+					message);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      gdk_cursor_new(GDK_BLANK_CURSOR));
+	return;
+}
+
+static void
+study_show_training_start(struct window *w)
+{
+	const char *message;
+	GtkWidget *dialog;
+
+	message = "Thank you. Your device was selected and events from other\n"
+		  "devices will be discarded.\n"
+		  "\n"
+		  "You are now ready to start a short training session.\n"
+		  "With your device, simply click on each target as it appears\n"
+		  "\n"
+		  "Note that the cursor used to select the targets is not\n"
+		  "your normal system cursor\n"
+		  "\n"
+		  "No events will be collected yet\n"
+		  "\n"
+		  "You can abort any time by hitting Esc.\n";
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+
+	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
+					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+					GTK_MESSAGE_INFO,
+					GTK_BUTTONS_OK,
+					message);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      gdk_cursor_new(GDK_BLANK_CURSOR));
+
+	return;
+}
+
+static void
+study_show_training_done(struct window *w)
+{
+	const char *message;
+	GtkWidget *dialog;
+
+	message = "Thank you, your training is now complete and we can start\n"
+		  "with the actual study.\n"
+		  "\n"
+		  "The study consists of %d sets of targets of varying size.\n"
+		  "There will be a message after each set was completed.\n"
+		  "With your device, simply click on each target as it appears\n"
+		  "\n"
+		  "Note that the cursor used to select the targets is not\n"
+		  "your normal system cursor\n"
+		  "\n"
+		  "Event collection starts as soon as you hit Ok.\n"
+		  "\n"
+		  "You can abort any time by hitting Esc.\n";
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+
+	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
+					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+					GTK_MESSAGE_INFO,
+					GTK_BUTTONS_OK,
+					message,
+					NUM_SETS);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      gdk_cursor_new(GDK_BLANK_CURSOR));
+
+	return;
+}
+
+static void
+study_show_intermission(struct window *w)
+{
+	const char *message;
+	GtkWidget *dialog;
+
+	message = "This set is now complete. You may have a short rest before\n"
+		"the next set starts. Target sizes may change between sets.\n"
+		"\n"
+		"To start the next set, click OK\n"
+		"\n"
+		"You can abort any time by hitting Esc.\n";
+
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+
+	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
+					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+					GTK_MESSAGE_INFO,
+					GTK_BUTTONS_OK,
+					message);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      gdk_cursor_new(GDK_BLANK_CURSOR));
+
+	return;
+};
+
+
+static void
+study_show_done(struct window *w)
+{
+	const char *message;
+	GtkWidget *dialog;
+
+	message = "Thank you for completing the study.\n"
+		  "\n"
+		  "Your results are available in the file\n"
+		  "    %s/%s\n"
+		  "Please send them unmodified to peter.hutterer@who-t.net, with a subject\n"
+		  "of \"userstudy results\"\n";
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+
+	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
+					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+					GTK_MESSAGE_INFO,
+					GTK_BUTTONS_OK,
+					message,
+					w->base.cwd,
+					w->base.filename);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      gdk_cursor_new(GDK_BLANK_CURSOR));
+}
+
+static void
 study_map_event_cb(struct window *w)
 {
+	struct study *s = &w->base;
+
 	if (w->width < 1024 || w->height < 768) {
-		fprintf(stderr, "Sorry, your screen is too small\n");
+		study_screen_too_small_error(w);
 		gtk_main_quit();
 		return;
 	}
 
+	if (study_show_welcome_message(w) != 0)
+		return;
+
+	if (study_show_confirm_message(w) != 0)
+		return;
+
+	study_show_confirm_device(w);
+
 	study_default_target(w);
+	s->state = STATE_CONFIRM_DEVICE;
 }
 
 static void
@@ -805,6 +999,8 @@ study_start_recording(struct window *w)
 	fd = open(path, O_RDONLY);
 	assert(fd > 0);
 
+	/* FIXME: DMI and kernel version */
+
 	assert(libevdev_new_from_fd(fd, &evdev) == 0);
 
 	for (type = EV_KEY; type < EV_MAX; type++) {
@@ -912,39 +1108,21 @@ study_handle_event_button(struct libinput_event *ev, struct window *w)
 	if (s->device && device != s->device)
 		return;
 
-	/* userstudy state transitions */
-	if (!is_press) {
-		if (s->new_state != s->state) {
-			s->state = s->new_state;
-
-			switch(s->state) {
-			case STATE_TRAINING:
-				s->object_radius = 50;
-				study_new_target(w);
-				break;
-			case STATE_STUDY:
-				s->object_radius = s->radii[s->set];
-				study_new_target(w);
-				break;
-			default:
-				break;
-			}
-		}
+	/* Drop the release event after confirming dialogs */
+	if (!is_press && s->new_state != s->state) {
+		s->state = s->new_state;
 		return;
 	}
 
 	switch(s->state) {
-	case STATE_WELCOME:
+	case STATE_CONFIRM_DEVICE:
 		if (!study_click_in_circle(w, w->x, w->y))
 		    return;
-		s->new_state = STATE_CONFIRM;
 		assert(s->device == NULL);
 		s->device = libinput_event_get_device(ev);
-		study_default_target(w);
-		break;
-	case STATE_CONFIRM:
-		if (!study_click_in_circle(w, w->x, w->y))
-		    return;
+
+		study_show_training_start(w);
+
 		s->new_state = STATE_TRAINING;
 		s->ntargets = NUM_TRAINING_TARGETS;
 		study_default_target(w);
@@ -954,56 +1132,37 @@ study_handle_event_button(struct libinput_event *ev, struct window *w)
 			return;
 
 		if (s->ntargets == 0) {
-			s->new_state = STATE_TRAINING_DONE;
-			study_default_target(w);
-			return;
+			study_show_training_done(w);
+			s->new_state = STATE_STUDY;
+			study_start_recording(w);
 		}
 		study_new_target(w);
-		break;
-	case STATE_TRAINING_DONE:
-		if (!study_click_in_circle(w, w->x, w->y)) {
-			s->ntargets = NUM_TRAINING_TARGETS;
-			s->new_state = STATE_TRAINING;
-			return;
-		}
-		study_start_recording(w);
-		s->new_state = STATE_STUDY;
 		break;
 	case STATE_STUDY:
 		if (!study_click_in_circle(w, w->x, w->y))
 			return;
 
 		if (s->ntargets == 0) {
-			study_default_target(w);
 			s->set++;
 			if (s->set < NUM_SETS) {
 				study_mark_set_stop(w);
-				s->state = STATE_INTERMISSION;
-				s->new_state = STATE_INTERMISSION;
+				study_show_intermission(w);
+				study_mark_set_start(w);
+				s->object_radius = s->radii[s->set];
+				s->ntargets = NUM_STUDY_TARGETS;
 			} else {
-				study_stop_recording(w);
 				s->state = STATE_DONE;
 				s->new_state = STATE_DONE;
+				study_stop_recording(w);
+				study_show_done(w);
+				gtk_main_quit();
+				printf("Your results are in %s/%s\n",
+				       s->cwd,
+				       s->filename);
+				return;
 			}
-			return;
 		}
 		study_new_target(w);
-		break;
-	case STATE_INTERMISSION:
-		if (!study_click_in_circle(w, w->x, w->y))
-			return;
-		study_mark_set_start(w);
-		s->ntargets = NUM_STUDY_TARGETS;
-		s->new_state = STATE_STUDY;
-		break;
-	case STATE_DONE:
-		if (!study_click_in_circle(w, w->x, w->y))
-			return;
-
-		gtk_main_quit();
-		printf("Your results are in %s/%s\n",
-		       s->cwd,
-		       s->filename);
 		break;
 	default:
 		return;
