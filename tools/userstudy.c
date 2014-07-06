@@ -36,6 +36,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <sys/utsname.h>
+
 #include <gtk/gtk.h>
 #include <glib.h>
 
@@ -958,6 +960,24 @@ study_mark_set_stop(struct window *w)
 }
 
 static void
+study_print_dmi_data(struct study *s)
+{
+	int fd, rc;
+	const char *dmi_path = "/sys/devices/virtual/dmi/id/modalias";
+	char buf[PATH_MAX] = {0};
+
+	fd = open(dmi_path, O_RDONLY);
+	if (fd == -1)
+		return;
+
+	rc = read(fd, buf, sizeof(buf) - 1);
+	if (rc > 0)
+		dprintf(s->fd, "%s", buf); /* data includes linebreak */
+
+	close(fd);
+}
+
+static void
 study_start_recording(struct window *w)
 {
 	struct study *s = &w->base;
@@ -967,6 +987,7 @@ study_start_recording(struct window *w)
 	char path[PATH_MAX];
 	int radii[] = { 15, 30, 45 };
 	int i;
+	struct utsname kernel;
 
 	s->ntargets = NUM_STUDY_TARGETS;
 
@@ -987,6 +1008,23 @@ study_start_recording(struct window *w)
 
 	dprintf(s->fd, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	dprintf(s->fd, "<results>\n");
+	dprintf(s->fd, "<system>\n");
+
+	/* kernel version */
+	uname(&kernel);
+	dprintf(s->fd,
+		"<kernel name=\"%s\" release=\"%s\"/>\n",
+		kernel.sysname,
+		kernel.release);
+
+
+	/* DMI data */
+	dprintf(s->fd, "<dmi>\n");
+	study_print_dmi_data(s);
+	dprintf(s->fd, "</dmi>\n");
+	dprintf(s->fd, "</system>\n");
+
+	/* device info */
 	dprintf(s->fd, "<device name=\"%s\" pid=\"%#x\" vid=\"%#x\">\n",
 		libinput_device_get_name(s->device),
 		libinput_device_get_id_product(s->device),
@@ -998,8 +1036,6 @@ study_start_recording(struct window *w)
 		 libinput_device_get_sysname(s->device));
 	fd = open(path, O_RDONLY);
 	assert(fd > 0);
-
-	/* FIXME: DMI and kernel version */
 
 	assert(libevdev_new_from_fd(fd, &evdev) == 0);
 
