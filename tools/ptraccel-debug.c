@@ -260,39 +260,71 @@ print_ptraccel_sequence(struct motion_filter *filter,
 }
 
 static void
-print_accel_func(struct motion_filter *filter, double step)
+print_accel_func(struct motion_filter *filter,
+		 double *sequence,
+		 size_t sz)
 {
-	double vel, last;
+	double *vel, last;
 
 	print_gnuplot_header("velocity", "accel factor");
 	printf("plot '-' using 1:2 title 'raw',"
 	       "     '-' using 1:2 title 'Simpsons'\n");
 
-	for (vel = 0.0; vel < 3.0; vel += step) {
+	for (vel = sequence; vel < sequence + sz; vel ++) {
 		double result = pointer_accel_profile_smooth_simple(filter,
 								    NULL,
-								    vel,
+								    *vel,
 								    0 /* time */);
-		printf("\t%.4f\t%.4f\n", vel, result);
+		printf("\t%.4f\t%.4f\n", *vel, result);
 	}
 	printf("\te\n");
 
-	for (vel = last = 0.0; vel < 3.0; last = vel, vel += step) {
+	for (vel = sequence, last = 0.0; vel < sequence + sz; last = *vel, vel++) {
 		double result, mid;
 		result = pointer_accel_profile_smooth_simple(filter, NULL,
-							     vel, 0 /* time */);
+							     *vel, 0 /* time */);
 		result += pointer_accel_profile_smooth_simple(filter, NULL,
 							      last, 0 /* time */);
-		mid = (last + vel)/2;
+		mid = (last + *vel)/2;
 		result += 4 *
 			  pointer_accel_profile_smooth_simple(filter, NULL,
 							      mid, 0 /* time */);
 		result /= 6.0;
-		printf("\t%.4f\t%.4f\n", vel, result);
+		printf("\t%.4f\t%.4f\n", *vel, result);
 	}
 	printf("\te\n");
 
 	print_gnuplot_footer();
+}
+
+static size_t
+steps_to_sequence(double **out, double min, double max, double step)
+{
+	size_t sz = (max - min + 1)/step;
+	double i;
+
+	*out = malloc(sz * sizeof(double));
+
+	for (i = min, sz = 0; i <= max; i += step, sz++)
+		(*out)[sz] = i;
+	return sz;
+}
+
+static size_t
+doubles_from_stdin(double **out)
+{
+	char buf[12];
+	const size_t MAXEVENTS = 1024;
+	size_t sz = 0;
+
+	*out = malloc(MAXEVENTS * sizeof(double));
+
+	while(fgets(buf, sizeof(buf), stdin)) {
+		assert(sz < MAXEVENTS);
+		(*out)[sz++] = strtod(buf, NULL);
+	}
+
+	return sz;
 }
 
 static void
@@ -316,6 +348,9 @@ usage(void)
 	       "In sequence mode, if stdin is a pipe, the pipe is read \n"
 	       "for delta coordinates and extra arguments are ignored.\n"
 	       "\n"
+	       "In velocity mode, if stdin is a pipe, the pipe is read \n"
+	       "for velocity data and step is ignored\n"
+	       "\n"
 	       "The output is a executable gnuplot command set.\n");
 }
 
@@ -334,7 +369,8 @@ main(int argc, char **argv) {
 		MODE_SEQUENCE,
 		MODE_SPEED,
 	} mode = MODE_NONE;
-	double custom_deltas[1024];
+	double *data = NULL;
+	size_t data_sz;
 
 	filter = create_pointer_accelator_filter(pointer_accel_profile_smooth_simple);
 	assert(filter != NULL);
@@ -413,27 +449,25 @@ main(int argc, char **argv) {
 	if (mode == MODE_SEQUENCE) {
 		nevents = 0;
 		if (!isatty(STDIN_FILENO)) {
-			char buf[12];
-			memset(custom_deltas, 0, sizeof(custom_deltas));
-
-			while(fgets(buf, sizeof(buf), stdin) && nevents < 1024) {
-				custom_deltas[nevents++] = strtod(buf, NULL);
-			}
+			data_sz = doubles_from_stdin(&data);
 		} else if (optind < argc) {
-			nevents = 0;
-			memset(custom_deltas, 0, sizeof(custom_deltas));
+			data_sz = 0;
 			while (optind < argc)
-				custom_deltas[nevents++] = strtod(argv[optind++], NULL);
+				data[data_sz++] = strtod(argv[optind++], NULL);
 		} else {
 			usage();
 			return 1;
 		}
-
+	} else if (mode == MODE_VELOCITY) {
+		if (!isatty(STDIN_FILENO))
+			data_sz = doubles_from_stdin(&data);
+		else
+			data_sz = steps_to_sequence(&data, 0, 3, step);
 	}
 
 	switch (mode) {
 	case MODE_VELOCITY:
-		print_accel_func(filter, step);
+		print_accel_func(filter, data, data_sz);
 		break;
 	case MODE_DELTA:
 		print_ptraccel_deltas(filter, step);
@@ -442,7 +476,7 @@ main(int argc, char **argv) {
 		print_ptraccel_movement(filter, nevents, min_dx, max_dx, step);
 		break;
 	case MODE_SEQUENCE:
-		print_ptraccel_sequence(filter, nevents, custom_deltas);
+		print_ptraccel_sequence(filter, data_sz, data);
 		break;
 	case MODE_NONE:
 	case MODE_SPEED:
@@ -451,6 +485,8 @@ main(int argc, char **argv) {
 	}
 
 	filter_destroy(filter);
+
+	free(data);
 
 	return 0;
 }
