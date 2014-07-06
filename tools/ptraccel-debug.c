@@ -260,13 +260,15 @@ print_ptraccel_sequence(struct motion_filter *filter,
 }
 
 static void
-print_accel_func(struct motion_filter *filter)
+print_accel_func(struct motion_filter *filter, double step)
 {
-	double vel;
+	double vel, last;
 
-	print_gnuplot_header("velocity", "raw accel factor");
-	printf("plot '-' using 1:2 title ''\n");
-	for (vel = 0.0; vel < 3.0; vel += .0001) {
+	print_gnuplot_header("velocity", "accel factor");
+	printf("plot '-' using 1:2 title 'raw',"
+	       "     '-' using 1:2 title 'Simpsons'\n");
+
+	for (vel = 0.0; vel < 3.0; vel += step) {
 		double result = pointer_accel_profile_smooth_simple(filter,
 								    NULL,
 								    vel,
@@ -274,6 +276,22 @@ print_accel_func(struct motion_filter *filter)
 		printf("\t%.4f\t%.4f\n", vel, result);
 	}
 	printf("\te\n");
+
+	for (vel = last = 0.0; vel < 3.0; last = vel, vel += step) {
+		double result, mid;
+		result = pointer_accel_profile_smooth_simple(filter, NULL,
+							     vel, 0 /* time */);
+		result += pointer_accel_profile_smooth_simple(filter, NULL,
+							      last, 0 /* time */);
+		mid = (last + vel)/2;
+		result += 4 *
+			  pointer_accel_profile_smooth_simple(filter, NULL,
+							      mid, 0 /* time */);
+		result /= 6.0;
+		printf("\t%.4f\t%.4f\n", vel, result);
+	}
+	printf("\te\n");
+
 	print_gnuplot_footer();
 }
 
@@ -291,7 +309,8 @@ usage(void)
 	       "	speed    ... print speed to gain mapping (default)\n"
 	       "--maxdx=<double>\n  ... in motion mode only. Stop increasing dx at maxdx\n"
 	       "--mindx=<double>\n  ... in motion mode only. Start dx at mindx\n"
-	       "--steps=<double>\n  ... in motion, delta and speed modes only. Increase dx by step each round\n"
+	       "--steps=<double>\n  ... in motion, delta, and speed modes only.\n"
+	       "			Increase dx by step each round\n"
 	       "\n"
 	       "In sequence mode, extra arguments are a sequence of delta x coordinates.\n"
 	       "In sequence mode, if stdin is a pipe, the pipe is read \n"
@@ -414,7 +433,7 @@ main(int argc, char **argv) {
 
 	switch (mode) {
 	case MODE_VELOCITY:
-		print_accel_func(filter);
+		print_accel_func(filter, step);
 		break;
 	case MODE_DELTA:
 		print_ptraccel_deltas(filter, step);
