@@ -124,8 +124,9 @@ print_ptraccel_speed(struct motion_filter *filter, double step)
 	printf("plot '-' using 1:2 title 'gain'\n");
 	for (i = 0; i < idx; i++) {
 		double unitless_gain = 0;
-		if (speed[i] != 0.0)
-			unitless_gain = gain[i]/speed[i];
+		double base_speed = units_to_m_per_s(i * step);
+		if (base_speed != 0.0)
+			unitless_gain = speed[i]/base_speed;
 		printf("\t%f %f\n",
 		       units_to_m_per_s(i * step),
 		       unitless_gain);
