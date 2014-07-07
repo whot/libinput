@@ -86,7 +86,7 @@ print_ptraccel_speed(struct motion_filter *filter, double step)
 	   pointer movements. Then use the avg movement of that total to
 	   calculate speed in m/s, then map input speed to output speed.
 	   127 is the max dx possible in a 7-bit report field */
-	for (dx = 0; dx <= 127; dx += step) {
+	for (idx = 0, dx = 0; dx <= 127; dx += step, idx++) {
 		double sum = 0;
 
 		/* use 30 events to hide the tracker startup */
@@ -100,22 +100,20 @@ print_ptraccel_speed(struct motion_filter *filter, double step)
 			sum += motion.dx;
 		}
 
-		idx = dx/step;
-
 		speed[idx] = units_to_m_per_s(sum/nevents);
 		gain[idx] = speed[idx] - units_to_m_per_s(dx);
 
 		time += 1000; /* reset trackers with fake timeout */
 	}
 
-	for (i = 0; i <= idx; i++) {
+	for (i = 0; i < idx; i++) {
 		printf("\t%f %f\n",
 		       units_to_m_per_s(i * step),
 		       speed[i]);
 	}
 	printf("\te\n");
 
-	for (i = 0; i <= idx; i++) {
+	for (i = 0; i < idx; i++) {
 		printf("\t%f %f\n",
 		       units_to_m_per_s(i * step),
 		       gain[i]);
