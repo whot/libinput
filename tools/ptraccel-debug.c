@@ -35,6 +35,7 @@
 
 #include <libinput-util.h>
 
+/* Units per event at 125 hz */
 static double
 units_to_m_per_s(double units)
 {
@@ -43,6 +44,12 @@ units_to_m_per_s(double units)
 	units = units * 2.54 / 100; /* m/s */
 
 	return units;
+}
+
+static double
+units_per_ms_to_m_per_s(double units)
+{
+	return (units_to_m_per_s(units) * 8);
 }
 
 static void
@@ -266,20 +273,33 @@ print_accel_func(struct motion_filter *filter,
 	double *vel, last;
 
 	print_gnuplot_header("velocity (units/ms)", "accel factor");
+	printf("# third column: first column converted from units/ms to m/s\n");
+	printf("to_m_per_s(x)=x * 1000 / 400.0 * 0.0254\n"
+	       "set x2label 'velocity (m/s)'\n"
+	       "set xrange [0:2]\n"
+	       "set xtics out nomirror\n"
+	       "set x2range [to_m_per_s(0):to_m_per_s(2)]\n"
+	       "set xtics out nomirror\n"
+	       "set x2tics axis\n"
+	       "set format x \"\\n%%g\"\n"
+	       "set format x2 '%%g'\n");
 	printf("plot '-' using 1:2 title 'raw',"
 	       "     '-' using 1:2 title 'Simpsons'\n");
 
 	for (vel = sequence; vel < sequence + sz; vel ++) {
+		double speed;
 		double result = pointer_accel_profile_smooth_simple(filter,
 								    NULL,
 								    *vel,
 								    0 /* time */);
-		printf("\t%.4f\t%.4f\n", *vel, result);
+		speed = units_per_ms_to_m_per_s(*vel);
+
+		printf("\t%.4f\t%.4f\t%.4f\n", *vel, result, speed);
 	}
 	printf("\te\n");
 
 	for (vel = sequence, last = 0.0; vel < sequence + sz; last = *vel, vel++) {
-		double result, mid;
+		double result, mid, speed;
 		result = pointer_accel_profile_smooth_simple(filter, NULL,
 							     *vel, 0 /* time */);
 		result += pointer_accel_profile_smooth_simple(filter, NULL,
@@ -289,7 +309,9 @@ print_accel_func(struct motion_filter *filter,
 			  pointer_accel_profile_smooth_simple(filter, NULL,
 							      mid, 0 /* time */);
 		result /= 6.0;
-		printf("\t%.4f\t%.4f\n", *vel, result);
+
+		speed = units_per_ms_to_m_per_s(*vel);
+		printf("\t%.4f\t%.4f\t%.4f\n", *vel, result, speed);
 	}
 	printf("\te\n");
 
