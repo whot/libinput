@@ -128,6 +128,7 @@ print_ptraccel_speed(struct motion_filter *filter, double step)
 
 	printf("\te\n");
 
+	printf("set ylabel 'gain (V out : V in)'\n");
 	printf("plot '-' using 1:2 title 'gain'\n");
 	for (i = 0; i < idx; i++) {
 		double unitless_gain = 0;
@@ -273,7 +274,6 @@ print_accel_func(struct motion_filter *filter,
 	double *vel, last;
 
 	print_gnuplot_header("velocity (units/ms)", "accel factor");
-	printf("# third column: first column converted from units/ms to mm/s\n");
 	printf("to_mm_per_s(x)=x * 1000 / 400.0 * 25.4\n"
 	       "set x2label 'velocity (mm/s)'\n"
 	       "set xrange [0:2]\n"
@@ -283,6 +283,7 @@ print_accel_func(struct motion_filter *filter,
 	       "set x2tics axis\n"
 	       "set format x \"\\n%%g\"\n"
 	       "set format x2 '%%g'\n");
+	printf("# third column: first column converted from units/ms to mm/s\n");
 	printf("plot '-' using 1:2 title 'raw',"
 	       "     '-' using 1:2 title 'Simpsons'\n");
 
@@ -294,7 +295,7 @@ print_accel_func(struct motion_filter *filter,
 								    0 /* time */);
 		speed = units_per_ms_to_mm_per_s(*vel);
 
-		printf("\t%.4f\t%.4f\t%.4f\n", *vel, result, speed);
+		printf("\t%f\t%f\t%f\n", *vel, result, speed);
 	}
 	printf("\te\n");
 
@@ -311,7 +312,7 @@ print_accel_func(struct motion_filter *filter,
 		result /= 6.0;
 
 		speed = units_per_ms_to_mm_per_s(*vel);
-		printf("\t%.4f\t%.4f\t%.4f\n", *vel, result, speed);
+		printf("\t%f\t%f\t%f\n", *vel, result, speed);
 	}
 	printf("\te\n");
 
