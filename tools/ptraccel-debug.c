@@ -37,19 +37,19 @@
 
 /* Units per event at 125 hz */
 static double
-units_to_m_per_s(double units)
+units_to_mm_per_s(double units)
 {
 	units *= 125; /* units/s */
 	units /= 400.0; /* assume 400 dpi -> in/s */
-	units = units * 2.54 / 100; /* m/s */
+	units = units * 2.54 * 10; /* mm/s */
 
 	return units;
 }
 
 static double
-units_per_ms_to_m_per_s(double units)
+units_per_ms_to_mm_per_s(double units)
 {
-	return (units_to_m_per_s(units) * 8);
+	return (units_to_mm_per_s(units) * 8);
 }
 
 static void
@@ -80,18 +80,18 @@ print_ptraccel_speed(struct motion_filter *filter, double step)
 	int i;
 	int idx;
 
-	print_gnuplot_header("unaccel dx in m/s",
-			     "accelerated dx in m/s");
+	print_gnuplot_header("unaccel dx in mm/s",
+			     "accelerated dx in mm/s");
 	printf("set multiplot layout 1,2\n");
-	printf("plot '-' using 1:2 title 'm/s',"
-	       "     '-' using 1:2 title 'gain m/s'\n");
+	printf("plot '-' using 1:2 title 'mm/s',"
+	       "     '-' using 1:2 title 'gain mm/s'\n");
 
 	speed = alloca(128/step * sizeof(double));
 	gain = alloca(128/step * sizeof(double));
 
 	/* for all deltas in 0..127, sent a set of events and total up the
 	   pointer movements. Then use the avg movement of that total to
-	   calculate speed in m/s, then map input speed to output speed.
+	   calculate speed in mm/s, then map input speed to output speed.
 	   127 is the max dx possible in a 7-bit report field */
 	for (idx = 0, dx = 0; dx <= 127; dx += step, idx++) {
 		double sum = 0;
@@ -107,22 +107,22 @@ print_ptraccel_speed(struct motion_filter *filter, double step)
 			sum += motion.dx;
 		}
 
-		speed[idx] = units_to_m_per_s(sum/nevents);
-		gain[idx] = speed[idx] - units_to_m_per_s(dx);
+		speed[idx] = units_to_mm_per_s(sum/nevents);
+		gain[idx] = speed[idx] - units_to_mm_per_s(dx);
 
 		time += 1000; /* reset trackers with fake timeout */
 	}
 
 	for (i = 0; i < idx; i++) {
 		printf("\t%f %f\n",
-		       units_to_m_per_s(i * step),
+		       units_to_mm_per_s(i * step),
 		       speed[i]);
 	}
 	printf("\te\n");
 
 	for (i = 0; i < idx; i++) {
 		printf("\t%f %f\n",
-		       units_to_m_per_s(i * step),
+		       units_to_mm_per_s(i * step),
 		       gain[i]);
 	}
 
@@ -131,11 +131,11 @@ print_ptraccel_speed(struct motion_filter *filter, double step)
 	printf("plot '-' using 1:2 title 'gain'\n");
 	for (i = 0; i < idx; i++) {
 		double unitless_gain = 0;
-		double base_speed = units_to_m_per_s(i * step);
+		double base_speed = units_to_mm_per_s(i * step);
 		if (base_speed != 0.0)
 			unitless_gain = speed[i]/base_speed;
 		printf("\t%f %f\n",
-		       units_to_m_per_s(i * step),
+		       units_to_mm_per_s(i * step),
 		       unitless_gain);
 	}
 	printf("\te\n");
@@ -273,12 +273,12 @@ print_accel_func(struct motion_filter *filter,
 	double *vel, last;
 
 	print_gnuplot_header("velocity (units/ms)", "accel factor");
-	printf("# third column: first column converted from units/ms to m/s\n");
-	printf("to_m_per_s(x)=x * 1000 / 400.0 * 0.0254\n"
-	       "set x2label 'velocity (m/s)'\n"
+	printf("# third column: first column converted from units/ms to mm/s\n");
+	printf("to_mm_per_s(x)=x * 1000 / 400.0 * 25.4\n"
+	       "set x2label 'velocity (mm/s)'\n"
 	       "set xrange [0:2]\n"
 	       "set xtics out nomirror\n"
-	       "set x2range [to_m_per_s(0):to_m_per_s(2)]\n"
+	       "set x2range [to_mm_per_s(0):to_mm_per_s(2)]\n"
 	       "set xtics out nomirror\n"
 	       "set x2tics axis\n"
 	       "set format x \"\\n%%g\"\n"
@@ -292,7 +292,7 @@ print_accel_func(struct motion_filter *filter,
 								    NULL,
 								    *vel,
 								    0 /* time */);
-		speed = units_per_ms_to_m_per_s(*vel);
+		speed = units_per_ms_to_mm_per_s(*vel);
 
 		printf("\t%.4f\t%.4f\t%.4f\n", *vel, result, speed);
 	}
@@ -310,7 +310,7 @@ print_accel_func(struct motion_filter *filter,
 							      mid, 0 /* time */);
 		result /= 6.0;
 
-		speed = units_per_ms_to_m_per_s(*vel);
+		speed = units_per_ms_to_mm_per_s(*vel);
 		printf("\t%.4f\t%.4f\t%.4f\n", *vel, result, speed);
 	}
 	printf("\te\n");
