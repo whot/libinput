@@ -265,7 +265,7 @@ print_accel_func(struct motion_filter *filter,
 {
 	double *vel, last;
 
-	print_gnuplot_header("velocity", "accel factor");
+	print_gnuplot_header("velocity (units/ms)", "accel factor");
 	printf("plot '-' using 1:2 title 'raw',"
 	       "     '-' using 1:2 title 'Simpsons'\n");
 
