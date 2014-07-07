@@ -244,7 +244,7 @@ calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
 		}
 	}
 
-	return result;
+	return result; /* units/ms */
 }
 
 static double
