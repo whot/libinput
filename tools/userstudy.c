@@ -950,10 +950,16 @@ study_mark_set_start(struct window *w)
 	struct timespec tp;
 	uint32_t time;
 
+	s->object_radius = s->radii[s->set];
+
 	clock_gettime(CLOCK_MONOTONIC, &tp);
 	time = tp.tv_sec * 1000 + tp.tv_nsec/1000000;
 
-	dprintf(s->fd, "<set time=\"%d\" id=\"%d\">\n", time, s->set);
+	dprintf(s->fd,
+		"<set time=\"%d\" id=\"%d\" r=\"%d\">\n",
+		time,
+		s->set,
+		s->object_radius);
 }
 
 static void
@@ -1202,7 +1208,6 @@ study_handle_event_button(struct libinput_event *ev, struct window *w)
 				study_mark_set_stop(w);
 				study_show_intermission(w);
 				study_mark_set_start(w);
-				s->object_radius = s->radii[s->set];
 				s->ntargets = NUM_STUDY_TARGETS;
 			} else {
 				s->state = STATE_DONE;
