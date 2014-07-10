@@ -733,3 +733,9 @@ tp_button_touch_active(struct tp_dispatch *tp, struct tp_touch *t)
 {
 	return t->button.state == BUTTON_STATE_AREA;
 }
+
+bool
+tp_button_is_inside_softbutton_area(struct tp_dispatch *tp, struct tp_touch *t)
+{
+	return is_inside_top_button_area(tp, t) || is_inside_bottom_button_area(tp, t);
+}

@@ -148,6 +148,7 @@ tp_end_touch(struct tp_dispatch *tp, struct tp_touch *t)
 
 	t->dirty = true;
 	t->is_pointer = false;
+	t->is_palm = false;
 	t->state = TOUCH_END;
 	t->pinned.is_pinned = false;
 	assert(tp->nfingers_down >= 1);
@@ -339,6 +340,7 @@ static int
 tp_touch_active(struct tp_dispatch *tp, struct tp_touch *t)
 {
 	return (t->state == TOUCH_BEGIN || t->state == TOUCH_UPDATE) &&
+		!t->is_palm &&
 		!t->pinned.is_pinned && tp_button_touch_active(tp, t);
 }
 
@@ -358,6 +360,29 @@ tp_set_pointer(struct tp_dispatch *tp, struct tp_touch *t)
 }
 
 static void
+tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t)
+{
+	/* once a palm, always a palm */
+	if (t->is_palm)
+		return;
+
+	/* palm must start in exclusion zone, it's ok to move into
+	   the zone without being a palm */
+	if (t->state != TOUCH_BEGIN ||
+	    (t->x > tp->palm.left_edge && t->x < tp->palm.right_edge))
+		return;
+
+	/* don't detect palm in software button areas, it's
+	   likely that legitimate touches start in the area
+	   covered by the exclusion zone */
+	if (tp->buttons.is_clickpad &&
+	    tp_button_is_inside_softbutton_area(tp, t))
+		return;
+
+	t->is_palm = true;
+}
+
+static void
 tp_process_state(struct tp_dispatch *tp, uint64_t time)
 {
 	struct tp_touch *t;
@@ -372,6 +397,8 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 		} else if (!t->dirty) {
 			continue;
 		}
+
+		tp_palm_detect(tp, t);
 
 		tp_motion_hysteresis(tp, t);
 		tp_motion_history_push(t);
@@ -703,6 +730,23 @@ tp_init_scroll(struct tp_dispatch *tp)
 }
 
 static int
+tp_init_palmdetect(struct tp_dispatch *tp,
+		   struct evdev_device *device)
+{
+	int width;
+
+	width = abs(device->abs.absinfo_x->maximum -
+		    device->abs.absinfo_x->minimum);
+
+	/* palm edges are 5% of the width on each side */
+	tp->palm.right_edge = device->abs.absinfo_x->maximum - width * 0.05;
+	tp->palm.left_edge = device->abs.absinfo_x->minimum + width * 0.05;
+
+	return 0;
+}
+
+
+static int
 tp_init(struct tp_dispatch *tp,
 	struct evdev_device *device)
 {
@@ -736,6 +780,9 @@ tp_init(struct tp_dispatch *tp,
 		return -1;
 
 	if (tp_init_buttons(tp, device) != 0)
+		return -1;
+
+	if (tp_init_palmdetect(tp, device) != 0)
 		return -1;
 
 	return 0;

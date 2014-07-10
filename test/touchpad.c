@@ -1241,6 +1241,117 @@ START_TEST(touchpad_tap_default)
 }
 END_TEST
 
+START_TEST(touchpad_palm_detect_at_edge)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+
+	litest_drain_events(li);
+
+	litest_touch_down(dev, 0, 99, 50);
+	litest_touch_move_to(dev, 0, 99, 50, 99, 70, 5);
+	litest_touch_up(dev, 0);
+
+	litest_assert_empty_queue(li);
+
+	litest_touch_down(dev, 0, 5, 50);
+	litest_touch_move_to(dev, 0, 5, 50, 5, 70, 5);
+	litest_touch_up(dev, 0);
+}
+END_TEST
+
+START_TEST(touchpad_palm_detect_at_bottom_corners)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+
+	/* Run for non-clickpads only: make sure the bottom corners trigger
+	   palm detection too */
+	litest_drain_events(li);
+
+	litest_touch_down(dev, 0, 99, 95);
+	litest_touch_move_to(dev, 0, 99, 95, 99, 99, 10);
+	litest_touch_up(dev, 0);
+
+	litest_assert_empty_queue(li);
+
+	litest_touch_down(dev, 0, 5, 95);
+	litest_touch_move_to(dev, 0, 5, 95, 5, 99, 5);
+	litest_touch_up(dev, 0);
+}
+END_TEST
+
+START_TEST(touchpad_palm_detect_at_top_corners)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+
+	/* Run for non-clickpads only: make sure the bottom corners trigger
+	   palm detection too */
+	litest_drain_events(li);
+
+	litest_touch_down(dev, 0, 99, 5);
+	litest_touch_move_to(dev, 0, 99, 5, 99, 9, 10);
+	litest_touch_up(dev, 0);
+
+	litest_assert_empty_queue(li);
+
+	litest_touch_down(dev, 0, 5, 5);
+	litest_touch_move_to(dev, 0, 5, 5, 5, 9, 5);
+	litest_touch_up(dev, 0);
+}
+END_TEST
+
+START_TEST(touchpad_palm_detect_palm_stays_palm)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+
+	litest_drain_events(li);
+
+	litest_touch_down(dev, 0, 99, 50);
+	litest_touch_move_to(dev, 0, 99, 50, 0, 70, 5);
+	litest_touch_up(dev, 0);
+
+	litest_assert_empty_queue(li);
+}
+END_TEST
+
+START_TEST(touchpad_palm_detect_no_palm_moving_into_edges)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event *ev;
+	enum libinput_event_type type;
+
+	/* moving non-palm into the edge does not label it as palm */
+	litest_drain_events(li);
+
+	litest_touch_down(dev, 0, 50, 50);
+	litest_touch_move_to(dev, 0, 50, 50, 99, 50, 5);
+
+	litest_drain_events(li);
+
+	litest_touch_move_to(dev, 0, 99, 50, 99, 90, 5);
+	libinput_dispatch(li);
+
+	type = libinput_next_event_type(li);
+	do {
+
+		ck_assert_int_eq(type, LIBINPUT_EVENT_POINTER_MOTION);
+		ev = libinput_get_event(li);
+		libinput_event_destroy(ev);
+
+		type = libinput_next_event_type(li);
+		libinput_dispatch(li);
+	} while (type != LIBINPUT_EVENT_NONE);
+
+	litest_touch_up(dev, 0);
+	libinput_dispatch(li);
+	litest_assert_empty_queue(li);
+}
+END_TEST
+
 int main(int argc, char **argv) {
 
 	litest_add("touchpad:motion", touchpad_1fg_motion, LITEST_TOUCHPAD, LITEST_ANY);
@@ -1289,6 +1400,12 @@ int main(int argc, char **argv) {
 	litest_add("touchpad:topsoftbuttons", clickpad_topsoftbuttons_move_out_ignore, LITEST_TOPBUTTONPAD, LITEST_ANY);
 
 	litest_add("touchpad:scroll", touchpad_2fg_scroll, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
+
+	litest_add("touchpad:palm", touchpad_palm_detect_at_edge, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("touchpad:palm", touchpad_palm_detect_at_bottom_corners, LITEST_TOUCHPAD, LITEST_CLICKPAD);
+	litest_add("touchpad:palm", touchpad_palm_detect_at_top_corners, LITEST_TOUCHPAD, LITEST_TOPBUTTONPAD);
+	litest_add("touchpad:palm", touchpad_palm_detect_palm_stays_palm, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("touchpad:palm", touchpad_palm_detect_no_palm_moving_into_edges, LITEST_TOUCHPAD, LITEST_ANY);
 
 	return litest_run(argc, argv);
 }

@@ -103,6 +103,7 @@ struct tp_touch {
 	bool dirty;
 	bool fake;				/* a fake touch */
 	bool is_pointer;			/* the pointer-controlling touch */
+	bool is_palm;
 	int32_t x;
 	int32_t y;
 	uint64_t millis;
@@ -202,6 +203,11 @@ struct tp_dispatch {
 		struct libinput_timer timer;
 		enum tp_tap_state state;
 	} tap;
+
+	struct {
+		int32_t right_edge;
+		int32_t left_edge;
+	} palm;
 };
 
 #define tp_for_each_touch(_tp, _t) \
@@ -241,5 +247,8 @@ tp_button_handle_state(struct tp_dispatch *tp, uint64_t time);
 
 int
 tp_button_touch_active(struct tp_dispatch *tp, struct tp_touch *t);
+
+bool
+tp_button_is_inside_softbutton_area(struct tp_dispatch *tp, struct tp_touch *t);
 
 #endif
