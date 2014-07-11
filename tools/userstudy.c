@@ -757,13 +757,15 @@ study_show_questionnaire(struct window *w)
 static void
 study_show_done(struct window *w)
 {
+	struct study *s = &w->base;
 	const char *message;
 	GtkWidget *dialog;
+	GtkFileChooser *chooser;
+	gint response;
 
 	message = "Thank you for completing the study.\n"
 		  "\n"
-		  "<b>Your results are available in the file:</b>\n\n"
-		  "<tt>%s/%s</tt>\n\n"
+		  "Click OK to save the file with the results.\n"
 		  "Please send them unmodified to\n\n"
 		  "<b><tt>libinputdatacollection@gmail</tt></b>\n\n"
 		  "with a subject line of <b><tt>STUDY d3b07384</tt></b>\n"
@@ -785,9 +787,48 @@ study_show_done(struct window *w)
 						    w->base.filename);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
+	dialog = gtk_file_chooser_dialog_new("Save results as",
+					     GTK_WINDOW(w->win),
+					     GTK_FILE_CHOOSER_ACTION_SAVE,
+					     "_Cancel",
+					     GTK_RESPONSE_CANCEL,
+					     "_Save",
+					     GTK_RESPONSE_ACCEPT,
+					     NULL);
+	chooser = GTK_FILE_CHOOSER(dialog);
+	gtk_file_chooser_set_do_overwrite_confirmation(chooser, TRUE);
+	gtk_file_chooser_set_current_name(chooser,
+					  "userstudy-results.xml");
 
-	gdk_window_set_cursor(gtk_widget_get_window(w->win),
-			      gdk_cursor_new(GDK_BLANK_CURSOR));
+	response = gtk_dialog_run(GTK_DIALOG (dialog));
+	if (response == GTK_RESPONSE_ACCEPT) {
+		GFile *source, *dest;
+		GError *error = NULL;
+		char *filename;
+		filename = gtk_file_chooser_get_filename(chooser);
+
+		source = g_file_new_for_path(s->filename);
+		dest = g_file_new_for_path(filename);
+		g_file_move(source, dest, G_FILE_COPY_OVERWRITE,
+			    NULL, NULL, NULL, &error);
+		if (error) {
+			fprintf(stderr,
+				"Moving file failed (%s), still at location %s\n",
+				error->message,
+				s->filename);
+		} else {
+			free(s->filename);
+			free(s->cwd);
+			s->cwd = strdup("");
+			s->filename = filename;
+		}
+
+		g_object_unref(source);
+		g_object_unref(dest);
+
+	}
+
+	gtk_widget_destroy(dialog);
 }
 
 static void
