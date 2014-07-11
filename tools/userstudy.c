@@ -55,6 +55,8 @@ enum study_state {
 	STATE_WELCOME,
 	STATE_CONFIRM_DEVICE,
 	STATE_TRAINING,
+	STATE_INTERMISSION,
+	STATE_STUDY_START,
 	STATE_STUDY,
 	STATE_DONE,
 };
@@ -184,10 +186,19 @@ study_show_text(cairo_t *cr, struct window *w)
 		NULL
 	};
 
+	const char *start_message[] = {
+		"Click on the target to start the study.",
+		NULL
+	};
+
 	switch(s->state) {
 	case STATE_TRAINING:
 	case STATE_STUDY:
 		str = training_message;
+		break;
+	case STATE_STUDY_START:
+	case STATE_INTERMISSION:
+		str = start_message;
 		break;
 	default:
 		return;
@@ -214,11 +225,27 @@ static void
 study_init(struct window *w)
 {
 	struct study *s = &w->base;
+	int radii[] = { 15, 30, 45 };
+	int i;
+
 	study_default_target(w);
 	s->state = STATE_WELCOME;
 	s->new_state = STATE_WELCOME;
 	s->filename = NULL;
 	s->cwd = NULL;
+
+	s->ntargets = NUM_STUDY_TARGETS;
+
+	/* Define order at startup, but randomly */
+	for (i = 0; i < NUM_SETS; i++)
+		s->radii[i] = radii[i];
+	for (i = NUM_SETS - 1; i > 0; i--) {
+		int j = rand() % (i + 1);
+		int tmp = s->radii[j];
+		s->radii[j] = s->radii[i];
+		s->radii[i] = tmp;
+	}
+
 }
 
 static void
@@ -238,6 +265,8 @@ study_draw_object(cairo_t *cr, struct window *w)
 	/* draw the click object */
 	cairo_save(cr);
 	if (s->state == STATE_TRAINING ||
+	    s->state  == STATE_STUDY_START ||
+	    s->state == STATE_INTERMISSION ||
 	    s->state  == STATE_STUDY)
 		cairo_set_source_rgb(cr, .4, .8, 0);
 	else
@@ -262,6 +291,8 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 	if (s->state != STATE_CONFIRM_DEVICE &&
 	    s->state != STATE_TRAINING &&
+	    s->state != STATE_STUDY_START &&
+	    s->state != STATE_INTERMISSION &&
 	    s->state != STATE_STUDY)
 		return TRUE;
 
@@ -536,7 +567,7 @@ study_show_training_done(struct window *w)
 		  "Note that the cursor used to select the targets is not\n"
 		  "your normal system cursor\n"
 		  "\n"
-		  "Event collection starts as soon as you hit Ok.\n"
+		  "Event collection starts once you click the first target\n"
 		  "\n"
 		  "You can abort any time by hitting Esc.\n";
 
@@ -567,7 +598,8 @@ study_show_intermission(struct window *w)
 	message = "This set is now complete. You may have a short rest before\n"
 		"the next set starts. Target sizes may change between sets.\n"
 		"\n"
-		"To start the next set, click OK\n"
+		"To start the next set, click OK. Event collection starts\n"
+		"when you click the first target\n"
 		"\n"
 		"You can abort any time by hitting Esc.\n";
 
@@ -923,6 +955,16 @@ study_new_training_target(struct window *w)
 }
 
 static void
+study_show_start_target(struct window *w)
+{
+	struct study *s = &w->base;
+
+	w->base.object_x = w->width/2;
+	w->base.object_y = w->height/2;
+	w->base.object_radius = s->radii[s->set];
+}
+
+static void
 study_new_target(struct window *w)
 {
 	struct study *s = &w->base;
@@ -996,21 +1038,7 @@ study_start_recording(struct window *w)
 	int fd;
 	int code, type;
 	char path[PATH_MAX];
-	int radii[] = { 15, 30, 45 };
-	int i;
 	struct utsname kernel;
-
-	s->ntargets = NUM_STUDY_TARGETS;
-
-	/* Define order at startup, but randomly */
-	for (i = 0; i < NUM_SETS; i++)
-		s->radii[i] = radii[i];
-	for (i = NUM_SETS - 1; i > 0; i--) {
-		int j = rand() % (i + 1);
-		int tmp = s->radii[j];
-		s->radii[j] = s->radii[i];
-		s->radii[i] = tmp;
-	}
 
 	s->filename = strdup("userstudy-results.xml.XXXXXX");
 	s->fd = mkstemp(s->filename);
@@ -1192,11 +1220,26 @@ study_handle_event_button(struct libinput_event *ev, struct window *w)
 
 		if (s->ntargets == 0) {
 			study_show_training_done(w);
-			s->new_state = STATE_STUDY;
-			study_start_recording(w);
+			s->new_state = STATE_STUDY_START;
+			s->state = STATE_STUDY_START;
+			study_show_start_target(w);
 			break;
 		}
 		study_new_training_target(w);
+		break;
+	case STATE_STUDY_START:
+		if (!study_click_in_circle(w, w->x, w->y))
+			return;
+		s->new_state = STATE_STUDY;
+		s->ntargets = NUM_STUDY_TARGETS;
+		study_start_recording(w);
+		break;
+	case STATE_INTERMISSION:
+		if (!study_click_in_circle(w, w->x, w->y))
+			return;
+		s->new_state = STATE_STUDY;
+		study_mark_set_start(w);
+		s->ntargets = NUM_STUDY_TARGETS;
 		break;
 	case STATE_STUDY:
 		if (!study_click_in_circle(w, w->x, w->y))
@@ -1207,8 +1250,10 @@ study_handle_event_button(struct libinput_event *ev, struct window *w)
 			if (s->set < NUM_SETS) {
 				study_mark_set_stop(w);
 				study_show_intermission(w);
-				study_mark_set_start(w);
-				s->ntargets = NUM_STUDY_TARGETS;
+				s->state = STATE_INTERMISSION;
+				s->new_state = STATE_INTERMISSION;
+				study_show_start_target(w);
+				break;
 			} else {
 				s->state = STATE_DONE;
 				s->new_state = STATE_DONE;
