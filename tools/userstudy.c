@@ -622,6 +622,134 @@ study_show_intermission(struct window *w)
 	return;
 };
 
+static int
+study_show_questionnaire(struct window *w)
+{
+	struct study *s = &w->base;
+
+	GtkWidget *dialog,
+		  *content_area,
+		  *box,
+		  *scroll,
+		  *grid,
+		  *label;
+	int i;
+	const char *questions[] = {
+		"The first acceleration method felt natural",
+		"The first acceleration method allowed for "
+		"precise pointer control",
+		"The first acceleration method allowed for "
+		"fast pointer movement",
+		"The first acceleration method "
+		"made it easy to hit the targets",
+		"I would prefer the first acceleration method "
+		"to be faster",
+		"I would prefer the first acceleration method"
+		"to be slower",
+		"The second acceleration method felt natural",
+		"The second acceleration method allowed for "
+		"precise pointer control",
+		"The second acceleration method allowed for "
+		"fast pointer movement",
+		"The second acceleration method "
+		"made it easy to hit the targets",
+		"I would prefer the second acceleration method "
+		"to be faster",
+		"I would prefer the second acceleration method"
+		"to be slower",
+		"The two acceleration methods "
+		"felt different",
+		"The first acceleration method "
+		"was preferable over the second"
+	};
+	GtkWidget *labels[ARRAY_LENGTH(questions)],
+		  *scales[ARRAY_LENGTH(questions)];
+	gint response;
+
+	const char *message = "Thanks for completing the study.\n"
+			      "\n"
+			      "As a last step, please complete the questionnaire below. "
+			      "Each question provides answers\non a 5-point Likert scale,"
+			      "with the answer being from Strong Disagree (-2),"
+			      "Disagree (-1),\nNeither Agree Nor Disagree (0),"
+			      "Agree (1) and Strongly Agree (2)\n";
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+
+	dialog = gtk_dialog_new_with_buttons(" ",
+					     GTK_WINDOW(w->win),
+					     GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+					     "_Cancel",
+					     GTK_RESPONSE_CLOSE,
+					     "_OK",
+					     GTK_RESPONSE_OK,
+					     NULL);
+	content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+	box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
+	gtk_container_add(GTK_CONTAINER(content_area), box);
+
+	label = gtk_label_new(message);
+	scroll = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll),
+						   500);
+	gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(scroll),
+						   800);
+
+	grid = gtk_grid_new();
+
+	gtk_box_pack_start(GTK_BOX(box), label, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(box), scroll, true, true, 20);
+	gtk_container_add(GTK_CONTAINER(scroll), grid);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 40);
+
+	for (i = 0; i < ARRAY_LENGTH(labels); i++) {
+		labels[i] = gtk_label_new(questions[i]);
+		gtk_label_set_justify(GTK_LABEL(labels[i]), GTK_JUSTIFY_LEFT);
+		gtk_label_set_width_chars(GTK_LABEL(labels[i]), 50);
+		gtk_label_set_max_width_chars(GTK_LABEL(labels[i]), 50);
+		gtk_widget_set_hexpand(labels[i], true);
+		gtk_widget_set_margin_left(labels[i], 20);
+		gtk_grid_attach(GTK_GRID(grid), labels[i],
+				0, i, 1, 1);
+
+		scales[i] = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, -2, 2, 1);
+		gtk_scale_set_digits(GTK_SCALE(scales[i]), 0);
+		gtk_range_set_value(GTK_RANGE(scales[i]), 0);
+		/* taking out the next line doesn't snap to values anymore */
+		//gtk_scale_set_draw_value(GTK_SCALE(scales[i]), 0);
+		gtk_scale_add_mark(GTK_SCALE(scales[i]), -2, GTK_POS_BOTTOM,
+				   "strongly disagree");
+		gtk_scale_add_mark(GTK_SCALE(scales[i]), 2, GTK_POS_BOTTOM,
+				   "strongly agree");
+		gtk_grid_attach(GTK_GRID(grid), scales[i],
+				1, i, 1, 1);
+		gtk_widget_set_margin_right(scales[i], 20);
+	}
+
+
+	gtk_widget_show_all(dialog);
+	response = gtk_dialog_run(GTK_DIALOG(dialog));
+
+	if (response == GTK_RESPONSE_CLOSE) {
+		gtk_main_quit();
+		gtk_widget_destroy(dialog);
+		return -1;
+	}
+
+	dprintf(s->fd, "<questionnaire>\n");
+	for (i = 0; i < ARRAY_LENGTH(questions); i++) {
+		dprintf(s->fd,
+			"<question response=\"%d\">%s</question>\n",
+			(int)gtk_range_get_value(GTK_RANGE(scales[i])),
+			questions[i]);
+
+	}
+	dprintf(s->fd, "</questionnaire>\n");
+	gtk_widget_destroy(dialog);
+	return 0;
+}
 
 static void
 study_show_done(struct window *w)
@@ -1116,7 +1244,6 @@ static void
 study_stop_recording(struct window *w)
 {
 	struct study *s = &w->base;
-	dprintf(s->fd, "</set>\n");
 	dprintf(s->fd, "</sets>\n");
 	dprintf(s->fd, "</results>\n");
 	close(s->fd);
@@ -1262,9 +1389,12 @@ study_handle_event_button(struct libinput_event *ev, struct window *w)
 				study_show_start_target(w);
 				break;
 			} else {
+				study_mark_set_stop(w);
+				if (study_show_questionnaire(w) != 0)
+					return;
+				study_stop_recording(w);
 				s->state = STATE_DONE;
 				s->new_state = STATE_DONE;
-				study_stop_recording(w);
 				study_show_done(w);
 				gtk_main_quit();
 				printf("Your results are in %s/%s\n",
