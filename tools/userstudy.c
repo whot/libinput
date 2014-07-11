@@ -390,10 +390,13 @@ study_show_welcome_message(struct window *w)
 	GtkWidget *dialog;
 	gint response;
 
-	message = "Thank you for participating in this study. The goal of this study\n"
-		 "is to analyze the pointer acceleration code. The study\n"
-		 "consists of several randomized sets of moving targets.\n"
-		 "Your task is to simply click on these targets as they appear\n"
+	message = "<b>Thank you for participating in this study.</b>\n"
+		 "\n"
+		 "The goal of this study is to analyze the pointer acceleration\n"
+		 "code. The study consists of several randomized sets of moving\n"
+		 "targets.\n"
+		 "\n"
+		 "Your task is to click on these targets as they appear\n"
 		 "using a mouse-like input device.\n"
 		 "\n"
 		 "The data collected by this program is limited to:\n"
@@ -403,25 +406,25 @@ study_show_welcome_message(struct window *w)
 		 "- input events with timestamps\n"
 		 "- converted events and timestamps\n"
 		 "\n"
-		 "No data that can personally identify you is collected.\n"
+		 "<b>No data that can personally identify you is collected.</b>\n"
 		 "Key events are received by this program but not collected or\n"
 		 "analyzed.\n"
 		 "\n"
 		 "The data collected is available in a plain text file and must\n"
-		 "be sent to me via email. This tool does not send any data.\n"
+		 "be sent to us via email. <b>This tool does not send any data.</b>\n"
 		 "\n"
 		 "You can abort any time by hitting Esc.\n"
 		 "\n"
-		 "When you're ready to go please click OK\n"
+		 "<b>When you're ready to go please click OK</b>\n"
 		 "Press Cancel to abort and exit this study\n";
 	gdk_window_set_cursor(gtk_widget_get_window(w->win),
 			      NULL);
 
-	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
-					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
-					GTK_MESSAGE_INFO,
-					GTK_BUTTONS_OK_CANCEL,
-					message);
+	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(w->win),
+						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+						    GTK_MESSAGE_OTHER,
+						    GTK_BUTTONS_OK_CANCEL,
+						    message);
 	response = gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -440,37 +443,32 @@ study_show_confirm_message(struct window *w)
 	GtkWidget *dialog;
 	gint response;
 
-	message = "Almost ready to go. This is an unsupervised study and\n"
-		  "we ask you to confirm the following:\n"
+	message = "Almost ready to go. <b>This is an unsupervised study</b> and\n"
+		  "we ask you to confirm the following before we can proceed:\n"
 		  "\n"
-		  "1) You have normal or corrected vision and you can identify\n"
-		  "   objects on the screen easily\n"
+		  "1) You have normal corrected vision\n"
 		  "2) You acknowledge that this tool will collect real-time events\n"
-		  "   from the device used during the study, and only that device\n"
-		  "3) You are familiar with interacting a computer desktop environment\n"
-		  "   and you have no motoric challenges that impede on using a mouse\n"
-		  "4) You accept that the collected data may be used to alter and improve\n"
-		  "   interactions with the desktop environment.\n"
-		  "5) You accept that the data may be used in a publicly available\n"
-		  "6) You accept that the raw data may be made available to other\n"
-		  "   researchers for further analysis. All effort is made to avoid\n"
-		  "   any attempt at personal identification of the data.\n"
-		  "7) You agree not to modify the collected data of this study\n"
-		  "   before submission\n"
+		  "	from the device used during the study, and only that device\n"
+		  "3) You are familiar and comfortable with using a mouse-like device\n"
+		  "	in a graphical user interface\n"
+		  "6) You accept that the raw data will be made publicly available\n"
+		  "	for analysis.\n"
+		  "7) You agree not to tamper, modify or otherwise alter the\n"
+		  "	data collected by this tool before submission\n"
 		  "\n"
-		  "If you agree with the above, please hit Yes\n"
-		  "If you disagree with the above, please hit No to quit\n"
+		  "<b>If you agree with the above, please click Yes</b>\n"
+		  "If you disagree with the above, please click No to quit\n"
 		  "\n"
 		 "You can abort any time by hitting Esc.\n";
 
 	gdk_window_set_cursor(gtk_widget_get_window(w->win),
 			      NULL);
 
-	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
-					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
-					GTK_MESSAGE_INFO,
-					GTK_BUTTONS_YES_NO,
-					message);
+	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(w->win),
+						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+						    GTK_MESSAGE_OTHER,
+						    GTK_BUTTONS_YES_NO,
+						    message);
 	response = gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -489,24 +487,25 @@ study_show_confirm_device(struct window *w)
 	GtkWidget *dialog;
 
 	message = "On the next screen, you will see a circle on white background.\n"
-		  "Please click on the circle with the device you want to use during\n"
-		  "the study. Only data from that device will be collected.\n"
+		  "Please click on the circle with the device you want to \n"
+		  "use for this study.\n"
+		  "<b>Only data from that device will be collected.</b>\n"
 		  "\n"
-		  "The device should be a mouse-like device or a touchpad\n"
+		  "The device should be a mouse-like device or a touchpad.\n"
 		  "\n"
 		  "Note that the cursor used to select the target is not\n"
-		  "your normal system cursor\n"
+		  "your normal system cursor.\n"
 		  "\n"
 		  "You can abort any time by hitting Esc.\n";
 
 	gdk_window_set_cursor(gtk_widget_get_window(w->win),
 			      NULL);
 
-	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
-					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
-					GTK_MESSAGE_INFO,
-					GTK_BUTTONS_OK,
-					message);
+	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(w->win),
+						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+						    GTK_MESSAGE_OTHER,
+						    GTK_BUTTONS_OK,
+						    message);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -525,23 +524,23 @@ study_show_training_start(struct window *w)
 		  "devices will be discarded.\n"
 		  "\n"
 		  "You are now ready to start a short training session.\n"
-		  "With your device, simply click on each target as it appears\n"
+		  "With your device, <b>click on each target as it appears</b>.\n"
 		  "\n"
 		  "Note that the cursor used to select the targets is not\n"
-		  "your normal system cursor\n"
+		  "your normal system cursor.\n"
 		  "\n"
-		  "No events will be collected yet\n"
+		  "<b>No events will be collected yet</b>\n"
 		  "\n"
 		  "You can abort any time by hitting Esc.\n";
 
 	gdk_window_set_cursor(gtk_widget_get_window(w->win),
 			      NULL);
 
-	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
-					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
-					GTK_MESSAGE_INFO,
-					GTK_BUTTONS_OK,
-					message);
+	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(w->win),
+						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+						    GTK_MESSAGE_OTHER,
+						    GTK_BUTTONS_OK,
+						    message);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -560,26 +559,28 @@ study_show_training_done(struct window *w)
 	message = "Thank you, your training is now complete and we can start\n"
 		  "with the actual study.\n"
 		  "\n"
-		  "The study consists of %d sets of targets of varying size.\n"
-		  "There will be a message after each set was completed.\n"
-		  "With your device, simply click on each target as it appears\n"
+		  "The study consists of %d sets of targets. The size of the\n"
+		  "targets changes during the course of the study.\n"
+		  "A message will appear once a set was completed.\n"
+		  "\n"
+		  "With your device, <b>click on each target as it appears</b>.\n"
 		  "\n"
 		  "Note that the cursor used to select the targets is not\n"
 		  "your normal system cursor\n"
 		  "\n"
-		  "Event collection starts once you click the first target\n"
+		  "<b>Event collection starts once you click the first target.</b>\n"
 		  "\n"
 		  "You can abort any time by hitting Esc.\n";
 
 	gdk_window_set_cursor(gtk_widget_get_window(w->win),
 			      NULL);
 
-	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
-					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
-					GTK_MESSAGE_INFO,
-					GTK_BUTTONS_OK,
-					message,
-					NUM_SETS);
+	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(w->win),
+						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+						    GTK_MESSAGE_OTHER,
+						    GTK_BUTTONS_OK,
+						    message,
+						    NUM_SETS);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -595,11 +596,11 @@ study_show_intermission(struct window *w)
 	const char *message;
 	GtkWidget *dialog;
 
-	message = "This set is now complete. You may have a short rest before\n"
-		"the next set starts. Target sizes may change between sets.\n"
+	message = "Thank you. This set is now complete.\n"
+		"You may have a short rest now, and when you are ready for\n"
+		"the next set, click OK.\n"
 		"\n"
-		"To start the next set, click OK. Event collection starts\n"
-		"when you click the first target\n"
+		"<b>Event collection starts when you click the first target.</b>\n"
 		"\n"
 		"You can abort any time by hitting Esc.\n";
 
@@ -607,11 +608,11 @@ study_show_intermission(struct window *w)
 	gdk_window_set_cursor(gtk_widget_get_window(w->win),
 			      NULL);
 
-	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
-					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
-					GTK_MESSAGE_INFO,
-					GTK_BUTTONS_OK,
-					message);
+	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(w->win),
+						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+						    GTK_MESSAGE_OTHER,
+						    GTK_BUTTONS_OK,
+						    message);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -630,21 +631,27 @@ study_show_done(struct window *w)
 
 	message = "Thank you for completing the study.\n"
 		  "\n"
-		  "Your results are available in the file\n"
-		  "    %s/%s\n"
-		  "Please send them unmodified to peter.hutterer@who-t.net, with a subject\n"
-		  "of \"userstudy results\"\n";
+		  "<b>Your results are available in the file:</b>\n\n"
+		  "<tt>%s/%s</tt>\n\n"
+		  "Please send them unmodified to\n\n"
+		  "<b><tt>libinputdatacollection@gmail</tt></b>\n\n"
+		  "with a subject line of <b><tt>STUDY d3b07384</tt></b>\n"
+		  "\n"
+		  "Note that emails without that subject line will be\n"
+		  "deleted automatically\n"
+		  "\n"
+		  "Thank you again for participating.\n";
 
 	gdk_window_set_cursor(gtk_widget_get_window(w->win),
 			      NULL);
 
-	dialog = gtk_message_dialog_new(GTK_WINDOW(w->win),
-					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
-					GTK_MESSAGE_INFO,
-					GTK_BUTTONS_OK,
-					message,
-					w->base.cwd,
-					w->base.filename);
+	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(w->win),
+						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+						    GTK_MESSAGE_OTHER,
+						    GTK_BUTTONS_CLOSE,
+						    message,
+						    w->base.cwd,
+						    w->base.filename);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -1263,6 +1270,8 @@ study_handle_event_button(struct libinput_event *ev, struct window *w)
 				printf("Your results are in %s/%s\n",
 				       s->cwd,
 				       s->filename);
+				printf("Please send them to libinputdatacollection@gmail.com\n"
+				       "using a subject of \"STUDY d3b07384\"\n");
 				return;
 			}
 		}
