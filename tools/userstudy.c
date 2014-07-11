@@ -935,7 +935,7 @@ study_new_target(struct window *w)
 	time = tp.tv_sec * 1000 + tp.tv_nsec/1000000;
 
 	dprintf(s->fd,
-		"<target time=\"%d\" number=\"%d\" x=\"%d\" y=\"%d\" r=\"%d\" />\n",
+		"<target time=\"%d\" number=\"%d\" xpos=\"%d\" ypos=\"%d\" r=\"%d\" />\n",
 		time,
 		NUM_STUDY_TARGETS - s->ntargets,
 		s->object_x,
