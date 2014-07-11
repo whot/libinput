@@ -51,6 +51,9 @@
 #define NUM_STUDY_TARGETS 15
 #define NUM_SETS 3
 
+#define EMAIL "libinputdatacollection@gmail.com"
+#define EMAIL_SUBJECT "STUDY d3b07384"
+
 enum study_state {
 	STATE_WELCOME,
 	STATE_CONFIRM_DEVICE,
@@ -1181,6 +1184,9 @@ study_start_recording(struct window *w)
 	s->cwd = get_current_dir_name();
 
 	dprintf(s->fd, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	dprintf(s->fd,
+		"<!-- please email this file to %s with the subject line '%s' -->",
+		EMAIL, EMAIL_SUBJECT);
 	dprintf(s->fd, "<results>\n");
 	dprintf(s->fd, "<system>\n");
 
@@ -1400,8 +1406,9 @@ study_handle_event_button(struct libinput_event *ev, struct window *w)
 				printf("Your results are in %s/%s\n",
 				       s->cwd,
 				       s->filename);
-				printf("Please send them to libinputdatacollection@gmail.com\n"
-				       "using a subject of \"STUDY d3b07384\"\n");
+				printf("Please send them to %s\n"
+				       "using a subject of \"%s4\"\n",
+				       EMAIL, EMAIL_SUBJECT);
 				return;
 			}
 		}
