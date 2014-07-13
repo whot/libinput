@@ -225,6 +225,16 @@ study_show_text(cairo_t *cr, struct window *w)
 }
 
 static void
+study_init_file(struct window *w)
+{
+	struct study *s = &w->base;
+	s->filename = strdup("userstudy-results.xml.XXXXXX");
+	s->fd = mkstemp(s->filename);
+	assert(s->fd > -1);
+	s->cwd = get_current_dir_name();
+}
+
+static void
 study_init(struct window *w)
 {
 	struct study *s = &w->base;
@@ -234,8 +244,6 @@ study_init(struct window *w)
 	study_default_target(w);
 	s->state = STATE_WELCOME;
 	s->new_state = STATE_WELCOME;
-	s->filename = NULL;
-	s->cwd = NULL;
 
 	s->ntargets = NUM_STUDY_TARGETS;
 
@@ -249,12 +257,18 @@ study_init(struct window *w)
 		s->radii[i] = tmp;
 	}
 
+	study_init_file(w);
 }
 
 static void
 study_cleanup(struct window *w)
 {
 	struct study *s = &w->base;
+
+	if (s->state != STATE_DONE && s->filename) {
+		if (unlink(s->filename) == -1)
+			perror("Failed to remove file");
+	}
 
 	free(s->filename);
 	free(s->cwd);
@@ -1218,11 +1232,6 @@ study_start_recording(struct window *w)
 	int code, type;
 	char path[PATH_MAX];
 	struct utsname kernel;
-
-	s->filename = strdup("userstudy-results.xml.XXXXXX");
-	s->fd = mkstemp(s->filename);
-	assert(s->fd > -1);
-	s->cwd = get_current_dir_name();
 
 	dprintf(s->fd, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	dprintf(s->fd,
