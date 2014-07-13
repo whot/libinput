@@ -30,13 +30,18 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <math.h>
+#include <poll.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 
 #include <sys/utsname.h>
+#include <sys/types.h>
+#include <sys/signalfd.h>
+#include <sys/socket.h>
 
 #include <gtk/gtk.h>
 #include <glib.h>
@@ -84,6 +89,8 @@ struct study {
 
 	/* the device used during the study */
 	struct libinput_device *device;
+
+	int socket; /* to parent with root rights */
 };
 
 struct touch {
@@ -121,6 +128,20 @@ struct window {
 
 	struct list device_list;
 };
+
+int
+sock_fd_read(int sock);
+
+static int
+request_fd_for_path(int sock, const char *path)
+{
+	int fd;
+
+	write(sock, path, strlen(path) + 1);
+	fd = sock_fd_read(sock);
+
+	return fd < 0 ? -errno : fd;
+}
 
 static int
 error(const char *fmt, ...)
@@ -895,8 +916,6 @@ map_event_cb(GtkWidget *widget, GdkEvent *event, gpointer data)
 static void
 window_init(struct window *w)
 {
-	memset(w, 0, sizeof(*w));
-
 	w->win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_widget_set_events(w->win, 0);
 	gtk_window_set_title(GTK_WINDOW(w->win), "libinput debugging tool");
@@ -1264,7 +1283,7 @@ study_start_recording(struct window *w)
 		 sizeof(path),
 		 "/dev/input/%s",
 		 libinput_device_get_sysname(s->device));
-	fd = open(path, O_RDONLY);
+	fd = request_fd_for_path(s->socket, path);
 	assert(fd > 0);
 
 	assert(libevdev_new_from_fd(fd, &evdev) == 0);
@@ -1600,12 +1619,96 @@ parse_opts(int argc, char *argv[])
 	return 0;
 }
 
+union cmsg_data { unsigned char b[4]; int fd; };
+
+ssize_t
+sock_fd_write(int sock, int fd)
+{
+	int len;
+	int ret = -1;
+	char control[CMSG_SPACE(sizeof(fd))];
+	struct cmsghdr *cmsg;
+	struct msghdr nmsg;
+	struct iovec iov;
+	union cmsg_data *data;
+
+	memset(&nmsg, 0, sizeof nmsg);
+        nmsg.msg_iov = &iov;
+        nmsg.msg_iovlen = 1;
+        if (fd != -1) {
+                nmsg.msg_control = control;
+                nmsg.msg_controllen = sizeof control;
+                cmsg = CMSG_FIRSTHDR(&nmsg);
+                cmsg->cmsg_level = SOL_SOCKET;
+                cmsg->cmsg_type = SCM_RIGHTS;
+                cmsg->cmsg_len = CMSG_LEN(sizeof(fd));
+                data = (union cmsg_data *) CMSG_DATA(cmsg);
+                data->fd = fd;
+                nmsg.msg_controllen = cmsg->cmsg_len;
+                ret = 0;
+        }
+        iov.iov_base = &ret;
+        iov.iov_len = sizeof ret;
+
+        do {
+                len = sendmsg(sock, &nmsg, 0);
+        } while (len < 0 && errno == EINTR);
+
+	return len;
+}
+
+int
+sock_fd_read(int sock)
+{
+
+	int ret = -1;
+	struct msghdr msg;
+	struct cmsghdr *cmsg;
+	struct iovec iov;
+	union cmsg_data *data;
+	char control[CMSG_SPACE(sizeof data->fd)];
+	ssize_t len;
+
+	memset(&msg, 0, sizeof msg);
+	iov.iov_base = &ret;
+	iov.iov_len = sizeof ret;
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+	msg.msg_control = control;
+	msg.msg_controllen = sizeof control;
+
+	do {
+		len = recvmsg(sock, &msg, MSG_CMSG_CLOEXEC);
+	} while (len < 0 && errno == EINTR);
+
+	if (len != sizeof ret ||
+	    ret < 0)
+		return -1;
+
+	cmsg = CMSG_FIRSTHDR(&msg);
+	if (!cmsg ||
+	    cmsg->cmsg_level != SOL_SOCKET ||
+	    cmsg->cmsg_type != SCM_RIGHTS) {
+		fprintf(stderr, "invalid control message\n");
+		return -1;
+	}
+
+	data = (union cmsg_data *) CMSG_DATA(cmsg);
+	if (data->fd == -1) {
+		fprintf(stderr, "missing fd in socket request\n");
+		return -1;
+	}
+
+	return data->fd;
+}
 
 static int
 open_restricted(const char *path, int flags, void *user_data)
 {
-	int fd = open(path, flags);
-	return fd < 0 ? -errno : fd;
+	struct window *w = user_data;
+	struct study *s = &w->base;
+
+	return request_fd_for_path(s->socket, path);
 }
 
 static void
@@ -1619,17 +1722,102 @@ const static struct libinput_interface interface = {
 	.close_restricted = close_restricted,
 };
 
+static void
+wait_for_socket(int s)
+{
+	struct pollfd fds[2];
+	sigset_t mask;
+
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGCHLD);
+
+	if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
+		perror("sigprocmask");
+
+	fds[0].fd = s;
+	fds[0].events = POLLIN;
+	fds[0].revents = 0;
+
+	fds[1].fd = signalfd(-1, &mask, 0);
+	fds[1].events = POLLIN;
+	fds[1].revents = 0;
+
+	while (poll(fds, 2, -1) != -1) {
+		char buf[PATH_MAX];
+
+		/* SIGCHLD */
+		if (fds[1].revents)
+			return;
+
+		if (fds[0].revents) {
+			int fd;
+			read(s, buf, sizeof(buf));
+			fd = open(buf, O_RDONLY|O_NONBLOCK);
+			if (fd == -1) {
+				error("Failed to open device %s, am I suid root?\n",
+				      buf);
+				exit(1);
+			}
+			sock_fd_write(s,fd);
+		}
+	}
+}
+
+static void
+drop_privs(void)
+{
+	if (geteuid() != getuid()) {
+		gid_t realgid = getgid();
+		uid_t realuid = getuid();
+
+		if (setresgid(-1, realgid, realgid) != 0) {
+			error("Could not drop setgid privileges: %s\n",
+			      strerror(errno));
+			exit(1);
+		}
+		if (setresuid(-1, realuid, realuid) != 0) {
+			error("Could not drop setuid privileges: %s\n",
+			      strerror(errno));
+			exit(1);
+		}
+	}
+}
+
 int
 main(int argc, char *argv[])
 {
 	struct window w;
+	struct study *s = &w.base;
 	struct libinput *li;
 	struct udev *udev;
+	int pid;
 
-	gtk_init(&argc, &argv);
+	int sv[2];
 
-	if (parse_opts(argc, argv) != 0)
-		return 1;
+	if (geteuid() != 0)
+		return error("I must be suid root\n");
+
+	if (socketpair(AF_LOCAL, SOCK_STREAM, 0, sv) < 0) {
+		perror("socketpair");
+		exit(1);
+	}
+
+	pid = fork();
+	if (pid == -1) {
+		perror("Fork failed");
+		exit(1);
+	} else if (pid != 0) {
+		close(sv[1]);
+		wait_for_socket(sv[0]);
+		exit(1);
+	}
+
+	drop_privs();
+
+	/* child */
+	close(sv[0]);
+	memset(&w, 0, sizeof(w));
+	s->socket = sv[1];
 
 	udev = udev_new();
 	if (!udev)
@@ -1644,6 +1832,11 @@ main(int argc, char *argv[])
 		usage_device();
 		return 1;
 	}
+
+	gtk_init(&argc, &argv);
+
+	if (parse_opts(argc, argv) != 0)
+		return 1;
 
 	window_init(&w);
 	study_init(&w);
