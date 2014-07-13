@@ -481,11 +481,11 @@ study_show_confirm_message(struct window *w)
 	GtkWidget *dialog;
 	gint response;
 
-	message = "Almost ready to go. <b>This is an unsupervised study</b> and\n"
-		  "we ask you to confirm the following before we can proceed:\n"
+	message = "<b>This is an unsupervised study</b> and we ask you to confirm\n"
+		  "the following before we can proceed:\n"
 		  "\n"
-		  "1) You have normal corrected vision\n"
-		  "2) You acknowledge that this tool will collect real-time events\n"
+		  "1) You have normal corrected or uncorrected vision\n"
+		  "2) You acknowledge that this tool will collect real-time input events\n"
 		  "	from the device used during the study, and only that device\n"
 		  "3) You are familiar and comfortable with using a mouse-like device\n"
 		  "	in a graphical user interface\n"
