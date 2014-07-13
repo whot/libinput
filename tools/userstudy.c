@@ -555,14 +555,16 @@ study_show_confirm_device(struct window *w)
 static void
 study_show_training_start(struct window *w)
 {
+	struct study *s = &w->base;
 	const char *message;
 	GtkWidget *dialog;
 
-	message = "Thank you. Your device was selected and events from other\n"
-		  "devices will be discarded.\n"
+	message = "Thank you. Your device identifies itself as:\n"
+		  "     <b>\"%s\"</b>\n"
+		  "Note that events from all other devices will be ignored/discarded.\n"
 		  "\n"
 		  "You are now ready to start a short training session.\n"
-		  "With your device, <b>click on each target as it appears</b>.\n"
+		  "With the selected device, <b>click on each target as it appears</b>.\n"
 		  "\n"
 		  "Note that the cursor used to select the targets is not\n"
 		  "your normal system cursor.\n"
@@ -578,7 +580,8 @@ study_show_training_start(struct window *w)
 						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
 						    GTK_MESSAGE_OTHER,
 						    GTK_BUTTONS_OK,
-						    message);
+						    message,
+						    libinput_device_get_name(s->device));
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
