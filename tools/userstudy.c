@@ -54,7 +54,7 @@
 
 #define NUM_TRAINING_TARGETS 5
 #define NUM_STUDY_TARGETS 15
-#define NUM_SETS 3
+#define NUM_SETS 6
 
 #define EMAIL "libinputdatacollection@gmail.com"
 #define EMAIL_SUBJECT "STUDY d3b07384"
@@ -270,7 +270,8 @@ study_init(struct window *w)
 
 	/* Define order at startup, but randomly */
 	for (i = 0; i < NUM_SETS; i++)
-		s->radii[i] = radii[i];
+		s->radii[i] = radii[i % ARRAY_LENGTH(radii)];
+
 	for (i = NUM_SETS - 1; i > 0; i--) {
 		int j = rand() % (i + 1);
 		int tmp = s->radii[j];
