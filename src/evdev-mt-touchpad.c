@@ -363,15 +363,20 @@ static void
 tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 {
 	const int PALM_TIMEOUT = 200; /* ms */
+	const int DIRECTIONS = NE|E|SE|SW|W|NW;
 
 	/* If labelled a touch as palm, we unlabel as palm when
-	   we move out of the palm edge zone within the timeout.
+	   we move out of the palm edge zone within the timeout, provided
+	   the direction is within 45 degrees of the horizontal.
 	 */
 	if (t->palm.is_palm) {
 		if (time < t->palm.time + PALM_TIMEOUT &&
 		    (t->x > tp->palm.left_edge && t->x < tp->palm.right_edge)) {
-			t->palm.is_palm = false;
-			tp_set_pointer(tp, t);
+			int dirs = vector_get_direction(t->x - t->palm.x, t->y - t->palm.y);
+			if ((dirs & DIRECTIONS) && !(dirs & ~DIRECTIONS)) {
+				t->palm.is_palm = false;
+				tp_set_pointer(tp, t);
+			}
 		}
 		return;
 	}
@@ -391,6 +396,8 @@ tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 
 	t->palm.is_palm = true;
 	t->palm.time = time;
+	t->palm.x = t->x;
+	t->palm.y = t->y;
 }
 
 static void

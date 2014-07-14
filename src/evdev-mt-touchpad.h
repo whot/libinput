@@ -142,6 +142,7 @@ struct tp_touch {
 
 	struct {
 		bool is_palm;
+		int32_t x, y;  /* first coordinates if is_palm == true */
 		uint32_t time; /* first timestamp if is_palm == true */
 	} palm;
 };
