@@ -148,7 +148,7 @@ tp_end_touch(struct tp_dispatch *tp, struct tp_touch *t)
 
 	t->dirty = true;
 	t->is_pointer = false;
-	t->is_palm = false;
+	t->palm.is_palm = false;
 	t->state = TOUCH_END;
 	t->pinned.is_pinned = false;
 	assert(tp->nfingers_down >= 1);
@@ -340,7 +340,7 @@ static int
 tp_touch_active(struct tp_dispatch *tp, struct tp_touch *t)
 {
 	return (t->state == TOUCH_BEGIN || t->state == TOUCH_UPDATE) &&
-		!t->is_palm &&
+		!t->palm.is_palm &&
 		!t->pinned.is_pinned && tp_button_touch_active(tp, t);
 }
 
@@ -360,11 +360,21 @@ tp_set_pointer(struct tp_dispatch *tp, struct tp_touch *t)
 }
 
 static void
-tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t)
+tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 {
-	/* once a palm, always a palm */
-	if (t->is_palm)
+	const int PALM_TIMEOUT = 200; /* ms */
+
+	/* If labelled a touch as palm, we unlabel as palm when
+	   we move out of the palm edge zone within the timeout.
+	 */
+	if (t->palm.is_palm) {
+		if (time < t->palm.time + PALM_TIMEOUT &&
+		    (t->x > tp->palm.left_edge && t->x < tp->palm.right_edge)) {
+			t->palm.is_palm = false;
+			tp_set_pointer(tp, t);
+		}
 		return;
+	}
 
 	/* palm must start in exclusion zone, it's ok to move into
 	   the zone without being a palm */
@@ -379,7 +389,8 @@ tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t)
 	    tp_button_is_inside_softbutton_area(tp, t))
 		return;
 
-	t->is_palm = true;
+	t->palm.is_palm = true;
+	t->palm.time = time;
 }
 
 static void
@@ -398,7 +409,7 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 			continue;
 		}
 
-		tp_palm_detect(tp, t);
+		tp_palm_detect(tp, t, time);
 
 		tp_motion_hysteresis(tp, t);
 		tp_motion_history_push(t);

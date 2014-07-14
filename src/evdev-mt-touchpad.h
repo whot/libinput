@@ -103,7 +103,6 @@ struct tp_touch {
 	bool dirty;
 	bool fake;				/* a fake touch */
 	bool is_pointer;			/* the pointer-controlling touch */
-	bool is_palm;
 	int32_t x;
 	int32_t y;
 	uint64_t millis;
@@ -140,6 +139,11 @@ struct tp_touch {
 	struct {
 		enum tp_tap_touch_state state;
 	} tap;
+
+	struct {
+		bool is_palm;
+		uint32_t time; /* first timestamp if is_palm == true */
+	} palm;
 };
 
 struct tp_dispatch {
