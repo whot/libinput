@@ -436,7 +436,7 @@ study_show_welcome_message(struct window *w)
 		 "targets.\n"
 		 "\n"
 		 "Your task is to click on these targets as they appear\n"
-		 "using a mouse-like input device.\n"
+		 "using a mouse-like input device (mouse, trackball, touchpad, etc.)\n"
 		 "\n"
 		 "The data collected by this program is limited to:\n"
 		 "- your kernel version (see uname(2))\n"
@@ -449,8 +449,9 @@ study_show_welcome_message(struct window *w)
 		 "Key events are received by this program but not collected or\n"
 		 "analyzed.\n"
 		 "\n"
-		 "The data collected is available in a plain text file and must\n"
-		 "be sent to us via email. <b>This tool does not send any data.</b>\n"
+		 "The data collected is available in a plain text file and must be\n"
+		 "sent by you to the email address <b>libinputdatacollection@gmail.com</b>.\n"
+		 "<b>This tool does not send any data.</b>\n"
 		 "\n"
 		 "You can abort any time by hitting Esc.\n"
 		 "\n"
@@ -603,7 +604,9 @@ study_show_training_done(struct window *w)
 		  "\n"
 		  "The study consists of %d sets of targets. The size of the\n"
 		  "targets changes during the course of the study.\n"
-		  "A message will appear once a set was completed.\n"
+		  "After %d sets, the pointer acceleration method will change.\n"
+		  "A message will appear once a set is completed.\n"
+		  "\n"
 		  "\n"
 		  "With your device, <b>click on each target as it appears</b>.\n"
 		  "\n"
@@ -622,7 +625,8 @@ study_show_training_done(struct window *w)
 						    GTK_MESSAGE_OTHER,
 						    GTK_BUTTONS_OK,
 						    message,
-						    NUM_SETS);
+						    NUM_SETS,
+						    NUM_SETS/2);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -635,10 +639,11 @@ study_show_training_done(struct window *w)
 static void
 study_show_intermission(struct window *w)
 {
+	struct study *s = &w->base;
 	const char *message;
 	GtkWidget *dialog;
 
-	message = "Thank you. This set is now complete.\n"
+	message = "Thank you. Set %d out of %d is now complete.\n"
 		"You may have a short rest now, and when you are ready for\n"
 		"the next set, click OK.\n"
 		"\n"
@@ -654,7 +659,9 @@ study_show_intermission(struct window *w)
 						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
 						    GTK_MESSAGE_OTHER,
 						    GTK_BUTTONS_OK,
-						    message);
+						    message,
+						    s->set,
+						    NUM_SETS);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -708,13 +715,15 @@ study_show_questionnaire(struct window *w)
 		  *scales[ARRAY_LENGTH(questions)];
 	gint response;
 
-	const char *message = "Thanks for completing the study.\n"
+	const char message[] = "<b>Thank you for completing the study.</b>\n"
 			      "\n"
-			      "As a last step, please complete the questionnaire below. "
-			      "Each question provides answers\non a 5-point Likert scale,"
-			      "with the answer being from Strong Disagree (-2),"
-			      "Disagree (-1),\nNeither Agree Nor Disagree (0),"
-			      "Agree (1) and Strongly Agree (2)\n";
+			      "As a last step, please complete the questionnaire below.\n"
+			      "Each of the <b>%ld questions</b> provides answers on a 5-point Likert scale,\n"
+			      "with the answer being from Strong Disagree (-2), Disagree (-1),\n"
+			      "Neither Agree Nor Disagree (0), Agree (1) and Strongly Agree (2)\n";
+	char m[sizeof(message) + 5];
+
+	snprintf(m, sizeof(m), message, ARRAY_LENGTH(questions));
 
 	gdk_window_set_cursor(gtk_widget_get_window(w->win),
 			      NULL);
@@ -732,7 +741,8 @@ study_show_questionnaire(struct window *w)
 	box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
 	gtk_container_add(GTK_CONTAINER(content_area), box);
 
-	label = gtk_label_new(message);
+	label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label), m);
 	scroll = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll),
 						   500);
