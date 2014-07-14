@@ -871,6 +871,26 @@ study_show_done(struct window *w)
 }
 
 static void
+grab_pointer(struct window *w)
+{
+	GdkDisplay *gdk;
+	GdkDevice *pointer;
+	GdkDeviceManager *device_manager;
+
+	gdk = gdk_display_get_default();
+	device_manager = gdk_display_get_device_manager(gdk);
+	pointer = gdk_device_manager_get_client_pointer(device_manager);
+
+	gdk_device_grab(pointer,
+			gtk_widget_get_window(w->win),
+			GDK_OWNERSHIP_NONE,
+			true,
+			GDK_ALL_EVENTS_MASK,
+			NULL,
+			GDK_CURRENT_TIME);
+}
+
+static void
 study_map_event_cb(struct window *w)
 {
 	struct study *s = &w->base;
@@ -888,6 +908,8 @@ study_map_event_cb(struct window *w)
 		return;
 
 	study_show_confirm_device(w);
+
+	grab_pointer(w);
 
 	study_default_target(w);
 	s->state = STATE_CONFIRM_DEVICE;
