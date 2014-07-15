@@ -1439,22 +1439,15 @@ study_handle_event_button_press(struct libinput_event *ev, struct window *w)
 		assert(s->device == NULL);
 		s->device = libinput_event_get_device(ev);
 
-		study_show_training_start(w);
 
 		s->new_state = STATE_TRAINING;
-		s->state = STATE_TRAINING;
-		s->ntargets = NUM_TRAINING_TARGETS;
-		study_default_target(w);
 		break;
 	case STATE_TRAINING:
 		if (!study_click_in_circle(w, w->x, w->y))
 			return;
 
 		if (s->ntargets == 0) {
-			study_show_training_done(w);
 			s->new_state = STATE_STUDY_START;
-			s->state = STATE_STUDY_START;
-			study_show_start_target(w);
 			break;
 		}
 		study_new_training_target(w);
@@ -1481,26 +1474,11 @@ study_handle_event_button_press(struct libinput_event *ev, struct window *w)
 			s->set++;
 			if (s->set < NUM_SETS) {
 				study_mark_set_stop(w);
-				study_show_intermission(w);
-				s->state = STATE_INTERMISSION;
 				s->new_state = STATE_INTERMISSION;
-				study_show_start_target(w);
 				break;
 			} else {
 				study_mark_set_stop(w);
-				if (study_show_questionnaire(w) != 0)
-					return;
-				study_stop_recording(w);
-				s->state = STATE_DONE;
 				s->new_state = STATE_DONE;
-				study_show_done(w);
-				gtk_main_quit();
-				printf("Your results are in %s/%s\n",
-				       s->cwd,
-				       s->filename);
-				printf("Please send them to %s\n"
-				       "using a subject of \"%s4\"\n",
-				       EMAIL, EMAIL_SUBJECT);
 				return;
 			}
 		}
@@ -1528,9 +1506,36 @@ study_handle_event_button_release(struct libinput_event *ev,
 	case STATE_STUDY:
 		study_new_target(w);
 		break;
+	case STATE_TRAINING:
+		study_show_training_start(w);
+		s->ntargets = NUM_TRAINING_TARGETS;
+		study_default_target(w);
+		break;
+	case STATE_STUDY_START:
+		study_show_training_done(w);
+		study_show_start_target(w);
+		break;
+	case STATE_INTERMISSION:
+		study_show_intermission(w);
+		study_show_start_target(w);
+		break;
+	case STATE_DONE:
+		if (study_show_questionnaire(w) != 0)
+			return;
+		study_stop_recording(w);
+		study_show_done(w);
+		gtk_main_quit();
+		printf("Your results are in %s/%s\n",
+		       s->cwd,
+		       s->filename);
+		printf("Please send them to %s\n"
+		       "using a subject of \"%s4\"\n",
+		       EMAIL, EMAIL_SUBJECT);
+		break;
 	default:
 		return;
 	}
+
 	s->state = s->new_state;
 }
 
