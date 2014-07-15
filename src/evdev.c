@@ -580,6 +580,75 @@ evdev_device_dispatch(void *data)
 }
 
 static int
+pointer_accel_config_available(struct libinput_device *device)
+{
+	return 1;
+}
+
+static enum libinput_config_status
+pointer_accel_config_set_speed(struct libinput_device *device, double speed)
+{
+	struct evdev_device *dev = (struct evdev_device *)device;
+
+	if (!filter_set_speed(dev->pointer.filter, speed))
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static double
+pointer_accel_config_get_speed(struct libinput_device *device)
+{
+	struct evdev_device *dev = (struct evdev_device *)device;
+
+	return filter_get_speed(dev->pointer.filter);
+}
+
+static double
+pointer_accel_config_get_default_speed(struct libinput_device *device)
+{
+	return 0;
+}
+
+static enum libinput_config_status
+pointer_accel_config_set_method(struct libinput_device *device,
+			   enum libinput_accel_method method)
+{
+	struct evdev_device *dev = (struct evdev_device *)device;
+	struct motion_filter *accel = NULL;
+
+	switch (method) {
+		case LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE:
+			accel = create_pointer_accelator_filter(pointer_accel_profile_smooth_simple);
+			break;
+		default:
+			return LIBINPUT_CONFIG_STATUS_INVALID;
+	}
+
+	if (!accel)
+		return LIBINPUT_CONFIG_STATUS_FAILED;
+
+	filter_destroy(dev->pointer.filter);
+	dev->pointer.filter = accel;
+	dev->pointer.method = method;
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static enum libinput_accel_method
+pointer_accel_config_get_method(struct libinput_device *device)
+{
+	struct evdev_device *dev = (struct evdev_device *)device;
+
+	return dev->pointer.method;
+}
+
+static enum libinput_accel_method
+pointer_accel_config_get_default_method(struct libinput_device *device)
+{
+	return LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE;
+}
+
+static int
 configure_pointer_acceleration(struct evdev_device *device)
 {
 	device->pointer.filter =
@@ -587,6 +656,17 @@ configure_pointer_acceleration(struct evdev_device *device)
 			pointer_accel_profile_smooth_simple);
 	if (!device->pointer.filter)
 		return -1;
+
+	device->pointer.config.available = pointer_accel_config_available;
+	device->pointer.config.set_speed = pointer_accel_config_set_speed;
+	device->pointer.config.get_speed = pointer_accel_config_get_speed;
+	device->pointer.config.get_default_speed = pointer_accel_config_get_default_speed;
+
+	device->pointer.config.set_method = pointer_accel_config_set_method;
+	device->pointer.config.get_method = pointer_accel_config_get_method;
+	device->pointer.config.get_default_method = pointer_accel_config_get_default_method;
+
+	device->base.config.accel = &device->pointer.config;
 
 	return 0;
 }

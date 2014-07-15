@@ -92,6 +92,8 @@ struct evdev_device {
 	int is_mt;
 
 	struct {
+		struct libinput_device_config_accel config;
+		enum libinput_accel_method method;
 		struct motion_filter *filter;
 	} pointer;
 };
