@@ -684,6 +684,29 @@ tp_accel_config_get_default_speed(struct libinput_device *device)
 }
 
 static enum libinput_config_status
+tp_accel_set_method(struct tp_dispatch *tp,
+		    enum libinput_accel_method method)
+{
+	struct motion_filter *accel = NULL;
+
+	switch (method) {
+		case LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE:
+			accel = create_pointer_accelator_filter(pointer_accel_profile_smooth_simple);
+			break;
+		default:
+			return LIBINPUT_CONFIG_STATUS_INVALID;
+	}
+
+	if (!accel)
+		return LIBINPUT_CONFIG_STATUS_FAILED;
+
+	filter_destroy(tp->filter);
+	tp->filter = accel;
+	tp->accel.method = method;
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static enum libinput_config_status
 tp_accel_config_set_method(struct libinput_device *device,
 			   enum libinput_accel_method method)
 {
@@ -693,15 +716,8 @@ tp_accel_config_set_method(struct libinput_device *device,
 	dispatch = ((struct evdev_device *) device)->dispatch;
 	tp = container_of(dispatch, tp, base);
 
-	switch (method) {
-		case LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE:
-			break;
-		default:
-			return LIBINPUT_CONFIG_STATUS_INVALID;
-	}
+	return tp_accel_set_method(tp, method);
 
-	tp->accel.method = method;
-	return LIBINPUT_CONFIG_STATUS_SUCCESS;
 }
 
 static enum libinput_accel_method
@@ -725,8 +741,8 @@ tp_accel_config_get_default_method(struct libinput_device *device)
 static int
 tp_init_accel(struct tp_dispatch *tp, double diagonal)
 {
-	struct motion_filter *accel;
 	int res_x, res_y;
+	enum libinput_config_status status;
 
 	if (tp->has_mt) {
 		res_x = libevdev_get_abs_resolution(tp->device->evdev,
@@ -762,13 +778,6 @@ tp_init_accel(struct tp_dispatch *tp, double diagonal)
 		tp->accel.y_scale_coeff = DEFAULT_ACCEL_NUMERATOR / diagonal;
 	}
 
-	accel = create_pointer_accelator_filter(
-			pointer_accel_profile_smooth_simple);
-	if (accel == NULL)
-		return -1;
-
-	tp->filter = accel;
-
 	tp->accel.config.available = tp_accel_config_available;
 	tp->accel.config.set_speed = tp_accel_config_set_speed;
 	tp->accel.config.get_speed = tp_accel_config_get_speed;
@@ -779,6 +788,11 @@ tp_init_accel(struct tp_dispatch *tp, double diagonal)
 	tp->accel.config.get_default_method = tp_accel_config_get_default_method;
 
 	tp->device->base.config.accel = &tp->accel.config;
+	tp->filter = NULL;
+
+	status = tp_accel_set_method(tp, LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE);
+	if (status != LIBINPUT_CONFIG_STATUS_SUCCESS)
+		return -1;
 
 	return 0;
 }
