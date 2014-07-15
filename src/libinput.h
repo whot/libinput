@@ -1744,6 +1744,48 @@ libinput_device_config_accel_get_speed(struct libinput_device *device);
 double
 libinput_device_config_accel_get_default_speed(struct libinput_device *device);
 
+enum libinput_accel_method {
+	LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE,
+};
+
+/**
+ * @ingroup config
+ *
+ * Change the pointer acceleration method used for this device.
+ *
+ * @param device The device to configure
+ * @param method The method to use
+ *
+ * @return A config status code
+ */
+enum libinput_config_status
+libinput_device_config_accel_set_method(struct libinput_device *device,
+					enum libinput_accel_method method);
+
+/**
+ * @ingroup config
+ *
+ * Get the current pointer acceleration method for this pointer device.
+ *
+ * @param device The device to configure
+ *
+ * @return The current method
+ */
+enum libinput_accel_method
+libinput_device_config_accel_get_method(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Get the default pointer acceleration method for this pointer device.
+ *
+ * @param device The device to configure
+ *
+ * @return The default method
+ */
+enum libinput_accel_method
+libinput_device_config_accel_get_default_method(struct libinput_device *device);
+
 /**
  * @ingroup config
  *

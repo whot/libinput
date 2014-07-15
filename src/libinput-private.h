@@ -111,6 +111,10 @@ struct libinput_device_config_accel {
 						 double speed);
 	double (*get_speed)(struct libinput_device *device);
 	double (*get_default_speed)(struct libinput_device *device);
+	enum libinput_config_status (*set_method)(struct libinput_device *device,
+						  enum libinput_accel_method);
+	enum libinput_accel_method (*get_method)(struct libinput_device *device);
+	enum libinput_accel_method (*get_default_method)(struct libinput_device *device);
 };
 
 struct libinput_device_config_disable_while_typing {
