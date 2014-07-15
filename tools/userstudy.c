@@ -1423,27 +1423,13 @@ study_record_event(struct window *w, struct libinput_event *ev)
 }
 
 static void
-study_handle_event_button(struct libinput_event *ev, struct window *w)
+study_handle_event_button_press(struct libinput_event *ev, struct window *w)
 {
 	struct study *s = &w->base;
-	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
-	int is_press;
 	struct libinput_device *device = libinput_event_get_device(ev);
-
-	is_press = libinput_event_pointer_get_button_state(p) == LIBINPUT_BUTTON_STATE_PRESSED;
 
 	if (s->device && device != s->device)
 		return;
-
-	/* Drop the release event after confirming dialogs */
-	if (!is_press) {
-		if (s->new_state == STATE_STUDY &&
-		    s->state != s->new_state) {
-			s->state = s->new_state;
-			study_new_target(w);
-		}
-		return;
-	}
 
 	switch(s->state) {
 	case STATE_CONFIRM_DEVICE:
@@ -1526,6 +1512,29 @@ study_handle_event_button(struct libinput_event *ev, struct window *w)
 }
 
 static void
+study_handle_event_button_release(struct libinput_event *ev,
+				  struct window *w)
+{
+	struct study *s = &w->base;
+	struct libinput_device *device = libinput_event_get_device(ev);
+
+	if (s->device && device != s->device)
+		return;
+
+	if (s->state == s->new_state)
+		return;
+
+	switch (s->new_state) {
+	case STATE_STUDY:
+		study_new_target(w);
+		break;
+	default:
+		return;
+	}
+	s->state = s->new_state;
+}
+
+static void
 handle_event_button(struct libinput_event *ev, struct window *w)
 {
 	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
@@ -1546,7 +1555,10 @@ handle_event_button(struct libinput_event *ev, struct window *w)
 		break;
 	}
 
-	study_handle_event_button(ev, w);
+	if (is_press)
+		study_handle_event_button_press(ev, w);
+	else
+		study_handle_event_button_release(ev, w);
 }
 
 static gboolean
