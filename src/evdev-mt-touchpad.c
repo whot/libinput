@@ -735,6 +735,10 @@ tp_init_palmdetect(struct tp_dispatch *tp,
 {
 	int width;
 
+	/* We don't know how big the touchpad is */
+	if (device->abs.absinfo_x->resolution == 0)
+		return 0;
+
 	width = abs(device->abs.absinfo_x->maximum -
 		    device->abs.absinfo_x->minimum);
 
