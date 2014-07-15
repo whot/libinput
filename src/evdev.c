@@ -651,11 +651,7 @@ pointer_accel_config_get_default_method(struct libinput_device *device)
 static int
 configure_pointer_acceleration(struct evdev_device *device)
 {
-	device->pointer.filter =
-		create_pointer_accelator_filter(
-			pointer_accel_profile_smooth_simple);
-	if (!device->pointer.filter)
-		return -1;
+	enum libinput_config_status status;
 
 	device->pointer.config.available = pointer_accel_config_available;
 	device->pointer.config.set_speed = pointer_accel_config_set_speed;
@@ -667,6 +663,11 @@ configure_pointer_acceleration(struct evdev_device *device)
 	device->pointer.config.get_default_method = pointer_accel_config_get_default_method;
 
 	device->base.config.accel = &device->pointer.config;
+
+	status = pointer_accel_config_set_method(&device->base,
+						 LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE);
+	if (status != LIBINPUT_CONFIG_STATUS_SUCCESS)
+		return -1;
 
 	return 0;
 }
