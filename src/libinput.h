@@ -1422,6 +1422,8 @@ enum libinput_config_status {
 	LIBINPUT_CONFIG_STATUS_UNSUPPORTED,	/**< Configuration not available on
 						     this device */
 	LIBINPUT_CONFIG_STATUS_INVALID,		/**< Invalid parameter range */
+	LIBINPUT_CONFIG_STATUS_FAILED,		/**< Failed to apply for internal
+						     reasons (ENOMEM, etc.) */
 };
 
 /**

@@ -1271,6 +1271,9 @@ libinput_config_status_to_str(enum libinput_config_status status)
 	case LIBINPUT_CONFIG_STATUS_INVALID:
 		str = "Invalid argument range";
 		break;
+	case LIBINPUT_CONFIG_STATUS_FAILED:
+		str = "Configuration failed to apply";
+		break;
 	}
 
 	return str;
