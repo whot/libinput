@@ -683,6 +683,45 @@ tp_accel_config_get_default_speed(struct libinput_device *device)
 	return 0;
 }
 
+static enum libinput_config_status
+tp_accel_config_set_method(struct libinput_device *device,
+			   enum libinput_accel_method method)
+{
+	struct evdev_dispatch *dispatch;
+	struct tp_dispatch *tp;
+
+	dispatch = ((struct evdev_device *) device)->dispatch;
+	tp = container_of(dispatch, tp, base);
+
+	switch (method) {
+		case LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE:
+			break;
+		default:
+			return LIBINPUT_CONFIG_STATUS_INVALID;
+	}
+
+	tp->accel.method = method;
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static enum libinput_accel_method
+tp_accel_config_get_method(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch;
+	struct tp_dispatch *tp;
+
+	dispatch = ((struct evdev_device *) device)->dispatch;
+	tp = container_of(dispatch, tp, base);
+
+	return tp->accel.method;
+}
+
+static enum libinput_accel_method
+tp_accel_config_get_default_method(struct libinput_device *device)
+{
+	return LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE;
+}
+
 static int
 tp_init_accel(struct tp_dispatch *tp, double diagonal)
 {
@@ -734,6 +773,11 @@ tp_init_accel(struct tp_dispatch *tp, double diagonal)
 	tp->accel.config.set_speed = tp_accel_config_set_speed;
 	tp->accel.config.get_speed = tp_accel_config_get_speed;
 	tp->accel.config.get_default_speed = tp_accel_config_get_default_speed;
+
+	tp->accel.config.set_method = tp_accel_config_set_method;
+	tp->accel.config.get_method = tp_accel_config_get_method;
+	tp->accel.config.get_default_method = tp_accel_config_get_default_method;
+
 	tp->device->base.config.accel = &tp->accel.config;
 
 	return 0;

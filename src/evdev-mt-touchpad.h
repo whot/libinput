@@ -161,6 +161,7 @@ struct tp_dispatch {
 
 	struct {
 		struct libinput_device_config_accel config;
+		enum libinput_accel_method method;
 		double x_scale_coeff;
 		double y_scale_coeff;
 	} accel;
