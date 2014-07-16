@@ -466,8 +466,8 @@ study_show_welcome_message(struct window *w)
 	message = "<b>Thank you for participating in this study.</b>\n"
 		 "\n"
 		 "The goal of this study is to analyze the pointer acceleration\n"
-		 "code. The study consists of several randomized sets of moving\n"
-		 "targets.\n"
+		 "code. The study consists of multiple sets of targets, appearing\n"
+		 "in different positions.\n"
 		 "\n"
 		 "Your task is to click on these targets as they appear\n"
 		 "using a mouse-like input device (mouse, trackball, touchpad, etc.)\n"
@@ -483,9 +483,10 @@ study_show_welcome_message(struct window *w)
 		 "Key events are received by this program but not collected or\n"
 		 "analyzed.\n"
 		 "\n"
-		 "The data collected is available in a plain text file and must be\n"
-		 "sent by you to the email address <b>libinputdatacollection@gmail.com</b>.\n"
-		 "<b>This tool does not send any data.</b>\n"
+		 "The data collected is saved in a plain text file.\n"
+		 "<b>This tool does not send any data!</b> Instead, we ask you\n"
+		 "to send the file to the email address: \n"
+		 "\t<b>libinputdatacollection@gmail.com</b>.\n"
 		 "\n"
 		 "You can abort any time by hitting Esc.\n"
 		 "\n"
@@ -680,9 +681,6 @@ study_show_training2_done(struct window *w)
 	message = "Thank you, your training is now complete and we can continue\n"
 		  "with the actual study.\n"
 		  "\n"
-		  "The study consists of %d sets of targets. The size of the\n"
-		  "targets changes during the course of the study.\n"
-		  "\n"
 		  "You are continuing with the <b>second acceleration method</b>.\n"
 		  "\n"
 		  "With your device, <b>click on each target as it appears</b>.\n"
@@ -812,7 +810,7 @@ study_show_questionnaire(struct window *w)
 		"made it easy to hit the targets",
 		"I would prefer the first acceleration method "
 		"to be faster",
-		"I would prefer the first acceleration method"
+		"I would prefer the first acceleration method "
 		"to be slower",
 		"The second acceleration method felt natural",
 		"The second acceleration method allowed for "
@@ -823,7 +821,7 @@ study_show_questionnaire(struct window *w)
 		"made it easy to hit the targets",
 		"I would prefer the second acceleration method "
 		"to be faster",
-		"I would prefer the second acceleration method"
+		"I would prefer the second acceleration method "
 		"to be slower",
 		"The two acceleration methods "
 		"felt different",
