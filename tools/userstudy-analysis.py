@@ -179,6 +179,7 @@ class UserStudyParser(object):
 		target = None # target center
 		B = None # some other point on the target line
 		initial_side = None
+		set_id = -1
 
 		for elem in self.root.iter():
 			name = elem.tag
@@ -206,12 +207,16 @@ class UserStudyParser(object):
 						curr_path["overshoot"] = d
 				continue
 
+			if name == "set":
+				set_id = self.get_set_id(elem)
+
 			if name == "target":
 				curr_path = {"identifier" : "path_length_per_target",
 					    "object_radius" : int(elem.get("r")),
 					    "position" : (int(elem.get("xpos")), int(elem.get("ypos"))),
 					    "delta_sum" : 0,
 					    "overshoot" : 0,
+					    "set_id" : set_id,
 					   }
 
 				target = (int(elem.get("xpos")), int(elem.get("ypos")))
