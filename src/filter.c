@@ -385,6 +385,58 @@ calc_penumbral_gradient(double x)
 }
 
 double
+pointer_accel_profile_smooth_stretched(struct motion_filter *filter,
+				       void *data,
+				       double velocity, /* units/ms */
+				       uint64_t time)
+{
+	struct pointer_accelerator *accel_filter =
+		(struct pointer_accelerator *) filter;
+
+	double threshold = accel_filter->threshold; /* units/ms */
+	double accel = accel_filter->accel; /* unitless factor */
+	double smooth_accel_coefficient; /* unitless factor */
+	double factor; /* unitless factor */
+
+	/* Increasing this makes reaching max accel take longer (min 1.0) */
+	const double stretch = 3.0;
+
+	if (threshold < 0.1)
+		threshold = 0.1;
+	if (accel < 1.0)
+		accel = 1.0;
+
+	/* We use units/ms as velocity but it has no real meaning unless all
+	   devices have the same resolution. For touchpads, we normalize to
+	   400dpi (15.75 units/mm), but the resolution on USB mice is all
+	   over the place. Though most mice these days have either 400
+	   dpi (15.75 units/mm), 800 dpi or 1000dpi, excluding gaming mice
+	   that can usually adjust it on the fly anyway and currently go up
+	   to 8200dpi.
+	  */
+	if (velocity < (threshold / 2.0))
+		return calc_penumbral_gradient(0.5 + velocity / threshold) * 2.0 - 1.0;
+
+	if (velocity <= threshold)
+		return 1.0;
+
+	factor = velocity/threshold;
+	if (factor < accel) {
+		/* factor is 1.0 - accel, scale this to 0.0 - 0.5 */
+		factor = 0.5 * (factor - 1.0) / (accel - 1.0);
+	} else if (factor < (accel * stretch)) {
+		/* factor is accel - (accel * stretch),
+		   scale this to 0.5 - 1.0 */
+		factor = 0.5 + 0.5 *
+				(factor - accel) / (accel * (stretch - 1.0));
+	} else
+		return accel;
+
+	smooth_accel_coefficient = calc_penumbral_gradient(factor);
+	return 1.0 + (smooth_accel_coefficient * (accel - 1.0));
+}
+
+double
 pointer_accel_profile_smooth_simple(struct motion_filter *filter,
 				    void *data,
 				    double velocity, /* units/ms */

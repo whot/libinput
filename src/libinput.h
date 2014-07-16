@@ -1748,6 +1748,7 @@ libinput_device_config_accel_get_default_speed(struct libinput_device *device);
 
 enum libinput_accel_method {
 	LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE,
+	LIBINPUT_ACCEL_METHOD_SMOOTH_STRETCHED,
 };
 
 /**

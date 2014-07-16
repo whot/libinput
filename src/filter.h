@@ -73,4 +73,13 @@ pointer_accel_profile_smooth_simple(struct motion_filter *filter,
 				    double velocity,
 				    uint64_t time);
 
+/*
+ * Profile similar which is similar to the smooth simple profile, but takes
+ * longer to reach the max acceleration.
+ */
+double
+pointer_accel_profile_smooth_stretched(struct motion_filter *filter,
+				       void *data,
+				       double velocity,
+				       uint64_t time);
 #endif /* FILTER_H */
