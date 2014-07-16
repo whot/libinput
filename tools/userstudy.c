@@ -456,6 +456,7 @@ study_screen_too_small_error(struct window *w)
 					GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
 					GTK_MESSAGE_ERROR,
 					GTK_BUTTONS_CLOSE,
+					"%s",
 					message);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
@@ -504,6 +505,7 @@ study_show_welcome_message(struct window *w)
 						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
 						    GTK_MESSAGE_OTHER,
 						    GTK_BUTTONS_OK_CANCEL,
+						    "%s",
 						    message);
 	response = gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
@@ -548,7 +550,8 @@ study_show_confirm_message(struct window *w)
 						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
 						    GTK_MESSAGE_OTHER,
 						    GTK_BUTTONS_YES_NO,
-						    message);
+						    NULL);
+	gtk_message_dialog_set_markup(GTK_MESSAGE_DIALOG(dialog), message);
 	response = gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -585,7 +588,8 @@ study_show_confirm_device(struct window *w)
 						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
 						    GTK_MESSAGE_OTHER,
 						    GTK_BUTTONS_OK,
-						    message);
+						    NULL);
+	gtk_message_dialog_set_markup(GTK_MESSAGE_DIALOG(dialog), message);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -1660,7 +1664,8 @@ study_apply_acceleration(struct window *w,
 						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
 						    GTK_MESSAGE_ERROR,
 						    GTK_BUTTONS_CLOSE,
-						    message);
+						    NULL);
+	gtk_message_dialog_set_markup(GTK_MESSAGE_DIALOG(dialog), message);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 	gtk_main_quit();
