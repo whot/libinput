@@ -61,6 +61,8 @@ class UserStudyParser(object):
 		data["mean"] = mean(data["times_to_hit"])
 		return data
 
+	def get_set_id(self, elem):
+		return int(elem.get("method")) * 1000 + int(elem.get("id"))
 
 	def target_aquisition_times_per_set(self):
 		"""
@@ -74,7 +76,7 @@ class UserStudyParser(object):
 			name = elem.tag
 			if name == "set":
 				cur_set = { "identifier" : "target_aquisition_times_per_set",
-					    "set_id" : int(elem.get("id")),
+					    "set_id" : self.get_set_id(elem),
 					    "object_radius" : int(elem.get("r")),
 					    }
 				cur_set["times_to_hit"] = []
@@ -145,7 +147,7 @@ class UserStudyParser(object):
 			name = elem.tag
 			if name == "set":
 				cur_set = { "identifier" : "time_per_set",
-					    "set_id" : int(elem.get("id")),
+					    "set_id" : self.get_set_id(elem),
 					    "object_radius" : int(elem.get("r")),
 					    }
 
