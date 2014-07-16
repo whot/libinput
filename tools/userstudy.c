@@ -492,7 +492,7 @@ study_show_welcome_message(struct window *w)
 		 "The data collected is saved in a plain text file.\n"
 		 "<b>This tool does not send any data!</b> Instead, we ask you\n"
 		 "to send the file to the email address: \n"
-		 "\t<b>libinputdatacollection@gmail.com</b>.\n"
+		 "\t<b>%s</b>.\n"
 		 "\n"
 		 "You can abort any time by hitting Esc.\n"
 		 "\n"
@@ -505,8 +505,8 @@ study_show_welcome_message(struct window *w)
 						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
 						    GTK_MESSAGE_OTHER,
 						    GTK_BUTTONS_OK_CANCEL,
-						    "%s",
-						    message);
+						    message,
+						    EMAIL);
 	response = gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -942,8 +942,8 @@ study_show_done(struct window *w)
 		  "\n"
 		  "Click OK to save the file with the results.\n"
 		  "Please send them unmodified to\n\n"
-		  "<b><tt>libinputdatacollection@gmail</tt></b>\n\n"
-		  "with a subject line of <b><tt>STUDY d3b07384</tt></b>\n"
+		  "<b><tt>%s</tt></b>\n\n"
+		  "with a subject line of <b><tt>%s</tt></b>\n"
 		  "\n"
 		  "Note that emails without that subject line will be\n"
 		  "deleted automatically\n"
@@ -958,8 +958,9 @@ study_show_done(struct window *w)
 						    GTK_MESSAGE_OTHER,
 						    GTK_BUTTONS_CLOSE,
 						    message,
-						    w->base.cwd,
-						    w->base.filename);
+						    EMAIL,
+						    EMAIL_SUBJECT);
+
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 	dialog = gtk_file_chooser_dialog_new("Save results as",
@@ -1418,7 +1419,7 @@ study_start_recording(struct window *w)
 
 	dprintf(s->fd, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	dprintf(s->fd,
-		"<!-- please email this file to %s with the subject line '%s' -->",
+		"<!-- please email this file to %s with the subject line '%s' -->\n",
 		EMAIL, EMAIL_SUBJECT);
 	dprintf(s->fd, "<results>\n");
 	dprintf(s->fd, "<system>\n");
