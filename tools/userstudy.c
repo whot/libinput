@@ -54,7 +54,7 @@
 
 #define NUM_TRAINING_TARGETS 5
 #define NUM_STUDY_TARGETS 15
-#define NUM_SETS 6
+#define NUM_SETS 6 /* multiple of the allowed radii */
 
 #define EMAIL "libinputdatacollection@gmail.com"
 #define EMAIL_SUBJECT "STUDY d3b07384"
@@ -256,19 +256,12 @@ study_init_file(struct window *w)
 }
 
 static void
-study_init(struct window *w)
+study_randomize_radii(struct window *w)
 {
 	struct study *s = &w->base;
 	int radii[] = { 15, 30, 45 };
 	int i;
 
-	study_default_target(w);
-	s->state = STATE_WELCOME;
-	s->new_state = STATE_WELCOME;
-
-	s->ntargets = NUM_STUDY_TARGETS;
-
-	/* Define order at startup, but randomly */
 	for (i = 0; i < NUM_SETS; i++)
 		s->radii[i] = radii[i % ARRAY_LENGTH(radii)];
 
@@ -278,6 +271,21 @@ study_init(struct window *w)
 		s->radii[j] = s->radii[i];
 		s->radii[i] = tmp;
 	}
+}
+
+static void
+study_init(struct window *w)
+{
+	struct study *s = &w->base;
+
+	study_default_target(w);
+	s->state = STATE_WELCOME;
+	s->new_state = STATE_WELCOME;
+
+	s->ntargets = NUM_STUDY_TARGETS;
+
+	/* Define order at startup, but randomly */
+	study_randomize_radii(w);
 
 	study_init_file(w);
 }
