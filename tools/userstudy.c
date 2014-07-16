@@ -331,15 +331,18 @@ study_draw_object(cairo_t *cr, struct window *w)
 
 	/* draw the click object */
 	cairo_save(cr);
-	if (s->state == STATE_TRAINING ||
-	    s->state  == STATE_STUDY_START ||
-	    s->state  == STATE_STUDY_CONTINUE ||
-	    s->state == STATE_INTERMISSION ||
-	    s->state == STATE_SWITCH_METHOD ||
-	    s->state  == STATE_STUDY)
+	switch (s->state) {
+	case STATE_STUDY:
+	case STATE_STUDY_START:
+	case STATE_STUDY_CONTINUE:
+	case STATE_INTERMISSION:
 		cairo_set_source_rgb(cr, .4, .8, 0);
-	else
+		break;
+	default:
 		cairo_set_source_rgb(cr, .0, .2, .8);
+		break;
+	}
+
 	cairo_arc(cr, s->object_x, s->object_y, s->object_radius, 0, 2 * M_PI);
 	cairo_fill(cr);
 	cairo_restore(cr);
