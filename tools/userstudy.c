@@ -268,6 +268,8 @@ study_randomize_radii(struct window *w)
 	int radii[] = { 15, 30, 45 };
 	int i;
 
+	srand(time(NULL));
+
 	for (i = 0; i < NUM_SETS; i++)
 		s->radii[i] = radii[i % ARRAY_LENGTH(radii)];
 
