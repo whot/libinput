@@ -64,7 +64,9 @@ enum study_state {
 	STATE_CONFIRM_DEVICE,
 	STATE_TRAINING,
 	STATE_INTERMISSION,
+	STATE_SWITCH_METHOD,
 	STATE_STUDY_START,
+	STATE_STUDY_CONTINUE,
 	STATE_STUDY,
 	STATE_DONE,
 };
@@ -218,11 +220,13 @@ study_show_text(cairo_t *cr, struct window *w)
 	};
 
 	switch(s->state) {
+	case STATE_SWITCH_METHOD:
 	case STATE_TRAINING:
 	case STATE_STUDY:
 		str = training_message;
 		break;
 	case STATE_STUDY_START:
+	case STATE_STUDY_CONTINUE:
 	case STATE_INTERMISSION:
 		str = start_message;
 		break;
@@ -327,7 +331,9 @@ study_draw_object(cairo_t *cr, struct window *w)
 	cairo_save(cr);
 	if (s->state == STATE_TRAINING ||
 	    s->state  == STATE_STUDY_START ||
+	    s->state  == STATE_STUDY_CONTINUE ||
 	    s->state == STATE_INTERMISSION ||
+	    s->state == STATE_SWITCH_METHOD ||
 	    s->state  == STATE_STUDY)
 		cairo_set_source_rgb(cr, .4, .8, 0);
 	else
@@ -350,12 +356,18 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 	cairo_rectangle(cr, 0, 0, w->width, w->height);
 	cairo_fill(cr);
 
-	if (s->state != STATE_CONFIRM_DEVICE &&
-	    s->state != STATE_TRAINING &&
-	    s->state != STATE_STUDY_START &&
-	    s->state != STATE_INTERMISSION &&
-	    s->state != STATE_STUDY)
+	switch(s->state) {
+	case STATE_CONFIRM_DEVICE:
+	case STATE_TRAINING:
+	case STATE_STUDY_START:
+	case STATE_STUDY_CONTINUE:
+	case STATE_INTERMISSION:
+	case STATE_SWITCH_METHOD:
+	case STATE_STUDY:
+		break;
+	default:
 		return TRUE;
+	}
 
 	/* Study elements */
 	study_show_text(cr, w);
@@ -629,6 +641,7 @@ study_show_training_done(struct window *w)
 		  "After %d sets, the pointer acceleration method will change.\n"
 		  "A message will appear once a set is completed.\n"
 		  "\n"
+		  "You are now starting with the <b>first acceleration method</b>.\n"
 		  "\n"
 		  "With your device, <b>click on each target as it appears</b>.\n"
 		  "\n"
@@ -647,8 +660,8 @@ study_show_training_done(struct window *w)
 						    GTK_MESSAGE_OTHER,
 						    GTK_BUTTONS_OK,
 						    message,
-						    NUM_SETS,
-						    NUM_SETS/2);
+						    NUM_SETS * 2,
+						    NUM_SETS);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -657,6 +670,90 @@ study_show_training_done(struct window *w)
 
 	return;
 }
+
+static void
+study_show_training2_done(struct window *w)
+{
+	const char *message;
+	GtkWidget *dialog;
+
+	message = "Thank you, your training is now complete and we can continue\n"
+		  "with the actual study.\n"
+		  "\n"
+		  "The study consists of %d sets of targets. The size of the\n"
+		  "targets changes during the course of the study.\n"
+		  "\n"
+		  "You are continuing with the <b>second acceleration method</b>.\n"
+		  "\n"
+		  "With your device, <b>click on each target as it appears</b>.\n"
+		  "\n"
+		  "Note that the cursor used to select the targets is not\n"
+		  "your normal system cursor\n"
+		  "\n"
+		  "<b>Event collection starts once you click the first target.</b>\n"
+		  "\n"
+		  "You can abort any time by hitting Esc.\n";
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+
+	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(w->win),
+						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+						    GTK_MESSAGE_OTHER,
+						    GTK_BUTTONS_OK,
+						    message,
+						    NUM_SETS);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      gdk_cursor_new(GDK_BLANK_CURSOR));
+
+	return;
+}
+
+
+static void
+study_show_switch_mesage(struct window *w)
+{
+	struct study *s = &w->base;
+	const char *message;
+	GtkWidget *dialog;
+
+	message = "Thank you. You have completed all sets for the first\n"
+		  "pointer acceleration method.\n"
+		  "\n"
+		  "The device has now switched to the <b>second acceleration method</b>.\n"
+		  "The device may behave different now and to get used to \n"
+		  "new behaviour you need to go through another training session.\n"
+		  "\n"
+		  "You may have a short rest now, and when you are ready for\n"
+		  "the training with the <b>second acceleration method</b>, click OK.\n"
+		  "\n"
+		  "<b>No events will be collected yet</b>\n"
+		  "\n"
+		  "You can abort any time by hitting Esc.\n";
+
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+
+	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(w->win),
+						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+						    GTK_MESSAGE_OTHER,
+						    GTK_BUTTONS_OK,
+						    message,
+						    s->set,
+						    NUM_SETS);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      gdk_cursor_new(GDK_BLANK_CURSOR));
+
+	return;
+};
+
 
 static void
 study_show_intermission(struct window *w)
@@ -1464,6 +1561,16 @@ study_handle_event_button_press(struct libinput_event *ev, struct window *w)
 
 		s->new_state = STATE_TRAINING;
 		break;
+	case STATE_SWITCH_METHOD:
+		if (!study_click_in_circle(w, w->x, w->y))
+			return;
+
+		if (s->ntargets == 0) {
+			s->new_state = STATE_STUDY_CONTINUE;
+			break;
+		}
+		study_new_training_target(w);
+		break;
 	case STATE_TRAINING:
 		if (!study_click_in_circle(w, w->x, w->y))
 			return;
@@ -1481,6 +1588,13 @@ study_handle_event_button_press(struct libinput_event *ev, struct window *w)
 		s->ntargets = NUM_STUDY_TARGETS;
 		study_start_recording(w);
 		break;
+	case STATE_STUDY_CONTINUE:
+		if (!study_click_in_circle(w, w->x, w->y))
+			return;
+		s->new_state = STATE_STUDY;
+		s->ntargets = NUM_STUDY_TARGETS;
+		study_mark_set_start(w);
+		break;
 	case STATE_INTERMISSION:
 		if (!study_click_in_circle(w, w->x, w->y))
 			return;
@@ -1494,13 +1608,18 @@ study_handle_event_button_press(struct libinput_event *ev, struct window *w)
 
 		if (s->ntargets == 0) {
 			s->set++;
+			study_mark_set_stop(w);
 			if (s->set < NUM_SETS) {
-				study_mark_set_stop(w);
 				s->new_state = STATE_INTERMISSION;
 				break;
 			} else {
-				study_mark_set_stop(w);
-				s->new_state = STATE_DONE;
+				s->accel_method_idx++;
+				if (s->accel_method_idx < ARRAY_LENGTH(s->methods)) {
+					s->set = 0;
+					s->new_state = STATE_SWITCH_METHOD;
+				} else {
+					s->new_state = STATE_DONE;
+				}
 				return;
 			}
 		}
@@ -1511,17 +1630,37 @@ study_handle_event_button_press(struct libinput_event *ev, struct window *w)
 	}
 }
 
-static int
+static void
 study_apply_acceleration(struct window *w,
 			 struct libinput_device *dev)
 {
 	struct study *s = &w->base;
 	enum libinput_config_status status;
+	GtkWidget *dialog;
+	const char *message;
 
 	status = libinput_device_config_accel_set_method(dev,
 							 s->methods[s->accel_method_idx]);
+	if (status == LIBINPUT_CONFIG_STATUS_SUCCESS)
+		return;
 
-	return (status == LIBINPUT_CONFIG_STATUS_SUCCESS) ? 0 : 1;
+	message = "<b>Failed to apply acceleration method</b>\n"
+		 "\n"
+		 "Sorry, I can't apply an acceleration method to this device,\n"
+		 "but you may be able to re-run the study with a different device\n"
+		 "\n"
+		 "Press Close to abort and exit this study\n";
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(w->win),
+						    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+						    GTK_MESSAGE_ERROR,
+						    GTK_BUTTONS_CLOSE,
+						    message);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+	gtk_main_quit();
 }
 
 static void
@@ -1541,21 +1680,29 @@ study_handle_event_button_release(struct libinput_event *ev,
 	case STATE_STUDY:
 		study_new_target(w);
 		break;
+	case STATE_SWITCH_METHOD:
+		/* re-randomize the radii */
+		study_randomize_radii(w);
+		study_apply_acceleration(w, s->device);
+		study_show_switch_mesage(w);
+		s->ntargets = NUM_TRAINING_TARGETS;
+		study_default_target(w);
+		break;
 	case STATE_TRAINING:
-		/* configure the device first */
-		if (study_apply_acceleration(w, s->device) != 0) {
-			/* FIXME: show error here */
-			s->new_state = STATE_CONFIRM_DEVICE;
-			s->device = NULL;
-			break;
-		}
-
+		study_apply_acceleration(w, s->device);
 		study_show_training_start(w);
 		s->ntargets = NUM_TRAINING_TARGETS;
 		study_default_target(w);
 		break;
+	case STATE_STUDY_CONTINUE:
+		study_show_training2_done(w);
+		study_show_start_target(w);
+		break;
 	case STATE_STUDY_START:
-		study_show_training_done(w);
+		if (s->accel_method_idx == 0)
+			study_show_training_done(w);
+		else
+			study_show_training2_done(w);
 		study_show_start_target(w);
 		break;
 	case STATE_INTERMISSION:
