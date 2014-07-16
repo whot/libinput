@@ -86,6 +86,8 @@ struct study {
 
 	int set;
 	int radii[NUM_SETS];
+	enum libinput_accel_method methods[2];
+	int accel_method_idx;
 
 	/* the device used during the study */
 	struct libinput_device *device;
@@ -274,6 +276,16 @@ study_randomize_radii(struct window *w)
 }
 
 static void
+study_randomize_method(struct window *w)
+{
+	struct study *s = &w->base;
+	int i = rand() % 2;
+
+	s->methods[i] = LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE;
+	s->methods[(i + 1) % 2] = LIBINPUT_ACCEL_METHOD_SMOOTH_STRETCHED;
+}
+
+static void
 study_init(struct window *w)
 {
 	struct study *s = &w->base;
@@ -283,9 +295,11 @@ study_init(struct window *w)
 	s->new_state = STATE_WELCOME;
 
 	s->ntargets = NUM_STUDY_TARGETS;
+	s->accel_method_idx = 0;
 
 	/* Define order at startup, but randomly */
 	study_randomize_radii(w);
+	study_randomize_method(w);
 
 	study_init_file(w);
 }
@@ -1255,10 +1269,11 @@ study_mark_set_start(struct window *w)
 	time = tp.tv_sec * 1000 + tp.tv_nsec/1000000;
 
 	dprintf(s->fd,
-		"<set time=\"%d\" id=\"%d\" r=\"%d\">\n",
+		"<set time=\"%d\" id=\"%d\" r=\"%d\" method=\"%d\">\n",
 		time,
 		s->set,
-		s->object_radius);
+		s->object_radius,
+		s->methods[s->accel_method_idx]);
 }
 
 static void
@@ -1447,7 +1462,6 @@ study_handle_event_button_press(struct libinput_event *ev, struct window *w)
 		assert(s->device == NULL);
 		s->device = libinput_event_get_device(ev);
 
-
 		s->new_state = STATE_TRAINING;
 		break;
 	case STATE_TRAINING:
@@ -1497,6 +1511,19 @@ study_handle_event_button_press(struct libinput_event *ev, struct window *w)
 	}
 }
 
+static int
+study_apply_acceleration(struct window *w,
+			 struct libinput_device *dev)
+{
+	struct study *s = &w->base;
+	enum libinput_config_status status;
+
+	status = libinput_device_config_accel_set_method(dev,
+							 s->methods[s->accel_method_idx]);
+
+	return (status == LIBINPUT_CONFIG_STATUS_SUCCESS) ? 0 : 1;
+}
+
 static void
 study_handle_event_button_release(struct libinput_event *ev,
 				  struct window *w)
@@ -1515,6 +1542,14 @@ study_handle_event_button_release(struct libinput_event *ev,
 		study_new_target(w);
 		break;
 	case STATE_TRAINING:
+		/* configure the device first */
+		if (study_apply_acceleration(w, s->device) != 0) {
+			/* FIXME: show error here */
+			s->new_state = STATE_CONFIRM_DEVICE;
+			s->device = NULL;
+			break;
+		}
+
 		study_show_training_start(w);
 		s->ntargets = NUM_TRAINING_TARGETS;
 		study_default_target(w);
