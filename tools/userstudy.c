@@ -37,6 +37,7 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include <lzma.h>
 
 #include <sys/utsname.h>
 #include <sys/types.h>
@@ -929,14 +930,179 @@ study_show_questionnaire(struct window *w)
 	return 0;
 }
 
+/* https://raw.githubusercontent.com/nobled/xz/master/doc/examples/xz_pipe_comp.c */
+
+/* analogous to xz CLI options: -0 to -9 */
+#define COMPRESSION_LEVEL 6
+
+/* boolean setting, analogous to xz CLI option: -e */
+#define COMPRESSION_EXTREME true
+
+/* see: /usr/include/lzma/check.h LZMA_CHECK_* */
+#define INTEGRITY_CHECK LZMA_CHECK_CRC64
+
+
+/* read/write buffer sizes */
+#define IN_BUF_MAX	4096
+#define OUT_BUF_MAX	4096
+
+/* error codes */
+#define RET_OK			0
+#define RET_ERROR_INIT		1
+#define RET_ERROR_INPUT		2
+#define RET_ERROR_OUTPUT	3
+#define RET_ERROR_COMPRESSION	4
+
+/* note: in_file and out_file must be open already */
+int
+study_zip_file (FILE *in_file, FILE *out_file)
+{
+	uint32_t preset = COMPRESSION_LEVEL | (COMPRESSION_EXTREME ? LZMA_PRESET_EXTREME : 0);
+	lzma_check check = INTEGRITY_CHECK;
+	lzma_stream strm = LZMA_STREAM_INIT; /* alloc and init lzma_stream struct */
+	uint8_t in_buf [IN_BUF_MAX];
+	uint8_t out_buf [OUT_BUF_MAX];
+	size_t in_len;	/* length of useful data in in_buf */
+	size_t out_len;	/* length of useful data in out_buf */
+	bool in_finished = false;
+	bool out_finished = false;
+	lzma_action action;
+	lzma_ret ret_xz;
+	int ret;
+
+	ret = RET_OK;
+
+	/* initialize xz encoder */
+	ret_xz = lzma_easy_encoder (&strm, preset, check);
+	if (ret_xz != LZMA_OK) {
+		fprintf (stderr, "lzma_easy_encoder error: %d\n", (int) ret_xz);
+		return RET_ERROR_INIT;
+	}
+
+	while ((! in_finished) && (! out_finished)) {
+		/* read incoming data */
+		in_len = fread (in_buf, 1, IN_BUF_MAX, in_file);
+
+		if (feof (in_file)) {
+			in_finished = true;
+		}
+		if (ferror (in_file)) {
+			in_finished = true;
+			ret = RET_ERROR_INPUT;
+		}
+
+		strm.next_in = in_buf;
+		strm.avail_in = in_len;
+
+		/* if no more data from in_buf, flushes the
+		   internal xz buffers and closes the xz data
+		   with LZMA_FINISH */
+		action = in_finished ? LZMA_FINISH : LZMA_RUN;
+
+		/* loop until there's no pending compressed output */
+		do {
+			/* out_buf is clean at this point */
+			strm.next_out = out_buf;
+			strm.avail_out = OUT_BUF_MAX;
+
+			/* compress data */
+			ret_xz = lzma_code (&strm, action);
+
+			if ((ret_xz != LZMA_OK) && (ret_xz != LZMA_STREAM_END)) {
+				fprintf (stderr, "lzma_code error: %d\n", (int) ret_xz);
+				out_finished = true;
+				ret = RET_ERROR_COMPRESSION;
+			} else {
+				/* write compressed data */
+				out_len = OUT_BUF_MAX - strm.avail_out;
+				fwrite (out_buf, 1, out_len, out_file);
+				if (ferror (out_file)) {
+					out_finished = true;
+					ret = RET_ERROR_OUTPUT;
+				}
+			}
+		} while (strm.avail_out == 0);
+	}
+
+	lzma_end (&strm);
+	return ret;
+}
+
 static void
-study_show_done(struct window *w)
+study_save_file(struct window *w)
 {
 	struct study *s = &w->base;
-	const char *message;
 	GtkWidget *dialog;
 	GtkFileChooser *chooser;
 	gint response;
+	char *filename;
+	FILE *dest = NULL, *source;
+
+	do {
+		dialog = gtk_file_chooser_dialog_new("Save results as",
+						     GTK_WINDOW(w->win),
+						     GTK_FILE_CHOOSER_ACTION_SAVE,
+						     "_Cancel",
+						     GTK_RESPONSE_CANCEL,
+						     "_Save",
+						     GTK_RESPONSE_ACCEPT,
+						     NULL);
+		chooser = GTK_FILE_CHOOSER(dialog);
+		gtk_file_chooser_set_do_overwrite_confirmation(chooser, TRUE);
+		gtk_file_chooser_set_current_name(chooser,
+						  "userstudy-results.xml.xz");
+
+		response = gtk_dialog_run(GTK_DIALOG (dialog));
+		if (response == GTK_RESPONSE_CANCEL) {
+			gtk_main_quit();
+			return;
+		}
+
+		/* response is GTK_RESPONSE_ACCEPT */
+		filename = gtk_file_chooser_get_filename(chooser);
+		gtk_widget_destroy(dialog);
+
+		dest = fopen(filename, "w");
+		if (!dest) {
+			int e = errno;
+			const char *message = "Failed to save file in selected location: %s\n";
+			dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(w->win),
+								    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+								    GTK_MESSAGE_ERROR,
+								    GTK_BUTTONS_OK,
+								    message,
+								    strerror(e));
+			gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+			g_free(filename);
+		}
+	} while(!dest);
+
+	source = fdopen(s->fd, "r");
+	assert(source != NULL);
+	rewind(source);
+
+	if (study_zip_file(source, dest) == RET_OK) {
+		unlink(s->filename);
+		free(s->filename);
+		free(s->cwd);
+		s->filename = filename;
+		s->cwd = strdup("");
+	} else {
+		fprintf(stderr,
+			"Moving file failed, still at location %s\n",
+			s->filename);
+	}
+
+	fclose(source);
+	fclose(dest);
+}
+
+static void
+study_show_done(struct window *w)
+{
+	const char *message;
+	GtkWidget *dialog;
 
 	message = "Thank you for completing the study.\n"
 		  "\n"
@@ -963,48 +1129,8 @@ study_show_done(struct window *w)
 
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
-	dialog = gtk_file_chooser_dialog_new("Save results as",
-					     GTK_WINDOW(w->win),
-					     GTK_FILE_CHOOSER_ACTION_SAVE,
-					     "_Cancel",
-					     GTK_RESPONSE_CANCEL,
-					     "_Save",
-					     GTK_RESPONSE_ACCEPT,
-					     NULL);
-	chooser = GTK_FILE_CHOOSER(dialog);
-	gtk_file_chooser_set_do_overwrite_confirmation(chooser, TRUE);
-	gtk_file_chooser_set_current_name(chooser,
-					  "userstudy-results.xml");
 
-	response = gtk_dialog_run(GTK_DIALOG (dialog));
-	if (response == GTK_RESPONSE_ACCEPT) {
-		GFile *source, *dest;
-		GError *error = NULL;
-		char *filename;
-		filename = gtk_file_chooser_get_filename(chooser);
-
-		source = g_file_new_for_path(s->filename);
-		dest = g_file_new_for_path(filename);
-		g_file_move(source, dest, G_FILE_COPY_OVERWRITE,
-			    NULL, NULL, NULL, &error);
-		if (error) {
-			fprintf(stderr,
-				"Moving file failed (%s), still at location %s\n",
-				error->message,
-				s->filename);
-		} else {
-			free(s->filename);
-			free(s->cwd);
-			s->cwd = strdup("");
-			s->filename = filename;
-		}
-
-		g_object_unref(source);
-		g_object_unref(dest);
-
-	}
-
-	gtk_widget_destroy(dialog);
+	study_save_file(w);
 }
 
 static void
@@ -1486,7 +1612,6 @@ study_stop_recording(struct window *w)
 	struct study *s = &w->base;
 	dprintf(s->fd, "</sets>\n");
 	dprintf(s->fd, "</results>\n");
-	close(s->fd);
 }
 
 static void

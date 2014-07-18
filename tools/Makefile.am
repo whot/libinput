@@ -18,7 +18,7 @@ event_gui_CFLAGS = $(CAIRO_CFLAGS) $(GTK_CFLAGS) $(LIBUDEV_CFLAGS)
 event_gui_LDFLAGS = -static
 
 libinput_userstudy_SOURCES = userstudy.c
-libinput_userstudy_LDADD = ../src/libinput.la $(CAIRO_LIBS) $(GTK_LIBS) $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS)
-libinput_userstudy_CFLAGS = $(CAIRO_CFLAGS) $(GTK_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS)
+libinput_userstudy_LDADD = ../src/libinput.la $(CAIRO_LIBS) $(GTK_LIBS) $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS) $(XZ_LIBS)
+libinput_userstudy_CFLAGS = $(CAIRO_CFLAGS) $(GTK_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS) $(XZ_CFLAGS)
 libinput_userstudy_LDFLAGS = -static
 endif
