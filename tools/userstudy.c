@@ -484,7 +484,6 @@ study_show_welcome_message(struct window *w)
 		 "- DMI device information (see /sys/class/dmi/id)\n"
 		 "- input device name and capabilities (see evtest(1))\n"
 		 "- input events with timestamps\n"
-		 "- converted events and timestamps\n"
 		 "\n"
 		 "<b>No data that can personally identify you is collected.</b>\n"
 		 "Key events are received by this program but not collected or\n"
