@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import sys
 import math
 from pprint import pprint
@@ -8,22 +9,37 @@ import xml.etree.ElementTree
 def mean(data):
 	m = 1.0 * sum(data)/len(data)
 	stddev = math.sqrt(sum((x-m) ** 2 for x in data) / len(data))
-	return {"mean" : m, "stdev" : stddev}
+	return (m, stddev)
 
-class UserStudyParser(object):
+class Results(object):
+	slots = ["nsamples", "mean", "stddev"]
+	def __init__(self, data, unit=""):
+		self.nsamples = len(data)
+		self.mean, self.stddev = mean(data)
+		self.unit = unit
+
+	def __str__(self):
+		return "mean: %f%s stddev: %f%s (samples: %d)" % (self.mean,
+								  self.unit,
+								  self.stddev,
+								  self.unit,
+								  self.nsamples)
+
+class UserStudyResultsFile(object):
 	def __init__(self, path):
 		self.tree = xml.etree.ElementTree.parse(path)
 		self.root = self.tree.getroot()
 
-	def button_click_times(self):
+		self.click_times = self._button_click_times()
+		self.target_aquisition_times = self._target_aquisition_times()
+
+	def _button_click_times(self):
 		"""
 		Searches for time between button press and release
 		events and returns a Data object with the raw times in
 		milliseconds
 		"""
-		data = {"identifier" : "button_click_times",
-			"click_durations" : [],
-			}
+		click_durations = []
 		times = [0, 0]
 		expected_state = 1
 		for button in self.root.iter("button"):
@@ -39,27 +55,21 @@ class UserStudyParser(object):
 			expected_state = abs(expected_state - 1)
 
 			if btn_state == 0:
-				data["click_durations"].append(times[0] - times[1])
+				click_durations.append(times[0] - times[1])
 
-		data["mean"] = mean(data["click_durations"])
-		return data
+		return click_durations
 
-	def target_aquisition_times(self):
+	def _target_aquisition_times(self):
 		"""
 		Calculates the time between the target and the successful
 		click onto the target in milliseconds
 		"""
-
-		data = {"identifier" : "target_aquisition_times",
-			"times_to_hit" : [],
-			}
-
-		times = self.target_aquisition_times_per_set();
+		times_to_hit = []
+		times = self.target_aquisition_times_per_set()
 		for t in times:
-			data["times_to_hit"] += t["times_to_hit"]
+			times_to_hit += t["times_to_hit"]
 
-		data["mean"] = mean(data["times_to_hit"])
-		return data
+		return times_to_hit
 
 	def get_set_id(self, elem):
 		return int(elem.get("method")) * 1000 + int(elem.get("id"))
@@ -312,38 +322,59 @@ class UserStudyParser(object):
 				continue
 		return paths
 
+class UserStudyResults(object):
+	def __init__(self, path):
+		self.results = [r for r in self._parse_files(path)]
+
+	def _files(self, path):
+		for root, dirs, files in os.walk(path):
+			for file in files:
+				yield os.path.join(root, file)
+
+	def _parse_files(self, path):
+		for file in self._files(path):
+			yield UserStudyResultsFile(file)
+
+	def button_click_times(self):
+		click_times = [t for r in self.results for t in r.click_times]
+		return Results(click_times, "ms")
+
+	def target_aquisition_times(self):
+		times = [t for r in self.results for t in r.target_aquisition_times]
+		return Results(times, "ms")
+
 def main(argv):
 	fpath = argv[1];
-	parser = UserStudyParser(fpath)
 
+	results = UserStudyResults(fpath)
 
-	click_times = parser.button_click_times()
-	target_aquisition_times = parser.target_aquisition_times();
-	target_per_set_times = parser.target_aquisition_times_per_set();
-	target_misses = parser.target_misses()
+	print "Button click time: %s" % results.button_click_times()
+	print "Target time-to-aquisition times: %s" % results.target_aquisition_times()
 
-	print(":::::::Button click durations:")
-	pprint(click_times)
-	print("::::::: Target misses:")
-	pprint(target_misses)
-	print("::::::: Target misses per set")
-	for m in parser.target_misses_per_set():
-		pprint(m)
-
-	print("Times per set:")
-	for t in parser.time_per_set():
-		pprint(t)
-	print(":::::: Target aquisition times: ")
-	pprint(target_aquisition_times)
-	print(":::::: Target aquisition times per set")
-	for data in target_per_set_times:
-		pprint(data)
-
-	print(":::::: Difference in distance to path taken:")
-	pprint(parser.path_lengths())
-	print(":::::: Difference in distance to path taken per target:")
-	for p in parser.path_length_per_target():
-		pprint(p)
+#	target_aquisition_times = parser.target_aquisition_times();
+#	target_per_set_times = parser.target_aquisition_times_per_set();
+#	target_misses = parser.target_misses()
+#
+#	print("::::::: Target misses:")
+#	pprint(target_misses)
+#	print("::::::: Target misses per set")
+#	for m in parser.target_misses_per_set():
+#		pprint(m)
+#
+#	print("Times per set:")
+#	for t in parser.time_per_set():
+#		pprint(t)
+#	print(":::::: Target aquisition times: ")
+#	pprint(target_aquisition_times)
+#	print(":::::: Target aquisition times per set")
+#	for data in target_per_set_times:
+#		pprint(data)
+#
+#	print(":::::: Difference in distance to path taken:")
+#	pprint(parser.path_lengths())
+#	print(":::::: Difference in distance to path taken per target:")
+#	for p in parser.path_length_per_target():
+#		pprint(p)
 
 
 if __name__ == "__main__":
