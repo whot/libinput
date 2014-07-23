@@ -312,8 +312,8 @@ class UserStudyParser(object):
 				continue
 		return paths
 
-if __name__ == "__main__":
-	fpath = sys.argv[1];
+def main(argv):
+	fpath = argv[1];
 	parser = UserStudyParser(fpath)
 
 
@@ -344,3 +344,7 @@ if __name__ == "__main__":
 	print(":::::: Difference in distance to path taken per target:")
 	for p in parser.path_length_per_target():
 		pprint(p)
+
+
+if __name__ == "__main__":
+	main(sys.argv)
