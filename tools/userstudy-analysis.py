@@ -186,6 +186,9 @@ class UserStudyResultsFile(object):
 			btn_state = int(elem.get("state"))
 			if btn_state != 1:
 				continue
+			hit = int(elem.get("hit"))
+			if hit != 1:
+				continue
 
 			times[1] = int(elem.get("time"))
 			cur_set.data.append(times[1] - times[0])
