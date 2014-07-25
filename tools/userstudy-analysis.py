@@ -264,53 +264,52 @@ class UserStudyResultsFile(object):
 		cur_path = 0
 		cur_overshoot = 0
 
-		for elem in self.root.iter():
-			name = elem.tag
+		for set_elem in self.root.iter("set"):
+			cur_path_set = self._set_from_elem(set_elem);
+			path_sets.append(cur_path_set)
+			cur_overshoot_set = self._set_from_elem(set_elem);
+			overshoot_sets.append(cur_overshoot_set)
+			cur_distance = None
 
-			if name == "set":
-				cur_path_set = self._set_from_elem(elem);
-				path_sets.append(cur_path_set)
-				cur_overshoot_set = self._set_from_elem(elem);
-				overshoot_sets.append(cur_overshoot_set)
-				continue
+			for elem in set_elem.iter():
+				name = elem.tag
+				if name == "motion":
+					x = float(elem.get("x"))
+					y = float(elem.get("y"))
+					dx = float(elem.get("dx"))
+					dy = float(elem.get("dy"))
+					cur_path += self.vec_length(dx, dy);
 
-			if name == "motion":
-				x = float(elem.get("x"))
-				y = float(elem.get("y"))
-				dx = float(elem.get("dx"))
-				dy = float(elem.get("dy"))
-				cur_path += self.vec_length(dx, dy);
+					if vec == None:
+						vec, B = self.setup_vectors(target, (x, y))
+						initial_side = self.side(target, B, (x, y))
 
-				if vec == None:
+					if self.side(target, B, (x, y)) != initial_side:
+						d = self.distance(target, B, (x, y))
+						if (d > cur_overshoot):
+							cur_overshoot = d
+					continue
+
+				if name == "target":
+					if cur_distance:
+						cur_path_set.data.append(100.0 * cur_path / cur_distance)
+						cur_overshoot_set.data.append(100.0 * cur_overshoot / cur_distance)
+
+					target = (int(elem.get("xpos")), int(elem.get("ypos")))
+					x = float(elem.get("x"))
+					y = float(elem.get("y"))
+
+					cur_distance = self.vec_length(target[0] - x,
+								       target[1] - y)
+					cur_path = 0
+					cur_overshoot = 0
+
 					vec, B = self.setup_vectors(target, (x, y))
 					initial_side = self.side(target, B, (x, y))
+					continue
 
-				if self.side(target, B, (x, y)) != initial_side:
-					d = self.distance(target, B, (x, y))
-					if (d > cur_overshoot):
-						cur_overshoot = d
-				continue
-
-			if name == "target":
-				if cur_distance:
-					cur_path_set.data.append(100.0 * cur_path / cur_distance)
-					cur_overshoot_set.data.append(100.0 * cur_overshoot / cur_distance)
-
-				target = (int(elem.get("xpos")), int(elem.get("ypos")))
-				x = float(elem.get("x"))
-				y = float(elem.get("y"))
-
-				cur_distance = self.vec_length(target[0] - x, 
-							       target[1] - y)
-				cur_path = 0
-				cur_overshoot = 0
-
-				vec, B = self.setup_vectors(target, (x, y))
-				initial_side = self.side(target, B, (x, y))
-				continue
-
-		cur_path_set.data.append(100.0 * cur_path / cur_distance)
-		cur_overshoot_set.data.append(100.0 * cur_overshoot / cur_distance)
+			cur_path_set.data.append(100.0 * cur_path / cur_distance)
+			cur_overshoot_set.data.append(100.0 * cur_overshoot / cur_distance)
 
 		return (Results(path_sets), Results(overshoot_sets))
 
