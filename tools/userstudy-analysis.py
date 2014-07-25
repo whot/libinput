@@ -5,42 +5,106 @@ import sys
 import math
 from pprint import pprint
 import xml.etree.ElementTree
+import itertools
+
+from collections import OrderedDict
 
 def mean(data):
 	m = 1.0 * sum(data)/len(data)
 	stddev = math.sqrt(sum((x-m) ** 2 for x in data) / len(data))
 	return (m, stddev)
 
-class Set(object):
+class SetResults(object):
 	"""
-	Representation of a set. Matches another set for any properties
-	that are set, or if that property is None on one of those.
+	Representation of results for a single set set. Matches another set
+	for any properties that are set, or if that property is None on one
+	of those.
 	"""
-	def __init__(self, method=None, target_size=None):
+	def __init__(self, method, target_size, data=None):
 		self.method = method
 		self.target_size = target_size
+		if not data:
+			data = []
+		self.data = data
+
+		self._mean = None
+		self._stddev = None
+
+	@property
+	def mean(self):
+		if self._mean == None:
+			self._mean, self._stddev = mean(self.data)
+		return self._mean
+
+	@property
+	def stddev(self):
+		if self._mean == None:
+			self._mean, self._stddev = mean(self.data)
+		return self._stddev
+
+	@property
+	def nsamples(self):
+		return len(self.data)
+
+	def __ne__(self, other):
+		return not self == other
 
 	def __eq__(self, other):
+		if type(other) == type(None):
+			return True
+
 		matches = True
-		if self.method != None and other.method != None:
-			matches = (self.method == self.method)
-		if self.target_size != None and other.target_size != None:
-			matches = matches and (self.target_size == self.target_size)
+		if matches and other.method != None:
+			matches = (self.method == other.method)
+		if matches and other.target_size != None:
+			matches = matches and (self.target_size == other.target_size)
 		return matches
 
+	def __str__(self):
+		if not self.data:
+			return "method %d target size %d empty set" % (self.method, self.target_size)
+		return "method %d target size %d: mean %f stddev %f (samples: %d)" % (
+				self.method,
+				self.target_size,
+				self.mean,
+				self.stddev,
+				self.nsamples)
+
 class Results(object):
-	slots = ["nsamples", "mean", "stddev"]
-	def __init__(self, data, unit=""):
-		self.nsamples = len(data)
-		self.mean, self.stddev = mean(data)
-		self.unit = unit
+	"""
+	Merged results objects, consists of a number of SetResults.
+	"""
+	def __init__(self, sets):
+		self.sets = sets
+
+	def filter(self, set):
+		"""
+		Return a new results, filtered by the set given
+		"""
+		return Results([s for s in self.sets if s == set])
+
+	def mean(self, set=None):
+		data = [d for s in self.sets if s == set for d in s.data]
+		return mean(data)[0]
+
+	def stddev(self, set=None):
+		data = [d for s in self.sets if s == set for d in s.data]
+		return mean(data)[1]
+
+	def nsamples(self, set=None):
+		data = [s.nsamples for s in self.sets if s == set]
+		return sum(data)
+
+	def methods(self, set=None):
+		return [s.method for s in self.sets if s == set]
+
+	def target_sizes(self, set=None):
+		return [s.target_size for s in self.sets if s == set]
 
 	def __str__(self):
-		return "mean: %f%s stddev: %f%s (samples: %d)" % (self.mean,
-								  self.unit,
-								  self.stddev,
-								  self.unit,
-								  self.nsamples)
+		return "mean: %f stddev: %f (samples: %d)" % (self.mean(),
+							      self.stddev(),
+							      self.nsamples())
 
 class UserStudyResultsFile(object):
 	def __init__(self, path):
@@ -49,49 +113,57 @@ class UserStudyResultsFile(object):
 
 		self.click_times = self._button_click_times()
 		self.target_aquisition_times = self._target_aquisition_times()
+		self.target_misses = self._target_misses()
+		self.times_per_set = self._time_per_set()
+		self.extradistance, self.overshoot = self._path_length_per_target()
+
+		self.methods = list(OrderedDict.fromkeys([r.method for r in self.click_times.sets]))
+		self.target_sizes = list(OrderedDict.fromkeys([r.target_size for r in self.click_times.sets]))
+
+
+	def _set_from_elem(self, elem):
+		 return SetResults(target_size = int(elem.get("r")),
+				   method = int(elem.get("method")))
 
 	def _button_click_times(self):
 		"""
 		Searches for time between button press and release
-		events and returns a Data object with the raw times in
-		milliseconds
+		events.
 		"""
-		click_durations = []
 		times = [0, 0]
 		expected_state = 1
-		for button in self.root.iter("button"):
-			btn_state = int(button.get("state"))
+		cur_set = None
+		sets = []
 
-			# end of each set only records the press, not the
-			# release event
-			if (btn_state != expected_state):
-				expected_state = 1
+		for elem in self.root.iter():
+			name = elem.tag
+			if name == "set":
+				cur_set = self._set_from_elem(elem)
+				sets.append(cur_set)
 				continue
 
-			times[btn_state] = int(button.get("time"))
-			expected_state = abs(expected_state - 1)
+			if name == "button":
+				btn_state = int(elem.get("state"))
 
-			if btn_state == 0:
-				click_durations.append(times[0] - times[1])
+				# end of each set only records the press, not the
+				# release event
+				if (btn_state != expected_state):
+					expected_state = 1
+					continue
 
-		return click_durations
+				times[btn_state] = int(elem.get("time"))
+				expected_state = abs(expected_state - 1)
 
-	def _target_aquisition_times(self):
-		"""
-		Calculates the time between the target and the successful
-		click onto the target in milliseconds
-		"""
-		times_to_hit = []
-		times = self.target_aquisition_times_per_set()
-		for t in times:
-			times_to_hit += t["times_to_hit"]
+				if btn_state == 0:
+					cur_set.data.append(times[0] - times[1])
 
-		return times_to_hit
+		return Results(sets)
+
 
 	def get_set_id(self, elem):
 		return int(elem.get("method")) * 1000 + int(elem.get("id"))
 
-	def target_aquisition_times_per_set(self):
+	def _target_aquisition_times(self):
 		"""
 		Calculates the time between the target and the successful
 		click onto the target in milliseconds per set
@@ -102,11 +174,7 @@ class UserStudyResultsFile(object):
 		for elem in self.root.iter():
 			name = elem.tag
 			if name == "set":
-				cur_set = { "identifier" : "target_aquisition_times_per_set",
-					    "set_id" : self.get_set_id(elem),
-					    "object_radius" : int(elem.get("r")),
-					    }
-				cur_set["times_to_hit"] = []
+				cur_set = self._set_from_elem(elem)
 				sets.append(cur_set)
 				continue
 			elif name == "target":
@@ -120,41 +188,21 @@ class UserStudyResultsFile(object):
 				continue
 
 			times[1] = int(elem.get("time"))
-			cur_set["times_to_hit"].append(times[1] - times[0])
+			cur_set.data.append(times[1] - times[0])
 
-		for s in sets:
-			s["mean"] = mean(s["times_to_hit"])
-		return sorted(sets, key=lambda data : data["object_radius"])
+		return Results(sets)
 
-	def target_misses(self):
-		data = {
-			"identifier" : "target_misses_per_set",
-			"misses" : 0
-			}
-
-		misses = self.target_misses_per_set()
-		for m in misses:
-			data["misses"] += m["misses"]
-		return data
-
-	def target_misses_per_set(self):
+	def _target_misses(self):
 		"""
-		Return: a list of dicts {
-			"radius" : int # size of target
-			"misses" : int # number of misses
-		}
+		Counts the number of clicks not on a target.
 		"""
-		sets = {}
-
+		sets = []
 		for elem in self.root.iter():
 			name = elem.tag
 			if name == "set":
-				set_id = int(elem.get("id"))
-				sets[set_id] = {
-						"identifier" : "target_misses_per_set",
-						"radius" : int(elem.get("r")),
-						"misses" : 0
-						}
+				cur_set = self._set_from_elem(elem);
+				cur_set.data = [0]
+				sets.append(cur_set)
 				continue
 			elif name != "button":
 				continue
@@ -163,23 +211,19 @@ class UserStudyResultsFile(object):
 			if state == 1:
 				hit = int(elem.get("hit"))
 				if hit == 0:
-					sets[set_id]["misses"] += 1
-		return sorted(sets.values(), key=lambda data : data["radius"])
+					cur_set.data[0] += 1
+		return Results(sets)
 
-	def time_per_set(self):
+	def _time_per_set(self):
 		sets = []
 		times = [0, 0]
 		cur_set = None
 		for elem in self.root.iter():
 			name = elem.tag
 			if name == "set":
-				cur_set = { "identifier" : "time_per_set",
-					    "set_id" : self.get_set_id(elem),
-					    "object_radius" : int(elem.get("r")),
-					    }
-
-				times[0] = int(elem.get("time"))
+				cur_set = self._set_from_elem(elem)
 				sets.append(cur_set)
+				times[0] = int(elem.get("time"))
 				continue
 			elif name != "button":
 				continue
@@ -187,9 +231,9 @@ class UserStudyResultsFile(object):
 			state = int(elem.get("state"))
 			if state == 1:
 				times[1] = int(elem.get("time"))
-				cur_set["time"] = times[1] - times[0]
+				cur_set.data.append(times[1] - times[0])
 
-		return sets
+		return Results(sets)
 
 	def setup_vectors(self, target, P):
 		vec = (target[0] - P[0], target[1] - P[1]);
@@ -197,7 +241,10 @@ class UserStudyResultsFile(object):
 		B = (target[0] + vec_p[0], target[1] + vec_p[1])
 		return vec, B
 
-	def path_length_per_target(self):
+	def vec_length(self, x, y):
+		return math.sqrt(x * x + y * y)
+
+	def _path_length_per_target(self):
 		paths = []
 		x, y = None, None
 
@@ -208,21 +255,34 @@ class UserStudyResultsFile(object):
 		initial_side = None
 		set_id = -1
 
+		# in % of the original path, the path taken
+		path_sets = []
+		cur_path_set = None
+
+		# in % of the original path
+		overshoot_sets = []
+		cur_overshoot_set = None
+
+		cur_distance = None
+		cur_path = 0
+		cur_overshoot = 0
+
 		for elem in self.root.iter():
 			name = elem.tag
 
-			# first delta is unaccounted for
-			# FIXME: store current pointer pos in <target>
+			if name == "set":
+				cur_path_set = self._set_from_elem(elem);
+				path_sets.append(cur_path_set)
+				cur_overshoot_set = self._set_from_elem(elem);
+				overshoot_sets.append(cur_overshoot_set)
+				continue
+
 			if name == "motion":
 				x = float(elem.get("x"))
 				y = float(elem.get("y"))
 				dx = float(elem.get("dx"))
 				dy = float(elem.get("dy"))
-				curr_path["delta_sum"] += math.sqrt(dx * dx + dy * dy)
-				if not curr_path.has_key("distance"):
-					xdist = abs(curr_path["position"][0] - x)
-					ydist = abs(curr_path["position"][1] - y)
-					curr_path["distance"] = math.sqrt(xdist * xdist + ydist + ydist)
+				cur_path += self.vec_length(dx, dy);
 
 				if vec == None:
 					vec, B = self.setup_vectors(target, (x, y))
@@ -230,47 +290,32 @@ class UserStudyResultsFile(object):
 
 				if self.side(target, B, (x, y)) != initial_side:
 					d = self.distance(target, B, (x, y))
-					if (d > curr_path["overshoot"]):
-						curr_path["overshoot"] = d
+					if (d > cur_overshoot):
+						cur_overshoot = d
 				continue
 
-			if name == "set":
-				set_id = self.get_set_id(elem)
-
 			if name == "target":
-				curr_path = {"identifier" : "path_length_per_target",
-					    "object_radius" : int(elem.get("r")),
-					    "position" : (int(elem.get("xpos")), int(elem.get("ypos"))),
-					    "delta_sum" : 0,
-					    "overshoot" : 0,
-					    "set_id" : set_id,
-					   }
+				if cur_distance:
+					cur_path_set.data.append(100.0 * cur_path / cur_distance)
+					cur_overshoot_set.data.append(100.0 * cur_overshoot / cur_distance)
 
 				target = (int(elem.get("xpos")), int(elem.get("ypos")))
 				x = float(elem.get("x"))
 				y = float(elem.get("y"))
 
-				xdist = abs(curr_path["position"][0] - x)
-				ydist = abs(curr_path["position"][1] - y)
-				curr_path["distance"] = math.sqrt(xdist * xdist + ydist + ydist)
+				cur_distance = self.vec_length(target[0] - x, 
+							       target[1] - y)
+				cur_path = 0
+				cur_overshoot = 0
 
 				vec, B = self.setup_vectors(target, (x, y))
 				initial_side = self.side(target, B, (x, y))
-
-				paths.append(curr_path)
 				continue
 
-		# delta_sum is all deltas together
-		# distance is the direct distance to the target
-		# path_diff: is distance/delta_sum in percent overshot, i.e 100 == perfect line to target
-		for p in paths:
-			p["path_diff"] = p["delta_sum"]/p["distance"] * 100# in percent
-			os = p["overshoot"]
-			if (os != 0):
-				os = p["overshoot"]/p["distance"] * 100
+		cur_path_set.data.append(100.0 * cur_path / cur_distance)
+		cur_overshoot_set.data.append(100.0 * cur_overshoot / cur_distance)
 
-			p["overshoot_percent"] =  os # in percent
-		return paths
+		return (Results(path_sets), Results(overshoot_sets))
 
 	def path_lengths(self):
 		data = { "identifier" : "path_lengths" }
@@ -298,47 +343,6 @@ class UserStudyResultsFile(object):
 		v = (B[0] - A[0])*(B[1] - P[1]) - (A[0] - P[0])*(B[1] - A[1])
 		return v/math.sqrt(math.pow(B[0] - A[0], 2) + math.pow(B[1] - A[1], 2))
 
-	def measure_overshoot(self):
-		paths = []
-		x, y = None, None
-		vec = None
-		target = None # target center
-		B = None # some other point on the target line
-		initial_side = None
-
-		for elem in self.root.iter():
-			name = elem.tag
-
-			if name == "motion":
-				x = float(elem.get("x"))
-				y = float(elem.get("y"))
-				if vec == None:
-					vec, B = self.setup_vectors(target, (x, y))
-					initial_side = self.side(target, B, (x, y))
-
-				if self.side(target, B, (x, y)) != initial_side:
-					d = self.distance(target, B, (x, y))
-					# FIXME: reduce d by object_radius, we're currently
-					# measuring from the center
-					if (d > curr_path["overshoot"]):
-						curr_path["overshoot"] = d
-				continue
-			if name == "target":
-				curr_path = {"identifier" : "overshoot_per_target",
-					    "object_radius" : int(elem.get("r")),
-					    "overshoot" : 0
-					   }
-				target = (int(elem.get("xpos")), int(elem.get("ypos")))
-				x = float(elem.get("x"));
-				y = float(elem.get("y"));
-
-				vec, B = self.setup_vectors(target, (x, y))
-				initial_side = self.side(target, B, (x, y))
-
-				paths.append(curr_path)
-				continue
-		return paths
-
 class UserStudyResults(object):
 	def __init__(self, path):
 		self.results = [r for r in self._parse_files(path)]
@@ -352,46 +356,75 @@ class UserStudyResults(object):
 		for file in self._files(path):
 			yield UserStudyResultsFile(file)
 
+	@property
+	def target_sizes(self):
+		return list(OrderedDict.fromkeys([t for r in self.results for t in r.target_sizes]))
+
+	@property
+	def methods(self):
+		return list(OrderedDict.fromkeys([m for r in self.results for m in r.methods]))
+
 	def button_click_times(self):
-		click_times = [t for r in self.results for t in r.click_times]
-		return Results(click_times, "ms")
+		return Results([s for r in self.results for s in r.click_times.sets])
 
 	def target_aquisition_times(self):
-		times = [t for r in self.results for t in r.target_aquisition_times]
-		return Results(times, "ms")
+		return Results([s for r in self.results for s in r.target_aquisition_times.sets])
+
+	def target_misses(self):
+		return Results([s for r in self.results for s in r.target_misses.sets])
+
+	def set_completion_times(self):
+		return Results([s for r in self.results for s in r.times_per_set.sets])
+
+	def extra_distances(self):
+		return Results([s for r in self.results for s in r.extradistance.sets])
+
+	def overshoot(self):
+		return Results([s for r in self.results for s in r.overshoot.sets])
 
 def main(argv):
 	fpath = argv[1];
 
 	results = UserStudyResults(fpath)
 
-	print "Button click time: %s" % results.button_click_times()
-	print "Target time-to-aquisition times: %s" % results.target_aquisition_times()
+	print "Target sizes: %s" % results.target_sizes
+	print "Methods used: %s" % results.methods
+	sets = [SetResults(m, s) for (m, s) in itertools.product(results.methods, results.target_sizes)]
 
-#	target_aquisition_times = parser.target_aquisition_times();
-#	target_per_set_times = parser.target_aquisition_times_per_set();
-#	target_misses = parser.target_misses()
-#
-#	print("::::::: Target misses:")
-#	pprint(target_misses)
-#	print("::::::: Target misses per set")
-#	for m in parser.target_misses_per_set():
-#		pprint(m)
-#
-#	print("Times per set:")
-#	for t in parser.time_per_set():
-#		pprint(t)
-#	print(":::::: Target aquisition times: ")
-#	pprint(target_aquisition_times)
-#	print(":::::: Target aquisition times per set")
-#	for data in target_per_set_times:
-#		pprint(data)
-#
-#	print(":::::: Difference in distance to path taken:")
-#	pprint(parser.path_lengths())
-#	print(":::::: Difference in distance to path taken per target:")
-#	for p in parser.path_length_per_target():
-#		pprint(p)
+	r = results.button_click_times()
+
+	print "Button click time: %s" % r
+
+	r = results.target_aquisition_times()
+	print "Target time-to-aquisition times: %s" % r
+
+	for s in sets:
+		matching = r.filter(s)
+		print "\tmethod: %d target size: %d: %s" % (s.method, s.target_size, matching)
+
+	r = results.target_misses()
+	print "Target mis-clicks: %s" % r
+	for s in sets:
+		matching = r.filter(s)
+		print "\tmethod: %d target size: %d: %s" % (s.method, s.target_size, matching)
+
+	r = results.set_completion_times()
+	print "Set completion times: %s" % r
+	for s in sets:
+		matching = r.filter(s)
+		print "\tmethod: %d target_size: %d: %s" % (s.method, s.target_size, matching)
+
+	r = results.extra_distances()
+	print "Extra distances in %% of minimum distance: %s" %r
+	for s in sets:
+		matching = r.filter(s)
+		print "\tmethod: %d target_size: %d: %s" % (s.method, s.target_size, matching)
+
+	r = results.overshoot()
+	print "Target overshoot in %% of minimum distance: %s" %r
+	for s in sets:
+		matching = r.filter(s)
+		print "\tmethod: %d target_size: %d: %s" % (s.method, s.target_size, matching)
 
 
 if __name__ == "__main__":
