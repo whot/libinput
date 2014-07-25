@@ -221,20 +221,14 @@ class UserStudyResultsFile(object):
 		sets = []
 		times = [0, 0]
 		cur_set = None
-		for elem in self.root.iter():
-			name = elem.tag
-			if name == "set":
-				cur_set = self._set_from_elem(elem)
-				sets.append(cur_set)
-				times[0] = int(elem.get("time"))
-				continue
-			elif name != "button":
-				continue
+		for elem in self.root.iter("set"):
+			cur_set = self._set_from_elem(elem)
+			sets.append(cur_set)
+			times[0] = int(elem.get("time"))
 
-			state = int(elem.get("state"))
-			if state == 1:
-				times[1] = int(elem.get("time"))
-				cur_set.data.append(times[1] - times[0])
+			button = elem.findall("button[last()]")[0]
+			times[1] = int(button.get("time"))
+			cur_set.data.append(times[1] - times[0])
 
 		return Results(sets)
 
