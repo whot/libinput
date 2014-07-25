@@ -11,6 +11,23 @@ def mean(data):
 	stddev = math.sqrt(sum((x-m) ** 2 for x in data) / len(data))
 	return (m, stddev)
 
+class Set(object):
+	"""
+	Representation of a set. Matches another set for any properties
+	that are set, or if that property is None on one of those.
+	"""
+	def __init__(self, method=None, target_size=None):
+		self.method = method
+		self.target_size = target_size
+
+	def __eq__(self, other):
+		matches = True
+		if self.method != None and other.method != None:
+			matches = (self.method == self.method)
+		if self.target_size != None and other.target_size != None:
+			matches = matches and (self.target_size == self.target_size)
+		return matches
+
 class Results(object):
 	slots = ["nsamples", "mean", "stddev"]
 	def __init__(self, data, unit=""):
