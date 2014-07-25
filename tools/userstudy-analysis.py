@@ -382,6 +382,19 @@ class UserStudyResults(object):
 	def overshoot(self):
 		return Results([s for r in self.results for s in r.overshoot.sets])
 
+def print_results(msg, r, sets, target_sizes):
+	print "%s: %s" % (msg, r)
+	for s in sets:
+		matching = r.filter(s)
+		print "\tmethod: %d target size: %d: %s" % (s.method, s.target_size, matching)
+
+	print "\tComparison: "
+	for t in target_sizes:
+		r1 = r.filter(SetResults(0, t))
+		r2 = r.filter(SetResults(1, t))
+		print "\t\ttarget size %d: method 0 vs 1: %f" % (t, r1.mean() - r2.mean())
+
+
 def main(argv):
 	fpath = argv[1];
 
@@ -396,35 +409,19 @@ def main(argv):
 	print "Button click time: %s" % r
 
 	r = results.target_aquisition_times()
-	print "Target time-to-aquisition times: %s" % r
-
-	for s in sets:
-		matching = r.filter(s)
-		print "\tmethod: %d target size: %d: %s" % (s.method, s.target_size, matching)
+	print_results("Target time-to-aquisition times (in ms)", r, sets, results.target_sizes)
 
 	r = results.target_misses()
-	print "Target mis-clicks: %s" % r
-	for s in sets:
-		matching = r.filter(s)
-		print "\tmethod: %d target size: %d: %s" % (s.method, s.target_size, matching)
+	print_results("Target mis-clicks (in clicks)", r, sets, results.target_sizes)
 
 	r = results.set_completion_times()
-	print "Set completion times: %s" % r
-	for s in sets:
-		matching = r.filter(s)
-		print "\tmethod: %d target_size: %d: %s" % (s.method, s.target_size, matching)
+	print_results("Set completion times (in ms)", r, sets, results.target_sizes)
 
 	r = results.extra_distances()
-	print "Extra distances in %% of minimum distance: %s" %r
-	for s in sets:
-		matching = r.filter(s)
-		print "\tmethod: %d target_size: %d: %s" % (s.method, s.target_size, matching)
+	print_results("Total distances (in %% of minimum path)", r, sets, results.target_sizes)
 
 	r = results.overshoot()
-	print "Target overshoot in %% of minimum distance: %s" %r
-	for s in sets:
-		matching = r.filter(s)
-		print "\tmethod: %d target_size: %d: %s" % (s.method, s.target_size, matching)
+	print_results("Target overshoot (in %% of minimum path)", r, sets, results.target_sizes)
 
 
 if __name__ == "__main__":
