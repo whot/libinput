@@ -14,6 +14,15 @@ def mean(data):
 	stddev = math.sqrt(sum((x-m) ** 2 for x in data) / len(data))
 	return (m, stddev)
 
+def median(data):
+	data = sorted(data)
+
+	midpoint = data[len(data)/2]
+
+	if len(data) % 2 == 0:
+		midpoint = (midpoint + data[len(data)/2 + 1])/2
+	return midpoint
+
 class SetResults(object):
 	"""
 	Representation of results for a single set set. Matches another set
@@ -29,6 +38,12 @@ class SetResults(object):
 
 		self._mean = None
 		self._stddev = None
+		self._median = None
+
+	@property
+	def median(self):
+		self._median = median(self.data)
+		return self._median
 
 	@property
 	def mean(self):
@@ -63,9 +78,10 @@ class SetResults(object):
 	def __str__(self):
 		if not self.data:
 			return "method %d target size %d empty set" % (self.method, self.target_size)
-		return "method %d target size %d: mean %f stddev %f (samples: %d)" % (
+		return "method %d target size %d: median %f mean %f stddev %f (samples: %d)" % (
 				self.method,
 				self.target_size,
+				self.median,
 				self.mean,
 				self.stddev,
 				self.nsamples)
@@ -82,6 +98,10 @@ class Results(object):
 		Return a new results, filtered by the set given
 		"""
 		return Results([s for s in self.sets if s == set])
+
+	def median(self, set=None):
+		data = [d for s in self.sets if s == set for d in s.data]
+		return median(data)
 
 	def mean(self, set=None):
 		data = [d for s in self.sets if s == set for d in s.data]
@@ -102,9 +122,10 @@ class Results(object):
 		return [s.target_size for s in self.sets if s == set]
 
 	def __str__(self):
-		return "mean: %f stddev: %f (samples: %d)" % (self.mean(),
-							      self.stddev(),
-							      self.nsamples())
+		return "median: %f mean: %f stddev: %f (samples: %d)" % (self.mean(),
+									 self.median(),
+									 self.stddev(),
+									 self.nsamples())
 
 class UserStudyResultsFile(object):
 	def __init__(self, path):
