@@ -10,11 +10,17 @@ import itertools
 from collections import OrderedDict
 
 def mean(data):
+	if not data:
+		return (0, 0)
+
 	m = 1.0 * sum(data)/len(data)
 	stddev = math.sqrt(sum((x-m) ** 2 for x in data) / len(data))
 	return (m, stddev)
 
 def median(data):
+	if not data:
+		return 0
+
 	data = sorted(data)
 
 	midpoint = data[len(data)/2]
@@ -363,6 +369,8 @@ class UserStudyResultsFile(object):
 class UserStudyResults(object):
 	def __init__(self, path):
 		self.results = [r for r in self._parse_files(path)]
+		if not self.results:
+			raise Exception("No files found")
 
 	def _files(self, path):
 		for root, dirs, files in os.walk(path):
@@ -415,7 +423,11 @@ def print_results(msg, r, sets, target_sizes):
 def main(argv):
 	fpath = argv[1];
 
-	results = UserStudyResults(fpath)
+	try:
+		results = UserStudyResults(fpath)
+	except:
+		print "Error loading results files"
+		return
 
 	print "Target sizes: %s" % results.target_sizes
 	print "Methods used: %s" % results.methods
