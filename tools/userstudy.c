@@ -57,8 +57,7 @@
 #define NUM_STUDY_TARGETS 15
 #define NUM_SETS 6 /* multiple of the allowed radii */
 
-#define EMAIL "libinputdatacollection@gmail.com"
-#define EMAIL_SUBJECT "STUDY d3b07384"
+#define URL "http://libinput-whot.rhcloud.com/"
 
 enum study_state {
 	STATE_WELCOME,
@@ -491,8 +490,8 @@ study_show_welcome_message(struct window *w)
 		 "\n"
 		 "The data collected is saved in a plain text file.\n"
 		 "<b>This tool does not send any data!</b> Instead, we ask you\n"
-		 "to send the file to the email address: \n"
-		 "\t<b>%s</b>.\n"
+		 "to upload the results to the URL: \n"
+		 "\t<a href=\"%s\">%s</a>\n"
 		 "\n"
 		 "You can abort any time by hitting Esc.\n"
 		 "\n"
@@ -506,7 +505,7 @@ study_show_welcome_message(struct window *w)
 						    GTK_MESSAGE_OTHER,
 						    GTK_BUTTONS_OK_CANCEL,
 						    message,
-						    EMAIL);
+						    URL, URL);
 	response = gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 
@@ -1317,12 +1316,8 @@ study_show_done(struct window *w)
 	message = "Thank you for completing the study.\n"
 		  "\n"
 		  "Click OK to save the file with the results.\n"
-		  "Please send them unmodified to\n\n"
-		  "<b><tt>%s</tt></b>\n\n"
-		  "with a subject line of <b><tt>%s</tt></b>\n"
-		  "\n"
-		  "Note that emails without that subject line will be\n"
-		  "deleted automatically\n"
+		  "Please upload that file unmodified to\n\n"
+		  "<a href=\"%s\">%s</a>\n\n"
 		  "\n"
 		  "Thank you again for participating.\n";
 
@@ -1334,8 +1329,7 @@ study_show_done(struct window *w)
 						    GTK_MESSAGE_OTHER,
 						    GTK_BUTTONS_CLOSE,
 						    message,
-						    EMAIL,
-						    EMAIL_SUBJECT);
+						    URL, URL);
 
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
@@ -1755,8 +1749,8 @@ study_start_recording(struct window *w)
 
 	dprintf(s->fd, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	dprintf(s->fd,
-		"<!-- please email this file to %s with the subject line '%s' -->\n",
-		EMAIL, EMAIL_SUBJECT);
+		"<!-- please upload this file to %s -->\n",
+		URL);
 	dprintf(s->fd, "<results>\n");
 	dprintf(s->fd, "<system>\n");
 
@@ -2062,9 +2056,7 @@ study_handle_event_button_release(struct libinput_event *ev,
 		printf("Your results are in %s/%s\n",
 		       s->cwd,
 		       s->filename);
-		printf("Please send them to %s\n"
-		       "using a subject of \"%s4\"\n",
-		       EMAIL, EMAIL_SUBJECT);
+		printf("Please upload the file at %s\n", URL);
 		break;
 	default:
 		return;
