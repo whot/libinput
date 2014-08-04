@@ -798,6 +798,210 @@ study_show_intermission(struct window *w)
 };
 
 static int
+study_show_questionnaire2(struct window *w)
+{
+	struct study *s = &w->base;
+
+	GtkWidget *dialog,
+		  *content_area,
+		  *box,
+		  *scroll,
+		  *grid,
+		  *label,
+		  *age,
+		  *experience,
+		  *hours,
+		  *gender_m, *gender_f, *gender_o, *gender_n,
+		  *lhanded, *rhanded,
+		  *rb_mouse, *rb_ball, *rb_touchpad, *rb_trackpoint, *rb_other ;
+
+	GtkWidget *radiobox,
+		  *radiobox2,
+		  *radiobox3;
+
+	int i;
+	const char *questions[] = {
+		"Your age",
+		"Gender",
+		"Are you typically ",
+		"Number of years experience with mouse-like input devices",
+		"Number of hours per week using mouse-like input devices",
+		"What category best describes your device",
+	};
+	GtkWidget *labels[ARRAY_LENGTH(questions)];
+	gint response;
+
+	const char *gender, *handed, *device;
+
+	const char message[] = "<b>Thank you for completing the study.</b>\n"
+			      "\n"
+			      "As a last step, please complete the questionnaire below.\n"
+			      "There are two pages of questions: a set of basic\n"
+			      "questions about you and your experience, and a set of\n"
+			      "questions about your experience in this study.\n";
+
+	gdk_window_set_cursor(gtk_widget_get_window(w->win),
+			      NULL);
+
+	dialog = gtk_dialog_new_with_buttons(" ",
+					     GTK_WINDOW(w->win),
+					     GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+					     "_Cancel",
+					     GTK_RESPONSE_CLOSE,
+					     "_OK",
+					     GTK_RESPONSE_OK,
+					     NULL);
+
+	content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+	box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
+	gtk_container_add(GTK_CONTAINER(content_area), box);
+
+	label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label), message);
+	scroll = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll),
+						   500);
+	gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(scroll),
+						   800);
+
+	grid = gtk_grid_new();
+
+	gtk_box_pack_start(GTK_BOX(box), label, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(box), scroll, true, true, 20);
+	gtk_container_add(GTK_CONTAINER(scroll), grid);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 40);
+
+	for (i = 0; i < ARRAY_LENGTH(labels); i++) {
+		labels[i] = gtk_label_new(questions[i]);
+		gtk_label_set_justify(GTK_LABEL(labels[i]), GTK_JUSTIFY_LEFT);
+		gtk_label_set_width_chars(GTK_LABEL(labels[i]), 50);
+		gtk_label_set_max_width_chars(GTK_LABEL(labels[i]), 50);
+		gtk_widget_set_hexpand(labels[i], true);
+		gtk_widget_set_margin_left(labels[i], 20);
+		gtk_grid_attach(GTK_GRID(grid), labels[i],
+				0, i, 1, 1);
+	}
+
+	/* age */
+	age = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 99, 1);
+	gtk_scale_set_digits(GTK_SCALE(age), 0);
+	gtk_range_set_value(GTK_RANGE(age), 0);
+	/* taking out the next line doesn't snap to values anymore */
+	//gtk_scale_set_draw_value(GTK_SCALE(age), 0);
+	gtk_grid_attach(GTK_GRID(grid), age, 1, 0, 1, 1);
+	gtk_widget_set_margin_right(age, 20);
+
+	/* gender */
+	radiobox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+	gtk_grid_attach(GTK_GRID(grid), radiobox, 1, 1, 1, 1);
+
+	gender_m = gtk_radio_button_new_with_label_from_widget(NULL, "male");
+	gender_f = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(gender_m),
+							       "female");
+	gender_o = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(gender_m),
+							       "other");
+	gender_n = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(gender_m),
+							       "no answer");
+	gtk_box_pack_start(GTK_BOX(radiobox), gender_m, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(radiobox), gender_f, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(radiobox), gender_o, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(radiobox), gender_n, false, false, 0);
+
+	radiobox2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+	gtk_grid_attach(GTK_GRID(grid), radiobox2, 1, 2, 1, 1);
+
+	/* left/right handed */
+	lhanded = gtk_radio_button_new_with_label_from_widget(NULL, "left-handed");
+	rhanded = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(lhanded), "right-handed");
+
+	gtk_box_pack_start(GTK_BOX(radiobox2), lhanded, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(radiobox2), rhanded, false, false, 0);
+
+	/* experience */
+	experience = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 99, 1);
+	gtk_scale_set_digits(GTK_SCALE(experience), 0);
+	gtk_range_set_value(GTK_RANGE(experience), 0);
+	/* taking out the next line doesn't snap to values anymore */
+	//gtk_scale_set_draw_value(GTK_SCALE(experience), 0);
+	gtk_grid_attach(GTK_GRID(grid), experience, 1, 3, 1, 1);
+	gtk_widget_set_margin_right(experience, 20);
+
+	/* hours */
+	hours = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 168, 1);
+	gtk_scale_set_digits(GTK_SCALE(hours), 0);
+	gtk_range_set_value(GTK_RANGE(hours), 0);
+	/* taking out the next line doesn't snap to values anymore */
+	//gtk_scale_set_draw_value(GTK_SCALE(hours), 0);
+	gtk_grid_attach(GTK_GRID(grid), hours, 1, 4, 1, 1);
+	gtk_widget_set_margin_right(hours, 20);
+
+	/* device */
+	radiobox3 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+	gtk_grid_attach(GTK_GRID(grid), radiobox3, 1, 5, 1, 1);
+
+	rb_mouse = gtk_radio_button_new_with_label_from_widget(NULL, "mouse");
+	rb_ball = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rb_mouse),
+							       "trackball");
+	rb_touchpad = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rb_mouse),
+							       "touchpad");
+	rb_trackpoint = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rb_mouse),
+							       "trackpoint");
+	rb_other = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rb_mouse),
+							       "other");
+	gtk_box_pack_start(GTK_BOX(radiobox3), rb_mouse, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(radiobox3), rb_ball, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(radiobox3), rb_touchpad, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(radiobox3), rb_trackpoint, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(radiobox3), rb_other, false, false, 0);
+
+	gtk_widget_show_all(dialog);
+	response = gtk_dialog_run(GTK_DIALOG(dialog));
+
+	if (response == GTK_RESPONSE_CLOSE) {
+		gtk_main_quit();
+		gtk_widget_destroy(dialog);
+		return -1;
+	}
+
+	gender = "none";
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gender_m)))
+		gender = "male";
+	else if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gender_f)))
+		gender = "female";
+	else if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gender_o)))
+		gender = "other";
+
+	handed = "right";
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lhanded)))
+		handed = "left";
+
+	device = "other";
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rb_mouse)))
+		device = "mouse";
+	else if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rb_ball)))
+		device = "trackball";
+	else if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rb_touchpad)))
+		device = "touchpad";
+	else if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rb_trackpoint)))
+		device = "trackpoint";
+
+	dprintf(s->fd,
+		"<userdata age=\"%d\" gender=\"%s\" handed=\"%s\" experience=\"%d\" hours_per_week=\"%d\" />\n",
+		(int)gtk_range_get_value(GTK_RANGE(age)),
+		gender,
+		handed,
+		(int)gtk_range_get_value(GTK_RANGE(experience)),
+		(int)gtk_range_get_value(GTK_RANGE(hours))
+	       );
+	dprintf(s->fd, "<device type=\"%s\"/>\n", device);
+
+	gtk_widget_destroy(dialog);
+
+	return 0;
+}
+
+static int
 study_show_questionnaire(struct window *w)
 {
 	struct study *s = &w->base;
@@ -841,15 +1045,21 @@ study_show_questionnaire(struct window *w)
 		  *scales[ARRAY_LENGTH(questions)];
 	gint response;
 
-	const char message[] = "<b>Thank you for completing the study.</b>\n"
+	const char message[] = "<b>Thank you.</b>\n"
 			      "\n"
-			      "As a last step, please complete the questionnaire below.\n"
+			      "Please complete the questionnaire below.\n"
 			      "Each of the <b>%ld questions</b> provides answers on a 5-point Likert scale,\n"
 			      "with the answer being from Strong Disagree (-2), Disagree (-1),\n"
 			      "Neither Agree Nor Disagree (0), Agree (1) and Strongly Agree (2)\n";
 	char m[sizeof(message) + 5];
 
 	snprintf(m, sizeof(m), message, ARRAY_LENGTH(questions));
+
+	dprintf(s->fd, "<questionnaire>\n");
+	if (study_show_questionnaire2(w) != 0) {
+		gtk_main_quit();
+		return -1;
+	}
 
 	gdk_window_set_cursor(gtk_widget_get_window(w->win),
 			      NULL);
@@ -916,7 +1126,6 @@ study_show_questionnaire(struct window *w)
 		return -1;
 	}
 
-	dprintf(s->fd, "<questionnaire>\n");
 	for (i = 0; i < ARRAY_LENGTH(questions); i++) {
 		dprintf(s->fd,
 			"<question response=\"%d\">%s</question>\n",
@@ -924,8 +1133,10 @@ study_show_questionnaire(struct window *w)
 			questions[i]);
 
 	}
-	dprintf(s->fd, "</questionnaire>\n");
+
 	gtk_widget_destroy(dialog);
+
+	dprintf(s->fd, "</questionnaire>\n");
 	return 0;
 }
 
