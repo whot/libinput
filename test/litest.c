@@ -159,6 +159,9 @@ litest_add_tcase(struct suite *suite, void *func,
 {
 	struct litest_test_device **dev = devices;
 
+	assert(required >= LITEST_DISABLE_DEVICE);
+	assert(excluded >= LITEST_DISABLE_DEVICE);
+
 	if (required == LITEST_DISABLE_DEVICE &&
 	    excluded == LITEST_DISABLE_DEVICE) {
 		litest_add_tcase_no_device(suite, func);
@@ -222,6 +225,8 @@ litest_add_for_device(const char *name,
 {
 	struct suite *s;
 	struct litest_test_device **dev = devices;
+
+	assert(type < LITEST_NO_DEVICE);
 
 	s = get_suite(name);
 	while (*dev) {
