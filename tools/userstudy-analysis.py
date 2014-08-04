@@ -26,7 +26,7 @@ def median(data):
 	midpoint = data[len(data)/2]
 
 	if len(data) % 2 == 0:
-		midpoint = (midpoint + data[len(data)/2 + 1])/2
+		midpoint = (midpoint + data[len(data)/2 - 1])/2
 	return midpoint
 
 class SetResults(object):
