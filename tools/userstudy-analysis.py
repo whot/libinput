@@ -408,16 +408,19 @@ class UserStudyResults(object):
 		return Results([s for r in self.results for s in r.overshoot.sets])
 
 def print_results(msg, r, sets, target_sizes):
+	methods = []
 	print "%s: %s" % (msg, r)
 	for s in sets:
 		matching = r.filter(s)
 		print "\tmethod: %d target size: %d: %s" % (s.method, s.target_size, matching)
+		if not s.method in methods:
+			methods.append(s.method)
 
 	print "\tComparison: "
 	for t in target_sizes:
-		r1 = r.filter(SetResults(0, t))
-		r2 = r.filter(SetResults(1, t))
-		print "\t\ttarget size %d: method 0 vs 1: %f" % (t, r1.mean() - r2.mean())
+		r1 = r.filter(SetResults(methods[0], t))
+		r2 = r.filter(SetResults(methods[1], t))
+		print "\t\ttarget size %d: method first vs second: %f" % (t, r1.mean() - r2.mean())
 
 
 def main(argv):
