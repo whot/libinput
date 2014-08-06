@@ -82,4 +82,12 @@ pointer_accel_profile_smooth_stretched(struct motion_filter *filter,
 				       void *data,
 				       double velocity,
 				       uint64_t time);
+/*
+ * Profile based on atan() curves
+ */
+double
+pointer_accel_profile_atan(struct motion_filter *filter,
+			   void *data,
+			   double velocity,
+			   uint64_t time);
 #endif /* FILTER_H */

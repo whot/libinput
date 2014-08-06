@@ -696,6 +696,9 @@ tp_accel_set_method(struct tp_dispatch *tp,
 		case LIBINPUT_ACCEL_METHOD_SMOOTH_STRETCHED:
 			accel = create_pointer_accelator_filter(pointer_accel_profile_smooth_stretched);
 			break;
+		case LIBINPUT_ACCEL_METHOD_ATAN:
+			accel = create_pointer_accelator_filter(pointer_accel_profile_atan);
+			break;
 		default:
 			return LIBINPUT_CONFIG_STATUS_INVALID;
 	}

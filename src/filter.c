@@ -30,6 +30,7 @@
 #include <math.h>
 
 #include "filter-private.h"
+#include "libinput-util.h"
 
 void
 filter_dispatch(struct motion_filter *filter,
@@ -477,4 +478,45 @@ pointer_accel_profile_smooth_simple(struct motion_filter *filter,
 	factor = (factor - 1.0) / (accel - 1.0);
 	smooth_accel_coefficient = calc_penumbral_gradient(factor);
 	return 1.0 + (smooth_accel_coefficient * (accel - 1.0));
+
+}
+
+double
+pointer_accel_profile_atan(struct motion_filter *filter,
+			   void *data,
+			   double speed_in,
+			   uint64_t time)
+{
+	double s1, s2;
+	double modifier = 0;
+
+	/* very much tested by trial and error.
+	 * A double curve based on atan(), with a steeper bit for an accel
+	 * factor 0-1 and a flatter cuve for accel factors above 1.
+	 *
+	 * visualize in gnuplot with:
+	 * set xrange[0:2]
+	 * set yrange[0:2.5]
+	 * set grid ytics
+	 * f(x) = atan(x * 15) * 0.72
+	 * g(x) = 1.1 + atan((x - 0.2) * 4) * 1.5
+	 * max(x, y) = x > y ? x : y
+	 * h(x) = max(f(x), g(x))
+	 * plot h(x)
+	 *
+	 * The peculiar thing about this set of values is that the area
+	 * where acceleration is eactly 1 is essentially nil, we always slow
+	 * down or speed up.
+	 *
+	 * This is a well-defined curve though and in theory at least we can
+	 * move this curve around, stretch it, compress it, etc. without
+	 * having to change the formula itself. And changing the formula
+	 * should be fluent instead of discreet steps.
+	 *
+	 *
+	 */
+	s1 = atan(speed_in * 15) * 0.72;
+	s2 = (1.1 + modifier) * atan((speed_in - 0.2) * 4) * 1.5;
+
+	return max(s1, s2);
 }
