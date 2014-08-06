@@ -516,7 +516,7 @@ pointer_accel_profile_atan(struct motion_filter *filter,
 	 *
 	 */
 	s1 = atan(speed_in * 15) * 0.72;
-	s2 = (1.1 + modifier) * atan((speed_in - 0.2) * 4) * 1.5;
+	s2 = (1.1 + modifier) * atan((speed_in - 0.2) * 4) * 1.2;
 
 	return max(s1, s2);
 }

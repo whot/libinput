@@ -285,10 +285,19 @@ static void
 study_randomize_method(struct window *w)
 {
 	struct study *s = &w->base;
-	int i = rand() % 2;
+	int first, second;
 
-	s->methods[i] = LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE;
-	s->methods[(i + 1) % 2] = LIBINPUT_ACCEL_METHOD_SMOOTH_STRETCHED;
+	/* randomly pick two methods. I don't expect people to distinguish
+	 * between three different accel methods, so let them test two and
+	 * hope we get enough participants that we get all combinations
+	 * with sufficient numbers */
+	first = rand() % 3;
+	do {
+		second = rand() % 3;
+	} while (second == first);
+
+	s->methods[0] = first;
+	s->methods[1] = second;
 }
 
 static void
@@ -1691,6 +1700,21 @@ study_new_target(struct window *w)
 		w->x, w->y);
 }
 
+static inline const char*
+method_to_name(enum libinput_accel_method method)
+{
+	switch(method) {
+	case LIBINPUT_ACCEL_METHOD_SMOOTH_SIMPLE:
+		return "smooth";
+	case LIBINPUT_ACCEL_METHOD_SMOOTH_STRETCHED:
+		return "stretched";
+	case LIBINPUT_ACCEL_METHOD_ATAN:
+		return "atan";
+	default:
+		abort();
+	}
+}
+
 static void
 study_mark_set_start(struct window *w)
 {
@@ -1704,11 +1728,12 @@ study_mark_set_start(struct window *w)
 	time = tp.tv_sec * 1000 + tp.tv_nsec/1000000;
 
 	dprintf(s->fd,
-		"<set time=\"%d\" id=\"%d\" r=\"%d\" method=\"%d\">\n",
+		"<set time=\"%d\" id=\"%d\" r=\"%d\" method=\"%d\" methodname=\"%s\">\n",
 		time,
 		s->set,
 		s->object_radius,
-		s->methods[s->accel_method_idx]);
+		s->methods[s->accel_method_idx],
+		method_to_name(s->methods[s->accel_method_idx]));
 }
 
 static void
