@@ -624,6 +624,9 @@ pointer_accel_config_set_method(struct libinput_device *device,
 		case LIBINPUT_ACCEL_METHOD_SMOOTH_STRETCHED:
 			accel = create_pointer_accelator_filter(pointer_accel_profile_smooth_stretched);
 			break;
+		case LIBINPUT_ACCEL_METHOD_LINEAR:
+			accel = create_pointer_accelator_filter(pointer_accel_profile_linear);
+			break;
 		case LIBINPUT_ACCEL_METHOD_ATAN:
 			accel = create_pointer_accelator_filter(pointer_accel_profile_atan);
 			break;

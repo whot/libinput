@@ -520,3 +520,18 @@ pointer_accel_profile_atan(struct motion_filter *filter,
 
 	return max(s1, s2);
 }
+
+double
+pointer_accel_profile_linear(struct motion_filter *filter,
+			     void *data,
+			     double speed_in,
+			     uint64_t time)
+{
+	double s1, s2;
+	const int max_accel = 2;
+
+	s1 = min(1, speed_in * 5);
+	s2 = 1 + (speed_in - 0.4) * 1.1;
+
+	return min(max_accel, s2 > 1 ? s2 : s1);
+}

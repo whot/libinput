@@ -90,4 +90,9 @@ pointer_accel_profile_atan(struct motion_filter *filter,
 			   void *data,
 			   double velocity,
 			   uint64_t time);
+double
+pointer_accel_profile_linear(struct motion_filter *filter,
+			     void *data,
+			     double speed_in,
+			     uint64_t time);
 #endif /* FILTER_H */

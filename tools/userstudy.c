@@ -1710,6 +1710,8 @@ method_to_name(enum libinput_accel_method method)
 		return "smooth";
 	case LIBINPUT_ACCEL_METHOD_SMOOTH_STRETCHED:
 		return "stretched";
+	case LIBINPUT_ACCEL_METHOD_LINEAR:
+		return "linear";
 	case LIBINPUT_ACCEL_METHOD_ATAN:
 		return "atan";
 	default:
