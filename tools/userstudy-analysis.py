@@ -450,10 +450,10 @@ def main(argv):
 	print_results("Set completion times (in ms)", r, sets, results.target_sizes)
 
 	r = results.extra_distances()
-	print_results("Total distances (in %% of minimum path)", r, sets, results.target_sizes)
+	print_results("Total distances (in % of minimum path)", r, sets, results.target_sizes)
 
 	r = results.overshoot()
-	print_results("Target overshoot (in %% of minimum path)", r, sets, results.target_sizes)
+	print_results("Target overshoot (in % of minimum path)", r, sets, results.target_sizes)
 
 
 if __name__ == "__main__":
