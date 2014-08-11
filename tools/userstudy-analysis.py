@@ -416,11 +416,15 @@ def print_results(msg, r, sets, target_sizes):
 		if not s.method in methods:
 			methods.append(s.method)
 
+	methods = sorted(methods)
+
 	print "\tComparison: "
 	for t in target_sizes:
-		r1 = r.filter(SetResults(methods[0], t))
-		r2 = r.filter(SetResults(methods[1], t))
-		print "\t\ttarget size %d: method first vs second: %f" % (t, r1.mean() - r2.mean())
+		for (m1, m2) in itertools.combinations(methods, 2):
+			r1 = r.filter(SetResults(m1, t))
+			r2 = r.filter(SetResults(m2, t))
+
+			print "\t\ttarget size %d: method %d - %d: %f" % (t, m1, m2, r1.mean() - r2.mean())
 
 
 def main(argv):
