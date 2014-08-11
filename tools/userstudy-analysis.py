@@ -138,14 +138,18 @@ class QuestionaireResults(object):
 	Answers to questionnaire
 	"""
 
-	def __init__(self, age, gender, handed, experience, hours, device):
+	def __init__(self, methods):
+		self.methods = methods
+		self.questions = 14 * [""] # number of questions
+		self.answers = 14 * [0] # number of questions
+
+	def set_userdata(self, age, gender, handed, experience, hours, device):
 		self.age = age
 		self.gender = gender
 		self.handed = handed
 		self.experience = experience
 		self.hours = hours
 		self.device = device
-		self.questions = {}
 
 class UserStudyResultsFile(object):
 	def __init__(self, path):
@@ -384,18 +388,22 @@ class UserStudyResultsFile(object):
 		# questionnaire tag is inside <set> for pre-trial results,
 		# so root.find("questionnaire") won't work
 		questionnaire = [e for e in self.root.iter("questionnaire")][0]
+
+		qr = QuestionaireResults([int(questionnaire.get("first")),
+					  int(questionnaire.get("second"))])
+
 		userdata = questionnaire.find("userdata")
 		device = questionnaire.find("device")
-
-		qr = QuestionaireResults(int(userdata.get("age")),
-					 userdata.get("gender"),
-					 userdata.get("handed"),
-					 int(userdata.get("experience")),
-					 int(userdata.get("hours_per_week")),
-					 device.get("type"))
+		qr.set_userdata(int(userdata.get("age")),
+				userdata.get("gender"),
+				userdata.get("handed"),
+				int(userdata.get("experience")),
+				int(userdata.get("hours_per_week")),
+				device.get("type"))
 
 		for q in questionnaire.findall("question"):
-			qr.questions[q.text] = int(q.get("response"))
+			qr.questions[int(q.get("question-id"))] = q.text
+			qr.answers[int(q.get("question-id"))] = int(q.get("response"))
 
 		return qr
 
@@ -495,6 +503,70 @@ def print_user_info(results):
 	print "Average experience in years: %f (%f)" % results.user_experience()
 	print "Average usage in h per week: %f (%f)" % results.user_hours_per_week()
 
+def print_questionnaire(results):
+	print "Questionnaire results:"
+
+	methods = sorted(results.methods)
+
+	questions = results.results[0].questionnaire.questions
+
+	for qidx, question in enumerate(questions[:6]):
+		print question
+		for m in methods:
+			count = 5 * [ 0 ]
+			data = []
+			qrs = [ r.questionnaire for r in results.results ]
+			for qr in qrs:
+				if not m in qr.methods:
+					continue
+
+				if qr.methods[0] == m:
+					answer = qr.answers[0]
+					data.append(answer)
+					count[answer + 2 ] += 1
+				if qr.methods[1] == m:
+					answer = qr.answers[6]
+					data.append(answer)
+					count[answer + 2 ] += 1
+
+			stdmean, stddev = mean(data)
+			print "For method %d: distribution: %s, mean %f stddev %f" % (m, count, stdmean, stddev)
+
+	question = questions[12]
+	print question
+	for (m1, m2) in itertools.combinations(methods, 2):
+		count = 5 * [ 0 ]
+		data = []
+		qrs = [ r.questionnaire for r in results.results ]
+		for qr in qrs:
+			if not m1 in qr.methods or not m2 in qr.methods:
+				continue
+
+			answer = qr.answers[12]
+			data.append(answer)
+			count[answer + 2 ] += 1
+
+		stdmean, stddev = mean(data)
+		print "For methods %d and %d: distribution: %s, mean %f stddev %f" % (m1, m2, count, stdmean, stddev)
+
+	question = questions[13]
+	print question
+	for (m1, m2) in itertools.combinations(methods, 2):
+		count = 5 * [ 0 ]
+		data = []
+		qrs = [ r.questionnaire for r in results.results ]
+		for qr in qrs:
+			if not m1 in qr.methods or not m2 in qr.methods:
+				continue
+
+			answer = qr.answers[13]
+			data.append(answer)
+			count[answer + 2 ] += 1
+
+		stdmean, stddev = mean(data)
+		print "For methods %d and %d: distribution: %s, mean %f stddev %f" % (m1, m2, count, stdmean, stddev)
+
+
 def main(argv):
 	fpath = argv[1];
 
@@ -529,6 +601,7 @@ def main(argv):
 	r = results.overshoot()
 	print_results("Target overshoot (in % of minimum path)", r, sets, results.target_sizes)
 
+	print_questionnaire(results)
 
 if __name__ == "__main__":
 	main(sys.argv)
