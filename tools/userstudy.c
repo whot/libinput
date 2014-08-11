@@ -1136,7 +1136,8 @@ study_show_questionnaire(struct window *w)
 
 	for (i = 0; i < ARRAY_LENGTH(questions); i++) {
 		dprintf(s->fd,
-			"<question response=\"%d\">%s</question>\n",
+			"<question question-id=\"%d\" response=\"%d\">%s</question>\n",
+			i,
 			(int)gtk_range_get_value(GTK_RANGE(scales[i])),
 			questions[i]);
 
