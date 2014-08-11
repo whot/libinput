@@ -133,6 +133,20 @@ class Results(object):
 									 self.stddev(),
 									 self.nsamples())
 
+class QuestionaireResults(object):
+	"""
+	Answers to questionnaire
+	"""
+
+	def __init__(self, age, gender, handed, experience, hours, device):
+		self.age = age
+		self.gender = gender
+		self.handed = handed
+		self.experience = experience
+		self.hours = hours
+		self.device = device
+		self.questions = {}
+
 class UserStudyResultsFile(object):
 	def __init__(self, path):
 		self.tree = xml.etree.ElementTree.parse(path)
@@ -143,10 +157,10 @@ class UserStudyResultsFile(object):
 		self.target_misses = self._target_misses()
 		self.times_per_set = self._time_per_set()
 		self.extradistance, self.overshoot = self._path_length_per_target()
+		self.questionnaire = self._parse_questionnaire()
 
 		self.methods = list(OrderedDict.fromkeys([r.method for r in self.click_times.sets]))
 		self.target_sizes = list(OrderedDict.fromkeys([r.target_size for r in self.click_times.sets]))
-
 
 	def _set_from_elem(self, elem):
 		 return SetResults(target_size = int(elem.get("r")),
@@ -366,6 +380,26 @@ class UserStudyResultsFile(object):
 		v = (B[0] - A[0])*(B[1] - P[1]) - (A[0] - P[0])*(B[1] - A[1])
 		return v/math.sqrt(math.pow(B[0] - A[0], 2) + math.pow(B[1] - A[1], 2))
 
+	def _parse_questionnaire(self):
+		# questionnaire tag is inside <set> for pre-trial results,
+		# so root.find("questionnaire") won't work
+		questionnaire = [e for e in self.root.iter("questionnaire")][0]
+		userdata = questionnaire.find("userdata")
+		device = questionnaire.find("device")
+
+		qr = QuestionaireResults(int(userdata.get("age")),
+					 userdata.get("gender"),
+					 userdata.get("handed"),
+					 int(userdata.get("experience")),
+					 int(userdata.get("hours_per_week")),
+					 device.get("type"))
+
+		for q in questionnaire.findall("question"):
+			qr.questions[q.text] = int(q.get("response"))
+
+		return qr
+
+
 class UserStudyResults(object):
 	def __init__(self, path):
 		self.results = [r for r in self._parse_files(path)]
@@ -408,6 +442,30 @@ class UserStudyResults(object):
 	def overshoot(self):
 		return Results([s for r in self.results for s in r.overshoot.sets])
 
+	def user_age(self):
+		ages = [ r.questionnaire.age for r in self.results if r.questionnaire.age != 0]
+		return mean(ages)
+
+	def user_gender(self):
+		genders = [ r.questionnaire.gender for r in self.results ]
+		male = genders.count("male")
+		female = genders.count("female")
+		other = genders.count("other")
+		none = genders.count("none")
+		return (male, female, other, none)
+
+	def user_handedness(self):
+		handed = [ r.questionnaire.handed for r in self.results ]
+		return (handed.count("right"), handed.count("left"))
+
+	def user_experience(self):
+		experience = [ r.questionnaire.experience for r in self.results if r.questionnaire.experience != 0]
+		return mean(experience)
+
+	def user_hours_per_week(self):
+		hours = [ r.questionnaire.hours for r in self.results if r.questionnaire.experience != 0]
+		return mean(hours)
+
 def print_results(msg, r, sets, target_sizes):
 	methods = []
 	print "%s: %s" % (msg, r)
@@ -428,6 +486,15 @@ def print_results(msg, r, sets, target_sizes):
 			print "\t\ttarget size %d: method %d - %d: %f" % (t, m1, m2, r1.mean() - r2.mean())
 
 
+def print_user_info(results):
+	print "User information"
+
+	print "Average age %f (%f)" % results.user_age()
+	print "Gender distribution: male %d female %d other %d none given %d" % results.user_gender()
+	print "Right-handed: %d, left-handed %d" % results.user_handedness()
+	print "Average experience in years: %f (%f)" % results.user_experience()
+	print "Average usage in h per week: %f (%f)" % results.user_hours_per_week()
+
 def main(argv):
 	fpath = argv[1];
 
@@ -436,6 +503,8 @@ def main(argv):
 	except:
 		print "Error loading results files"
 		return
+
+	print_user_info(results)
 
 	print "Target sizes: %s" % results.target_sizes
 	print "Methods used: %s" % results.methods
