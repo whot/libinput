@@ -375,7 +375,8 @@ class UserStudyResults(object):
 	def _files(self, path):
 		for root, dirs, files in os.walk(path):
 			for file in files:
-				yield os.path.join(root, file)
+				if file.endswith(".xml"):
+					yield os.path.join(root, file)
 
 	def _parse_files(self, path):
 		for file in self._files(path):
