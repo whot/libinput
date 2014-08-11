@@ -35,7 +35,7 @@ class SetResults(object):
 	for any properties that are set, or if that property is None on one
 	of those.
 	"""
-	def __init__(self, method, target_size, data=None):
+	def __init__(self, method, target_size=None, data=None):
 		self.method = method
 		self.target_size = target_size
 		if not data:
