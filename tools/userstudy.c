@@ -1063,7 +1063,8 @@ study_show_questionnaire(struct window *w)
 
 	snprintf(m, sizeof(m), message, ARRAY_LENGTH(questions));
 
-	dprintf(s->fd, "<questionnaire>\n");
+	dprintf(s->fd, "<questionnaire first=\"%d\" second=\"%d\">\n",
+		s->methods[0], s->methods[1]);
 	if (study_show_questionnaire2(w) != 0) {
 		gtk_main_quit();
 		return -1;
