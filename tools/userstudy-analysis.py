@@ -571,11 +571,7 @@ def print_questionnaire(results):
 def main(argv):
 	fpath = argv[1];
 
-	try:
-		results = UserStudyResults(fpath)
-	except:
-		print "Error loading results files"
-		return
+	results = UserStudyResults(fpath)
 
 	print_user_info(results)
 
