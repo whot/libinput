@@ -6,6 +6,7 @@ import math
 from pprint import pprint
 import xml.etree.ElementTree
 import itertools
+import scipy.stats
 
 from collections import OrderedDict
 
@@ -487,12 +488,43 @@ def print_results(msg, r, sets, target_sizes):
 
 	print "\tComparison: "
 	for t in target_sizes:
+		# stderr can show if differences matter. 95% of the sample
+		# falls within 1.96 stderr of the mean (that's the
+		# Confidence Interval).
+		#
+		# if there is overlap within 1 stderr, then the difference
+		# is definitely *not* statistically significant
+		# if there is no overlap within 1.96 stderr, then the
+		# difference is definitely statistically significant
+		matching = r.filter(SetResults(None, t))
+		stderr = scipy.stats.sem([v for s in matching.sets for v in s.data])
+		stderr *= 1.96
 		for (m1, m2) in itertools.combinations(methods, 2):
 			r1 = r.filter(SetResults(m1, t))
 			r2 = r.filter(SetResults(m2, t))
 			diff = r1.mean() - r2.mean()
 
-			print "\t\ttarget size %d: method %d - %d: %f (%d is faster)" % (t, m1, m2, diff, m1 if diff < 0 else m2)
+			print "\t\ttarget size %d: method %d - %d: %f (%d is faster, stderr is %f)" % (t, m1, m2, diff, m1 if diff < 0 else m2, stderr)
+
+	values = []
+	for m in methods:
+		matching = r.filter(SetResults(m))
+		values.append([v for s in matching.sets for v in s.data])
+	# Null-Hypothesis is that all three are the same on average.
+	# We want to see a p-value < 0.05 to have 95% confidence that any
+	# differences are significant.
+	# We don't care about the F-value, it's directly related to the
+	# p-value and they both describe the same thing
+	print "\tANOVA: H0 is 'all methods are equal'"
+	print "\t  across methods: p-value: %f" % scipy.stats.f_oneway(*values)[1]
+	for t in target_sizes:
+		values = []
+		for m in methods:
+			matching = r.filter(SetResults(m, t))
+			values.append([v for s in matching.sets for v in s.data])
+
+		f, p = scipy.stats.f_oneway(*values)
+		print "\t  for size %d: p-value: %f" % (t, p)
 
 
 def print_user_info(results):
