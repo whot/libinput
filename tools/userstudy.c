@@ -53,7 +53,7 @@
 
 #define clip(val_, min_, max_) min((max_), max((min_), (val_)))
 
-#define NUM_TRAINING_TARGETS 5
+#define NUM_TRAINING_TARGETS 10
 #define NUM_STUDY_TARGETS 15
 #define NUM_SETS 6 /* multiple of the allowed radii */
 
