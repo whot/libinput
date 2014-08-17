@@ -490,8 +490,9 @@ def print_results(msg, r, sets, target_sizes):
 		for (m1, m2) in itertools.combinations(methods, 2):
 			r1 = r.filter(SetResults(m1, t))
 			r2 = r.filter(SetResults(m2, t))
+			diff = r1.mean() - r2.mean()
 
-			print "\t\ttarget size %d: method %d - %d: %f" % (t, m1, m2, r1.mean() - r2.mean())
+			print "\t\ttarget size %d: method %d - %d: %f (%d is faster)" % (t, m1, m2, diff, m1 if diff < 0 else m2)
 
 
 def print_user_info(results):
