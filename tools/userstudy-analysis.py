@@ -554,11 +554,11 @@ def print_questionnaire(results):
 					continue
 
 				if qr.methods[0] == m:
-					answer = qr.answers[0]
+					answer = qr.answers[0 + qidx]
 					data.append(answer)
 					count[answer + 2 ] += 1
 				if qr.methods[1] == m:
-					answer = qr.answers[6]
+					answer = qr.answers[6 + qidx]
 					data.append(answer)
 					count[answer + 2 ] += 1
 
