@@ -526,6 +526,18 @@ def print_results(msg, r, sets, target_sizes):
 		f, p = scipy.stats.f_oneway(*values)
 		print "\t  for size %d: p-value: %f" % (t, p)
 
+	# gnuplot printouts
+	print "-----"
+	print "GNUPLOT dat format"
+	print "# target-size method-%d method-%d method-%d" % tuple(methods)
+	for t in target_sizes:
+		s = "{}\t".format(t)
+		for m in methods:
+			matching = r.filter(SetResults(m, t))
+			s += "{}\t".format(matching.mean())
+		print s
+	print "-----"
+
 
 def print_user_info(results):
 	print "User information"
@@ -543,9 +555,9 @@ def print_questionnaire(results):
 
 	questions = results.results[0].questionnaire.questions
 
-	for qidx, question in enumerate(questions[:6]):
-		print question
-		for m in methods:
+	for m in methods:
+		for qidx, question in enumerate(questions[:6]):
+			print "# %s" % (question)
 			count = 5 * [ 0 ]
 			data = []
 			qrs = [ r.questionnaire for r in results.results ]
@@ -563,7 +575,11 @@ def print_questionnaire(results):
 					count[answer + 2 ] += 1
 
 			stdmean, stddev = mean(data)
-			print "For method %d: distribution: %s, mean %f stddev %f" % (m, count, stdmean, stddev)
+			print "# For method %d: distribution: %s, mean %f stddev %f" % (m, count, stdmean, stddev)
+			print "# method-idx question-idx likert1-counts ...  mean stddev"
+			print "%d %d %d %d %d %d %d %f %f" % (m, qidx,
+					count[0], count[1], count[2],
+					count[3], count[4], stdmean, stddev)
 
 	question = questions[12]
 	print question
