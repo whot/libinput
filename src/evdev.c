@@ -150,19 +150,20 @@ evdev_device_led_update(struct evdev_device *device, enum libinput_led leds)
 static void
 transform_absolute(struct evdev_device *device, int32_t *x, int32_t *y)
 {
-	if (!device->abs.apply_calibration) {
-		*x = device->abs.x;
-		*y = device->abs.y;
-		return;
-	} else {
-		*x = device->abs.x * device->abs.calibration[0] +
-			device->abs.y * device->abs.calibration[1] +
-			device->abs.calibration[2];
+	int32_t tx, ty;
 
-		*y = device->abs.x * device->abs.calibration[3] +
-			device->abs.y * device->abs.calibration[4] +
-			device->abs.calibration[5];
-	}
+	if (!device->abs.apply_calibration)
+		return;
+
+	tx = *x * device->abs.calibration[0] +
+		*y * device->abs.calibration[1] +
+		device->abs.calibration[2];
+
+	ty = *x * device->abs.calibration[3] +
+		*y * device->abs.calibration[4] +
+		device->abs.calibration[5];
+	*x = tx;
+	*y = ty;
 }
 
 static inline double
@@ -194,7 +195,7 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 	struct libinput *libinput = device->base.seat->libinput;
 	struct motion_params motion;
 	int32_t cx, cy;
-	double x, y;
+	int32_t x, y;
 	int slot;
 	int seat_slot;
 	struct libinput_device *base = &device->base;
@@ -239,6 +240,7 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 		seat->slot_map |= 1 << seat_slot;
 		x = device->mt.slots[slot].x;
 		y = device->mt.slots[slot].y;
+		transform_absolute(device, &x, &y);
 
 		touch_notify_touch_down(base, time, slot, seat_slot, x, y);
 		break;
@@ -253,6 +255,7 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 		if (seat_slot == -1)
 			break;
 
+		transform_absolute(device, &x, &y);
 		touch_notify_touch_motion(base, time, slot, seat_slot, x, y);
 		break;
 	case EVDEV_ABSOLUTE_MT_UP:
@@ -288,11 +291,15 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 
 		seat->slot_map |= 1 << seat_slot;
 
+		cx = device->abs.x;
+		cy = device->abs.y;
 		transform_absolute(device, &cx, &cy);
 
 		touch_notify_touch_down(base, time, -1, seat_slot, cx, cy);
 		break;
 	case EVDEV_ABSOLUTE_MOTION:
+		cx = device->abs.x;
+		cy = device->abs.y;
 		transform_absolute(device, &cx, &cy);
 		x = cx;
 		y = cy;
