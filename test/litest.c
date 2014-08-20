@@ -781,6 +781,52 @@ litest_scale(const struct litest_device *d, unsigned int axis, double val)
 }
 
 void
+litest_wait_for_event(struct libinput *li)
+{
+	return litest_wait_for_event_of_type(li, -1);
+}
+
+void
+litest_wait_for_event_of_type(struct libinput *li, ...)
+{
+	va_list args;
+	enum libinput_event_type types[32] = {LIBINPUT_EVENT_NONE};
+	size_t ntypes = 0;
+	enum libinput_event_type type;
+
+	va_start(args, li);
+	type = va_arg(args, int);
+	while ((int)type != -1) {
+		assert(type > 0);
+		assert(ntypes < ARRAY_LENGTH(types));
+		types[ntypes++] = type;
+	}
+	va_end(args);
+
+	while (1) {
+		size_t i;
+		struct libinput_event *event;
+
+		while ((type = libinput_next_event_type(li)) == LIBINPUT_EVENT_NONE) {
+			msleep(10);
+			libinput_dispatch(li);
+		}
+
+		/* no event mask means wait for any event */
+		if (ntypes == 0)
+			return;
+
+		for (i = 0; i < ntypes; i++) {
+			if (type == types[i])
+				return;
+		}
+
+		event = libinput_get_event(li);
+		libinput_event_destroy(event);
+	}
+}
+
+void
 litest_drain_events(struct libinput *li)
 {
 	struct libinput_event *event;
