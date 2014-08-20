@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <libinput.h>
+#include <libevdev/libevdev.h>
 #include <unistd.h>
 
 #include "libinput-util.h"
@@ -212,6 +213,191 @@ START_TEST(touch_double_touch_down_up)
 }
 END_TEST
 
+START_TEST(touch_calibration_scale)
+{
+	struct libinput *li;
+	struct litest_device *dev;
+	struct libinput_event *ev;
+	struct libinput_event_touch *tev;
+	float matrix[6] = {
+		1, 0, 0,
+		0, 1, 0
+	};
+
+	float calibration;
+	double x, y;
+	const int width = 640, height = 480;
+
+	dev = litest_current_device();
+	li = dev->libinput;
+
+	for (calibration = 0.1; calibration < 1; calibration += 0.1) {
+		libinput_device_calibrate(dev->libinput_device, matrix);
+		litest_drain_events(li);
+
+		litest_touch_down(dev, 0, 100, 100);
+		litest_touch_up(dev, 0);
+
+		litest_wait_for_event(li);
+		ev = libinput_get_event(li);
+		ck_assert_int_eq(libinput_event_get_type(ev),
+				 LIBINPUT_EVENT_TOUCH_DOWN);
+		tev = libinput_event_get_touch_event(ev);
+
+		x = libinput_event_touch_get_x_transformed(tev, width);
+		y = libinput_event_touch_get_y_transformed(tev, height);
+
+		ck_assert_int_eq(round(x), round(width * matrix[0]));
+		ck_assert_int_eq(round(y), round(height * matrix[4]));
+
+		libinput_event_destroy(ev);
+		litest_drain_events(li);
+
+		matrix[0] = calibration;
+		matrix[4] = 1 - calibration;
+	}
+}
+END_TEST
+
+START_TEST(touch_calibration_rotation)
+{
+	struct libinput *li;
+	struct litest_device *dev;
+	struct libinput_event *ev;
+	struct libinput_event_touch *tev;
+	float matrix[6];
+	int i;
+	double x, y;
+	int width = 1024, height = 480;
+
+	dev = litest_current_device();
+	li = dev->libinput;
+
+	for (i = 0; i < 4; i++) {
+		float angle = i * M_PI/2;
+
+		/* [ cos -sin  tx ]
+		   [ sin  cos  ty ]
+		   [  0    0   1  ] */
+		matrix[0] = cos(angle);
+		matrix[1] = -sin(angle);
+		matrix[3] = sin(angle);
+		matrix[4] = cos(angle);
+
+		switch(i) {
+		case 0: /* 0 deg */
+			matrix[2] = 0;
+			matrix[5] = 0;
+			break;
+		case 1: /* 90 deg cw */
+			matrix[2] = 1;
+			matrix[5] = 0;
+			break;
+		case 2: /* 180 deg cw */
+			matrix[2] = 1;
+			matrix[5] = 1;
+			break;
+		case 3: /* 270 deg cw */
+			matrix[2] = 0;
+			matrix[5] = 1;
+			break;
+		}
+
+		libinput_device_calibrate(dev->libinput_device, matrix);
+		litest_drain_events(li);
+
+		litest_touch_down(dev, 0, 80, 20);
+		litest_touch_up(dev, 0);
+		litest_wait_for_event(li);
+		ev = libinput_get_event(li);
+		ck_assert_int_eq(libinput_event_get_type(ev),
+				 LIBINPUT_EVENT_TOUCH_DOWN);
+		tev = libinput_event_get_touch_event(ev);
+
+		x = libinput_event_touch_get_x_transformed(tev, width);
+		y = libinput_event_touch_get_y_transformed(tev, height);
+
+		/* rounding errors... */
+#define almost_equal(a_, b_) \
+		{ ck_assert_int_ge((a_) + 0.5, (b_) - 1); \
+		  ck_assert_int_le((a_) + 0.5, (b_) + 1); }
+		switch(i) {
+		case 0: /* 0 deg */
+			almost_equal(x, width * 0.8);
+			almost_equal(y, height * 0.2);
+			break;
+		case 1: /* 90 deg cw */
+			almost_equal(x, width * 0.8);
+			almost_equal(y, height * 0.8);
+			break;
+		case 2: /* 180 deg cw */
+			almost_equal(x, width * 0.2);
+			almost_equal(y, height * 0.8);
+			break;
+		case 3: /* 270 deg cw */
+			almost_equal(x, width * 0.2);
+			almost_equal(y, height * 0.2);
+			break;
+		}
+#undef almost_equal
+
+
+		libinput_event_destroy(ev);
+		litest_drain_events(li);
+	}
+}
+END_TEST
+
+START_TEST(touch_calibration_translation)
+{
+	struct libinput *li;
+	struct litest_device *dev;
+	struct libinput_event *ev;
+	struct libinput_event_touch *tev;
+	float matrix[6] = {
+		1, 0, 0,
+		0, 1, 0
+	};
+
+	float translate;
+	double x, y;
+	const int width = 640, height = 480;
+
+	dev = litest_current_device();
+	li = dev->libinput;
+
+	/* translating from 0 up to 1 device width/height */
+	for (translate = 0.1; translate <= 1; translate += 0.1) {
+		libinput_device_calibrate(dev->libinput_device, matrix);
+		litest_drain_events(li);
+
+		litest_touch_down(dev, 0, 100, 100);
+		litest_touch_up(dev, 0);
+
+		litest_wait_for_event(li);
+		ev = libinput_get_event(li);
+		ck_assert_int_eq(libinput_event_get_type(ev),
+				 LIBINPUT_EVENT_TOUCH_DOWN);
+		tev = libinput_event_get_touch_event(ev);
+
+		x = libinput_event_touch_get_x_transformed(tev, width);
+		y = libinput_event_touch_get_y_transformed(tev, height);
+
+		/* sigh. rounding errors */
+		ck_assert_int_ge(round(x), width + round(width * matrix[2]) - 1);
+		ck_assert_int_ge(round(y), height + round(height * matrix[5]) - 1);
+		ck_assert_int_le(round(x), width + round(width * matrix[2]) + 1);
+		ck_assert_int_le(round(y), height + round(height * matrix[5]) + 1);
+
+		libinput_event_destroy(ev);
+		litest_drain_events(li);
+
+		matrix[2] = translate;
+		matrix[5] = 1 - translate;
+	}
+}
+END_TEST
+
 int
 main(int argc, char **argv)
 {
@@ -219,6 +405,12 @@ main(int argc, char **argv)
 	litest_add_no_device("touch:abs-transform", touch_abs_transform);
 	litest_add_no_device("touch:many-slots", touch_many_slots);
 	litest_add("touch:double-touch-down-up", touch_double_touch_down_up, LITEST_TOUCH, LITEST_ANY);
+	litest_add("touch:calibration", touch_calibration_scale, LITEST_TOUCH, LITEST_TOUCHPAD);
+	litest_add("touch:calibration", touch_calibration_scale, LITEST_SINGLE_TOUCH, LITEST_TOUCHPAD);
+	litest_add("touch:calibration", touch_calibration_rotation, LITEST_TOUCH, LITEST_TOUCHPAD);
+	litest_add("touch:calibration", touch_calibration_rotation, LITEST_SINGLE_TOUCH, LITEST_TOUCHPAD);
+	litest_add("touch:calibration", touch_calibration_translation, LITEST_TOUCH, LITEST_TOUCHPAD);
+	litest_add("touch:calibration", touch_calibration_translation, LITEST_SINGLE_TOUCH, LITEST_TOUCHPAD);
 
 	return litest_run(argc, argv);
 }
