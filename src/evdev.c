@@ -1210,20 +1210,29 @@ release_pressed_keys(struct evdev_device *device)
 		return;
 
 	for (code = 0; code < KEY_CNT; code++) {
-		if (get_key_down_count(device, code) > 0) {
+		int count = get_key_down_count(device, code);
+
+		if (count > 1) {
+			log_bug_libinput(libinput,
+					 "Key %d is down %d times.\n",
+					 code,
+					 count);
+		}
+
+		while (get_key_down_count(device, code) > 0) {
 			switch (get_key_type(code)) {
 			case EVDEV_KEY_TYPE_NONE:
 				break;
 			case EVDEV_KEY_TYPE_KEY:
-				keyboard_notify_key(
-					&device->base,
+				evdev_keyboard_notify_key(
+					device,
 					time,
 					code,
 					LIBINPUT_KEY_STATE_RELEASED);
 				break;
 			case EVDEV_KEY_TYPE_BUTTON:
-				pointer_notify_button(
-					&device->base,
+				evdev_pointer_notify_button(
+					device,
 					time,
 					code,
 					LIBINPUT_BUTTON_STATE_RELEASED);
