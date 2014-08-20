@@ -129,8 +129,8 @@ class Results(object):
 		return [s.target_size for s in self.sets if s == set]
 
 	def __str__(self):
-		return "median: %f mean: %f stddev: %f (samples: %d)" % (self.mean(),
-									 self.median(),
+		return "median: %f mean: %f stddev: %f (samples: %d)" % (self.median(),
+									 self.mean(),
 									 self.stddev(),
 									 self.nsamples())
 
