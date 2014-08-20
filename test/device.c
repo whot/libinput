@@ -30,6 +30,7 @@
 #include <unistd.h>
 
 #include "litest.h"
+#include "libinput-util.h"
 
 START_TEST(device_sendevents_config)
 {
@@ -85,6 +86,39 @@ START_TEST(device_disable)
 	/* no event from disabled device */
 	litest_event(dev, EV_REL, REL_X, 10);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	litest_assert_empty_queue(li);
+
+	/* no event from resuming */
+	status = libinput_device_config_send_events_set_mode(device,
+			LIBINPUT_CONFIG_SEND_EVENTS_ENABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+	litest_assert_empty_queue(li);
+}
+END_TEST
+
+START_TEST(device_disable_touchpad)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_device *device;
+	enum libinput_config_status status;
+
+	device = dev->libinput_device;
+
+	litest_drain_events(li);
+
+	status = libinput_device_config_send_events_set_mode(device,
+			LIBINPUT_CONFIG_SEND_EVENTS_DISABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+
+	/* no event from disabling */
+	litest_assert_empty_queue(li);
+
+	litest_touch_down(dev, 0, 50, 50);
+	litest_touch_move_to(dev, 0, 50, 50, 90, 90, 10);
+	litest_touch_up(dev, 0);
+
+
 	litest_assert_empty_queue(li);
 
 	/* no event from resuming */
@@ -260,16 +294,221 @@ START_TEST(device_reenable_device_removed)
 }
 END_TEST
 
+START_TEST(device_disable_release_buttons)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_device *device;
+	struct libinput_event *event;
+	struct libinput_event_pointer *ptrevent;
+	enum libinput_config_status status;
+
+	device = dev->libinput_device;
+
+	litest_button_click(dev, BTN_LEFT, true);
+	litest_drain_events(li);
+	litest_assert_empty_queue(li);
+
+	status = libinput_device_config_send_events_set_mode(device,
+			LIBINPUT_CONFIG_SEND_EVENTS_DISABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+
+	litest_wait_for_event(li);
+	event = libinput_get_event(li);
+
+	ck_assert_int_eq(libinput_event_get_type(event),
+			 LIBINPUT_EVENT_POINTER_BUTTON);
+	ptrevent = libinput_event_get_pointer_event(event);
+	ck_assert_int_eq(libinput_event_pointer_get_button(ptrevent),
+			 BTN_LEFT);
+	ck_assert_int_eq(libinput_event_pointer_get_button_state(ptrevent),
+			 LIBINPUT_BUTTON_STATE_RELEASED);
+
+	libinput_event_destroy(event);
+	litest_assert_empty_queue(li);
+}
+END_TEST
+
+START_TEST(device_disable_release_keys)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_device *device;
+	struct libinput_event *event;
+	struct libinput_event_keyboard *kbdevent;
+	enum libinput_config_status status;
+
+	device = dev->libinput_device;
+
+	litest_button_click(dev, KEY_A, true);
+	litest_drain_events(li);
+	litest_assert_empty_queue(li);
+
+	status = libinput_device_config_send_events_set_mode(device,
+			LIBINPUT_CONFIG_SEND_EVENTS_DISABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+
+	litest_wait_for_event(li);
+	event = libinput_get_event(li);
+
+	ck_assert_int_eq(libinput_event_get_type(event),
+			 LIBINPUT_EVENT_KEYBOARD_KEY);
+	kbdevent = libinput_event_get_keyboard_event(event);
+	ck_assert_int_eq(libinput_event_keyboard_get_key(kbdevent),
+			 KEY_A);
+	ck_assert_int_eq(libinput_event_keyboard_get_key_state(kbdevent),
+			 LIBINPUT_KEY_STATE_RELEASED);
+
+	libinput_event_destroy(event);
+	litest_assert_empty_queue(li);
+}
+END_TEST
+
+START_TEST(device_disable_release_tap)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_device *device;
+	enum libinput_config_status status;
+
+	device = dev->libinput_device;
+
+	libinput_device_config_tap_set_enabled(device,
+					       LIBINPUT_CONFIG_TAP_ENABLED);
+
+	litest_drain_events(li);
+
+	litest_touch_down(dev, 0, 50, 50);
+	litest_touch_up(dev, 0);
+
+	libinput_dispatch(li);
+
+	status = libinput_device_config_send_events_set_mode(device,
+			LIBINPUT_CONFIG_SEND_EVENTS_DISABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+	/* tap happened before suspending, so we still expect the event */
+
+	msleep(300); /* tap-n-drag timeout */
+
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
+
+	litest_assert_empty_queue(li);
+
+	/* resume, make sure we don't get anything */
+	status = libinput_device_config_send_events_set_mode(device,
+			LIBINPUT_CONFIG_SEND_EVENTS_ENABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+	libinput_dispatch(li);
+	litest_assert_empty_queue(li);
+
+}
+END_TEST
+
+START_TEST(device_disable_release_tap_n_drag)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_device *device;
+	enum libinput_config_status status;
+
+	device = dev->libinput_device;
+
+	libinput_device_config_tap_set_enabled(device,
+					       LIBINPUT_CONFIG_TAP_ENABLED);
+
+	litest_drain_events(li);
+
+	litest_touch_down(dev, 0, 50, 50);
+	litest_touch_up(dev, 0);
+	litest_touch_down(dev, 0, 50, 50);
+	libinput_dispatch(li);
+	msleep(400); /* tap-n-drag timeout */
+	libinput_dispatch(li);
+
+	status = libinput_device_config_send_events_set_mode(device,
+			LIBINPUT_CONFIG_SEND_EVENTS_DISABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+
+	libinput_dispatch(li);
+	litest_touch_up(dev, 0);
+
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
+
+	litest_assert_empty_queue(li);
+}
+END_TEST
+
+
+START_TEST(device_disable_release_softbutton)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_device *device;
+	enum libinput_config_status status;
+
+	device = dev->libinput_device;
+
+	litest_drain_events(li);
+
+	litest_touch_down(dev, 0, 90, 90);
+	litest_button_click(dev, BTN_LEFT, true);
+
+	/* make sure softbutton works */
+	litest_assert_button_event(li,
+				   BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	/* disable */
+	status = libinput_device_config_send_events_set_mode(device,
+			LIBINPUT_CONFIG_SEND_EVENTS_DISABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+
+	litest_assert_button_event(li,
+				   BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
+
+	litest_assert_empty_queue(li);
+
+	litest_button_click(dev, BTN_LEFT, false);
+	litest_touch_up(dev, 0);
+
+	litest_assert_empty_queue(li);
+
+	/* resume, make sure we don't get anything */
+	status = libinput_device_config_send_events_set_mode(device,
+			LIBINPUT_CONFIG_SEND_EVENTS_ENABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+	libinput_dispatch(li);
+	litest_assert_empty_queue(li);
+
+}
+END_TEST
+
 int main (int argc, char **argv)
 {
 	litest_add("device:sendevents", device_sendevents_config, LITEST_ANY, LITEST_ANY);
 	litest_add("device:sendevents", device_sendevents_config_default, LITEST_ANY, LITEST_ANY);
 	litest_add("device:sendevents", device_disable, LITEST_POINTER, LITEST_ANY);
+	litest_add("device:sendevents", device_disable_touchpad, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("device:sendevents", device_disable_events_pending, LITEST_POINTER, LITEST_TOUCHPAD);
 	litest_add("device:sendevents", device_double_disable, LITEST_ANY, LITEST_ANY);
 	litest_add("device:sendevents", device_double_enable, LITEST_ANY, LITEST_ANY);
 	litest_add_no_device("device:sendevents", device_reenable_syspath_changed);
 	litest_add_no_device("device:sendevents", device_reenable_device_removed);
+	litest_add_for_device("device:sendevents", device_disable_release_buttons, LITEST_MOUSE);
+	litest_add_for_device("device:sendevents", device_disable_release_keys, LITEST_KEYBOARD);
+	litest_add("device:sendevents", device_disable_release_tap, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("device:sendevents", device_disable_release_tap_n_drag, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("device:sendevents", device_disable_release_softbutton, LITEST_CLICKPAD, LITEST_APPLE_CLICKPAD);
 
 	return litest_run(argc, argv);
 }
