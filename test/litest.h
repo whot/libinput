@@ -44,6 +44,7 @@ enum litest_device_type {
 	LITEST_MOUSE,
 	LITEST_WACOM_TOUCH,
 	LITEST_ALPS_SEMI_MT,
+	LITEST_GENERIC_SINGLETOUCH,
 };
 
 enum litest_device_feature {
