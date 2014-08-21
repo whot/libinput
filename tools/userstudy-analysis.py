@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from __future__ import print_function
+
 import os
 import sys
 import math
@@ -9,6 +11,12 @@ import itertools
 import scipy.stats
 
 from collections import OrderedDict
+
+mode = "normal"
+
+def print_normal(*args, **kwargs):
+	if mode == "normal":
+		print(*args, **kwargs)
 
 def mean(data):
 	if not data:
@@ -477,16 +485,16 @@ class UserStudyResults(object):
 
 def print_results(msg, r, sets, target_sizes):
 	methods = []
-	print "%s: %s" % (msg, r)
+	print_normal("%s: %s") % (msg, r)
 	for s in sets:
 		matching = r.filter(s)
-		print "\tmethod: %d target size: %d: %s" % (s.method, s.target_size, matching)
+		print_normal("\tmethod: %d target size: %d: %s") % (s.method, s.target_size, matching)
 		if not s.method in methods:
 			methods.append(s.method)
 
 	methods = sorted(methods)
 
-	print "\tComparison: "
+	print_normal("\tComparison: ")
 	for t in target_sizes:
 		# stderr can show if differences matter. 95% of the sample
 		# falls within 1.96 stderr of the mean (that's the
@@ -504,7 +512,7 @@ def print_results(msg, r, sets, target_sizes):
 			r2 = r.filter(SetResults(m2, t))
 			diff = r1.mean() - r2.mean()
 
-			print "\t\ttarget size %d: method %d - %d: %f (%d is faster, stderr is %f)" % (t, m1, m2, diff, m1 if diff < 0 else m2, stderr)
+			print_normal("\t\ttarget size %d: method %d - %d: %f (%d is faster, stderr is %f)") % (t, m1, m2, diff, m1 if diff < 0 else m2, stderr)
 
 	values = []
 	for m in methods:
@@ -515,8 +523,8 @@ def print_results(msg, r, sets, target_sizes):
 	# differences are significant.
 	# We don't care about the F-value, it's directly related to the
 	# p-value and they both describe the same thing
-	print "\tANOVA: H0 is 'all methods are equal'"
-	print "\t  across methods: p-value: %f" % scipy.stats.f_oneway(*values)[1]
+	print_normal("\tANOVA: H0 is 'all methods are equal'")
+	print_normal("\t  across methods: p-value: %f") % scipy.stats.f_oneway(*values)[1]
 	for t in target_sizes:
 		values = []
 		for m in methods:
@@ -524,32 +532,35 @@ def print_results(msg, r, sets, target_sizes):
 			values.append([v for s in matching.sets for v in s.data])
 
 		f, p = scipy.stats.f_oneway(*values)
-		print "\t  for size %d: p-value: %f" % (t, p)
+		print_normal("\t  for size %d: p-value: %f") % (t, p)
 
 	# gnuplot printouts
-	print "-----"
-	print "GNUPLOT dat format"
-	print "# target-size method-%d method-%d method-%d" % tuple(methods)
+	print_normal("-----")
+	print_normal("GNUPLOT dat format")
+	print_normal("# target-size method-%d method-%d method-%d") % tuple(methods)
 	for t in target_sizes:
 		s = "{}\t".format(t)
 		for m in methods:
 			matching = r.filter(SetResults(m, t))
 			s += "{}\t".format(matching.mean())
-		print s
-	print "-----"
+		print_normal(s)
+	print_normal("-----")
 
 
 def print_user_info(results):
-	print "User information"
+	if use_gnuplot():
+		return
 
-	print "Average age %f (%f)" % results.user_age()
-	print "Gender distribution: male %d female %d other %d none given %d" % results.user_gender()
-	print "Right-handed: %d, left-handed %d" % results.user_handedness()
-	print "Average experience in years: %f (%f)" % results.user_experience()
-	print "Average usage in h per week: %f (%f)" % results.user_hours_per_week()
+	print_normal("User information")
+
+	print_normal("Average age %f (%f)") % results.user_age()
+	print_normal("Gender distribution: male %d female %d other %d none given %d") % results.user_gender()
+	print_normal("Right-handed: %d, left-handed %d") % results.user_handedness()
+	print_normal("Average experience in years: %f (%f)") % results.user_experience()
+	print_normal("Average usage in h per week: %f (%f)") % results.user_hours_per_week()
 
 def print_questionnaire(results):
-	print "Questionnaire results:"
+	print_normal("Questionnaire results:")
 
 	methods = sorted(results.methods)
 
@@ -557,7 +568,7 @@ def print_questionnaire(results):
 
 	for m in methods:
 		for qidx, question in enumerate(questions[:6]):
-			print "# %s" % (question)
+			print_normal("# %s") % (question)
 			count = 5 * [ 0 ]
 			data = []
 			qrs = [ r.questionnaire for r in results.results ]
@@ -575,14 +586,14 @@ def print_questionnaire(results):
 					count[answer + 2 ] += 1
 
 			stdmean, stddev = mean(data)
-			print "# For method %d: distribution: %s, mean %f stddev %f" % (m, count, stdmean, stddev)
-			print "# method-idx question-idx likert1-counts ...  mean stddev"
-			print "%d %d %d %d %d %d %d %f %f" % (m, qidx,
+			print_normal("# For method %d: distribution: %s, mean %f stddev %f") % (m, count, stdmean, stddev)
+			print_normal("# method-idx question-idx likert1-counts ...  mean stddev")
+			print_normal("%d %d %d %d %d %d %d %f %f") % (m, qidx,
 					count[0], count[1], count[2],
 					count[3], count[4], stdmean, stddev)
 
 	question = questions[12]
-	print question
+	print_normal(question)
 	for (m1, m2) in itertools.combinations(methods, 2):
 		count = 5 * [ 0 ]
 		data = []
@@ -596,10 +607,10 @@ def print_questionnaire(results):
 			count[answer + 2 ] += 1
 
 		stdmean, stddev = mean(data)
-		print "For methods %d and %d: distribution: %s, mean %f stddev %f" % (m1, m2, count, stdmean, stddev)
+		print_normal("For methods %d and %d: distribution: %s, mean %f stddev %f") % (m1, m2, count, stdmean, stddev)
 
 	question = questions[13]
-	print question
+	print_normal(question)
 	for (m1, m2) in itertools.combinations(methods, 2):
 		count = 5 * [ 0 ]
 		data = []
@@ -613,23 +624,27 @@ def print_questionnaire(results):
 			count[answer + 2 ] += 1
 
 		stdmean, stddev = mean(data)
-		print "For methods %d and %d: distribution: %s, mean %f stddev %f" % (m1, m2, count, stdmean, stddev)
+		print_normal("For methods %d and %d: distribution: %s, mean %f stddev %f") % (m1, m2, count, stdmean, stddev)
 
 
 def main(argv):
+	if argv[1] == "--gnuplot":
+		mode = "gnuplot"
+		argv = argv[1:]
+
 	fpath = argv[1];
 
 	results = UserStudyResults(fpath)
 
 	print_user_info(results)
 
-	print "Target sizes: %s" % results.target_sizes
-	print "Methods used: %s" % results.methods
+	print_normal("Target sizes: %s") % results.target_sizes
+	print_normal("Methods used: %s") % results.methods
 	sets = [SetResults(m, s) for (m, s) in itertools.product(results.methods, results.target_sizes)]
 
 	r = results.button_click_times()
 
-	print "Button click time: %s" % r
+	print_normal("Button click time: %s") % r
 
 	r = results.target_aquisition_times()
 	print_results("Target time-to-aquisition times (in ms)", r, sets, results.target_sizes)
