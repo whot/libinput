@@ -48,15 +48,15 @@ enum evdev_key_type {
 };
 
 static void
-set_key_down(struct evdev_device *device, int code, int pressed)
+hw_set_key_down(struct evdev_device *device, int code, int pressed)
 {
-	long_set_bit_state(device->key_mask, code, pressed);
+	long_set_bit_state(device->hw_key_mask, code, pressed);
 }
 
 static int
-is_key_down(struct evdev_device *device, int code)
+hw_is_key_down(struct evdev_device *device, int code)
 {
-	return long_bit_is_set(device->key_mask, code);
+	return long_bit_is_set(device->hw_key_mask, code);
 }
 
 static int
@@ -385,12 +385,12 @@ evdev_process_key(struct evdev_device *device,
 			break;
 		case EVDEV_KEY_TYPE_KEY:
 		case EVDEV_KEY_TYPE_BUTTON:
-			if (!is_key_down(device, e->code))
+			if (!hw_is_key_down(device, e->code))
 				return;
 		}
 	}
 
-	set_key_down(device, e->code, e->value);
+	hw_set_key_down(device, e->code, e->value);
 
 	switch (type) {
 	case EVDEV_KEY_TYPE_NONE:

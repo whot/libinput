@@ -100,7 +100,7 @@ struct evdev_device {
 
 	/* Bitmask of pressed keys used to ignore initial release events from
 	 * the kernel. */
-	unsigned long key_mask[NLONGS(KEY_CNT)];
+	unsigned long hw_key_mask[NLONGS(KEY_CNT)];
 	/* Key counter used for multiplexing button events internally in
 	 * libinput. */
 	uint8_t key_count[KEY_CNT];
