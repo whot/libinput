@@ -624,20 +624,77 @@ struct evdev_dispatch_interface fallback_interface = {
 	fallback_destroy
 };
 
+static uint32_t
+evdev_sendevents_get_modes(struct libinput_device *device)
+{
+	return LIBINPUT_CONFIG_SEND_EVENTS_ENABLED |
+	       LIBINPUT_CONFIG_SEND_EVENTS_DISABLED;
+}
+
+static enum libinput_config_status
+evdev_sendevents_set_mode(struct libinput_device *device,
+			  enum libinput_config_send_events_mode mode)
+{
+	struct evdev_device *evdev = (struct evdev_device*)device;
+	struct evdev_dispatch *dispatch = evdev->dispatch;
+
+	if (mode == dispatch->sendevents.current_mode)
+		return LIBINPUT_CONFIG_STATUS_SUCCESS;
+
+	switch(mode) {
+	case LIBINPUT_CONFIG_SEND_EVENTS_ENABLED:
+		evdev_device_resume(evdev);
+		break;
+	case LIBINPUT_CONFIG_SEND_EVENTS_DISABLED:
+		evdev_device_suspend(evdev);
+		break;
+	default:
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+	}
+
+	dispatch->sendevents.current_mode = mode;
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static enum libinput_config_send_events_mode
+evdev_sendevents_get_mode(struct libinput_device *device)
+{
+	struct evdev_device *evdev = (struct evdev_device*)device;
+	struct evdev_dispatch *dispatch = evdev->dispatch;
+
+	return dispatch->sendevents.current_mode;
+}
+
+static enum libinput_config_send_events_mode
+evdev_sendevents_get_default_mode(struct libinput_device *device)
+{
+	return LIBINPUT_CONFIG_SEND_EVENTS_ENABLED;
+}
+
 static struct evdev_dispatch *
 fallback_dispatch_create(struct libinput_device *device)
 {
-	struct evdev_dispatch *dispatch = malloc(sizeof *dispatch);
+	struct evdev_dispatch *dispatch = zalloc(sizeof *dispatch);
 	if (dispatch == NULL)
 		return NULL;
 
 	dispatch->interface = &fallback_interface;
+
 	device->config.calibration = &dispatch->calibration;
 
 	dispatch->calibration.has_matrix = evdev_calibration_has_matrix;
 	dispatch->calibration.set_matrix = evdev_calibration_set_matrix;
 	dispatch->calibration.get_matrix = evdev_calibration_get_matrix;
 	dispatch->calibration.get_default_matrix = evdev_calibration_get_default_matrix;
+
+	device->config.sendevents = &dispatch->sendevents.config;
+
+	dispatch->sendevents.current_mode = LIBINPUT_CONFIG_SEND_EVENTS_ENABLED;
+	dispatch->sendevents.config.get_modes = evdev_sendevents_get_modes;
+	dispatch->sendevents.config.set_mode = evdev_sendevents_set_mode;
+	dispatch->sendevents.config.get_mode = evdev_sendevents_get_mode;
+	dispatch->sendevents.config.get_default_mode = evdev_sendevents_get_default_mode;
 
 	return dispatch;
 }
@@ -1194,6 +1251,40 @@ evdev_device_suspend(struct evdev_device *device)
 		close_restricted(device->base.seat->libinput, device->fd);
 		device->fd = -1;
 	}
+
+	return 0;
+}
+
+int
+evdev_device_resume(struct evdev_device *device)
+{
+	struct libinput *libinput = device->base.seat->libinput;
+	int fd;
+
+	if (device->fd != -1)
+		return 0;
+
+	fd = open_restricted(libinput, device->devnode, O_RDWR | O_NONBLOCK);
+
+	if (fd < 0)
+		return -errno;
+
+	device->fd = fd;
+
+	if (evdev_need_mtdev(device)) {
+		device->mtdev = mtdev_new_open(device->fd);
+		if (!device->mtdev)
+			return -ENODEV;
+	}
+
+	device->source =
+		libinput_add_fd(libinput, fd, evdev_device_dispatch, device);
+	if (!device->source) {
+		mtdev_close_delete(device->mtdev);
+		return -ENOMEM;
+	}
+
+	memset(device->hw_key_mask, 0, sizeof(device->hw_key_mask));
 
 	return 0;
 }

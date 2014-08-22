@@ -124,6 +124,11 @@ struct evdev_dispatch_interface {
 struct evdev_dispatch {
 	struct evdev_dispatch_interface *interface;
 	struct libinput_device_config_calibration calibration;
+
+	struct {
+		struct libinput_device_config_send_events config;
+		enum libinput_config_send_events_mode current_mode;
+	} sendevents;
 };
 
 struct evdev_device *
@@ -188,6 +193,9 @@ evdev_device_transform_y(struct evdev_device *device,
 			 uint32_t height);
 int
 evdev_device_suspend(struct evdev_device *device);
+
+int
+evdev_device_resume(struct evdev_device *device);
 
 void
 evdev_keyboard_notify_key(struct evdev_device *device,
