@@ -14,6 +14,16 @@ from collections import OrderedDict
 
 mode = "normal"
 
+question_code = {
+		0 : "natural",
+		1 : "precise",
+		2 : "fast movement",
+		3 : "easy-to-hit",
+		4 : "faster",
+		5 : "slower",
+		}
+
+
 def print_normal(*args, **kwargs):
 	if mode == "normal":
 		print(*args, **kwargs)
@@ -590,7 +600,7 @@ def print_questionnaire(results):
 			stdmean, stddev = mean(data)
 			print_normal("For method %d: distribution: %s, mean %f stddev %f" % (m, count, stdmean, stddev))
 			print_gnuplot("# method-idx question-idx likert1-counts ...  mean stddev")
-			print_gnuplot("%d %d %d %d %d %d %d %f %f" % (m, qidx,
+			print_gnuplot("%d \"%s\" %d %d %d %d %d %f %f" % (m, question_code[qidx],
 					count[0], count[1], count[2],
 					count[3], count[4], stdmean, stddev))
 
