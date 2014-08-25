@@ -431,6 +431,83 @@ START_TEST(config_status_string)
 }
 END_TEST
 
+START_TEST(matrix_helpers)
+{
+	struct matrix m1, m2, m3;
+	float f[6] = { 1, 2, 3, 4, 5, 6 };
+	int x, y;
+	int row, col;
+
+	matrix_init_identity(&m1);
+
+	for (row = 0; row < 3; row++) {
+		for (col = 0; col < 3; col++) {
+			ck_assert_int_eq(m1.val[row][col],
+					 (row == col) ? 1 : 0);
+		}
+	}
+	ck_assert(matrix_is_identity(&m1));
+
+	matrix_from_farray6(&m2, f);
+	ck_assert_int_eq(m2.val[0][0], 1);
+	ck_assert_int_eq(m2.val[0][1], 2);
+	ck_assert_int_eq(m2.val[0][2], 3);
+	ck_assert_int_eq(m2.val[1][0], 4);
+	ck_assert_int_eq(m2.val[1][1], 5);
+	ck_assert_int_eq(m2.val[1][2], 6);
+	ck_assert_int_eq(m2.val[2][0], 0);
+	ck_assert_int_eq(m2.val[2][1], 0);
+	ck_assert_int_eq(m2.val[2][2], 1);
+
+	x = 100;
+	y = 5;
+	matrix_mult_vec(&m1, &x, &y);
+	ck_assert_int_eq(x, 100);
+	ck_assert_int_eq(y, 5);
+
+	matrix_mult(&m3, &m1, &m1);
+	ck_assert(matrix_is_identity(&m3));
+
+	matrix_init_scale(&m2, 2, 4);
+	ck_assert_int_eq(m2.val[0][0], 2);
+	ck_assert_int_eq(m2.val[0][1], 0);
+	ck_assert_int_eq(m2.val[0][2], 0);
+	ck_assert_int_eq(m2.val[1][0], 0);
+	ck_assert_int_eq(m2.val[1][1], 4);
+	ck_assert_int_eq(m2.val[1][2], 0);
+	ck_assert_int_eq(m2.val[2][0], 0);
+	ck_assert_int_eq(m2.val[2][1], 0);
+	ck_assert_int_eq(m2.val[2][2], 1);
+
+	matrix_mult_vec(&m2, &x, &y);
+	ck_assert_int_eq(x, 200);
+	ck_assert_int_eq(y, 20);
+
+	matrix_init_translate(&m2, 10, 100);
+	ck_assert_int_eq(m2.val[0][0], 1);
+	ck_assert_int_eq(m2.val[0][1], 0);
+	ck_assert_int_eq(m2.val[0][2], 10);
+	ck_assert_int_eq(m2.val[1][0], 0);
+	ck_assert_int_eq(m2.val[1][1], 1);
+	ck_assert_int_eq(m2.val[1][2], 100);
+	ck_assert_int_eq(m2.val[2][0], 0);
+	ck_assert_int_eq(m2.val[2][1], 0);
+	ck_assert_int_eq(m2.val[2][2], 1);
+
+	matrix_mult_vec(&m2, &x, &y);
+	ck_assert_int_eq(x, 210);
+	ck_assert_int_eq(y, 120);
+
+	matrix_to_farray6(&m2, f);
+	ck_assert_int_eq(f[0], 1);
+	ck_assert_int_eq(f[1], 0);
+	ck_assert_int_eq(f[2], 10);
+	ck_assert_int_eq(f[3], 0);
+	ck_assert_int_eq(f[4], 1);
+	ck_assert_int_eq(f[5], 100);
+}
+END_TEST
+
 int main (int argc, char **argv) {
 	litest_add_no_device("events:conversion", event_conversion_device_notify);
 	litest_add_no_device("events:conversion", event_conversion_pointer);
@@ -441,5 +518,6 @@ int main (int argc, char **argv) {
 	litest_add("device:id", device_ids, LITEST_ANY, LITEST_ANY);
 	litest_add_no_device("config:status string", config_status_string);
 
+	litest_add_no_device("misc:matrix", matrix_helpers);
 	return litest_run(argc, argv);
 }

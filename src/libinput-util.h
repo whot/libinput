@@ -25,6 +25,7 @@
 
 #include <unistd.h>
 #include <math.h>
+#include <string.h>
 
 #include "libinput.h"
 
@@ -177,6 +178,105 @@ long_set_bit_state(unsigned long *array, int bit, int state)
 		long_set_bit(array, bit);
 	else
 		long_clear_bit(array, bit);
+}
+
+struct matrix {
+	float val[3][3]; /* [row][col] */
+};
+
+static inline void
+matrix_init_identity(struct matrix *m)
+{
+	memset(m, 0, sizeof(*m));
+	m->val[0][0] = 1;
+	m->val[1][1] = 1;
+	m->val[2][2] = 1;
+}
+
+static inline void
+matrix_from_farray6(struct matrix *m, const float values[6])
+{
+	matrix_init_identity(m);
+	m->val[0][0] = values[0];
+	m->val[0][1] = values[1];
+	m->val[0][2] = values[2];
+	m->val[1][0] = values[3];
+	m->val[1][1] = values[4];
+	m->val[1][2] = values[5];
+}
+
+static inline void
+matrix_init_scale(struct matrix *m, float sx, float sy)
+{
+	matrix_init_identity(m);
+	m->val[0][0] = sx;
+	m->val[1][1] = sy;
+}
+
+static inline void
+matrix_init_translate(struct matrix *m, float x, float y)
+{
+	matrix_init_identity(m);
+	m->val[0][2] = x;
+	m->val[1][2] = y;
+}
+
+static inline int
+matrix_is_identity(struct matrix *m)
+{
+	return (m->val[0][0] == 1 &&
+		m->val[0][1] == 0 &&
+		m->val[0][2] == 0 &&
+		m->val[1][0] == 0 &&
+		m->val[1][1] == 1 &&
+		m->val[1][2] == 0 &&
+		m->val[2][0] == 0 &&
+		m->val[2][1] == 0 &&
+		m->val[2][2] == 1);
+}
+
+static inline void
+matrix_mult(struct matrix *dest,
+	    const struct matrix *m1,
+	    const struct matrix *m2)
+{
+	struct matrix m;
+	int row, col, i;
+
+	for (row = 0; row < 3; row++) {
+		for (col = 0; col < 3; col++) {
+			double v = 0;
+			for (i = 0; i < 3; i++) {
+				v += m1->val[row][i] * m2->val[i][col];
+			}
+			m.val[row][col] = v;
+		}
+	}
+
+	memcpy(dest, &m, sizeof(m));
+}
+
+static inline void
+matrix_mult_vec(struct matrix *m, int *x, int *y)
+{
+	int tx, ty;
+
+	tx = *x * m->val[0][0] + *y * m->val[0][1] + m->val[0][2];
+	ty = *x * m->val[1][0] + *y * m->val[1][1] + m->val[1][2];
+
+	*x = tx;
+	*y = ty;
+}
+
+static inline void
+matrix_to_farray6(const struct matrix *m, float out[6])
+{
+	out[0] = m->val[0][0];
+	out[1] = m->val[0][1];
+	out[2] = m->val[0][2];
+	out[3] = m->val[1][0];
+	out[4] = m->val[1][1];
+	out[5] = m->val[1][2];
 }
 
 #endif /* LIBINPUT_UTIL_H */
