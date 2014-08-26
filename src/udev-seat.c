@@ -49,6 +49,7 @@ device_added(struct udev_device *udev_device, struct udev_input *input)
 	const char *sysname;
 	const char *device_seat, *seat_name, *output_name;
 	const char *calibration_values;
+	float calibration[6];
 	struct udev_seat *seat;
 
 	device_seat = udev_device_get_property_value(udev_device, "ID_SEAT");
@@ -93,21 +94,21 @@ device_added(struct udev_device *udev_device, struct udev_input *input)
 
 	if (calibration_values && sscanf(calibration_values,
 					 "%f %f %f %f %f %f",
-					 &device->abs.calibration[0],
-					 &device->abs.calibration[1],
-					 &device->abs.calibration[2],
-					 &device->abs.calibration[3],
-					 &device->abs.calibration[4],
-					 &device->abs.calibration[5]) == 6) {
-		device->abs.apply_calibration = 1;
+					 &calibration[0],
+					 &calibration[1],
+					 &calibration[2],
+					 &calibration[3],
+					 &calibration[4],
+					 &calibration[5]) == 6) {
+		evdev_device_calibrate(device, calibration);
 		log_info(&input->base,
 			 "Applying calibration: %f %f %f %f %f %f\n",
-			 device->abs.calibration[0],
-			 device->abs.calibration[1],
-			 device->abs.calibration[2],
-			 device->abs.calibration[3],
-			 device->abs.calibration[4],
-			 device->abs.calibration[5]);
+			 calibration[0],
+			 calibration[1],
+			 calibration[2],
+			 calibration[3],
+			 calibration[4],
+			 calibration[5]);
 	}
 
 	output_name = udev_device_get_property_value(udev_device, "WL_OUTPUT");
