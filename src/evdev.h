@@ -74,6 +74,7 @@ struct evdev_device {
 
 		int apply_calibration;
 		struct matrix calibration;
+		struct matrix usermatrix; /* as supplied by the caller */
 	} abs;
 
 	struct {
@@ -121,6 +122,7 @@ struct evdev_dispatch_interface {
 
 struct evdev_dispatch {
 	struct evdev_dispatch_interface *interface;
+	struct libinput_device_config_calibration calibration;
 };
 
 struct evdev_device *

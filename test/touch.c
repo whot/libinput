@@ -232,7 +232,8 @@ START_TEST(touch_calibration_scale)
 	li = dev->libinput;
 
 	for (calibration = 0.1; calibration < 1; calibration += 0.1) {
-		libinput_device_calibrate(dev->libinput_device, matrix);
+		libinput_device_config_calibration_set_matrix(dev->libinput_device,
+							      matrix);
 		litest_drain_events(li);
 
 		litest_touch_down(dev, 0, 100, 100);
@@ -303,7 +304,8 @@ START_TEST(touch_calibration_rotation)
 			break;
 		}
 
-		libinput_device_calibrate(dev->libinput_device, matrix);
+		libinput_device_config_calibration_set_matrix(dev->libinput_device,
+							      matrix);
 		litest_drain_events(li);
 
 		litest_touch_down(dev, 0, 80, 20);
@@ -368,7 +370,8 @@ START_TEST(touch_calibration_translation)
 
 	/* translating from 0 up to 1 device width/height */
 	for (translate = 0.1; translate <= 1; translate += 0.1) {
-		libinput_device_calibrate(dev->libinput_device, matrix);
+		libinput_device_config_calibration_set_matrix(dev->libinput_device,
+							      matrix);
 		litest_drain_events(li);
 
 		litest_touch_down(dev, 0, 100, 100);

@@ -385,6 +385,28 @@ START_TEST(pointer_seat_button_count)
 }
 END_TEST
 
+START_TEST(pointer_no_calibration)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *d = dev->libinput_device;
+	enum libinput_config_status status;
+	int rc;
+	float calibration[6] = {0};
+
+	rc = libinput_device_config_calibration_has_matrix(d);
+	ck_assert_int_eq(rc, 0);
+	rc = libinput_device_config_calibration_get_matrix(d, calibration);
+	ck_assert_int_eq(rc, 0);
+	rc = libinput_device_config_calibration_get_default_matrix(d,
+								   calibration);
+	ck_assert_int_eq(rc, 0);
+
+	status = libinput_device_config_calibration_set_matrix(d,
+							       calibration);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_UNSUPPORTED);
+}
+END_TEST
+
 int main (int argc, char **argv) {
 
 	litest_add("pointer:motion", pointer_motion_relative, LITEST_POINTER, LITEST_ANY);
@@ -392,6 +414,8 @@ int main (int argc, char **argv) {
 	litest_add_no_device("pointer:button_auto_release", pointer_button_auto_release);
 	litest_add("pointer:scroll", pointer_scroll_wheel, LITEST_WHEEL, LITEST_ANY);
 	litest_add_no_device("pointer:seat button count", pointer_seat_button_count);
+
+	litest_add("pointer:calibration", pointer_no_calibration, LITEST_ANY, LITEST_TOUCH|LITEST_SINGLE_TOUCH);
 
 	return litest_run(argc, argv);
 }

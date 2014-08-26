@@ -1312,3 +1312,40 @@ libinput_device_config_tap_get_default_enabled(struct libinput_device *device)
 
 	return device->config.tap->get_default(device);
 }
+
+LIBINPUT_EXPORT int
+libinput_device_config_calibration_has_matrix(struct libinput_device *device)
+{
+	return device->config.calibration ?
+		device->config.calibration->has_matrix(device) : 0;
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_calibration_set_matrix(struct libinput_device *device,
+					      const float matrix[6])
+{
+	if (!libinput_device_config_calibration_has_matrix(device))
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+
+	return device->config.calibration->set_matrix(device, matrix);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_calibration_get_matrix(struct libinput_device *device,
+					      float matrix[6])
+{
+	if (!libinput_device_config_calibration_has_matrix(device))
+		return 0;
+
+	return device->config.calibration->get_matrix(device, matrix);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_calibration_get_default_matrix(struct libinput_device *device,
+						      float matrix[6])
+{
+	if (!libinput_device_config_calibration_has_matrix(device))
+		return 0;
+
+	return device->config.calibration->get_default_matrix(device, matrix);
+}

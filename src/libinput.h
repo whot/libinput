@@ -1365,45 +1365,12 @@ libinput_device_get_keys(struct libinput_device *device,
 /**
  * @ingroup device
  *
- * Apply the 3x3 transformation matrix to absolute device coordinates. This
- * matrix has no effect on relative events.
- *
- * Given a 6-element array [a, b, c, d, e, f], the matrix is applied as
- * @code
- * [ a  b  c ]   [ x ]
- * [ d  e  f ] * [ y ]
- * [ 0  0  1 ]   [ 1 ]
- * @endcode
- *
- * The translation component (c, f) is expected to be normalized to the
- * device coordinate range. For example, the matrix
- * @code
- * [ 1 0  1 ]
- * [ 0 1 -1 ]
- * [ 0 0  1 ]
- * @endcode
- * moves all coordinates by 1 device-width to the right and 1 device-height
- * up.
- *
- * The rotation matrix for rotation around the origin is defined as
- * @code
- * [ cos(a) -sin(a) 0 ]
- * [ sin(a)  cos(a) 0 ]
- * [   0      0     1 ]
- * @endcode
- * Note that any rotation requires an additional translation component to
- * translate the rotated coordinates back into the original device space.
- * The rotation matrixes for 90, 180 and 270 degrees clockwise are:
- * @code
- * 90 deg cw:		180 deg cw:		270 deg cw:
- * [ 0 -1 1]		[ -1  0 1]		[  0 1 0 ]
- * [ 1  0 0]		[  0 -1 1]		[ -1 0 1 ]
- * [ 0  0 1]		[  0  0 1]		[  0 0 1 ]
- * @endcode
+ * @deprecated Use libinput_device_config_calibration_set_matrix() instead.
  */
 void
 libinput_device_calibrate(struct libinput_device *device,
-			  float calibration[6]);
+			  float calibration[6])
+	LIBINPUT_ATTRIBUTE_DEPRECATED;
 
 /**
  * @ingroup device
@@ -1558,6 +1525,114 @@ libinput_device_config_tap_get_enabled(struct libinput_device *device);
  */
 enum libinput_config_tap_state
 libinput_device_config_tap_get_default_enabled(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Check if the device can be calibrated via a calibration matrix.
+ *
+ * @param device The device to check
+ * @return non-zero if the device can be calibrated, zero otherwise.
+ *
+ * @see libinput_device_config_calibration_set_matrix
+ * @see libinput_device_config_calibration_get_matrix
+ * @see libinput_device_config_calibration_get_default_matrix
+ */
+int
+libinput_device_config_calibration_has_matrix(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Apply the 3x3 transformation matrix to absolute device coordinates. This
+ * matrix has no effect on relative events.
+ *
+ * Given a 6-element array [a, b, c, d, e, f], the matrix is applied as
+ * @code
+ * [ a  b  c ]   [ x ]
+ * [ d  e  f ] * [ y ]
+ * [ 0  0  1 ]   [ 1 ]
+ * @endcode
+ *
+ * The translation component (c, f) is expected to be normalized to the
+ * device coordinate range. For example, the matrix
+ * @code
+ * [ 1 0  1 ]
+ * [ 0 1 -1 ]
+ * [ 0 0  1 ]
+ * @endcode
+ * moves all coordinates by 1 device-width to the right and 1 device-height
+ * up.
+ *
+ * The rotation matrix for rotation around the origin is defined as
+ * @code
+ * [ cos(a) -sin(a) 0 ]
+ * [ sin(a)  cos(a) 0 ]
+ * [   0      0     1 ]
+ * @endcode
+ * Note that any rotation requires an additional translation component to
+ * translate the rotated coordinates back into the original device space.
+ * The rotation matrixes for 90, 180 and 270 degrees clockwise are:
+ * @code
+ * 90 deg cw:		180 deg cw:		270 deg cw:
+ * [ 0 -1 1]		[ -1  0 1]		[  0 1 0 ]
+ * [ 1  0 0]		[  0 -1 1]		[ -1 0 1 ]
+ * [ 0  0 1]		[  0  0 1]		[  0 0 1 ]
+ * @endcode
+ *
+ * @param device The device to configure
+ * @param matrix An array representing the first two rows of a 3x3 matrix as
+ * described above.
+ *
+ * @return A config status code.
+ *
+ * @see libinput_device_config_calibration_has_matrix
+ * @see libinput_device_config_calibration_get_matrix
+ * @see libinput_device_config_calibration_get_default_matrix
+ */
+enum libinput_config_status
+libinput_device_config_calibration_set_matrix(struct libinput_device *device,
+					      const float matrix[6]);
+
+/**
+ * @ingroup config
+ *
+ * Return the current calibration matrix for this device.
+ *
+ * @param device The device to configure
+ * @param matrix Set to the array representing the first two rows of a 3x3 matrix as
+ * described in libinput_device_config_calibration_set_matrix().
+ *
+ * @return 0 if no calibration is set and the returned matrix is the
+ * identity matrix, 1 otherwise
+ *
+ * @see libinput_device_config_calibration_has_matrix
+ * @see libinput_device_config_calibration_set_matrix
+ * @see libinput_device_config_calibration_get_default_matrix
+ */
+int
+libinput_device_config_calibration_get_matrix(struct libinput_device *device,
+					      float matrix[6]);
+
+/**
+ * @ingroup config
+ *
+ * Return the default calibration matrix for this device.
+ *
+ * @param device The device to configure
+ * @param matrix Set to the array representing the first two rows of a 3x3 matrix as
+ * described in libinput_device_config_calibration_set_matrix().
+ *
+ * @return 0 if no calibration is set and the returned matrix is the
+ * identity matrix, 1 otherwise
+ *
+ * @see libinput_device_config_calibration_has_matrix
+ * @see libinput_device_config_calibration_set_matrix
+ * @see libinput_device_config_calibration_get_default_matrix
+ */
+int
+libinput_device_config_calibration_get_default_matrix(struct libinput_device *device,
+						      float matrix[6]);
 
 #ifdef __cplusplus
 }

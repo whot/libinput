@@ -89,8 +89,19 @@ struct libinput_device_config_tap {
 	enum libinput_config_tap_state (*get_default)(struct libinput_device *device);
 };
 
+struct libinput_device_config_calibration {
+	int (*has_matrix)(struct libinput_device *device);
+	enum libinput_config_status (*set_matrix)(struct libinput_device *device,
+						  const float matrix[6]);
+	int (*get_matrix)(struct libinput_device *device,
+			  float matrix[6]);
+	int (*get_default_matrix)(struct libinput_device *device,
+							  float matrix[6]);
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap *tap;
+	struct libinput_device_config_calibration *calibration;
 };
 
 struct libinput_device {

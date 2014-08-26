@@ -578,19 +578,70 @@ fallback_destroy(struct evdev_dispatch *dispatch)
 	free(dispatch);
 }
 
+static int
+evdev_calibration_has_matrix(struct libinput_device *libinput_device)
+{
+	struct evdev_device *device = (struct evdev_device*)libinput_device;
+
+	return device->abs.absinfo_x && device->abs.absinfo_y;
+}
+
+static enum libinput_config_status
+evdev_calibration_set_matrix(struct libinput_device *libinput_device,
+			     const float matrix[6])
+{
+	struct evdev_device *device = (struct evdev_device*)libinput_device;
+
+	evdev_device_calibrate(device, matrix);
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static int
+evdev_calibration_get_matrix(struct libinput_device *libinput_device,
+			     float matrix[6])
+{
+	struct evdev_device *device = (struct evdev_device*)libinput_device;
+
+	matrix_to_farray6(&device->abs.usermatrix, matrix);
+
+	return !matrix_is_identity(&device->abs.usermatrix);
+}
+
+static int
+evdev_calibration_get_default_matrix(struct libinput_device *libinput_device,
+				     float matrix[6])
+{
+	struct matrix m;
+
+	/* Always return the identity matrix for now. In the future, this
+	   should return the WL_CALIBRATION matrix defined as default
+	   matrix for this device */
+	matrix_init_identity(&m);
+	matrix_to_farray6(&m, matrix);
+
+	return !matrix_is_identity(&m);
+}
+
 struct evdev_dispatch_interface fallback_interface = {
 	fallback_process,
 	fallback_destroy
 };
 
 static struct evdev_dispatch *
-fallback_dispatch_create(void)
+fallback_dispatch_create(struct libinput_device *device)
 {
 	struct evdev_dispatch *dispatch = malloc(sizeof *dispatch);
 	if (dispatch == NULL)
 		return NULL;
 
 	dispatch->interface = &fallback_interface;
+	device->config.calibration = &dispatch->calibration;
+
+	dispatch->calibration.has_matrix = evdev_calibration_has_matrix;
+	dispatch->calibration.set_matrix = evdev_calibration_set_matrix;
+	dispatch->calibration.get_matrix = evdev_calibration_get_matrix;
+	dispatch->calibration.get_default_matrix = evdev_calibration_get_default_matrix;
 
 	return dispatch;
 }
@@ -904,6 +955,7 @@ evdev_device_create(struct libinput_seat *seat,
 	device->devname = libevdev_get_name(device->evdev);
 
 	matrix_init_identity(&device->abs.calibration);
+	matrix_init_identity(&device->abs.usermatrix);
 
 	if (evdev_configure_device(device) == -1)
 		goto err;
@@ -915,7 +967,7 @@ evdev_device_create(struct libinput_seat *seat,
 
 	/* If the dispatch was not set up use the fallback. */
 	if (device->dispatch == NULL)
-		device->dispatch = fallback_dispatch_create();
+		device->dispatch = fallback_dispatch_create(&device->base);
 	if (device->dispatch == NULL)
 		goto err;
 
@@ -1013,6 +1065,9 @@ evdev_device_calibrate(struct evdev_device *device,
 	 * Matrix maths requires the normalize/un-normalize in reverse
 	 * order.
 	 */
+
+	/* back up the user matrix so we can return it on request */
+	matrix_from_farray6(&device->abs.usermatrix, calibration);
 
 	/* Un-Normalize */
 	matrix_init_translate(&translate,
