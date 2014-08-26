@@ -159,7 +159,8 @@ unsigned int
 evdev_device_get_id_vendor(struct evdev_device *device);
 
 void
-evdev_device_calibrate(struct evdev_device *device, float calibration[6]);
+evdev_device_calibrate(struct evdev_device *device,
+		       const float calibration[6]);
 
 int
 evdev_device_has_capability(struct evdev_device *device,

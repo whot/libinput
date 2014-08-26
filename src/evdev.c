@@ -976,7 +976,8 @@ evdev_device_get_id_vendor(struct evdev_device *device)
 }
 
 void
-evdev_device_calibrate(struct evdev_device *device, float calibration[6])
+evdev_device_calibrate(struct evdev_device *device,
+		       const float calibration[6])
 {
 	device->abs.apply_calibration = 1;
 	memcpy(device->abs.calibration, calibration, sizeof device->abs.calibration);
