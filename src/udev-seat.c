@@ -90,7 +90,7 @@ device_added(struct udev_device *udev_device, struct udev_input *input)
 
 	calibration_values =
 		udev_device_get_property_value(udev_device,
-					       "WL_CALIBRATION");
+					       "LIBINPUT_CALIBRATION_MATRIX");
 
 	if (calibration_values && sscanf(calibration_values,
 					 "%f %f %f %f %f %f",
