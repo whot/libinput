@@ -73,7 +73,7 @@ struct evdev_device {
 		int32_t seat_slot;
 
 		int apply_calibration;
-		float calibration[6];
+		struct matrix calibration;
 	} abs;
 
 	struct {

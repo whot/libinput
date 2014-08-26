@@ -1374,6 +1374,32 @@ libinput_device_get_keys(struct libinput_device *device,
  * [ d  e  f ] * [ y ]
  * [ 0  0  1 ]   [ 1 ]
  * @endcode
+ *
+ * The translation component (c, f) is expected to be normalized to the
+ * device coordinate range. For example, the matrix
+ * @code
+ * [ 1 0  1 ]
+ * [ 0 1 -1 ]
+ * [ 0 0  1 ]
+ * @endcode
+ * moves all coordinates by 1 device-width to the right and 1 device-height
+ * up.
+ *
+ * The rotation matrix for rotation around the origin is defined as
+ * @code
+ * [ cos(a) -sin(a) 0 ]
+ * [ sin(a)  cos(a) 0 ]
+ * [   0      0     1 ]
+ * @endcode
+ * Note that any rotation requires an additional translation component to
+ * translate the rotated coordinates back into the original device space.
+ * The rotation matrixes for 90, 180 and 270 degrees clockwise are:
+ * @code
+ * 90 deg cw:		180 deg cw:		270 deg cw:
+ * [ 0 -1 1]		[ -1  0 1]		[  0 1 0 ]
+ * [ 1  0 0]		[  0 -1 1]		[ -1 0 1 ]
+ * [ 0  0 1]		[  0  0 1]		[  0 0 1 ]
+ * @endcode
  */
 void
 libinput_device_calibrate(struct libinput_device *device,

@@ -150,20 +150,10 @@ evdev_device_led_update(struct evdev_device *device, enum libinput_led leds)
 static void
 transform_absolute(struct evdev_device *device, int32_t *x, int32_t *y)
 {
-	int32_t tx, ty;
-
 	if (!device->abs.apply_calibration)
 		return;
 
-	tx = *x * device->abs.calibration[0] +
-		*y * device->abs.calibration[1] +
-		device->abs.calibration[2];
-
-	ty = *x * device->abs.calibration[3] +
-		*y * device->abs.calibration[4] +
-		device->abs.calibration[5];
-	*x = tx;
-	*y = ty;
+	matrix_mult_vec(&device->abs.calibration, x, y);
 }
 
 static inline double
@@ -913,6 +903,8 @@ evdev_device_create(struct libinput_seat *seat,
 	device->pending_event = EVDEV_NONE;
 	device->devname = libevdev_get_name(device->evdev);
 
+	matrix_init_identity(&device->abs.calibration);
+
 	if (evdev_configure_device(device) == -1)
 		goto err;
 
@@ -986,8 +978,61 @@ void
 evdev_device_calibrate(struct evdev_device *device,
 		       const float calibration[6])
 {
-	device->abs.apply_calibration = 1;
-	memcpy(device->abs.calibration, calibration, sizeof device->abs.calibration);
+	struct matrix scale,
+		      translate,
+		      transform;
+	double sx, sy;
+
+	matrix_from_farray6(&transform, calibration);
+	device->abs.apply_calibration = !matrix_is_identity(&transform);
+
+	if (!device->abs.apply_calibration) {
+		matrix_init_identity(&device->abs.calibration);
+		return;
+	}
+
+	sx = device->abs.absinfo_x->maximum - device->abs.absinfo_x->minimum + 1;
+	sy = device->abs.absinfo_y->maximum - device->abs.absinfo_y->minimum + 1;
+
+	/* The transformation matrix is in the form:
+	 *  [ a b c ]
+	 *  [ d e f ]
+	 *  [ 0 0 1 ]
+	 * Where a, e are the scale components, a, b, d, e are the rotation
+	 * component (combined with scale) and c and f are the translation
+	 * component. The translation component in the input matrix must be
+	 * normalized to multiples of the device width and height,
+	 * respectively. e.g. c == 1 shifts one device-width to the right.
+	 *
+	 * We pre-calculate a single matrix to apply to event coordinates:
+	 *     M = Un-Normalize * Calibration * Normalize
+	 *
+	 * Normalize: scales the device coordinates to [0,1]
+	 * Calibration: user-supplied matrix
+	 * Un-Normalize: scales back up to device coordinates
+	 * Matrix maths requires the normalize/un-normalize in reverse
+	 * order.
+	 */
+
+	/* Un-Normalize */
+	matrix_init_translate(&translate,
+			      device->abs.absinfo_x->minimum,
+			      device->abs.absinfo_y->minimum);
+	matrix_init_scale(&scale, sx, sy);
+	matrix_mult(&scale, &translate, &scale);
+
+	/* Calibration */
+	matrix_mult(&transform, &scale, &transform);
+
+	/* Normalize */
+	matrix_init_translate(&translate,
+			      -device->abs.absinfo_x->minimum/sx,
+			      -device->abs.absinfo_y->minimum/sy);
+	matrix_init_scale(&scale, 1.0/sx, 1.0/sy);
+	matrix_mult(&scale, &translate, &scale);
+
+	/* store final matrix in device */
+	matrix_mult(&device->abs.calibration, &transform, &scale);
 }
 
 int
