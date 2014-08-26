@@ -74,6 +74,7 @@ struct evdev_device {
 
 		int apply_calibration;
 		struct matrix calibration;
+		struct matrix default_calibration; /* from LIBINPUT_CALIBRATION_MATRIX */
 		struct matrix usermatrix; /* as supplied by the caller */
 	} abs;
 
@@ -160,6 +161,9 @@ evdev_device_get_id_product(struct evdev_device *device);
 unsigned int
 evdev_device_get_id_vendor(struct evdev_device *device);
 
+void
+evdev_device_set_default_calibration(struct evdev_device *device,
+				     const float calibration[6]);
 void
 evdev_device_calibrate(struct evdev_device *device,
 		       const float calibration[6]);

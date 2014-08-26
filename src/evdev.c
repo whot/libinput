@@ -612,15 +612,11 @@ static int
 evdev_calibration_get_default_matrix(struct libinput_device *libinput_device,
 				     float matrix[6])
 {
-	struct matrix m;
+	struct evdev_device *device = (struct evdev_device*)libinput_device;
 
-	/* Always return the identity matrix for now. In the future, this
-	   should return the WL_CALIBRATION matrix defined as default
-	   matrix for this device */
-	matrix_init_identity(&m);
-	matrix_to_farray6(&m, matrix);
+	matrix_to_farray6(&device->abs.default_calibration, matrix);
 
-	return !matrix_is_identity(&m);
+	return !matrix_is_identity(&device->abs.default_calibration);
 }
 
 struct evdev_dispatch_interface fallback_interface = {
@@ -956,6 +952,7 @@ evdev_device_create(struct libinput_seat *seat,
 
 	matrix_init_identity(&device->abs.calibration);
 	matrix_init_identity(&device->abs.usermatrix);
+	matrix_init_identity(&device->abs.default_calibration);
 
 	if (evdev_configure_device(device) == -1)
 		goto err;
@@ -1024,6 +1021,14 @@ unsigned int
 evdev_device_get_id_vendor(struct evdev_device *device)
 {
 	return libevdev_get_id_vendor(device->evdev);
+}
+
+void
+evdev_device_set_default_calibration(struct evdev_device *device,
+				     const float calibration[6])
+{
+	matrix_from_farray6(&device->abs.default_calibration, calibration);
+	evdev_device_calibrate(device, calibration);
 }
 
 void

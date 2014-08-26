@@ -100,7 +100,7 @@ device_added(struct udev_device *udev_device, struct udev_input *input)
 					 &calibration[3],
 					 &calibration[4],
 					 &calibration[5]) == 6) {
-		evdev_device_calibrate(device, calibration);
+		evdev_device_set_default_calibration(device, calibration);
 		log_info(&input->base,
 			 "Applying calibration: %f %f %f %f %f %f\n",
 			 calibration[0],
