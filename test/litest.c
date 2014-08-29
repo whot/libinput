@@ -564,6 +564,18 @@ litest_add_device_with_overrides(struct libinput *libinput,
 }
 
 struct litest_device *
+litest_add_device(struct libinput *libinput,
+		  enum litest_device_type which)
+{
+	return litest_add_device_with_overrides(libinput,
+						which,
+						NULL,
+						NULL,
+						NULL,
+						NULL);
+}
+
+struct litest_device *
 litest_create_device_with_overrides(enum litest_device_type which,
 				    const char *name_override,
 				    struct input_id *id_override,
