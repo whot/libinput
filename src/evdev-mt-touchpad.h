@@ -217,6 +217,11 @@ struct tp_dispatch {
 		int32_t right_edge;
 		int32_t left_edge;
 	} palm;
+
+	struct {
+		struct libinput_device_config_send_events config;
+		enum libinput_config_send_events_mode current_mode;
+	} sendevents;
 };
 
 #define tp_for_each_touch(_tp, _t) \
@@ -248,6 +253,10 @@ tp_process_button(struct tp_dispatch *tp,
 		  const struct input_event *e,
 		  uint64_t time);
 
+void
+tp_release_all_buttons(struct tp_dispatch *tp,
+		       uint64_t time);
+
 int
 tp_post_button_events(struct tp_dispatch *tp, uint64_t time);
 
@@ -259,5 +268,9 @@ tp_button_touch_active(struct tp_dispatch *tp, struct tp_touch *t);
 
 bool
 tp_button_is_inside_softbutton_area(struct tp_dispatch *tp, struct tp_touch *t);
+
+void
+tp_release_all_taps(struct tp_dispatch *tp,
+		    uint64_t time);
 
 #endif

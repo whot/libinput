@@ -262,12 +262,12 @@ END_TEST
 
 int main (int argc, char **argv)
 {
-	litest_add("device:sendevents", device_sendevents_config, LITEST_ANY, LITEST_TOUCHPAD);
-	litest_add("device:sendevents", device_sendevents_config_default, LITEST_ANY, LITEST_TOUCHPAD);
-	litest_add("device:sendevents", device_disable, LITEST_POINTER, LITEST_TOUCHPAD);
+	litest_add("device:sendevents", device_sendevents_config, LITEST_ANY, LITEST_ANY);
+	litest_add("device:sendevents", device_sendevents_config_default, LITEST_ANY, LITEST_ANY);
+	litest_add("device:sendevents", device_disable, LITEST_POINTER, LITEST_ANY);
 	litest_add("device:sendevents", device_disable_events_pending, LITEST_POINTER, LITEST_TOUCHPAD);
-	litest_add("device:sendevents", device_double_disable, LITEST_ANY, LITEST_TOUCHPAD);
-	litest_add("device:sendevents", device_double_enable, LITEST_ANY, LITEST_TOUCHPAD);
+	litest_add("device:sendevents", device_double_disable, LITEST_ANY, LITEST_ANY);
+	litest_add("device:sendevents", device_double_enable, LITEST_ANY, LITEST_ANY);
 	litest_add_no_device("device:sendevents", device_reenable_syspath_changed);
 	litest_add_no_device("device:sendevents", device_reenable_device_removed);
 

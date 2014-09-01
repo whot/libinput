@@ -641,6 +641,41 @@ tp_destroy(struct evdev_dispatch *dispatch)
 	free(tp);
 }
 
+static void
+tp_suspend(struct tp_dispatch *tp, struct evdev_device *device)
+{
+	uint64_t now = libinput_now(tp->device->base.seat->libinput);
+	struct tp_touch *t;
+
+	/* Unroll the touchpad state.
+	 * Release buttons first. If tp is a clickpad, the button event
+	 * must come before the touch up. If it isn't, the order doesn't
+	 * matter anyway
+	 *
+	 * Then cancel all timeouts on the taps, triggering the last set
+	 * of events.
+	 *
+	 * Then lift all touches so the touchpad is in a neutral state.
+	 *
+	 */
+	tp_release_all_buttons(tp, now);
+	tp_release_all_taps(tp, now);
+
+	tp_for_each_touch(tp, t) {
+		tp_end_touch(tp, t, now);
+	}
+
+	tp_handle_state(tp, now);
+
+	evdev_device_suspend(device);
+}
+
+static void
+tp_resume(struct tp_dispatch *tp, struct evdev_device *device)
+{
+	evdev_device_resume(device);
+}
+
 static struct evdev_dispatch_interface tp_interface = {
 	tp_process,
 	tp_destroy
@@ -836,6 +871,54 @@ tp_init(struct tp_dispatch *tp,
 	return 0;
 }
 
+static uint32_t
+tp_sendevents_get_modes(struct libinput_device *device)
+{
+	return LIBINPUT_CONFIG_SEND_EVENTS_ENABLED |
+	       LIBINPUT_CONFIG_SEND_EVENTS_DISABLED;
+}
+
+static enum libinput_config_status
+tp_sendevents_set_mode(struct libinput_device *device,
+		       enum libinput_config_send_events_mode mode)
+{
+	struct evdev_device *evdev = (struct evdev_device*)device;
+	struct tp_dispatch *tp = (struct tp_dispatch*)evdev->dispatch;
+
+	if (mode == tp->sendevents.current_mode)
+		return LIBINPUT_CONFIG_STATUS_SUCCESS;
+
+	switch(mode) {
+	case LIBINPUT_CONFIG_SEND_EVENTS_ENABLED:
+		tp_resume(tp, evdev);
+		break;
+	case LIBINPUT_CONFIG_SEND_EVENTS_DISABLED:
+		tp_suspend(tp, evdev);
+		break;
+	default:
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+	}
+
+	tp->sendevents.current_mode = mode;
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static enum libinput_config_send_events_mode
+tp_sendevents_get_mode(struct libinput_device *device)
+{
+	struct evdev_device *evdev = (struct evdev_device*)device;
+	struct tp_dispatch *dispatch = (struct tp_dispatch*)evdev->dispatch;
+
+	return dispatch->sendevents.current_mode;
+}
+
+static enum libinput_config_send_events_mode
+tp_sendevents_get_default_mode(struct libinput_device *device)
+{
+	return LIBINPUT_CONFIG_SEND_EVENTS_ENABLED;
+}
+
 struct evdev_dispatch *
 evdev_mt_touchpad_create(struct evdev_device *device)
 {
@@ -849,6 +932,14 @@ evdev_mt_touchpad_create(struct evdev_device *device)
 		tp_destroy(&tp->base);
 		return NULL;
 	}
+
+	device->base.config.sendevents = &tp->sendevents.config;
+
+	tp->sendevents.current_mode = LIBINPUT_CONFIG_SEND_EVENTS_ENABLED;
+	tp->sendevents.config.get_modes = tp_sendevents_get_modes;
+	tp->sendevents.config.set_mode = tp_sendevents_set_mode;
+	tp->sendevents.config.get_mode = tp_sendevents_get_mode;
+	tp->sendevents.config.get_default_mode = tp_sendevents_get_default_mode;
 
 	return  &tp->base;
 }

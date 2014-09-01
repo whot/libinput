@@ -693,3 +693,9 @@ tp_destroy_tap(struct tp_dispatch *tp)
 {
 	libinput_timer_cancel(&tp->tap.timer);
 }
+
+void
+tp_release_all_taps(struct tp_dispatch *tp, uint64_t now)
+{
+	tp_tap_handle_timeout(now, tp);
+}

@@ -484,6 +484,16 @@ tp_process_button(struct tp_dispatch *tp,
 	return 0;
 }
 
+void
+tp_release_all_buttons(struct tp_dispatch *tp,
+		       uint64_t time)
+{
+	if (tp->buttons.state) {
+		tp->buttons.state = 0;
+		tp->queued |= TOUCHPAD_EVENT_BUTTON_RELEASE;
+	}
+}
+
 int
 tp_init_buttons(struct tp_dispatch *tp,
 		struct evdev_device *device)
