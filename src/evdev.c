@@ -1135,16 +1135,11 @@ static void
 release_pressed_keys(struct evdev_device *device)
 {
 	struct libinput *libinput = device->base.seat->libinput;
-	struct timespec ts;
 	uint64_t time;
 	int code;
 
-	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
-		log_bug_libinput(libinput, "clock_gettime: %s\n", strerror(errno));
+	if ((time = libinput_now(libinput)) == 0)
 		return;
-	}
-
-	time = ts.tv_sec * 1000ULL + ts.tv_nsec / 1000000;
 
 	for (code = 0; code < KEY_CNT; code++) {
 		if (get_key_down_count(device, code) > 0) {

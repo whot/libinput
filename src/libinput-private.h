@@ -23,6 +23,8 @@
 #ifndef LIBINPUT_PRIVATE_H
 #define LIBINPUT_PRIVATE_H
 
+#include <errno.h>
+
 #include "linux/input.h"
 
 #include "libinput.h"
@@ -229,4 +231,17 @@ touch_notify_touch_up(struct libinput_device *device,
 void
 touch_notify_frame(struct libinput_device *device,
 		   uint32_t time);
+
+static inline uint64_t
+libinput_now(struct libinput *libinput)
+{
+	struct timespec ts = { 0, 0 };
+
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+		log_error(libinput, "clock_gettime failed: %s\n", strerror(errno));
+		return 0;
+	}
+
+	return ts.tv_sec * 1000ULL + ts.tv_nsec / 1000000;
+}
 #endif /* LIBINPUT_PRIVATE_H */

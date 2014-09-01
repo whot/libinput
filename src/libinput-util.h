@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <string.h>
+#include <time.h>
 
 #include "libinput.h"
 

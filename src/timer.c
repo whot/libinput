@@ -67,19 +67,12 @@ void
 libinput_timer_set(struct libinput_timer *timer, uint64_t expire)
 {
 #ifndef NDEBUG
-	struct timespec ts;
-
-	if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
-		uint64_t now = ts.tv_sec * 1000ULL + ts.tv_nsec / 1000000;
-		if (abs(expire - now) > 5000)
-			log_bug_libinput(timer->libinput,
-					 "timer offset more than 5s, now %"
-					 PRIu64 " expire %" PRIu64 "\n",
-					 now, expire);
-	} else {
-		log_error(timer->libinput,
-			  "clock_gettime error: %s\n", strerror(errno));
-	}
+	uint64_t now = libinput_now(timer->libinput);
+	if (abs(expire - now) > 5000)
+		log_bug_libinput(timer->libinput,
+				 "timer offset more than 5s, now %"
+				 PRIu64 " expire %" PRIu64 "\n",
+				 now, expire);
 #endif
 
 	assert(expire);
@@ -107,17 +100,11 @@ libinput_timer_handler(void *data)
 {
 	struct libinput *libinput = data;
 	struct libinput_timer *timer, *tmp;
-	struct timespec ts;
 	uint64_t now;
-	int r;
 
-	r = clock_gettime(CLOCK_MONOTONIC, &ts);
-	if (r) {
-		log_error(libinput, "clock_gettime error: %s\n", strerror(errno));
+	now = libinput_now(libinput);
+	if (now == 0)
 		return;
-	}
-
-	now = ts.tv_sec * 1000ULL + ts.tv_nsec / 1000000;
 
 	list_for_each_safe(timer, tmp, &libinput->timer.list, link) {
 		if (timer->expire <= now) {
