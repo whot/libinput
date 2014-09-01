@@ -594,6 +594,15 @@ tp_post_events(struct tp_dispatch *tp, uint64_t time)
 }
 
 static void
+tp_handle_state(struct tp_dispatch *tp,
+		uint64_t time)
+{
+		tp_process_state(tp, time);
+		tp_post_events(tp, time);
+		tp_post_process_state(tp, time);
+}
+
+static void
 tp_process(struct evdev_dispatch *dispatch,
 	   struct evdev_device *device,
 	   struct input_event *e,
@@ -613,9 +622,7 @@ tp_process(struct evdev_dispatch *dispatch,
 		tp_process_key(tp, e, time);
 		break;
 	case EV_SYN:
-		tp_process_state(tp, time);
-		tp_post_events(tp, time);
-		tp_post_process_state(tp, time);
+		tp_handle_state(tp, time);
 		break;
 	}
 }
