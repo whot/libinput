@@ -437,6 +437,11 @@ class UserStudyResults(object):
 		if not self.results:
 			raise Exception("No files found")
 
+		# files is a set of of UserStudyResultsFile. That's pretty
+		# useless though, so we extract the actual data into lists
+		# here
+		self.questionnaires = [ r.questionnaire for r in self.results ]
+
 	def _files(self, path):
 		for root, dirs, files in os.walk(path):
 			for file in files:
@@ -474,11 +479,11 @@ class UserStudyResults(object):
 		return Results([s for r in self.results for s in r.overshoot.sets])
 
 	def user_age(self):
-		ages = [ r.questionnaire.age for r in self.results if r.questionnaire.age != 0]
+		ages = [ r.age for r in self.questionnaires if r.age != 0]
 		return mean(ages)
 
 	def user_gender(self):
-		genders = [ r.questionnaire.gender for r in self.results ]
+		genders = [ r.gender for r in self.questionnaires ]
 		male = genders.count("male")
 		female = genders.count("female")
 		other = genders.count("other")
@@ -486,15 +491,15 @@ class UserStudyResults(object):
 		return (male, female, other, none)
 
 	def user_handedness(self):
-		handed = [ r.questionnaire.handed for r in self.results ]
+		handed = [ r.handed for r in self.questionnaires ]
 		return (handed.count("right"), handed.count("left"))
 
 	def user_experience(self):
-		experience = [ r.questionnaire.experience for r in self.results if r.questionnaire.experience != 0]
+		experience = [ r.experience for r in self.questionnaires if r.experience != 0]
 		return mean(experience)
 
 	def user_hours_per_week(self):
-		hours = [ r.questionnaire.hours for r in self.results if r.hours != 0]
+		hours = [ r.hours for r in self.questionnaires if r.hours != 0]
 		return mean(hours)
 
 def print_results(msg, r, sets, target_sizes):
