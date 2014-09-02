@@ -432,15 +432,49 @@ class UserStudyResultsFile(object):
 
 
 class UserStudyResults(object):
+	def _normalize(self, results, max_values, what):
+		count_methods = {}
+		for m in self.methods:
+			count_methods[m] = 0
+
+		sets = []
+		for r in results:
+			for m in r.methods:
+				if count_methods[m] >= max_values:
+					continue
+				t = getattr(r, what).filter(SetResults(m))
+				sets += t.sets
+				count_methods[m] += 1
+		return Results(sets)
+
 	def __init__(self, path):
 		self.results = [r for r in self._parse_files(path)]
 		if not self.results:
 			raise Exception("No files found")
 
+		# we don't have an equal number of datasets for each method
+		# count how many we have. Then reduce the results to the
+		# minimum of all methods
+		count_methods = {}
+		for r in self.results:
+			for m in r.methods:
+				count_methods[m] = count_methods.get(m, 0) + 1
+
+		max_values = min(count_methods.itervalues())
+		self._target_aquisition_times = self._normalize(self.results,
+								max_values,
+								"target_aquisition_times")
+
 		# files is a set of of UserStudyResultsFile. That's pretty
 		# useless though, so we extract the actual data into lists
 		# here
 		self.questionnaires = [ r.questionnaire for r in self.results ]
+
+		self._button_click_times = Results([s for r in self.results for s in r.click_times.sets])
+		self._target_misses = self._normalize(self.results, max_values, "target_misses")
+		self._set_completion_times = self._normalize(self.results, max_values, "times_per_set")
+		self._extra_distances = self._normalize(self.results, max_values, "extradistance")
+		self._overshoot = self._normalize(self.results, max_values, "overshoot")
 
 	def _files(self, path):
 		for root, dirs, files in os.walk(path):
@@ -461,22 +495,22 @@ class UserStudyResults(object):
 		return list(OrderedDict.fromkeys([m for r in self.results for m in r.methods]))
 
 	def button_click_times(self):
-		return Results([s for r in self.results for s in r.click_times.sets])
+		return self._button_click_times
 
 	def target_aquisition_times(self):
-		return Results([s for r in self.results for s in r.target_aquisition_times.sets])
+		return self._target_aquisition_times
 
 	def target_misses(self):
-		return Results([s for r in self.results for s in r.target_misses.sets])
+		return self._target_misses
 
 	def set_completion_times(self):
-		return Results([s for r in self.results for s in r.times_per_set.sets])
+		return self._set_completion_times
 
 	def extra_distances(self):
-		return Results([s for r in self.results for s in r.extradistance.sets])
+		return self._extra_distances
 
 	def overshoot(self):
-		return Results([s for r in self.results for s in r.overshoot.sets])
+		return self._overshoot
 
 	def user_age(self):
 		ages = [ r.age for r in self.questionnaires if r.age != 0]
