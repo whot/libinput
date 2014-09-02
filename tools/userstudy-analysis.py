@@ -494,7 +494,7 @@ class UserStudyResults(object):
 		return mean(experience)
 
 	def user_hours_per_week(self):
-		hours = [ r.questionnaire.hours for r in self.results if r.questionnaire.experience != 0]
+		hours = [ r.questionnaire.hours for r in self.results if r.hours != 0]
 		return mean(hours)
 
 def print_results(msg, r, sets, target_sizes):
