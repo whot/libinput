@@ -597,6 +597,8 @@ def print_results(msg, r, sets, target_sizes):
 			s += "{}\t".format(matching.mean())
 		print_gnuplot(s)
 
+	print_gnuplot("########### raw: ")
+	print_raw_results(r, sets, target_sizes)
 
 def print_user_info(results):
 	print_normal("User information")
@@ -606,6 +608,15 @@ def print_user_info(results):
 	print_normal("Right-handed: %d, left-handed %d" % results.user_handedness())
 	print_normal("Average experience in years: %f (%f)" % results.user_experience())
 	print_normal("Average usage in h per week: %f (%f)" % results.user_hours_per_week())
+
+def print_raw_results(results, sets, target_sizes):
+	for t in target_sizes:
+		matching = results.filter(SetResults(None, t))
+		print_gnuplot("# method target value")
+		for s in matching.sets:
+			for d in s.data:
+				print_gnuplot("%d	%d	%d" % (s.method, s.target_size, d))
+
 
 def print_questionnaire(results):
 	print_normal("Questionnaire results:")
