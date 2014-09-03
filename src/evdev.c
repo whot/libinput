@@ -24,6 +24,7 @@
 #include "config.h"
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include "linux/input.h"
@@ -546,6 +547,19 @@ evdev_need_touch_frame(struct evdev_device *device)
 }
 
 static void
+evdev_tag_external_mouse(struct evdev_device *device,
+			 struct udev_device *udev_device)
+{
+	int bustype;
+
+	bustype = libevdev_get_id_bustype(device->evdev);
+	if (bustype == BUS_USB || bustype == BUS_BLUETOOTH) {
+		if (device->seat_caps & EVDEV_DEVICE_POINTER)
+			device->tags |= EVDEV_TAG_EXTERNAL_MOUSE;
+	}
+}
+
+static void
 fallback_process(struct evdev_dispatch *dispatch,
 		 struct evdev_device *device,
 		 struct input_event *event,
@@ -576,6 +590,13 @@ static void
 fallback_destroy(struct evdev_dispatch *dispatch)
 {
 	free(dispatch);
+}
+
+static void
+fallback_tag_device(struct evdev_device *device,
+		    struct udev_device *udev_device)
+{
+	evdev_tag_external_mouse(device, udev_device);
 }
 
 static int
@@ -624,6 +645,7 @@ struct evdev_dispatch_interface fallback_interface = {
 	fallback_destroy,
 	NULL, /* device_added */
 	NULL, /* device_removed */
+	fallback_tag_device,
 };
 
 static uint32_t
@@ -792,6 +814,7 @@ configure_pointer_acceleration(struct evdev_device *device)
 	return 0;
 }
 
+
 static inline int
 evdev_need_mtdev(struct evdev_device *device)
 {
@@ -800,6 +823,25 @@ evdev_need_mtdev(struct evdev_device *device)
 	return (libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_X) &&
 		libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_Y) &&
 		!libevdev_has_event_code(evdev, EV_ABS, ABS_MT_SLOT));
+}
+
+static void
+evdev_tag_device(struct evdev_device *device)
+{
+	struct udev *udev;
+	struct udev_device *udev_device = NULL;
+
+	udev = udev_new();
+	if (!udev)
+		return;
+
+	udev_device = udev_device_new_from_syspath(udev, device->syspath);
+	if (udev_device) {
+		if (device->dispatch->interface->tag_device)
+			device->dispatch->interface->tag_device(device, udev_device);
+		udev_device_unref(udev_device);
+	}
+	udev_unref(udev);
 }
 
 static int
@@ -1064,6 +1106,8 @@ evdev_device_create(struct libinput_seat *seat,
 		goto err;
 
 	list_insert(seat->devices_list.prev, &device->base.link);
+
+	evdev_tag_device(device);
 	evdev_notify_added_device(device);
 
 	return device;

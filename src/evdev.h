@@ -48,6 +48,11 @@ enum evdev_device_seat_capability {
 	EVDEV_DEVICE_TOUCH = (1 << 2)
 };
 
+enum evdev_device_tags {
+	EVDEV_TAG_EXTERNAL_MOUSE = (1 << 0),
+	EVDEV_TAG_INTERNAL_TOUCHPAD = (1 << 1),
+};
+
 struct mt_slot {
 	int32_t seat_slot;
 	int32_t x, y;
@@ -92,6 +97,7 @@ struct evdev_device {
 
 	enum evdev_event_type pending_event;
 	enum evdev_device_seat_capability seat_caps;
+	enum evdev_device_tags tags;
 
 	int is_mt;
 
@@ -128,6 +134,10 @@ struct evdev_dispatch_interface {
 	/* A device was removed */
 	void (*device_removed)(struct evdev_device *device,
 			       struct evdev_device *removed_device);
+
+	/* Tag device with one of EVDEV_TAG */
+	void (*tag_device)(struct evdev_device *device,
+			   struct udev_device *udev_device);
 };
 
 struct evdev_dispatch {
