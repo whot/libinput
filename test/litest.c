@@ -1067,7 +1067,7 @@ litest_assert_button_event(struct libinput *li, unsigned int button,
 	struct libinput_event *event;
 	struct libinput_event_pointer *ptrev;
 
-	libinput_dispatch(li);
+	litest_wait_for_event(li);
 	event = libinput_get_event(li);
 
 	ck_assert(event != NULL);
