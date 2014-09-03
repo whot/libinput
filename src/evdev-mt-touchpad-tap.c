@@ -221,7 +221,6 @@ tp_tap_tapped_handle_event(struct tp_dispatch *tp,
 		break;
 	case TAP_EVENT_TOUCH:
 		tp->tap.state = TAP_STATE_DRAGGING_OR_DOUBLETAP;
-		tp_tap_clear_timer(tp);
 		break;
 	case TAP_EVENT_TIMEOUT:
 		tp->tap.state = TAP_STATE_IDLE;

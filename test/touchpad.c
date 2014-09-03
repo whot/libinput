@@ -171,6 +171,35 @@ START_TEST(touchpad_1fg_tap_n_drag)
 }
 END_TEST
 
+START_TEST(touchpad_1fg_tap_n_drag_timeout)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+
+	libinput_device_config_tap_set_enabled(dev->libinput_device,
+					       LIBINPUT_CONFIG_TAP_ENABLED);
+
+	litest_drain_events(li);
+
+	litest_touch_down(dev, 0, 50, 50);
+	litest_touch_up(dev, 0);
+	litest_touch_down(dev, 0, 50, 50);
+	libinput_dispatch(li);
+	msleep(300);
+
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+
+	litest_assert_empty_queue(li);
+	litest_touch_up(dev, 0);
+
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
+
+	litest_assert_empty_queue(li);
+}
+END_TEST
+
 START_TEST(touchpad_2fg_tap)
 {
 	struct litest_device *dev = litest_current_device();
@@ -1601,6 +1630,7 @@ int main(int argc, char **argv) {
 
 	litest_add("touchpad:tap", touchpad_1fg_tap, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:tap", touchpad_1fg_tap_n_drag, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("touchpad:tap", touchpad_1fg_tap_n_drag_timeout, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:tap", touchpad_2fg_tap, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
 	litest_add("touchpad:tap", touchpad_2fg_tap_inverted, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
 	litest_add("touchpad:tap", touchpad_1fg_tap_click, LITEST_TOUCHPAD, LITEST_CLICKPAD);
