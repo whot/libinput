@@ -621,7 +621,9 @@ evdev_calibration_get_default_matrix(struct libinput_device *libinput_device,
 
 struct evdev_dispatch_interface fallback_interface = {
 	fallback_process,
-	fallback_destroy
+	fallback_destroy,
+	NULL, /* device_added */
+	NULL, /* device_removed */
 };
 
 static uint32_t
@@ -968,6 +970,26 @@ evdev_configure_device(struct evdev_device *device)
 	return 0;
 }
 
+static void
+evdev_notify_added_device(struct evdev_device *device)
+{
+	struct libinput_device *dev;
+
+	list_for_each(dev, &device->base.seat->devices_list, link) {
+		struct evdev_device *d = (struct evdev_device*)dev;
+		if (dev == &device->base)
+			continue;
+
+		if (d->dispatch->interface->device_added)
+			d->dispatch->interface->device_added(d, device);
+
+		if (device->dispatch->interface->device_added)
+			device->dispatch->interface->device_added(device, d);
+	}
+
+	notify_added_device(&device->base);
+}
+
 struct evdev_device *
 evdev_device_create(struct libinput_seat *seat,
 		    const char *devnode,
@@ -1042,7 +1064,7 @@ evdev_device_create(struct libinput_seat *seat,
 		goto err;
 
 	list_insert(seat->devices_list.prev, &device->base.link);
-	notify_added_device(&device->base);
+	evdev_notify_added_device(device);
 
 	return device;
 
@@ -1341,6 +1363,17 @@ evdev_device_resume(struct evdev_device *device)
 void
 evdev_device_remove(struct evdev_device *device)
 {
+	struct libinput_device *dev;
+
+	list_for_each(dev, &device->base.seat->devices_list, link) {
+		struct evdev_device *d = (struct evdev_device*)dev;;
+		if (dev == &device->base)
+			continue;
+
+		if (d->dispatch->interface->device_removed)
+			d->dispatch->interface->device_removed(d, device);
+	}
+
 	evdev_device_suspend(device);
 
 	/* A device may be removed while suspended. Free the syspath to

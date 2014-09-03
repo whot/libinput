@@ -120,6 +120,14 @@ struct evdev_dispatch_interface {
 
 	/* Destroy an event dispatch handler and free all its resources. */
 	void (*destroy)(struct evdev_dispatch *dispatch);
+
+	/* A new device was added */
+	void (*device_added)(struct evdev_device *device,
+			     struct evdev_device *added_device);
+
+	/* A device was removed */
+	void (*device_removed)(struct evdev_device *device,
+			       struct evdev_device *removed_device);
 };
 
 struct evdev_dispatch {

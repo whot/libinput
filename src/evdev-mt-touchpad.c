@@ -678,7 +678,9 @@ tp_resume(struct tp_dispatch *tp, struct evdev_device *device)
 
 static struct evdev_dispatch_interface tp_interface = {
 	tp_process,
-	tp_destroy
+	tp_destroy,
+	NULL, /* device_added */
+	NULL, /* device_removed */
 };
 
 static void
