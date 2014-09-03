@@ -89,27 +89,6 @@ START_TEST(touchpad_2fg_no_motion)
 }
 END_TEST
 
-static void
-assert_button_event(struct libinput *li, unsigned int button,
-		    enum libinput_button_state state)
-{
-	struct libinput_event *event;
-	struct libinput_event_pointer *ptrev;
-
-	libinput_dispatch(li);
-	event = libinput_get_event(li);
-
-	ck_assert(event != NULL);
-	ck_assert_int_eq(libinput_event_get_type(event),
-			 LIBINPUT_EVENT_POINTER_BUTTON);
-	ptrev = libinput_event_get_pointer_event(event);
-	ck_assert_int_eq(libinput_event_pointer_get_button(ptrev),
-			 button);
-	ck_assert_int_eq(libinput_event_pointer_get_button_state(ptrev),
-			 state);
-	libinput_event_destroy(event);
-}
-
 START_TEST(touchpad_1fg_tap)
 {
 	struct litest_device *dev = litest_current_device();
@@ -126,11 +105,11 @@ START_TEST(touchpad_1fg_tap)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	msleep(300); /* tap-n-drag timeout */
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	libinput_dispatch(li);
 	event = libinput_get_event(li);
@@ -157,8 +136,8 @@ START_TEST(touchpad_1fg_tap_n_drag)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 
 	libinput_dispatch(li);
 	while (libinput_next_event_type(li) == LIBINPUT_EVENT_POINTER_MOTION) {
@@ -185,8 +164,8 @@ START_TEST(touchpad_1fg_tap_n_drag)
 
 	msleep(300); /* tap-n-drag timeout */
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -209,11 +188,11 @@ START_TEST(touchpad_2fg_tap)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	msleep(300); /* tap-n-drag timeout */
-	assert_button_event(li, BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -236,11 +215,11 @@ START_TEST(touchpad_2fg_tap_inverted)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	msleep(300); /* tap-n-drag timeout */
-	assert_button_event(li, BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -270,10 +249,10 @@ START_TEST(touchpad_1fg_tap_click)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -302,14 +281,14 @@ START_TEST(touchpad_2fg_tap_click)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
-	assert_button_event(li, BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li, BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -338,10 +317,10 @@ START_TEST(clickpad_2fg_tap_click)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -371,10 +350,10 @@ START_TEST(touchpad_2fg_tap_click_apple)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li, BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -479,14 +458,14 @@ START_TEST(touchpad_1fg_double_tap_click)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -510,8 +489,8 @@ START_TEST(touchpad_1fg_tap_n_drag_click)
 	litest_touch_down(dev, 0, 50, 50);
 	litest_touch_move_to(dev, 0, 50, 50, 80, 50, 10);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 
 	libinput_dispatch(li);
 
@@ -526,10 +505,10 @@ START_TEST(touchpad_1fg_tap_n_drag_click)
 	litest_event(dev, EV_KEY, BTN_LEFT, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 
 	litest_event(dev, EV_KEY, BTN_LEFT, 0);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
@@ -537,8 +516,8 @@ START_TEST(touchpad_1fg_tap_n_drag_click)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -567,11 +546,11 @@ START_TEST(touchpad_3fg_tap)
 
 		libinput_dispatch(li);
 
-		assert_button_event(li, BTN_MIDDLE,
-				    LIBINPUT_BUTTON_STATE_PRESSED);
+		litest_assert_button_event(li, BTN_MIDDLE,
+					   LIBINPUT_BUTTON_STATE_PRESSED);
 		msleep(300); /* tap-n-drag timeout */
-		assert_button_event(li, BTN_MIDDLE,
-				    LIBINPUT_BUTTON_STATE_RELEASED);
+		litest_assert_button_event(li, BTN_MIDDLE,
+					   LIBINPUT_BUTTON_STATE_RELEASED);
 
 		libinput_dispatch(li);
 		event = libinput_get_event(li);
@@ -603,11 +582,11 @@ START_TEST(touchpad_3fg_tap_btntool)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_MIDDLE,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_MIDDLE,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	msleep(300); /* tap-n-drag timeout */
-	assert_button_event(li, BTN_MIDDLE,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_MIDDLE,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	libinput_dispatch(li);
 	event = libinput_get_event(li);
@@ -638,11 +617,11 @@ START_TEST(touchpad_3fg_tap_btntool_inverted)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_MIDDLE,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_MIDDLE,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	msleep(300); /* tap-n-drag timeout */
-	assert_button_event(li, BTN_MIDDLE,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_MIDDLE,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	libinput_dispatch(li);
 	event = libinput_get_event(li);
@@ -666,10 +645,10 @@ START_TEST(touchpad_1fg_clickfinger)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_delete_device(dev);
 }
@@ -693,10 +672,10 @@ START_TEST(touchpad_2fg_clickfinger)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li, BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_delete_device(dev);
 }
@@ -716,10 +695,10 @@ START_TEST(touchpad_btn_left)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 }
 END_TEST
 
@@ -746,10 +725,10 @@ START_TEST(clickpad_1fg_tap_click)
 
 	libinput_dispatch(li);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -787,8 +766,8 @@ START_TEST(clickpad_click_n_drag)
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
 	libinput_dispatch(li);
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 
 	libinput_dispatch(li);
 	ck_assert_int_eq(libinput_next_event_type(li), LIBINPUT_EVENT_NONE);
@@ -811,8 +790,8 @@ START_TEST(clickpad_click_n_drag)
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 0);
 
-	assert_button_event(li, BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li, BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 }
 END_TEST
 
@@ -827,16 +806,16 @@ START_TEST(clickpad_softbutton_left)
 	litest_event(dev, EV_KEY, BTN_LEFT, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
+	litest_assert_button_event(li,
+				   BTN_LEFT,
 			    LIBINPUT_BUTTON_STATE_PRESSED);
 
 	litest_event(dev, EV_KEY, BTN_LEFT, 0);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
+	litest_assert_button_event(li,
+				   BTN_LEFT,
 			    LIBINPUT_BUTTON_STATE_RELEASED);
 
 	libinput_dispatch(li);
@@ -856,16 +835,16 @@ START_TEST(clickpad_softbutton_right)
 	litest_event(dev, EV_KEY, BTN_LEFT, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	assert_button_event(li,
-			    BTN_RIGHT,
+	litest_assert_button_event(li,
+				   BTN_RIGHT,
 			    LIBINPUT_BUTTON_STATE_PRESSED);
 
 	litest_event(dev, EV_KEY, BTN_LEFT, 0);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 0);
 
-	assert_button_event(li,
-			    BTN_RIGHT,
+	litest_assert_button_event(li,
+				   BTN_RIGHT,
 			    LIBINPUT_BUTTON_STATE_RELEASED);
 
 	libinput_dispatch(li);
@@ -895,14 +874,14 @@ START_TEST(clickpad_softbutton_left_tap_n_drag)
 	litest_event(dev, EV_KEY, BTN_LEFT, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
+	litest_assert_button_event(li,
+				   BTN_LEFT,
 			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li,
-			    BTN_LEFT,
+	litest_assert_button_event(li,
+				   BTN_LEFT,
 			    LIBINPUT_BUTTON_STATE_RELEASED);
-	assert_button_event(li,
-			    BTN_LEFT,
+	litest_assert_button_event(li,
+				   BTN_LEFT,
 			    LIBINPUT_BUTTON_STATE_PRESSED);
 	litest_assert_empty_queue(li);
 
@@ -910,8 +889,8 @@ START_TEST(clickpad_softbutton_left_tap_n_drag)
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
+	litest_assert_button_event(li,
+				   BTN_LEFT,
 			    LIBINPUT_BUTTON_STATE_RELEASED);
 	litest_assert_empty_queue(li);
 }
@@ -938,24 +917,24 @@ START_TEST(clickpad_softbutton_right_tap_n_drag)
 	litest_event(dev, EV_KEY, BTN_LEFT, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
-	assert_button_event(li,
-			    BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
-	assert_button_event(li,
-			    BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li,
+				   BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	litest_assert_empty_queue(li);
 
 	litest_event(dev, EV_KEY, BTN_LEFT, 0);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 0);
 
-	assert_button_event(li,
-			    BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li,
+				   BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 	litest_assert_empty_queue(li);
 }
 END_TEST
@@ -983,9 +962,9 @@ START_TEST(clickpad_softbutton_left_1st_fg_move)
 	litest_event(dev, EV_KEY, BTN_LEFT, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	litest_assert_empty_queue(li);
 
 	/* move out of the area, then wait for softbutton timer */
@@ -1028,9 +1007,9 @@ START_TEST(clickpad_softbutton_left_1st_fg_move)
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -1056,9 +1035,9 @@ START_TEST(clickpad_softbutton_left_2nd_fg_move)
 	litest_event(dev, EV_KEY, BTN_LEFT, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	litest_assert_empty_queue(li);
 
 	litest_touch_down(dev, 1, 20, 20);
@@ -1119,9 +1098,9 @@ START_TEST(clickpad_softbutton_left_2nd_fg_move)
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -1144,18 +1123,18 @@ START_TEST(clickpad_softbutton_left_to_right)
 	litest_event(dev, EV_KEY, BTN_LEFT, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	assert_button_event(li,
-			    BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li,
+				   BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	litest_assert_empty_queue(li);
 
 	litest_event(dev, EV_KEY, BTN_LEFT, 0);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 0);
 
-	assert_button_event(li,
-			    BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li,
+				   BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -1178,18 +1157,18 @@ START_TEST(clickpad_softbutton_right_to_left)
 	litest_event(dev, EV_KEY, BTN_LEFT, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	litest_assert_empty_queue(li);
 
 	litest_event(dev, EV_KEY, BTN_LEFT, 0);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -1206,18 +1185,18 @@ START_TEST(clickpad_topsoftbuttons_left)
 	litest_event(dev, EV_KEY, BTN_LEFT, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	litest_assert_empty_queue(li);
 
 	litest_event(dev, EV_KEY, BTN_LEFT, 0);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 0);
 
-	assert_button_event(li,
-			    BTN_LEFT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li,
+				   BTN_LEFT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -1234,18 +1213,18 @@ START_TEST(clickpad_topsoftbuttons_right)
 	litest_event(dev, EV_KEY, BTN_LEFT, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	assert_button_event(li,
-			    BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li,
+				   BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	litest_assert_empty_queue(li);
 
 	litest_event(dev, EV_KEY, BTN_LEFT, 0);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 0);
 
-	assert_button_event(li,
-			    BTN_RIGHT,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li,
+				   BTN_RIGHT,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }
@@ -1262,18 +1241,18 @@ START_TEST(clickpad_topsoftbuttons_middle)
 	litest_event(dev, EV_KEY, BTN_LEFT, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	assert_button_event(li,
-			    BTN_MIDDLE,
-			    LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_assert_button_event(li,
+				   BTN_MIDDLE,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
 	litest_assert_empty_queue(li);
 
 	litest_event(dev, EV_KEY, BTN_LEFT, 0);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 0);
 
-	assert_button_event(li,
-			    BTN_MIDDLE,
-			    LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_button_event(li,
+				   BTN_MIDDLE,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	litest_assert_empty_queue(li);
 }

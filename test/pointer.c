@@ -105,26 +105,13 @@ static void
 test_button_event(struct litest_device *dev, unsigned int button, int state)
 {
 	struct libinput *li = dev->libinput;
-	struct libinput_event *event;
-	struct libinput_event_pointer *ptrev;
 
 	litest_event(dev, EV_KEY, button, state);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	libinput_dispatch(li);
-
-	event = libinput_get_event(li);
-	ck_assert(event != NULL);
-	ck_assert_int_eq(libinput_event_get_type(event), LIBINPUT_EVENT_POINTER_BUTTON);
-
-	ptrev = libinput_event_get_pointer_event(event);
-	ck_assert(ptrev != NULL);
-	ck_assert_int_eq(libinput_event_pointer_get_button(ptrev), button);
-	ck_assert_int_eq(libinput_event_pointer_get_button_state(ptrev),
-			 state ?
-				LIBINPUT_BUTTON_STATE_PRESSED :
-				LIBINPUT_BUTTON_STATE_RELEASED);
-	libinput_event_destroy(event);
+	litest_assert_button_event(li, button,
+				   state ?  LIBINPUT_BUTTON_STATE_PRESSED :
+					   LIBINPUT_BUTTON_STATE_RELEASED);
 }
 
 START_TEST(pointer_button)
