@@ -676,12 +676,67 @@ tp_resume(struct tp_dispatch *tp, struct evdev_device *device)
 	evdev_device_resume(device);
 }
 
+static void
+tp_device_added(struct evdev_device *device,
+		struct evdev_device *added_device)
+{
+	struct tp_dispatch *tp = (struct tp_dispatch*)device->dispatch;
+
+	if (tp->sendevents.current_mode !=
+	    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE)
+		return;
+
+	if (added_device->tags & EVDEV_TAG_EXTERNAL_MOUSE)
+		tp_suspend(tp, device);
+}
+
+static void
+tp_device_removed(struct evdev_device *device,
+		  struct evdev_device *removed_device)
+{
+	struct tp_dispatch *tp = (struct tp_dispatch*)device->dispatch;
+	struct libinput_device *dev;
+
+	if (tp->sendevents.current_mode !=
+	    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE)
+		return;
+
+	list_for_each(dev, &device->base.seat->devices_list, link) {
+		struct evdev_device *d = (struct evdev_device*)dev;
+		if (d != removed_device &&
+		    (d->tags & EVDEV_TAG_EXTERNAL_MOUSE)) {
+			return;
+		}
+	}
+
+	tp_resume(tp, device);
+}
+
+static void
+tp_tag_device(struct evdev_device *device,
+	      struct udev_device *udev_device)
+{
+	int bustype;
+
+	/* simple approach: touchpads on USB or Bluetooth are considered
+	 * external, anything else is internal. Exception is Apple -
+	 * internal touchpads are connected over USB and it doesn't have
+	 * external USB touchpads anyway.
+	 */
+	bustype = libevdev_get_id_bustype(device->evdev);
+	if (bustype == BUS_USB) {
+		 if (libevdev_get_id_vendor(device->evdev) == VENDOR_ID_APPLE)
+			 device->tags |= EVDEV_TAG_INTERNAL_TOUCHPAD;
+	} else if (bustype != BUS_BLUETOOTH)
+		device->tags |= EVDEV_TAG_INTERNAL_TOUCHPAD;
+}
+
 static struct evdev_dispatch_interface tp_interface = {
 	tp_process,
 	tp_destroy,
-	NULL, /* device_added */
-	NULL, /* device_removed */
-	NULL, /* tag_device */
+	tp_device_added,
+	tp_device_removed,
+	tp_tag_device,
 };
 
 static void
@@ -877,8 +932,29 @@ tp_init(struct tp_dispatch *tp,
 static uint32_t
 tp_sendevents_get_modes(struct libinput_device *device)
 {
-	return LIBINPUT_CONFIG_SEND_EVENTS_ENABLED |
-	       LIBINPUT_CONFIG_SEND_EVENTS_DISABLED;
+	struct evdev_device *evdev = (struct evdev_device*)device;
+	uint32_t modes = LIBINPUT_CONFIG_SEND_EVENTS_ENABLED |
+			 LIBINPUT_CONFIG_SEND_EVENTS_DISABLED;
+
+	if (evdev->tags & EVDEV_TAG_INTERNAL_TOUCHPAD)
+		modes |= LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE;
+
+	return modes;
+}
+
+static void
+tp_suspend_conditional(struct tp_dispatch *tp,
+		       struct evdev_device *device)
+{
+	struct libinput_device *dev;
+
+	list_for_each(dev, &device->base.seat->devices_list, link) {
+		struct evdev_device *d = (struct evdev_device*)dev;
+		if (d->tags & EVDEV_TAG_EXTERNAL_MOUSE) {
+			tp_suspend(tp, device);
+			return;
+		}
+	}
 }
 
 static enum libinput_config_status
@@ -897,6 +973,9 @@ tp_sendevents_set_mode(struct libinput_device *device,
 		break;
 	case LIBINPUT_CONFIG_SEND_EVENTS_DISABLED:
 		tp_suspend(tp, evdev);
+		break;
+	case LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE:
+		tp_suspend_conditional(tp, evdev);
 		break;
 	default:
 		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;

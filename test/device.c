@@ -47,6 +47,22 @@ START_TEST(device_sendevents_config)
 }
 END_TEST
 
+START_TEST(device_sendevents_config_touchpad)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device;
+	uint32_t modes;
+
+	device = dev->libinput_device;
+
+	modes = libinput_device_config_send_events_get_modes(device);
+	ck_assert_int_eq(modes,
+			 LIBINPUT_CONFIG_SEND_EVENTS_ENABLED|
+			 LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE|
+			 LIBINPUT_CONFIG_SEND_EVENTS_DISABLED);
+}
+END_TEST
+
 START_TEST(device_sendevents_config_default)
 {
 	struct litest_device *dev = litest_current_device();
@@ -495,7 +511,8 @@ END_TEST
 
 int main (int argc, char **argv)
 {
-	litest_add("device:sendevents", device_sendevents_config, LITEST_ANY, LITEST_ANY);
+	litest_add("device:sendevents", device_sendevents_config, LITEST_ANY, LITEST_TOUCHPAD);
+	litest_add("device:sendevents", device_sendevents_config_touchpad, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("device:sendevents", device_sendevents_config_default, LITEST_ANY, LITEST_ANY);
 	litest_add("device:sendevents", device_disable, LITEST_POINTER, LITEST_ANY);
 	litest_add("device:sendevents", device_disable_touchpad, LITEST_TOUCHPAD, LITEST_ANY);
