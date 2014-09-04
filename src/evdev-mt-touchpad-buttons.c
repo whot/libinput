@@ -494,6 +494,52 @@ tp_release_all_buttons(struct tp_dispatch *tp,
 	}
 }
 
+void
+tp_init_softbuttons(struct tp_dispatch *tp,
+		    struct evdev_device *device)
+{
+	int width, height;
+	const struct input_absinfo *absinfo_x, *absinfo_y;
+	int xoffset, yoffset;
+	int yres;
+
+	absinfo_x = device->abs.absinfo_x;
+	absinfo_y = device->abs.absinfo_y;
+
+	xoffset = absinfo_x->minimum,
+	yoffset = absinfo_y->minimum;
+	yres = absinfo_y->resolution;
+	width = abs(absinfo_x->maximum - absinfo_x->minimum);
+	height = abs(absinfo_y->maximum - absinfo_y->minimum);
+
+	/* button height: 10mm or 15% of the touchpad height,
+	   whichever is smaller */
+	if (yres > 1 && (height * 0.15/yres) > 10) {
+		tp->buttons.bottom_area.top_edge =
+		absinfo_y->maximum - 10 * yres;
+	} else {
+		tp->buttons.bottom_area.top_edge = height * .85 + yoffset;
+	}
+
+	tp->buttons.bottom_area.rightbutton_left_edge = width/2 + xoffset;
+
+	if (tp->buttons.has_topbuttons) {
+		/* T440s has the top button line 5mm from the top,
+		   event analysis has shown events to start down to ~10mm
+		   from the top - which maps to 15% */
+		if (yres > 1) {
+			tp->buttons.top_area.bottom_edge =
+			yoffset + 10 * yres;
+		} else {
+			tp->buttons.top_area.bottom_edge = height * .15 + yoffset;
+		}
+		tp->buttons.top_area.rightbutton_left_edge = width * .58 + xoffset;
+		tp->buttons.top_area.leftbutton_right_edge = width * .42 + xoffset;
+	} else {
+		tp->buttons.top_area.bottom_edge = INT_MIN;
+	}
+}
+
 int
 tp_init_buttons(struct tp_dispatch *tp,
 		struct evdev_device *device)
@@ -535,36 +581,7 @@ tp_init_buttons(struct tp_dispatch *tp,
 		tp->buttons.use_clickfinger = true;
 
 	if (tp->buttons.is_clickpad && !tp->buttons.use_clickfinger) {
-		int xoffset = absinfo_x->minimum,
-		    yoffset = absinfo_y->minimum;
-		int yres = absinfo_y->resolution;
-
-		/* button height: 10mm or 15% of the touchpad height,
-		   whichever is smaller */
-		if (yres > 1 && (height * 0.15/yres) > 10) {
-			tp->buttons.bottom_area.top_edge =
-				absinfo_y->maximum - 10 * yres;
-		} else {
-			tp->buttons.bottom_area.top_edge = height * .85 + yoffset;
-		}
-
-		tp->buttons.bottom_area.rightbutton_left_edge = width/2 + xoffset;
-
-		if (tp->buttons.has_topbuttons) {
-			/* T440s has the top button line 5mm from the top,
-			   event analysis has shown events to start down to ~10mm
-			   from the top - which maps to 15% */
-			if (yres > 1) {
-				tp->buttons.top_area.bottom_edge =
-					yoffset + 10 * yres;
-			} else {
-				tp->buttons.top_area.bottom_edge = height * .15 + yoffset;
-			}
-			tp->buttons.top_area.rightbutton_left_edge = width * .58 + xoffset;
-			tp->buttons.top_area.leftbutton_right_edge = width * .42 + xoffset;
-		} else {
-			tp->buttons.top_area.bottom_edge = INT_MIN;
-		}
+		tp_init_softbuttons(tp, device);
 	} else {
 		tp->buttons.bottom_area.top_edge = INT_MAX;
 		tp->buttons.top_area.bottom_edge = INT_MIN;
