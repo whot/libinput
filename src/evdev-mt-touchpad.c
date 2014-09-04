@@ -667,13 +667,25 @@ tp_suspend(struct tp_dispatch *tp, struct evdev_device *device)
 
 	tp_handle_state(tp, now);
 
-	evdev_device_suspend(device);
+	tp->sendevents.disabled = true;
+
+	/* On the T440s with top softwarebuttons, don't disable the device,
+	   merely pull the top buttons down to cover the whole touchpad.
+	 */
+	if (tp->buttons.has_topbuttons)
+		tp_expand_softbuttons(tp);
+	else
+		evdev_device_suspend(device);
 }
 
 static void
 tp_resume(struct tp_dispatch *tp, struct evdev_device *device)
 {
 	evdev_device_resume(device);
+
+	tp->sendevents.disabled = false;
+	if (tp->buttons.has_topbuttons)
+		tp_init_softbuttons(tp, device);
 }
 
 static void
@@ -681,6 +693,11 @@ tp_device_added(struct evdev_device *device,
 		struct evdev_device *added_device)
 {
 	struct tp_dispatch *tp = (struct tp_dispatch*)device->dispatch;
+
+	if (tp->buttons.has_topbuttons &&
+	    tp->buttons.trackpoint == NULL &&
+	    added_device->tags & EVDEV_TAG_TRACKPOINT)
+		tp->buttons.trackpoint = added_device;
 
 	if (tp->sendevents.current_mode !=
 	    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE)
@@ -696,6 +713,9 @@ tp_device_removed(struct evdev_device *device,
 {
 	struct tp_dispatch *tp = (struct tp_dispatch*)device->dispatch;
 	struct libinput_device *dev;
+
+	if (removed_device == tp->buttons.trackpoint)
+		tp->buttons.trackpoint = NULL;
 
 	if (tp->sendevents.current_mode !=
 	    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE)
@@ -923,6 +943,8 @@ tp_init(struct tp_dispatch *tp,
 
 	if (tp_init_palmdetect(tp, device) != 0)
 		return -1;
+
+	tp->sendevents.disabled = false;
 
 	device->seat_caps |= EVDEV_DEVICE_POINTER;
 

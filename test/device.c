@@ -509,6 +509,62 @@ START_TEST(device_disable_release_softbutton)
 }
 END_TEST
 
+START_TEST(device_disable_topsoftbutton)
+{
+	struct litest_device *dev = litest_current_device();
+	struct litest_device *trackpoint;
+	struct libinput *li = dev->libinput;
+	struct libinput_device *device;
+	enum libinput_config_status status;
+
+	struct libinput_event *event;
+	struct libinput_event_pointer *ptrevent;
+
+	device = dev->libinput_device;
+
+	trackpoint = litest_add_device(li, LITEST_TRACKPOINT);
+
+	status = libinput_device_config_send_events_set_mode(device,
+			LIBINPUT_CONFIG_SEND_EVENTS_DISABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+	litest_drain_events(li);
+
+	litest_touch_down(dev, 0, 90, 10);
+	litest_button_click(dev, BTN_LEFT, true);
+	litest_button_click(dev, BTN_LEFT, false);
+	litest_touch_up(dev, 0);
+
+	litest_wait_for_event(li);
+	event = libinput_get_event(li);
+	ck_assert_int_eq(libinput_event_get_type(event),
+			 LIBINPUT_EVENT_POINTER_BUTTON);
+	ck_assert_int_eq(libinput_event_get_device(event),
+			 trackpoint->libinput_device);
+	ptrevent = libinput_event_get_pointer_event(event);
+	ck_assert_int_eq(libinput_event_pointer_get_button(ptrevent),
+			 BTN_RIGHT);
+	ck_assert_int_eq(libinput_event_pointer_get_button_state(ptrevent),
+			 LIBINPUT_BUTTON_STATE_PRESSED);
+	libinput_event_destroy(event);
+
+	event = libinput_get_event(li);
+	ck_assert_int_eq(libinput_event_get_type(event),
+			 LIBINPUT_EVENT_POINTER_BUTTON);
+	ck_assert_int_eq(libinput_event_get_device(event),
+			 trackpoint->libinput_device);
+	ptrevent = libinput_event_get_pointer_event(event);
+	ck_assert_int_eq(libinput_event_pointer_get_button(ptrevent),
+			 BTN_RIGHT);
+	ck_assert_int_eq(libinput_event_pointer_get_button_state(ptrevent),
+			 LIBINPUT_BUTTON_STATE_RELEASED);
+	libinput_event_destroy(event);
+
+	litest_assert_empty_queue(li);
+
+	litest_delete_device(trackpoint);
+}
+END_TEST
+
 int main (int argc, char **argv)
 {
 	litest_add("device:sendevents", device_sendevents_config, LITEST_ANY, LITEST_TOUCHPAD);
@@ -526,6 +582,8 @@ int main (int argc, char **argv)
 	litest_add("device:sendevents", device_disable_release_tap, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("device:sendevents", device_disable_release_tap_n_drag, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("device:sendevents", device_disable_release_softbutton, LITEST_CLICKPAD, LITEST_APPLE_CLICKPAD);
+
+	litest_add("device:sendevents", device_disable_topsoftbutton, LITEST_TOPBUTTONPAD, LITEST_ANY);
 
 	return litest_run(argc, argv);
 }

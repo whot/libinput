@@ -560,6 +560,16 @@ evdev_tag_external_mouse(struct evdev_device *device,
 }
 
 static void
+evdev_tag_trackpoint(struct evdev_device *device,
+		     struct udev_device *udev_device)
+{
+	const char *name = libevdev_get_name(device->evdev);
+
+	if (strstr(name, "TrackPoint") != NULL)
+		device->tags |= EVDEV_TAG_TRACKPOINT;
+}
+
+static void
 fallback_process(struct evdev_dispatch *dispatch,
 		 struct evdev_device *device,
 		 struct input_event *event,
@@ -597,6 +607,7 @@ fallback_tag_device(struct evdev_device *device,
 		    struct udev_device *udev_device)
 {
 	evdev_tag_external_mouse(device, udev_device);
+	evdev_tag_trackpoint(device, udev_device);
 }
 
 static int

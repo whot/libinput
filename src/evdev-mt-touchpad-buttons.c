@@ -540,6 +540,16 @@ tp_init_softbuttons(struct tp_dispatch *tp,
 	}
 }
 
+void
+tp_expand_softbuttons(struct tp_dispatch *tp)
+{
+	/* simply stretch the top software button area down */
+	if (tp->buttons.has_topbuttons) {
+		tp->buttons.top_area.bottom_edge = INT_MAX;
+		tp->buttons.bottom_area.top_edge = INT_MAX;
+	}
+}
+
 int
 tp_init_buttons(struct tp_dispatch *tp,
 		struct evdev_device *device)
@@ -737,7 +747,12 @@ tp_post_softbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 	tp->buttons.click_pending = false;
 
 	if (button) {
-		evdev_pointer_notify_button(tp->device,
+		struct evdev_device *device = tp->device;
+
+		if (tp->sendevents.disabled && tp->buttons.trackpoint)
+			device = tp->buttons.trackpoint;
+
+		evdev_pointer_notify_button(device,
 					    time,
 					    button,
 					    state);

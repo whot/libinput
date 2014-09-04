@@ -198,6 +198,8 @@ struct tp_dispatch {
 			int32_t rightbutton_left_edge;
 			int32_t leftbutton_right_edge;
 		} top_area;
+
+		struct evdev_device *trackpoint;
 	} buttons;				/* physical buttons */
 
 	struct {
@@ -221,6 +223,7 @@ struct tp_dispatch {
 	struct {
 		struct libinput_device_config_send_events config;
 		enum libinput_config_send_events_mode current_mode;
+		bool disabled;
 	} sendevents;
 };
 
@@ -247,6 +250,9 @@ tp_init_buttons(struct tp_dispatch *tp, struct evdev_device *device);
 
 void
 tp_init_softbuttons(struct tp_dispatch *tp, struct evdev_device *device);
+
+void
+tp_expand_softbuttons(struct tp_dispatch *tp);
 
 void
 tp_destroy_buttons(struct tp_dispatch *tp);
