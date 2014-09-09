@@ -113,6 +113,12 @@ fi
 AM_CONDITIONAL(HAVE_VALGRIND, [test "x$VALGRIND" != "x"])
 AM_CONDITIONAL(BUILD_TESTS, [test "x$build_tests" = "xyes"])
 
+AC_ARG_WITH(userstudy-results,
+	    AS_HELP_STRING([--with-userstudy-results=path], [Path to userstudy results]),
+	    [userstudyresultsdir=$withval],
+	    [userstudyresultsdir=""])
+AC_SUBST([USERSTUDYRESULTSDIR], "$userstudyresultsdir")
+
 AC_CONFIG_FILES([Makefile
 		 doc/Makefile
 		 doc/libinput.doxygen
@@ -120,7 +126,8 @@ AC_CONFIG_FILES([Makefile
 		 src/libinput.pc
 		 src/libinput-version.h
 		 test/Makefile
-		 tools/Makefile])
+		 tools/Makefile
+		 tools/analysis/Makefile])
 AC_OUTPUT
 
 AC_MSG_RESULT([

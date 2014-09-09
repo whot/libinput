@@ -1,3 +1,5 @@
+SUBDIRS = . analysis
+
 noinst_PROGRAMS = event-debug ptraccel-debug
 
 AM_CPPFLAGS = -I$(top_srcdir)/include \

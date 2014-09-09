@@ -9,6 +9,7 @@ from pprint import pprint
 import xml.etree.ElementTree
 import itertools
 import scipy.stats
+import random
 
 from collections import OrderedDict
 
@@ -17,7 +18,7 @@ mode = "normal"
 question_code = {
 		0 : "natural",
 		1 : "precise",
-		2 : "fast movement",
+		2 : "fast-movement",
 		3 : "easy-to-hit",
 		4 : "faster",
 		5 : "slower",
@@ -31,6 +32,9 @@ def print_normal(*args, **kwargs):
 def print_gnuplot(*args, **kwargs):
 	if mode == "gnuplot":
 		print(*args, **kwargs)
+
+def vec_length(x, y):
+	return math.sqrt(x * x + y * y)
 
 def mean(data):
 	if not data:
@@ -155,6 +159,95 @@ class Results(object):
 									 self.mean(),
 									 self.stddev(),
 									 self.nsamples())
+class TargetResults(object):
+	"""
+	Results for one specific target
+	"""
+	def __init__(self, filename, set_number, target_number, method,
+			radius, pos, cursor_pos):
+		self.radius = radius
+		self.method = method
+		self.time_to_click = 0
+		self.actual_path = 0
+		self.overshoot = 0
+
+		self.motion_positions = []
+		self.motion_deltas = []
+
+		self.filename = filename
+		self.set_number = set_number
+		self.target_number = target_number
+		self.pos = pos
+		self.cursor = cursor_pos
+
+		self.distance = vec_length(pos[0] - cursor_pos[0],
+					   pos[1] - cursor_pos[1])
+		self.difficulty = 1.0 * self.distance/(radius * 2)
+
+
+	def _fileheader(self, f):
+		f.write("# filename: %s\n" % self.filename)
+		f.write("# set-ID: %d\n" % self.set_number)
+		f.write("# target number: %d\n" % self.target_number)
+		f.write("# method: %d\n" % self.method)
+		f.write("# target radius: %d\n" % self.radius)
+		f.write("# target position: %d %d\n" % (self.pos[0], self.pos[1]))
+		f.write("# cursor position: %f %f\n" % (self.cursor[0], self.cursor[1]))
+		f.write("# initial distance: %d\n" % self.distance)
+
+
+	def _dump_vectors(self, path, suffix):
+
+		f = open(os.path.join(path, "vectors.gnuplot"), "w+")
+		f.write("""
+		# Show the movement vectors for each target data file
+		# call with gnuplot -e "data='datafile'" filename
+		set style data vector
+		set xrange [0:*]
+		set yrange [1300:0]
+		plot data using 1:2:3:4 title ''
+		pause -1
+		""")
+		f = open(os.path.join(path, "vectors-%s" % suffix), "w+")
+		self._fileheader(f)
+
+		f.write("# cursor x, y, dx, dy\n")
+		for pos, delta in zip(self.motion_positions, self.motion_deltas):
+			f.write("%f %f %f %f\n" % (pos[0], pos[1], delta[0], delta[1]))
+
+	@property
+	def extra_path(self):
+		return (1.0 * self.actual_path/self.distance - 1) * 100
+
+	@property
+	def extra_path_in_px(self):
+		return self.actual_path - self.distance
+
+	@property
+	def overshoot_for_distance(self):
+		return (1.0 * self.overshoot/self.distance) * 100
+
+	@property
+	def overshoot_for_path(self):
+		return (1.0 * self.overshoot/self.actual_path) * 100
+
+	def dump(self, path):
+		suffix = "%s-set-%d-target-%d-method-%d" % (self.filename,
+							    self.set_number,
+							    self.target_number,
+							    self.method)
+		self._dump_vectors(path, suffix)
+
+	def __str__(self):
+		return "%d %d %d %f %d %f %f %s %d"  % (self.radius,
+						self.method,
+						self.distance,
+						self.difficulty,
+						self.time_to_click,
+						self.actual_path,
+						self.overshoot,
+						self.filename,
+						self.target_number)
 
 class QuestionaireResults(object):
 	"""
@@ -163,8 +256,11 @@ class QuestionaireResults(object):
 
 	def __init__(self, methods):
 		self.methods = methods
-		self.questions = 14 * [""] # number of questions
-		self.answers = 14 * [0] # number of questions
+		self.questions =[]
+		self.answers = [[] for _ in xrange(3)] # self.answers[method] = [a1, a2, ...]
+
+		self.answer_difference = None
+		self.answer_prefer = None
 
 	def set_userdata(self, age, gender, handed, experience, hours, device):
 		self.age = age
@@ -174,116 +270,105 @@ class QuestionaireResults(object):
 		self.hours = hours
 		self.device = device
 
+	def get_answer_difference(self, m1, m2):
+		if m1 in self.methods and m2 in self.methods:
+			return self.answer_difference
+		return None
+
+	def get_answer_preferable(self, m1, m2):
+		if m1 == self.methods[0] and m2 == self.methods[1]:
+			return self.answer_preferable
+		elif m1 == self.methods[1] and m2 == self.methods[0]:
+			return -self.answer_preferable
+
+		return None
+
 class UserStudyResultsFile(object):
 	def __init__(self, path):
+		self.path = path
 		self.tree = xml.etree.ElementTree.parse(path)
 		self.root = self.tree.getroot()
 
-		self.click_times = self._button_click_times()
-		self.target_aquisition_times = self._target_aquisition_times()
-		self.target_misses = self._target_misses()
 		self.times_per_set = self._time_per_set()
-		self.extradistance, self.overshoot = self._path_length_per_target()
 		self.questionnaire = self._parse_questionnaire()
 
-		self.methods = list(OrderedDict.fromkeys([r.method for r in self.click_times.sets]))
-		self.target_sizes = list(OrderedDict.fromkeys([r.target_size for r in self.click_times.sets]))
+		self.methods = list(OrderedDict.fromkeys([r.method for r in self.times_per_set.sets]))
+		self.target_sizes = list(OrderedDict.fromkeys([r.target_size for r in self.times_per_set.sets]))
+
+
+		self.target_results = self.parse_targets()
+
+	def parse_targets(self):
+		method = -1
+		set_number = 0
+		target = None
+		start_time = 0
+
+		targets = []
+
+		target_pos = None # target center
+		B = None # some other point on the target line
+		vec = None
+		initial_side = None
+
+		for elem in self.root.iter():
+			name = elem.tag
+			if name == "set":
+				method = int(elem.get("method"))
+				set_number = int(elem.get("id"))
+			elif name == "target":
+				if target != None:
+					targets.append(target)
+
+				x, y = float(elem.get("x")), float(elem.get("y"))
+				xpos, ypos = float(elem.get("xpos")), float(elem.get("ypos"))
+				radius = int(elem.get("r"))
+				start_time = int(elem.get("time"))
+
+				target_pos = (xpos, ypos)
+				cursor_pos = (x, y)
+
+				target = TargetResults(os.path.basename(self.path),
+							set_number,
+							int(elem.get("number")),
+							method,
+							radius,
+							target_pos,
+							cursor_pos)
+				# for overshoot
+				vec, B = self.setup_vectors(target_pos, (x, y))
+				initial_side = self.side(target_pos, B, (x, y))
+			elif name == "button" and \
+				elem.get("state") == "1" and \
+				elem.get("hit") == "1":
+				end_time = int(elem.get("time"))
+				target.time_to_click = end_time - start_time
+			elif name == "motion":
+				dx = float(elem.get("dx"))
+				dy = float(elem.get("dy"))
+				target.actual_path += self.vec_length(dx, dy)
+
+				x = float(elem.get("x"))
+				y = float(elem.get("y"))
+
+				target.motion_positions.append((x,y))
+				target.motion_deltas.append((dx,dy))
+
+				# overshoot
+				if self.side(target_pos, B, (x, y)) != initial_side:
+					d = self.distance(target_pos, B, (x, y))
+					if (d > target.overshoot):
+						target.overshoot = d
+
+		targets.append(target)
+		return targets
 
 	def _set_from_elem(self, elem):
 		 return SetResults(target_size = int(elem.get("r")),
 				   method = int(elem.get("method")))
 
-	def _button_click_times(self):
-		"""
-		Searches for time between button press and release
-		events.
-		"""
-		times = [0, 0]
-		expected_state = 1
-		cur_set = None
-		sets = []
-
-		for elem in self.root.iter():
-			name = elem.tag
-			if name == "set":
-				cur_set = self._set_from_elem(elem)
-				sets.append(cur_set)
-				continue
-
-			if name == "button":
-				btn_state = int(elem.get("state"))
-
-				# end of each set only records the press, not the
-				# release event
-				if (btn_state != expected_state):
-					expected_state = 1
-					continue
-
-				times[btn_state] = int(elem.get("time"))
-				expected_state = abs(expected_state - 1)
-
-				if btn_state == 0:
-					cur_set.data.append(times[0] - times[1])
-
-		return Results(sets)
-
-
 	def get_set_id(self, elem):
 		return int(elem.get("method")) * 1000 + int(elem.get("id"))
-
-	def _target_aquisition_times(self):
-		"""
-		Calculates the time between the target and the successful
-		click onto the target in milliseconds per set
-		"""
-		sets = []
-		times = [0, 0]
-		cur_set = None
-		for elem in self.root.iter():
-			name = elem.tag
-			if name == "set":
-				cur_set = self._set_from_elem(elem)
-				sets.append(cur_set)
-				continue
-			elif name == "target":
-				times[0] = int(elem.get("time"))
-				continue
-			elif name != "button":
-				continue
-
-			btn_state = int(elem.get("state"))
-			if btn_state != 1:
-				continue
-			hit = int(elem.get("hit"))
-			if hit != 1:
-				continue
-
-			times[1] = int(elem.get("time"))
-			cur_set.data.append(times[1] - times[0])
-
-		return Results(sets)
-
-	def _target_misses(self):
-		"""
-		Counts the number of clicks not on a target.
-		"""
-		sets = []
-		for elem in self.root.iter():
-			name = elem.tag
-			if name == "set":
-				cur_set = self._set_from_elem(elem);
-				cur_set.data = [0]
-				sets.append(cur_set)
-				continue
-			elif name != "button":
-				continue
-
-			state = int(elem.get("state"))
-			if state == 1:
-				hit = int(elem.get("hit"))
-				if hit == 0:
-					cur_set.data[0] += 1
-		return Results(sets)
 
 	def _time_per_set(self):
 		sets = []
@@ -309,90 +394,6 @@ class UserStudyResultsFile(object):
 	def vec_length(self, x, y):
 		return math.sqrt(x * x + y * y)
 
-	def _path_length_per_target(self):
-		paths = []
-		x, y = None, None
-
-		# for overshoot calculation
-		vec = None
-		target = None # target center
-		B = None # some other point on the target line
-		initial_side = None
-		set_id = -1
-
-		# in % of the original path, the path taken
-		path_sets = []
-		cur_path_set = None
-
-		# in % of the original path
-		overshoot_sets = []
-		cur_overshoot_set = None
-
-		cur_distance = None
-		cur_path = 0
-		cur_overshoot = 0
-
-		for set_elem in self.root.iter("set"):
-			cur_path_set = self._set_from_elem(set_elem);
-			path_sets.append(cur_path_set)
-			cur_overshoot_set = self._set_from_elem(set_elem);
-			overshoot_sets.append(cur_overshoot_set)
-			cur_distance = None
-
-			for elem in set_elem.iter():
-				name = elem.tag
-				if name == "motion":
-					x = float(elem.get("x"))
-					y = float(elem.get("y"))
-					dx = float(elem.get("dx"))
-					dy = float(elem.get("dy"))
-					cur_path += self.vec_length(dx, dy);
-
-					if vec == None:
-						vec, B = self.setup_vectors(target, (x, y))
-						initial_side = self.side(target, B, (x, y))
-
-					if self.side(target, B, (x, y)) != initial_side:
-						d = self.distance(target, B, (x, y))
-						if (d > cur_overshoot):
-							cur_overshoot = d
-					continue
-
-				if name == "target":
-					if cur_distance:
-						cur_path_set.data.append(100.0 * cur_path / cur_distance)
-						cur_overshoot_set.data.append(100.0 * cur_overshoot / cur_distance)
-
-					target = (int(elem.get("xpos")), int(elem.get("ypos")))
-					x = float(elem.get("x"))
-					y = float(elem.get("y"))
-
-					cur_distance = self.vec_length(target[0] - x,
-								       target[1] - y)
-					cur_path = 0
-					cur_overshoot = 0
-
-					vec, B = self.setup_vectors(target, (x, y))
-					initial_side = self.side(target, B, (x, y))
-					continue
-
-			cur_path_set.data.append(100.0 * cur_path / cur_distance)
-			cur_overshoot_set.data.append(100.0 * cur_overshoot / cur_distance)
-
-		return (Results(path_sets), Results(overshoot_sets))
-
-	def path_lengths(self):
-		data = { "identifier" : "path_lengths" }
-		data["delta_sums"] = []
-		data["path_diffs"] = []
-
-		for p in self.path_length_per_target():
-			data["delta_sums"].append(p["delta_sum"])
-			data["path_diffs"].append(p["path_diff"])
-
-		data["diff_mean"] = mean(data["path_diffs"])
-		return data
-
 	def side(self, A, B, P):
 		"""Side of a vector AP a point P is on
 		   Return 1, 0, -1
@@ -412,8 +413,10 @@ class UserStudyResultsFile(object):
 		# so root.find("questionnaire") won't work
 		questionnaire = [e for e in self.root.iter("questionnaire")][0]
 
-		qr = QuestionaireResults([int(questionnaire.get("first")),
-					  int(questionnaire.get("second"))])
+		first = int(questionnaire.get("first"))
+		second = int(questionnaire.get("second"))
+
+		qr = QuestionaireResults([first, second])
 
 		userdata = questionnaire.find("userdata")
 		device = questionnaire.find("device")
@@ -424,9 +427,18 @@ class UserStudyResultsFile(object):
 				int(userdata.get("hours_per_week")),
 				device.get("type"))
 
+		questions = []
+		answers = []
 		for q in questionnaire.findall("question"):
-			qr.questions[int(q.get("question-id"))] = q.text
-			qr.answers[int(q.get("question-id"))] = int(q.get("response"))
+			questions.append(q.text)
+			answers.append(int(q.get("response")))
+
+		qr.questions = questions[0:6]
+		qr.answers[first] = answers[0:6]
+		qr.answers[second] = answers[6:12]
+
+		qr.answer_difference = answers[12]
+		qr.answer_preferable = answers[13]
 
 		return qr
 
@@ -461,20 +473,11 @@ class UserStudyResults(object):
 				count_methods[m] = count_methods.get(m, 0) + 1
 
 		max_values = min(count_methods.itervalues())
-		self._target_aquisition_times = self._normalize(self.results,
-								max_values,
-								"target_aquisition_times")
 
 		# files is a set of of UserStudyResultsFile. That's pretty
 		# useless though, so we extract the actual data into lists
 		# here
 		self.questionnaires = [ r.questionnaire for r in self.results ]
-
-		self._button_click_times = Results([s for r in self.results for s in r.click_times.sets])
-		self._target_misses = self._normalize(self.results, max_values, "target_misses")
-		self._set_completion_times = self._normalize(self.results, max_values, "times_per_set")
-		self._extra_distances = self._normalize(self.results, max_values, "extradistance")
-		self._overshoot = self._normalize(self.results, max_values, "overshoot")
 
 	def _files(self, path):
 		for root, dirs, files in os.walk(path):
@@ -493,24 +496,6 @@ class UserStudyResults(object):
 	@property
 	def methods(self):
 		return list(OrderedDict.fromkeys([m for r in self.results for m in r.methods]))
-
-	def button_click_times(self):
-		return self._button_click_times
-
-	def target_aquisition_times(self):
-		return self._target_aquisition_times
-
-	def target_misses(self):
-		return self._target_misses
-
-	def set_completion_times(self):
-		return self._set_completion_times
-
-	def extra_distances(self):
-		return self._extra_distances
-
-	def overshoot(self):
-		return self._overshoot
 
 	def user_age(self):
 		ages = [ r.age for r in self.questionnaires if r.age != 0]
@@ -536,69 +521,10 @@ class UserStudyResults(object):
 		hours = [ r.hours for r in self.questionnaires if r.hours != 0]
 		return mean(hours)
 
-def print_results(msg, r, sets, target_sizes):
-	methods = []
-	print_normal("%s: %s" %  (msg, r))
-	print_gnuplot("###############")
-	print_gnuplot("# %s: %s" %  (msg, r))
-	for s in sets:
-		matching = r.filter(s)
-		print_normal("\tmethod: %d target size: %d: %s" %  (s.method, s.target_size, matching))
-		if not s.method in methods:
-			methods.append(s.method)
+	@property
+	def target_results(self):
+		return [ t for r in self.results for t in r.target_results]
 
-	methods = sorted(methods)
-
-	print_normal("\tComparison: ")
-	for t in target_sizes:
-		# stderr can show if differences matter. 95% of the sample
-		# falls within 1.96 stderr of the mean (that's the
-		# Confidence Interval).
-		#
-		# if there is overlap within 1 stderr, then the difference
-		# is definitely *not* statistically significant
-		# if there is no overlap within 1.96 stderr, then the
-		# difference is definitely statistically significant
-		matching = r.filter(SetResults(None, t))
-		stderr = scipy.stats.sem([v for s in matching.sets for v in s.data])
-		stderr *= 1.96
-		for (m1, m2) in itertools.combinations(methods, 2):
-			r1 = r.filter(SetResults(m1, t))
-			r2 = r.filter(SetResults(m2, t))
-			diff = r1.mean() - r2.mean()
-
-			print_normal("\t\ttarget size %d: method %d - %d: %f (%d is faster, stderr is %f)" %  (t, m1, m2, diff, m1 if diff < 0 else m2, stderr))
-
-	values = []
-	for m in methods:
-		matching = r.filter(SetResults(m))
-		values.append([v for s in matching.sets for v in s.data])
-	# Null-Hypothesis is that all three are the same on average.
-	# We want to see a p-value < 0.05 to have 95% confidence that any
-	# differences are significant.
-	# We don't care about the F-value, it's directly related to the
-	# p-value and they both describe the same thing
-	print_normal("\tANOVA: H0 is 'all methods are equal'")
-	print_normal("\t  across methods: p-value: %f" %  scipy.stats.f_oneway(*values)[1])
-	for t in target_sizes:
-		values = []
-		for m in methods:
-			matching = r.filter(SetResults(m, t))
-			values.append([v for s in matching.sets for v in s.data])
-
-		f, p = scipy.stats.f_oneway(*values)
-		print_normal("\t  for size %d: p-value: %f" %  (t, p))
-
-	print_gnuplot("# target-size method-%d method-%d method-%d" %  tuple(methods))
-	for t in target_sizes:
-		s = "{}\t".format(t)
-		for m in methods:
-			matching = r.filter(SetResults(m, t))
-			s += "{}\t".format(matching.mean())
-		print_gnuplot(s)
-
-	print_gnuplot("########### raw: ")
-	print_raw_results(r, sets, target_sizes)
 
 def print_user_info(results):
 	print_normal("User information")
@@ -609,84 +535,50 @@ def print_user_info(results):
 	print_normal("Average experience in years: %f (%f)" % results.user_experience())
 	print_normal("Average usage in h per week: %f (%f)" % results.user_hours_per_week())
 
-def print_raw_results(results, sets, target_sizes):
-	for t in target_sizes:
-		matching = results.filter(SetResults(None, t))
-		print_gnuplot("# method target value")
-		for s in matching.sets:
-			for d in s.data:
-				print_gnuplot("%d	%d	%d" % (s.method, s.target_size, d))
 
+difficulties = [ 4.2, 8.4, 12.9, 16.8, 25, 0xffffff]
 
-def print_questionnaire(results):
-	print_normal("Questionnaire results:")
+def difficulty_group(n):
+	for idx, val in enumerate(difficulties):
+		if n < val:
+			return idx
 
-	methods = sorted(results.methods)
+def difficulty_name(n):
+	names = [ str(x) for x in difficulties[:-1] ] + ["max"]
+	return names[n]
 
-	questions = results.results[0].questionnaire.questions
+def ngroups():
+	return len(difficulties)
 
-	for m in methods:
-		print_gnuplot("############")
-		print_gnuplot("# method %d" % m)
-		for qidx, question in enumerate(questions[:6]):
-			print_gnuplot("# %s" %  (question))
-			print_normal("%s" %  (question))
-			count = 5 * [ 0 ]
-			data = []
-			qrs = [ r.questionnaire for r in results.results ]
-			for qr in qrs:
-				if not m in qr.methods:
-					continue
+def sigstr(pvals):
+	sig = []
+	for p in pvals:
+		sig.append('+') if p < 0.05 else sig.append('-')
+	return "".join(sig)
 
-				if qr.methods[0] == m:
-					answer = qr.answers[0 + qidx]
-					data.append(answer)
-					count[answer + 2 ] += 1
-				if qr.methods[1] == m:
-					answer = qr.answers[6 + qidx]
-					data.append(answer)
-					count[answer + 2 ] += 1
+def anova(f, results, prop):
+	# anova_base[difficulty-group][method]
+	anova_base = [[[] for _ in xrange(3)] for _ in xrange(ngroups())]
+	for target in results.target_results:
+		dg = difficulty_group(target.difficulty)
+		anova_base[dg][target.method].append(getattr(target, prop))
 
-			stdmean, stddev = mean(data)
-			print_normal("For method %d: distribution: %s, mean %f stddev %f" % (m, count, stdmean, stddev))
-			print_gnuplot("# method-idx question-idx likert1-counts ...  mean stddev")
-			print_gnuplot("%d \"%s\" %d %d %d %d %d %f %f" % (m, question_code[qidx],
-					count[0], count[1], count[2],
-					count[3], count[4], stdmean, stddev))
+	f.write("# 1-difficulty-group 2-m0-mean 3-m1-mean 4-m2-mean 5-number-of-samples 6-pval-0vs1 7-pval-0vs2 8-pval-1vs2 9-stddev-m0 10-stddev-m1 11-stddev-m2 12-difficulty-val 13-significance\n")
+	for dg in xrange(ngroups()):
+		maxlen = min([len(d) for d in anova_base[dg]])
+		data = [d[:maxlen] for d in anova_base[dg]]
+		_, p01 = scipy.stats.f_oneway(data[0], data[1])
+		_, p02 = scipy.stats.f_oneway(data[0], data[2])
+		_, p12 = scipy.stats.f_oneway(data[1], data[2])
+		m0,s0 = mean(data[0])
+		m1,s1 = mean(data[1])
+		m2,s2 = mean(data[2])
 
-	question = questions[12]
-	print_normal(question)
-	for (m1, m2) in itertools.combinations(methods, 2):
-		count = 5 * [ 0 ]
-		data = []
-		qrs = [ r.questionnaire for r in results.results ]
-		for qr in qrs:
-			if not m1 in qr.methods or not m2 in qr.methods:
-				continue
+		sig = sigstr((p01, p02, p12))
 
-			answer = qr.answers[12]
-			data.append(answer)
-			count[answer + 2 ] += 1
-
-		stdmean, stddev = mean(data)
-		print_normal("For methods %d and %d: distribution: %s, mean %f stddev %f" %  (m1, m2, count, stdmean, stddev))
-
-	question = questions[13]
-	print_normal(question)
-	for (m1, m2) in itertools.combinations(methods, 2):
-		count = 5 * [ 0 ]
-		data = []
-		qrs = [ r.questionnaire for r in results.results ]
-		for qr in qrs:
-			if not m1 in qr.methods or not m2 in qr.methods:
-				continue
-
-			answer = qr.answers[13]
-			data.append(answer)
-			count[answer + 2 ] += 1
-
-		stdmean, stddev = mean(data)
-		print_normal("For methods %d and %d: distribution: %s, mean %f stddev %f" %  (m1, m2, count, stdmean, stddev))
+		f.write("%d %f %f %f %d %f %f %f %f %f %f %s %s\n" % (dg, m0, m1, m2,
+			maxlen, p01, p02, p12, s0, s1, s2,
+			difficulty_name(dg), sig))
 
 
 def main(argv):
@@ -694,37 +586,213 @@ def main(argv):
 		global mode
 		mode = "gnuplot"
 		argv = argv[1:]
+	if argv[1] == "-o":
+		output_path = argv[2]
+		argv = argv[2:]
 
 	fpath = argv[1];
 
 	results = UserStudyResults(fpath)
 
-	print_user_info(results)
+	f = open(os.path.join(output_path, "target-analysis.dat"), "w+")
+	f.write("# 1-radius 2-method 3-distance 4-difficulty 5-time-to-click 6-path 7-overshoot 8-filename 9-target_number 10-set_number 11-difficulty-group\n")
+	random.seed(123456789)
+	random.shuffle(results.target_results)
+	random.seed(123456789)
+	random.shuffle(results.results)
 
-	print_normal("Target sizes: %s" %  results.target_sizes)
-	print_normal("Methods used: %s" %  results.methods)
-	sets = [SetResults(m, s) for (m, s) in itertools.product(results.methods, results.target_sizes)]
+	for target in results.target_results:
+		target.dump(os.path.join(output_path, "vectors"))
+		f.write("%d %d %d %f %d %f %f %s %d %d %d\n" % (target.radius,
+						target.method,
+						target.distance,
+						target.difficulty,
+						target.time_to_click,
+						target.actual_path,
+						target.overshoot,
+						target.filename,
+						target.target_number,
+						target.set_number,
+						difficulty_group(target.difficulty)))
 
-	r = results.button_click_times()
+	count_groups = [[0] * 3 for _ in  xrange(ngroups())]
+	for target in results.target_results:
+		dg = difficulty_group(target.difficulty)
+		count_groups[dg][target.method] += 1
 
-	print_normal("Button click time: %s" %  r)
+	f = open(os.path.join(output_path, "hist-target-counts-grouped-by-ID.dat"), "w+")
+	f.write("# 1-difficulty-group 2-m1-count 3-m2-count 4-m3-count 5-difficulty-name\n")
+	for ID, methods in enumerate(count_groups):
+		f.write("%d %d %d %d %s\n" % (ID, methods[0], methods[1], methods[2], difficulty_name(ID)))
 
-	r = results.target_aquisition_times()
-	print_results("Target time-to-aquisition times (in ms)", r, sets, results.target_sizes)
+	# run ANOVA on the various tasks
+	f = open(os.path.join(output_path, "hist-time-to-click-mean-grouped-by-ID.dat"), "w+")
+	anova(f, results, "time_to_click")
 
-	r = results.target_misses()
-	print_results("Target mis-clicks (in clicks)", r, sets, results.target_sizes)
+	f = open(os.path.join(output_path, "hist-path-mean-grouped-by-ID.dat"), "w+")
+	anova(f, results, "extra_path")
 
-	r = results.set_completion_times()
-	print_results("Set completion times (in ms)", r, sets, results.target_sizes)
+	f = open(os.path.join(output_path, "hist-path-absolute-mean-grouped-by-ID.dat"), "w+")
+	anova(f, results, "extra_path_in_px")
 
-	r = results.extra_distances()
-	print_results("Total distances (in % of minimum path)", r, sets, results.target_sizes)
+	f = open(os.path.join(output_path, "hist-overshoot-mean-grouped-by-ID.dat"), "w+")
+	anova(f, results, "overshoot")
 
-	r = results.overshoot()
-	print_results("Target overshoot (in % of minimum path)", r, sets, results.target_sizes)
+	f = open(os.path.join(output_path, "hist-overshoot-for-distance-mean-grouped-by-ID.dat"), "w+")
+	anova(f, results, "overshoot_for_distance")
 
-	print_questionnaire(results)
+	f = open(os.path.join(output_path, "hist-overshoot-for-path-mean-grouped-by-ID.dat"), "w+")
+	anova(f, results, "overshoot_for_path")
+
+	f = open(os.path.join(output_path, "user-info.dat"), "w+")
+	f.write("1-age 2-gender 3-right-handed 4-years-experience 5-h-per-week 6-device\n")
+	for r in results.results:
+		q = r.questionnaire
+		f.write("%d %s %s %d %d %s" % (q.age, q.gender, q.handed,
+			q.experience, q.hours, q.device))
+
+	# All question answers dumped into a file
+	f = open(os.path.join(output_path, "questionnaire-answers.dat"), "w+")
+	f.write("1-method")
+	for key in sorted(question_code.keys()):
+		f.write(" %d-%s" % (2 + key, question_code[key]))
+	f.write("\n");
+	for q in [r.questionnaire for r in results.results]:
+		for m in q.methods:
+			answers = q.answers[m]
+			if answers == []:
+				continue
+			f.write("%d" % m)
+			for a in answers:
+				f.write(" %d" % a)
+			f.write("\n")
+
+	# histogram of all answers by question IDX
+	f = open(os.path.join(output_path, "hist-questionnaire.dat"), "w+")
+	f.write("# 1-question-idx 2-m0-mean 3-m1-mean 4-m2-mean 5-number-of-samples 6-pval-0vs1 7-pval-0vs2 8-pval-1vs2 9-stddev-m0 10-stddev-m1 11-stddev-m2 12-question-code 13-significance\n")
+
+	# all_answers[question][method] = [a1, a2, a3, ...]
+	all_answers = [[[] for _ in xrange(3)] for _ in xrange(len(question_code))]
+	for q in [r.questionnaire for r in results.results]:
+		for m in q.methods:
+			answers = q.answers[m]
+			if answers == []:
+				continue
+			for idx, a in enumerate(answers):
+				all_answers[idx][m].append(a)
+
+	# normalize to equal number of answers for each question
+	maxlen = min([len(d) for d in all_answers[0]])
+	for idx, vals in enumerate(all_answers):
+		for m in xrange(3):
+			all_answers[idx][m] = all_answers[idx][m][:maxlen]
+
+	for idx, data in enumerate(all_answers):
+		qcode = question_code[idx]
+		_, p01 = scipy.stats.f_oneway(data[0], data[1])
+		_, p02 = scipy.stats.f_oneway(data[0], data[2])
+		_, p12 = scipy.stats.f_oneway(data[1], data[2])
+		m0,s0 = mean(data[0])
+		m1,s1 = mean(data[1])
+		m2,s2 = mean(data[2])
+
+		sig = sigstr((p01, p02, p12))
+
+		f.write("%d %f %f %f %d %f %f %f %f %f %f %s %s\n" % (idx, m0, m1, m2,
+			maxlen, p01, p02, p12, s0, s1, s2,
+			qcode, sig))
+
+	# likert counts for each question
+	f = open(os.path.join(output_path, "hist-questionnaire-likert-counts.dat"), "w+")
+	f.write("#1-question 2-qcode 3-m0-likert-2 4-m0-likert-1 5-m0-likert0 6-m0-likert1 7-m0-likert2 8-m1-likert-2...\n")
+	# likert_counts[method][question][likert-scale-val] = count
+	likert_counts = [[[0 for _ in xrange(5)] for _ in xrange(6) ] for _ in xrange(3)]
+	for idx, data in enumerate(all_answers):
+		qcode = question_code[idx]
+		for m in xrange(3):
+			answers = data[m]
+			if answers == []:
+				continue
+			for a in answers:
+				likert_counts[m][idx][a + 2] += 1
+
+	for idx in xrange(6):
+		f.write("%d %s" % (idx, question_code[idx]))
+		for m in xrange(3):
+			counts = likert_counts[m][idx]
+			for count in counts:
+				f.write(" %d" % count)
+		f.write("\n")
+
+	# cross-comparison of the "do they feel different" question
+	f = open(os.path.join(output_path, "hist-questionnaire-accel-different.dat"), "w+")
+	f.write("# 1-unused 2-m01-mean 3-m02-mean 4-m12-mean 5-number-of-samples 6-pval-01vs02 7-pval-02vs12 8-pval-12vs02 9-stddev-m0 10-stddev-m1 11-stddev-m2 12-unused 13-significance\n")
+
+	# all_answers[(m1, m2)] = [a1, a2, ...]
+	all_answers = {}
+	for (m1, m2) in itertools.combinations(xrange(3), 2):
+		all_answers[(m1, m2)] = []
+
+	for q in [r.questionnaire for r in results.results]:
+		for (m1, m2) in itertools.combinations(xrange(3), 2):
+			ad = q.get_answer_difference(m1, m2)
+			if ad == None:
+				continue
+			all_answers[(m1, m2)].append(ad)
+
+	maxlen = min([len(d) for d in all_answers.values()])
+	for key in all_answers.keys():
+		all_answers[key] = all_answers[key][:maxlen]
+
+	_, p0102 = scipy.stats.f_oneway(all_answers[(0, 1)], all_answers[(0, 2)])
+	_, p0112 = scipy.stats.f_oneway(all_answers[(0, 1)], all_answers[(1, 2)])
+	_, p0212 = scipy.stats.f_oneway(all_answers[(0, 2)], all_answers[(1, 2)])
+
+	m01, s01 = mean(all_answers[(0, 1)])
+	m02, s02 = mean(all_answers[(0, 2)])
+	m12, s12 = mean(all_answers[(1, 2)])
+
+	sig = sigstr((p0102, p0112, p0212))
+
+	f.write("x %f %f %f %d %f %f %f %f %f %f x %s\n" % (
+		m01, m02, m12, maxlen, p0102, p0112, p0212, s01, s02, s12,
+		sig))
+
+	# cross-comparison of the "first is preferable" question
+	f = open(os.path.join(output_path, "hist-questionnaire-preferable.dat"), "w+")
+	f.write("# 1-unused 2-m01-mean 3-m02-mean 4-m12-mean 5-number-of-samples 6-pval-01vs02 7-pval-01vs12 8-pval-02vs12 9-stddev-m01 10-stddev-m02 11-stddev-m12 12-unused 13-significance\n")
+
+	# all_answers[(m1, m2)] = [a1, a2, ...]
+	all_answers = {}
+	for (m1, m2) in itertools.combinations(xrange(3), 2):
+		all_answers[(m1, m2)] = []
+
+	for q in [r.questionnaire for r in results.results]:
+		for (m1, m2) in itertools.combinations(xrange(3), 2):
+			ad = q.get_answer_preferable(m1, m2)
+			if ad == None:
+				continue
+			all_answers[(m1, m2)].append(ad)
+
+	maxlen = min([len(d) for d in all_answers.values()])
+	for key in all_answers.keys():
+		all_answers[key] = all_answers[key][:maxlen]
+
+	_, p0102 = scipy.stats.f_oneway(all_answers[(0, 1)], all_answers[(0, 2)])
+	_, p0112 = scipy.stats.f_oneway(all_answers[(0, 1)], all_answers[(1, 2)])
+	_, p0212 = scipy.stats.f_oneway(all_answers[(0, 2)], all_answers[(1, 2)])
+
+	m01, s01 = mean(all_answers[(0, 1)])
+	m02, s02 = mean(all_answers[(0, 2)])
+	m12, s12 = mean(all_answers[(1, 2)])
+
+	sig = sigstr((p0102, p0112, p0212))
+
+	f.write("x %f %f %f %d %f %f %f %f %f %f x %s\n" % (
+		m01, m02, m12, maxlen, p0102, p0112, p0212, s01, s02, s12,
+		sig))
+
+	return
 
 if __name__ == "__main__":
 	main(sys.argv)
