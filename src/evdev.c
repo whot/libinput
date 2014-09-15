@@ -733,6 +733,16 @@ configure_pointer_acceleration(struct evdev_device *device)
 	return 0;
 }
 
+static inline int
+evdev_need_mtdev(struct evdev_device *device)
+{
+	struct libevdev *evdev = device->evdev;
+
+	return (libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_X) &&
+		libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_Y) &&
+		!libevdev_has_event_code(evdev, EV_ABS, ABS_MT_SLOT));
+}
+
 static int
 evdev_configure_device(struct evdev_device *device)
 {
@@ -806,8 +816,7 @@ evdev_configure_device(struct evdev_device *device)
 			has_touch = 1;
 			has_mt = 1;
 
-			if (!libevdev_has_event_code(evdev,
-						     EV_ABS, ABS_MT_SLOT)) {
+			if (evdev_need_mtdev(device)) {
 				device->mtdev = mtdev_new_open(device->fd);
 				if (!device->mtdev)
 					return -1;
