@@ -792,6 +792,18 @@ def main(argv):
 		m01, m02, m12, maxlen, p0102, p0112, p0212, s01, s02, s12,
 		sig))
 
+	f = open(os.path.join(output_path, "hist-questionnaire-preferable-likert-count.dat"), "w+")
+	f.write("# 1-question 2-qcode 3-likert 4-m01 5-m01-count 6-m02 7-m02-count 8-m12 9-count\n")
+	for likert in xrange(-2, 3):
+		f.write("13 preferable %d" % likert)
+		for (m1, m2) in all_answers.keys():
+			m12count = all_answers[(m1, m2)].count(likert)
+			m21count = all_answers[(m1, m2)].count(-likert)
+
+			f.write(" m%d%d %d m%d%d %d" % (m1, m2, m12count, m2, m1, m21count))
+		f.write("\n");
+
+
 	return
 
 if __name__ == "__main__":

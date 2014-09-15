@@ -25,6 +25,7 @@ hist_graphs =  \
 	 /hist-overshoot-for-distance-mean-grouped-by-ID.png \
 	 /hist-questionnaire.png \
 	 /hist-questionnaire-likert-counts.png \
+	 /hist-questionnaire-preferable-likert-count.png \
 	 /hist-questionnaire-preferable.png
 
 graphs = \
@@ -44,6 +45,7 @@ shadow_dat_files = \
 		   results/hist-overshoot-for-distance-mean-grouped-by-ID.dat \
 		   results/hist-questionnaire.dat \
 		   results/hist-questionnaire-likert-counts.dat \
+		   results/hist-questionnaire-preferable-likert-count.dat \
 		   results/hist-questionnaire-preferable.dat
 
 results/png/hist-%.png: $(shadow_dat_files)
