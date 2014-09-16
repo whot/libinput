@@ -697,6 +697,10 @@ tp_notify_softbutton(struct tp_dispatch *tp,
 		return;
 	}
 
+	/* Ignore button events not for the trackpoint while suspended */
+	if (tp->device->suspended)
+		return;
+
 	evdev_pointer_notify_button(tp->device, time, button, state);
 }
 

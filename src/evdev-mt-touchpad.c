@@ -523,6 +523,12 @@ tp_post_events(struct tp_dispatch *tp, uint64_t time)
 	double dx, dy;
 	int consumed = 0;
 
+	/* Only post (top) button events while suspended */
+	if (tp->device->suspended) {
+		tp_post_button_events(tp, time);
+		return;
+	}
+
 	consumed |= tp_tap_handle_state(tp, time);
 	consumed |= tp_post_button_events(tp, time);
 
@@ -632,13 +638,28 @@ static void
 tp_suspend(struct tp_dispatch *tp, struct evdev_device *device)
 {
 	tp_clear_state(tp, device);
-	evdev_device_suspend(device);
+
+	/* On devices with top softwarebuttons we don't actually suspend the
+	 * device, to keep the "trackpoint" buttons working. tp_post_events()
+	 * will only send events for the trackpoint while suspended.
+	 */
+	if (tp->buttons.has_topbuttons) {
+		evdev_notify_suspended_device(device);
+	} else {
+		evdev_device_suspend(device);
+	}
 }
 
 static void
 tp_resume(struct tp_dispatch *tp, struct evdev_device *device)
 {
-	evdev_device_resume(device);
+	if (tp->buttons.has_topbuttons) {
+		/* tap state-machine is offline while suspended, reset state */
+		tp_clear_state(tp, device);
+		evdev_notify_resumed_device(device);
+	} else {
+		evdev_device_resume(device);
+	}
 }
 
 static void
