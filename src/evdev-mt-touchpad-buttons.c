@@ -675,16 +675,42 @@ tp_post_physical_buttons(struct tp_dispatch *tp, uint64_t time)
 	return 0;
 }
 
+static void
+tp_notify_softbutton(struct tp_dispatch *tp,
+		     uint64_t time,
+		     uint32_t button,
+		     uint32_t is_topbutton,
+		     enum libinput_button_state state)
+{
+	/* If we've a trackpoint, send top buttons through the trackpoint */
+	if (is_topbutton && tp->buttons.trackpoint) {
+		struct evdev_dispatch *dispatch = tp->buttons.trackpoint->dispatch;
+		struct input_event event;
+
+		event.time.tv_sec = time/1000;
+		event.time.tv_usec = (time % 1000) * 1000;
+		event.type = EV_KEY;
+		event.code = button;
+		event.value = (state == LIBINPUT_BUTTON_STATE_PRESSED) ? 1 : 0;
+		dispatch->interface->process(dispatch, tp->buttons.trackpoint,
+					     &event, time);
+		return;
+	}
+
+	evdev_pointer_notify_button(tp->device, time, button, state);
+}
+
 static int
 tp_post_softbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 {
-	uint32_t current, old, button;
+	uint32_t current, old, button, is_top;
 	enum libinput_button_state state;
 	enum { AREA = 0x01, LEFT = 0x02, MIDDLE = 0x04, RIGHT = 0x08 };
 
 	current = tp->buttons.state;
 	old = tp->buttons.old_state;
 	button = 0;
+	is_top = 0;
 
 	if (!tp->buttons.click_pending && current == old)
 		return 0;
@@ -697,15 +723,18 @@ tp_post_softbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 			case BUTTON_EVENT_IN_AREA:
 				button |= AREA;
 				break;
-			case BUTTON_EVENT_IN_BOTTOM_L:
 			case BUTTON_EVENT_IN_TOP_L:
+				is_top = 1;
+			case BUTTON_EVENT_IN_BOTTOM_L:
 				button |= LEFT;
 				break;
 			case BUTTON_EVENT_IN_TOP_M:
+				is_top = 1;
 				button |= MIDDLE;
 				break;
-			case BUTTON_EVENT_IN_BOTTOM_R:
 			case BUTTON_EVENT_IN_TOP_R:
+				is_top = 1;
+			case BUTTON_EVENT_IN_BOTTOM_R:
 				button |= RIGHT;
 				break;
 			default:
@@ -727,21 +756,21 @@ tp_post_softbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 			button = BTN_LEFT;
 
 		tp->buttons.active = button;
+		tp->buttons.active_is_topbutton = is_top;
 		state = LIBINPUT_BUTTON_STATE_PRESSED;
 	} else {
 		button = tp->buttons.active;
+		is_top = tp->buttons.active_is_topbutton;
 		tp->buttons.active = 0;
+		tp->buttons.active_is_topbutton = 0;
 		state = LIBINPUT_BUTTON_STATE_RELEASED;
 	}
 
 	tp->buttons.click_pending = false;
 
-	if (button) {
-		evdev_pointer_notify_button(tp->device,
-					    time,
-					    button,
-					    state);
-	}
+	if (button)
+		tp_notify_softbutton(tp, time, button, is_top, state);
+
 	return 1;
 }
 

@@ -183,6 +183,7 @@ struct tp_dispatch {
 		uint32_t old_state;
 		uint32_t motion_dist;		/* for pinned touches */
 		unsigned int active;		/* currently active button, for release event */
+		bool active_is_topbutton;	/* is active a top button? */
 
 		/* Only used for clickpads. The software button areas are
 		 * always 2 horizontal stripes across the touchpad.

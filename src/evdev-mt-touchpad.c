@@ -643,8 +643,11 @@ tp_device_added(struct evdev_device *device,
 	struct tp_dispatch *tp = (struct tp_dispatch*)device->dispatch;
 
 	if (tp->buttons.trackpoint == NULL &&
-	    (added_device->tags & EVDEV_TAG_TRACKPOINT))
+	    (added_device->tags & EVDEV_TAG_TRACKPOINT)) {
+		/* Don't send any pending releases to the new trackpoint */
+		tp->buttons.active_is_topbutton = false;
 		tp->buttons.trackpoint = added_device;
+	}
 
 	if (tp->sendevents.current_mode !=
 	    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE)
@@ -661,8 +664,14 @@ tp_device_removed(struct evdev_device *device,
 	struct tp_dispatch *tp = (struct tp_dispatch*)device->dispatch;
 	struct libinput_device *dev;
 
-	if (removed_device == tp->buttons.trackpoint)
+	if (removed_device == tp->buttons.trackpoint) {
+		/* Clear any pending releases for the trackpoint */
+		if (tp->buttons.active && tp->buttons.active_is_topbutton) {
+			tp->buttons.active = 0;
+			tp->buttons.active_is_topbutton = true;
+		}
 		tp->buttons.trackpoint = NULL;
+	}
 
 	if (tp->sendevents.current_mode !=
 	    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE)
@@ -703,8 +712,8 @@ static struct evdev_dispatch_interface tp_interface = {
 	tp_destroy,
 	tp_device_added,
 	tp_device_removed,
-	NULL, /* device_suspended */
-	NULL, /* device_resumed */
+	tp_device_removed, /* device_suspended, treat as remove */
+	tp_device_added,   /* device_resumed, treat as add */
 	tp_tag_device,
 };
 
