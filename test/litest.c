@@ -1084,3 +1084,15 @@ litest_assert_button_event(struct libinput *li, unsigned int button,
 			 state);
 	libinput_event_destroy(event);
 }
+
+void
+litest_timeout_tap(void)
+{
+	msleep(200);
+}
+
+void
+litest_timeout_softbuttons(void)
+{
+	msleep(300);
+}

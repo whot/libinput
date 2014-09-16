@@ -156,6 +156,9 @@ struct libevdev_uinput * litest_create_uinput_abs_device(const char *name,
 							 const struct input_absinfo *abs,
 							 ...);
 
+void litest_timeout_tap(void);
+void litest_timeout_softbuttons(void);
+
 #ifndef ck_assert_notnull
 #define ck_assert_notnull(ptr) ck_assert_ptr_ne(ptr, NULL)
 #endif
