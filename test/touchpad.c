@@ -41,7 +41,7 @@ START_TEST(touchpad_1fg_motion)
 	litest_drain_events(li);
 
 	litest_touch_down(dev, 0, 50, 50);
-	litest_touch_move_to(dev, 0, 50, 50, 80, 50, 5);
+	litest_touch_move_to(dev, 0, 50, 50, 80, 50, 10);
 	litest_touch_up(dev, 0);
 
 	libinput_dispatch(li);
@@ -72,8 +72,8 @@ START_TEST(touchpad_2fg_no_motion)
 
 	litest_touch_down(dev, 0, 20, 20);
 	litest_touch_down(dev, 1, 70, 20);
-	litest_touch_move_to(dev, 0, 20, 20, 80, 80, 5);
-	litest_touch_move_to(dev, 1, 70, 20, 80, 50, 5);
+	litest_touch_move_to(dev, 0, 20, 20, 80, 80, 10);
+	litest_touch_move_to(dev, 1, 70, 20, 80, 50, 10);
 	litest_touch_up(dev, 1);
 	litest_touch_up(dev, 0);
 
@@ -131,7 +131,7 @@ START_TEST(touchpad_1fg_tap_n_drag)
 	litest_touch_down(dev, 0, 50, 50);
 	litest_touch_up(dev, 0);
 	litest_touch_down(dev, 0, 50, 50);
-	litest_touch_move_to(dev, 0, 50, 50, 80, 80, 5);
+	litest_touch_move_to(dev, 0, 50, 50, 80, 80, 10);
 	litest_touch_up(dev, 0);
 
 	libinput_dispatch(li);
@@ -150,7 +150,7 @@ START_TEST(touchpad_1fg_tap_n_drag)
 
 	/* lift finger, set down again, should continue dragging */
 	litest_touch_down(dev, 0, 50, 50);
-	litest_touch_move_to(dev, 0, 50, 50, 80, 80, 5);
+	litest_touch_move_to(dev, 0, 50, 50, 80, 80, 10);
 	litest_touch_up(dev, 0);
 
 	libinput_dispatch(li);
@@ -803,7 +803,7 @@ START_TEST(clickpad_click_n_drag)
 
 	/* now put a second finger down */
 	litest_touch_down(dev, 1, 70, 70);
-	litest_touch_move_to(dev, 1, 70, 70, 80, 50, 5);
+	litest_touch_move_to(dev, 1, 70, 70, 80, 50, 10);
 	litest_touch_up(dev, 1);
 
 	libinput_dispatch(li);
@@ -1330,8 +1330,8 @@ test_2fg_scroll(struct litest_device *dev, double dx, double dy, int sleep)
 	litest_touch_down(dev, 0, 47, 50);
 	litest_touch_down(dev, 1, 53, 50);
 
-	litest_touch_move_to(dev, 0, 47, 50, 47 + dx, 50 + dy, 5);
-	litest_touch_move_to(dev, 1, 53, 50, 53 + dx, 50 + dy, 5);
+	litest_touch_move_to(dev, 0, 47, 50, 47 + dx, 50 + dy, 10);
+	litest_touch_move_to(dev, 1, 53, 50, 53 + dx, 50 + dy, 10);
 
 	/* Avoid a small scroll being seen as a tap */
 	if (sleep) {
@@ -1477,13 +1477,13 @@ START_TEST(touchpad_palm_detect_at_edge)
 	litest_drain_events(li);
 
 	litest_touch_down(dev, 0, 99, 50);
-	litest_touch_move_to(dev, 0, 99, 50, 99, 70, 5);
+	litest_touch_move_to(dev, 0, 99, 50, 99, 70, 10);
 	litest_touch_up(dev, 0);
 
 	litest_assert_empty_queue(li);
 
 	litest_touch_down(dev, 0, 5, 50);
-	litest_touch_move_to(dev, 0, 5, 50, 5, 70, 5);
+	litest_touch_move_to(dev, 0, 5, 50, 5, 70, 10);
 	litest_touch_up(dev, 0);
 }
 END_TEST
@@ -1507,7 +1507,7 @@ START_TEST(touchpad_palm_detect_at_bottom_corners)
 	litest_assert_empty_queue(li);
 
 	litest_touch_down(dev, 0, 5, 95);
-	litest_touch_move_to(dev, 0, 5, 95, 5, 99, 5);
+	litest_touch_move_to(dev, 0, 5, 95, 5, 99, 10);
 	litest_touch_up(dev, 0);
 }
 END_TEST
@@ -1531,7 +1531,7 @@ START_TEST(touchpad_palm_detect_at_top_corners)
 	litest_assert_empty_queue(li);
 
 	litest_touch_down(dev, 0, 5, 5);
-	litest_touch_move_to(dev, 0, 5, 5, 5, 9, 5);
+	litest_touch_move_to(dev, 0, 5, 5, 5, 9, 10);
 	litest_touch_up(dev, 0);
 }
 END_TEST
@@ -1547,7 +1547,7 @@ START_TEST(touchpad_palm_detect_palm_stays_palm)
 	litest_drain_events(li);
 
 	litest_touch_down(dev, 0, 99, 20);
-	litest_touch_move_to(dev, 0, 99, 20, 75, 99, 5);
+	litest_touch_move_to(dev, 0, 99, 20, 75, 99, 10);
 	litest_touch_up(dev, 0);
 	litest_assert_empty_queue(li);
 }
@@ -1566,7 +1566,7 @@ START_TEST(touchpad_palm_detect_palm_becomes_pointer)
 	litest_drain_events(li);
 
 	litest_touch_down(dev, 0, 99, 50);
-	litest_touch_move_to(dev, 0, 99, 50, 0, 70, 5);
+	litest_touch_move_to(dev, 0, 99, 50, 0, 70, 10);
 	litest_touch_up(dev, 0);
 
 	libinput_dispatch(li);
@@ -1599,11 +1599,11 @@ START_TEST(touchpad_palm_detect_no_palm_moving_into_edges)
 	litest_drain_events(li);
 
 	litest_touch_down(dev, 0, 50, 50);
-	litest_touch_move_to(dev, 0, 50, 50, 99, 50, 5);
+	litest_touch_move_to(dev, 0, 50, 50, 99, 50, 10);
 
 	litest_drain_events(li);
 
-	litest_touch_move_to(dev, 0, 99, 50, 99, 90, 5);
+	litest_touch_move_to(dev, 0, 99, 50, 99, 90, 10);
 	libinput_dispatch(li);
 
 	type = libinput_next_event_type(li);
