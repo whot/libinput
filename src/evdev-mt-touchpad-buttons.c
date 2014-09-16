@@ -640,6 +640,9 @@ tp_post_clickfinger_buttons(struct tp_dispatch *tp, uint64_t time)
 					    button,
 					    state);
 	}
+
+	tp->buttons.old_state = tp->buttons.state;
+
 	return 1;
 }
 
@@ -671,6 +674,8 @@ tp_post_physical_buttons(struct tp_dispatch *tp, uint64_t time)
 		current >>= 1;
 		old >>= 1;
 	}
+
+	tp->buttons.old_state = tp->buttons.state;
 
 	return 0;
 }
@@ -774,6 +779,8 @@ tp_post_softbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 
 	if (button)
 		tp_notify_softbutton(tp, time, button, is_top, state);
+
+	tp->buttons.old_state = tp->buttons.state;
 
 	return 1;
 }
