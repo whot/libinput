@@ -602,7 +602,7 @@ tp_destroy(struct evdev_dispatch *dispatch)
 }
 
 static void
-tp_suspend(struct tp_dispatch *tp, struct evdev_device *device)
+tp_clear_state(struct tp_dispatch *tp, struct evdev_device *device)
 {
 	uint64_t now = libinput_now(tp->device->base.seat->libinput);
 	struct tp_touch *t;
@@ -626,7 +626,12 @@ tp_suspend(struct tp_dispatch *tp, struct evdev_device *device)
 	}
 
 	tp_handle_state(tp, now);
+}
 
+static void
+tp_suspend(struct tp_dispatch *tp, struct evdev_device *device)
+{
+	tp_clear_state(tp, device);
 	evdev_device_suspend(device);
 }
 
