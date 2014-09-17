@@ -618,7 +618,7 @@ tp_post_clickfinger_buttons(struct tp_dispatch *tp, uint64_t time)
 	if (current == old)
 		return 0;
 
-	if (current) {
+	if (current && (tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS)) {
 		switch (tp->nfingers_down) {
 		case 1: button = BTN_LEFT; break;
 		case 2: button = BTN_RIGHT; break;
@@ -628,11 +628,12 @@ tp_post_clickfinger_buttons(struct tp_dispatch *tp, uint64_t time)
 		}
 		tp->buttons.active = button;
 		state = LIBINPUT_BUTTON_STATE_PRESSED;
-	} else {
+	} else if (!current && (tp->queued & TOUCHPAD_EVENT_BUTTON_RELEASE)) {
 		button = tp->buttons.active;
 		tp->buttons.active = 0;
 		state = LIBINPUT_BUTTON_STATE_RELEASED;
-	}
+	} else
+		return 0;
 
 	if (button) {
 		evdev_pointer_notify_button(tp->device,
@@ -649,33 +650,44 @@ tp_post_clickfinger_buttons(struct tp_dispatch *tp, uint64_t time)
 static int
 tp_post_physical_buttons(struct tp_dispatch *tp, uint64_t time)
 {
-	uint32_t current, old, button;
+	uint32_t current, old, button, mask;
 
 	current = tp->buttons.state;
 	old = tp->buttons.old_state;
 	button = BTN_LEFT;
+	mask = 0x1;
 
 	while (current || old) {
 		enum libinput_button_state state;
 
 		if ((current & 0x1) ^ (old & 0x1)) {
-			if (!!(current & 0x1))
+			bool skip = false;
+			if (!!(current & 0x1) &&
+			    tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS)
 				state = LIBINPUT_BUTTON_STATE_PRESSED;
-			else
+			else if (!(current & 0x1) &&
+				 tp->queued & TOUCHPAD_EVENT_BUTTON_RELEASE)
 				state = LIBINPUT_BUTTON_STATE_RELEASED;
+			else
+				skip = true;
 
-			evdev_pointer_notify_button(tp->device,
-						    time,
-						    button,
-						    state);
+			if (!skip) {
+				evdev_pointer_notify_button(tp->device,
+							    time,
+							    button,
+							    state);
+				if (state == LIBINPUT_BUTTON_STATE_PRESSED)
+					tp->buttons.old_state |= mask;
+				else
+					tp->buttons.old_state &= ~mask;
+			}
 		}
 
 		button++;
 		current >>= 1;
 		old >>= 1;
+		mask <<= 1;
 	}
-
-	tp->buttons.old_state = tp->buttons.state;
 
 	return 0;
 }
