@@ -72,6 +72,8 @@ struct litest_device {
 	struct litest_device_interface *interface;
 
 	int ntouches_down;
+	bool skip_ev_syn;
+
 	void *private; /* device-specific data */
 };
 
@@ -158,6 +160,9 @@ struct libevdev_uinput * litest_create_uinput_abs_device(const char *name,
 
 void litest_timeout_tap(void);
 void litest_timeout_softbuttons(void);
+
+void litest_push_event_frame(struct litest_device *dev);
+void litest_pop_event_frame(struct litest_device *dev);
 
 #ifndef ck_assert_notnull
 #define ck_assert_notnull(ptr) ck_assert_ptr_ne(ptr, NULL)

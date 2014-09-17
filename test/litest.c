@@ -634,7 +634,12 @@ void
 litest_event(struct litest_device *d, unsigned int type,
 	     unsigned int code, int value)
 {
-	int ret = libevdev_uinput_write_event(d->uinput, type, code, value);
+	int ret;
+
+	if (d->skip_ev_syn && type == EV_SYN && code == SYN_REPORT)
+		return;
+
+	ret = libevdev_uinput_write_event(d->uinput, type, code, value);
 	ck_assert_int_eq(ret, 0);
 }
 
@@ -1095,4 +1100,19 @@ void
 litest_timeout_softbuttons(void)
 {
 	msleep(300);
+}
+
+void
+litest_push_event_frame(struct litest_device *dev)
+{
+	assert(!dev->skip_ev_syn);
+	dev->skip_ev_syn = true;
+}
+
+void
+litest_pop_event_frame(struct litest_device *dev)
+{
+	assert(dev->skip_ev_syn);
+	dev->skip_ev_syn = false;
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 }
