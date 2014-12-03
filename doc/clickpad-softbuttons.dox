@@ -66,6 +66,12 @@ The Xorg synaptics driver uses 30% of the touchpad dimensions as threshold,
 libinput does not have this restriction. If two fingers are on the pad
 while clicking, that is a two-finger click.
 
+Clickfinger configuration can be enabled through the
+libinput_device_config_click_set_method() call. If clickfingers are
+enabled on a touchpad with top software buttons, both button areas are
+disabled. The top software button area is enabled whenever the touchpad
+is disabled.
+
 @section special_clickpads Special Clickpads
 
 The Lenovo *40 series laptops have a clickpad that provides two software button sections, one at

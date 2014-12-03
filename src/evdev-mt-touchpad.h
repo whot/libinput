@@ -236,7 +236,11 @@ struct tp_dispatch {
 		} top_area;
 
 		struct evdev_device *trackpoint;
-	} buttons;				/* physical buttons */
+
+		enum libinput_config_click_method click_method;
+		enum libinput_config_click_method want_click_method;
+		struct libinput_device_config_click_method config_method;
+	} buttons;
 
 	struct {
 		struct libinput_device_config_scroll_method config_method;
@@ -299,9 +303,9 @@ int
 tp_init_buttons(struct tp_dispatch *tp, struct evdev_device *device);
 
 void
-tp_init_softbuttons(struct tp_dispatch *tp,
-		    struct evdev_device *device,
-		    double topbutton_size_mult);
+tp_init_top_softbuttons(struct tp_dispatch *tp,
+			struct evdev_device *device,
+			double topbutton_size_mult);
 
 void
 tp_remove_buttons(struct tp_dispatch *tp);
@@ -314,6 +318,9 @@ tp_process_button(struct tp_dispatch *tp,
 void
 tp_release_all_buttons(struct tp_dispatch *tp,
 		       uint64_t time);
+
+void
+tp_clear_state(struct tp_dispatch *tp);
 
 int
 tp_post_button_events(struct tp_dispatch *tp, uint64_t time);

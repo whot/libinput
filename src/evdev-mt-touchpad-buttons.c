@@ -494,10 +494,9 @@ tp_release_all_buttons(struct tp_dispatch *tp,
 	}
 }
 
-void
+static void
 tp_init_softbuttons(struct tp_dispatch *tp,
-		    struct evdev_device *device,
-		    double topbutton_size_mult)
+		    struct evdev_device *device)
 {
 	int width, height;
 	const struct input_absinfo *absinfo_x, *absinfo_y;
@@ -523,6 +522,26 @@ tp_init_softbuttons(struct tp_dispatch *tp,
 	}
 
 	tp->buttons.bottom_area.rightbutton_left_edge = width/2 + xoffset;
+}
+
+void
+tp_init_top_softbuttons(struct tp_dispatch *tp,
+			struct evdev_device *device,
+			double topbutton_size_mult)
+{
+	int width, height;
+	const struct input_absinfo *absinfo_x, *absinfo_y;
+	int xoffset, yoffset;
+	int yres;
+
+	absinfo_x = device->abs.absinfo_x;
+	absinfo_y = device->abs.absinfo_y;
+
+	xoffset = absinfo_x->minimum,
+	yoffset = absinfo_y->minimum;
+	yres = absinfo_y->resolution;
+	width = abs(absinfo_x->maximum - absinfo_x->minimum);
+	height = abs(absinfo_y->maximum - absinfo_y->minimum);
 
 	if (tp->buttons.has_topbuttons) {
 		/* T440s has the top button line 5mm from the top, event
@@ -543,6 +562,88 @@ tp_init_softbuttons(struct tp_dispatch *tp,
 	} else {
 		tp->buttons.top_area.bottom_edge = INT_MIN;
 	}
+}
+
+static inline uint32_t
+tp_button_config_click_get_methods(struct libinput_device *device)
+{
+	struct evdev_device *evdev = (struct evdev_device*)device;
+	struct tp_dispatch *tp = (struct tp_dispatch*)evdev->dispatch;
+	uint32_t methods = LIBINPUT_CONFIG_CLICK_METHOD_NONE;
+
+	if (tp->buttons.is_clickpad) {
+		methods |= LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
+		if (tp->has_mt)
+			methods |= LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
+	}
+
+	return methods;
+}
+
+static void
+tp_switch_click_method(struct tp_dispatch *tp)
+{
+	if (tp->buttons.click_method == tp->buttons.want_click_method)
+		return;
+
+	tp->buttons.click_method = tp->buttons.want_click_method;
+
+	tp_clear_state(tp);
+
+	switch (tp->buttons.click_method) {
+	case LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS:
+		tp_init_softbuttons(tp, tp->device);
+		break;
+	case LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER:
+	case LIBINPUT_CONFIG_CLICK_METHOD_NONE:
+		tp->buttons.bottom_area.top_edge = INT_MAX;
+		break;
+	}
+}
+
+static enum libinput_config_status
+tp_button_config_click_set_method(struct libinput_device *device,
+				  enum libinput_config_click_method method)
+{
+	struct evdev_device *evdev = (struct evdev_device*)device;
+	struct tp_dispatch *tp = (struct tp_dispatch*)evdev->dispatch;
+
+	tp->buttons.want_click_method = method;
+
+	if (tp->buttons.active == 0)
+		tp_switch_click_method(tp);
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static enum libinput_config_click_method
+tp_button_config_click_get_method(struct libinput_device *device)
+{
+	struct evdev_device *evdev = (struct evdev_device*)device;
+	struct tp_dispatch *tp = (struct tp_dispatch*)evdev->dispatch;
+
+	/* return the one we want, even if it's not active yet */
+	return tp->buttons.want_click_method;
+}
+
+static enum libinput_config_click_method
+tp_click_get_default_method(struct tp_dispatch *tp)
+{
+	if (!tp->buttons.is_clickpad)
+		return LIBINPUT_CONFIG_CLICK_METHOD_NONE;
+	else if (libevdev_get_id_vendor(tp->device->evdev) == VENDOR_ID_APPLE)
+		return LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
+	else
+		return LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
+}
+
+static enum libinput_config_click_method
+tp_button_config_click_get_default_method(struct libinput_device *device)
+{
+	struct evdev_device *evdev = (struct evdev_device*)device;
+	struct tp_dispatch *tp = (struct tp_dispatch*)evdev->dispatch;
+
+	return tp_click_get_default_method(tp);
 }
 
 int
@@ -582,15 +683,17 @@ tp_init_buttons(struct tp_dispatch *tp,
 
 	tp->buttons.motion_dist = diagonal * DEFAULT_BUTTON_MOTION_THRESHOLD;
 
-	if (libevdev_get_id_vendor(device->evdev) == VENDOR_ID_APPLE)
-		tp->buttons.use_clickfinger = true;
+	tp->buttons.config_method.get_methods = tp_button_config_click_get_methods;
+	tp->buttons.config_method.set_method = tp_button_config_click_set_method;
+	tp->buttons.config_method.get_method = tp_button_config_click_get_method;
+	tp->buttons.config_method.get_default_method = tp_button_config_click_get_default_method;
+	tp->device->base.config.click_method = &tp->buttons.config_method;
 
-	if (tp->buttons.is_clickpad && !tp->buttons.use_clickfinger) {
-		tp_init_softbuttons(tp, device, 1.0);
-	} else {
-		tp->buttons.bottom_area.top_edge = INT_MAX;
-		tp->buttons.top_area.bottom_edge = INT_MIN;
-	}
+	tp->buttons.want_click_method = tp_click_get_default_method(tp);
+	tp->buttons.click_method = !tp->buttons.want_click_method;
+	tp_switch_click_method(tp);
+
+	tp_init_top_softbuttons(tp, device, 1.0);
 
 	tp_for_each_touch(tp, t) {
 		t->button.state = BUTTON_STATE_NONE;
@@ -616,6 +719,12 @@ tp_post_clickfinger_buttons(struct tp_dispatch *tp, uint64_t time)
 {
 	uint32_t current, old, button;
 	enum libinput_button_state state;
+
+	if (tp->device->suspended)
+		return 0;
+
+	if (tp->buttons.click_method != LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER)
+		return 0;
 
 	current = tp->buttons.state;
 	old = tp->buttons.old_state;
@@ -683,7 +792,7 @@ tp_post_physical_buttons(struct tp_dispatch *tp, uint64_t time)
 	return 0;
 }
 
-static void
+static int
 tp_notify_softbutton(struct tp_dispatch *tp,
 		     uint64_t time,
 		     uint32_t button,
@@ -702,14 +811,17 @@ tp_notify_softbutton(struct tp_dispatch *tp,
 		event.value = (state == LIBINPUT_BUTTON_STATE_PRESSED) ? 1 : 0;
 		dispatch->interface->process(dispatch, tp->buttons.trackpoint,
 					     &event, time);
-		return;
+		return 1;
 	}
 
 	/* Ignore button events not for the trackpoint while suspended */
-	if (tp->device->suspended)
-		return;
+	if (tp->device->suspended ||
+	    tp->buttons.click_method != LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS)
+		return 0;
 
 	evdev_pointer_notify_button(tp->device, time, button, state);
+
+	return 1;
 }
 
 static int
@@ -783,22 +895,27 @@ tp_post_softbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 	tp->buttons.click_pending = false;
 
 	if (button)
-		tp_notify_softbutton(tp, time, button, is_top, state);
+		return tp_notify_softbutton(tp, time, button, is_top, state);
 
-	return 1;
+	return 0;
 }
 
 int
 tp_post_button_events(struct tp_dispatch *tp, uint64_t time)
 {
-	if (tp->buttons.is_clickpad) {
-		if (tp->buttons.use_clickfinger)
-			return tp_post_clickfinger_buttons(tp, time);
-		else
-			return tp_post_softbutton_buttons(tp, time);
-	}
+	int rc = 0;
 
-	return tp_post_physical_buttons(tp, time);
+	if (tp->buttons.is_clickpad) {
+		rc = tp_post_clickfinger_buttons(tp, time);
+		if (rc == 0)
+			rc = tp_post_softbutton_buttons(tp, time);
+
+		if (tp->buttons.active == 0 && !tp->buttons.click_pending)
+			tp_switch_click_method(tp);
+	} else
+		rc = tp_post_physical_buttons(tp, time);
+
+	return rc;
 }
 
 int
