@@ -15,6 +15,10 @@ global:
 	libinput_device_config_calibration_get_matrix;
 	libinput_device_config_calibration_has_matrix;
 	libinput_device_config_calibration_set_matrix;
+	libinput_device_config_click_get_default_method;
+	libinput_device_config_click_get_method;
+	libinput_device_config_click_get_methods;
+	libinput_device_config_click_set_method;
 	libinput_device_config_scroll_get_button;
 	libinput_device_config_scroll_get_default_button;
 	libinput_device_config_scroll_get_default_method;

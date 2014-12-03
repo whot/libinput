@@ -1584,6 +1584,56 @@ libinput_device_config_buttons_get_default_left_handed(struct libinput_device *d
 }
 
 LIBINPUT_EXPORT uint32_t
+libinput_device_config_click_get_methods(struct libinput_device *device)
+{
+	if (device->config.click_method)
+		return device->config.click_method->get_methods(device);
+	else
+		return 0;
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_click_set_method(struct libinput_device *device,
+					enum libinput_config_click_method method)
+{
+	if ((libinput_device_config_click_get_methods(device) & method) != method)
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+
+	/* Check method is a single valid method */
+	switch (method) {
+	case LIBINPUT_CONFIG_CLICK_METHOD_NONE:
+	case LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS:
+	case LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER:
+		break;
+	default:
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+	}
+
+	if (device->config.click_method)
+		return device->config.click_method->set_method(device, method);
+	else /* method must be _NONE to get here */
+		return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+LIBINPUT_EXPORT enum libinput_config_click_method
+libinput_device_config_click_get_method(struct libinput_device *device)
+{
+	if (device->config.click_method)
+		return device->config.click_method->get_method(device);
+	else
+		return LIBINPUT_CONFIG_CLICK_METHOD_NONE;
+}
+
+LIBINPUT_EXPORT enum libinput_config_click_method
+libinput_device_config_click_get_default_method(struct libinput_device *device)
+{
+	if (device->config.click_method)
+		return device->config.click_method->get_default_method(device);
+	else
+		return LIBINPUT_CONFIG_CLICK_METHOD_NONE;
+}
+
+LIBINPUT_EXPORT uint32_t
 libinput_device_config_scroll_get_methods(struct libinput_device *device)
 {
 	if (device->config.scroll_method)

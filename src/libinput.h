@@ -2154,6 +2154,108 @@ libinput_device_config_buttons_get_default_left_handed(struct libinput_device *d
 /**
  * @ingroup config
  *
+ * The click method defines when to generate software-emulated
+ * buttons, usually on a device that does not have a specific physical
+ * button available.
+ */
+enum libinput_config_click_method {
+	/**
+	 * Do not send software-emulated button events. This has no effect
+	 * on physical button generations.
+	 */
+	LIBINPUT_CONFIG_CLICK_METHOD_NONE = 0,
+	/**
+	 * Use software-button areas (see @ref tpbuttons) to generate button
+	 * events.
+	 */
+	LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS = (1 << 0),
+	/**
+	 * The number of fingers decides which button press to generate.
+	 */
+	LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER = (1 << 1),
+};
+
+/**
+ * @ingroup config
+ *
+ * Check which button click methods a device supports. The button click
+ * method defines when to generate software-emulated buttons, usually on a
+ * device that does not have a specific physical button available.
+ *
+ * @param device The device to configure
+ *
+ * @return A bitmask of possible methods.
+ *
+ * @see libinput_device_config_click_get_methods
+ * @see libinput_device_config_click_set_method
+ * @see libinput_device_config_click_get_method
+ */
+uint32_t
+libinput_device_config_click_get_methods(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Set the button click method for this device. The button click
+ * method defines when to generate software-emulated buttons, usually on a
+ * device that does not have a specific physical button available.
+ *
+ * @note The selected click method may not take effect immediately. The
+ * device may require changing to a neutral state first before activating
+ * the new method.
+ *
+ * @param device The device to configure
+ * @param method The button click method
+ *
+ * @return A config status code
+ *
+ * @see libinput_device_config_click_get_methods
+ * @see libinput_device_config_click_get_method
+ * @see libinput_device_config_click_get_default_method
+ */
+enum libinput_config_status
+libinput_device_config_click_set_method(struct libinput_device *device,
+					enum libinput_config_click_method method);
+/**
+ * @ingroup config
+ *
+ * Get the button click method for this device. The button click
+ * method defines when to generate software-emulated buttons, usually on a
+ * device that does not have a specific physical button available.
+ *
+ * @param device The device to configure
+ *
+ * @return The current button click method for this device
+ *
+ * @see libinput_device_config_click_get_methods
+ * @see libinput_device_config_click_set_method
+ * @see libinput_device_config_click_get_default_method
+ */
+enum libinput_config_click_method
+libinput_device_config_click_get_method(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Get the default button click method for this device. The button click
+ * method defines when to generate software-emulated buttons, usually on a
+ * device that does not have a specific physical button available.
+ *
+ * @param device The device to configure
+ *
+ * @return The default button click method for this device
+ *
+ * @see libinput_device_config_click_get_methods
+ * @see libinput_device_config_click_set_method
+ * @see libinput_device_config_click_get_method
+ */
+enum libinput_config_click_method
+libinput_device_config_click_get_default_method(struct libinput_device *device);
+
+
+/**
+ * @ingroup config
+ *
  * The scroll method of a device selects when to generate scroll axis events
  * instead of pointer motion events.
  */

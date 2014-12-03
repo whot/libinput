@@ -146,6 +146,14 @@ struct libinput_device_config_scroll_method {
 	uint32_t (*get_default_button)(struct libinput_device *device);
 };
 
+struct libinput_device_config_click_method {
+	uint32_t (*get_methods)(struct libinput_device *device);
+	enum libinput_config_status (*set_method)(struct libinput_device *device,
+						  enum libinput_config_click_method method);
+	enum libinput_config_click_method (*get_method)(struct libinput_device *device);
+	enum libinput_config_click_method (*get_default_method)(struct libinput_device *device);
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap *tap;
 	struct libinput_device_config_calibration *calibration;
@@ -154,6 +162,7 @@ struct libinput_device_config {
 	struct libinput_device_config_natural_scroll *natural_scroll;
 	struct libinput_device_config_left_handed *left_handed;
 	struct libinput_device_config_scroll_method *scroll_method;
+	struct libinput_device_config_click_method *click_method;
 };
 
 struct libinput_device {
