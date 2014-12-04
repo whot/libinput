@@ -711,6 +711,87 @@ START_TEST(touchpad_3fg_tap_btntool_inverted)
 }
 END_TEST
 
+START_TEST(touchpad_click_defaults_clickfinger)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	uint32_t methods, method;
+	enum libinput_config_status status;
+
+	/* call this test for apple touchpads */
+
+	methods = libinput_device_config_click_get_methods(device);
+	ck_assert(methods & LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS);
+	ck_assert(methods & LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
+
+	method = libinput_device_config_click_get_method(device);
+	ck_assert_int_eq(method, LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
+	method = libinput_device_config_click_get_default_method(device);
+	ck_assert_int_eq(method, LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
+
+	status = libinput_device_config_click_set_method(device,
+							 LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+	status = libinput_device_config_click_set_method(device,
+							 LIBINPUT_CONFIG_CLICK_METHOD_NONE);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+}
+END_TEST
+
+START_TEST(touchpad_click_defaults_btnarea)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	uint32_t methods, method;
+	enum libinput_config_status status;
+
+	/* call this test for non-apple clickpads */
+
+	methods = libinput_device_config_click_get_methods(device);
+	ck_assert(methods & LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
+	ck_assert(methods & LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS);
+
+	method = libinput_device_config_click_get_method(device);
+	ck_assert_int_eq(method,  LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS);
+	method = libinput_device_config_click_get_default_method(device);
+	ck_assert_int_eq(method,  LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS);
+
+	status = libinput_device_config_click_set_method(device,
+							 LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+	status = libinput_device_config_click_set_method(device,
+							 LIBINPUT_CONFIG_CLICK_METHOD_NONE);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+}
+END_TEST
+
+START_TEST(touchpad_click_defaults_none)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	uint32_t methods, method;
+	enum libinput_config_status status;
+
+	/* call this test for non-clickpads */
+
+	methods = libinput_device_config_click_get_methods(device);
+	ck_assert_int_eq(methods, 0);
+
+	method = libinput_device_config_click_get_method(device);
+	ck_assert_int_eq(method, LIBINPUT_CONFIG_CLICK_METHOD_NONE);
+	method = libinput_device_config_click_get_default_method(device);
+	ck_assert_int_eq(method, LIBINPUT_CONFIG_CLICK_METHOD_NONE);
+
+	status = libinput_device_config_click_set_method(device,
+							 LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_UNSUPPORTED);
+	status = libinput_device_config_click_set_method(device,
+							 LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_UNSUPPORTED);
+}
+END_TEST
+
+
 START_TEST(touchpad_1fg_clickfinger)
 {
 	struct litest_device *dev = litest_create_device(LITEST_BCM5974);
@@ -2246,6 +2327,10 @@ int main(int argc, char **argv) {
 
 	litest_add_no_device("touchpad:clickfinger", touchpad_1fg_clickfinger);
 	litest_add_no_device("touchpad:clickfinger", touchpad_2fg_clickfinger);
+
+	litest_add("touchpad:click", touchpad_click_defaults_clickfinger, LITEST_APPLE_CLICKPAD, LITEST_ANY);
+	litest_add("touchpad:click", touchpad_click_defaults_btnarea, LITEST_CLICKPAD, LITEST_APPLE_CLICKPAD);
+	litest_add("touchpad:click", touchpad_click_defaults_none, LITEST_TOUCHPAD, LITEST_CLICKPAD);
 
 	litest_add("touchpad:click", touchpad_btn_left, LITEST_TOUCHPAD, LITEST_CLICKPAD);
 	litest_add("touchpad:click", clickpad_btn_left, LITEST_CLICKPAD, LITEST_ANY);
