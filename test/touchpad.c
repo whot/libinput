@@ -794,8 +794,13 @@ END_TEST
 
 START_TEST(touchpad_1fg_clickfinger)
 {
-	struct litest_device *dev = litest_create_device(LITEST_BCM5974);
+	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
+	enum libinput_config_status status;
+
+	status = libinput_device_config_click_set_method(dev->libinput_device,
+							 LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
 
 	litest_drain_events(li);
 
@@ -812,15 +817,18 @@ START_TEST(touchpad_1fg_clickfinger)
 				   LIBINPUT_BUTTON_STATE_PRESSED);
 	litest_assert_button_event(li, BTN_LEFT,
 				   LIBINPUT_BUTTON_STATE_RELEASED);
-
-	litest_delete_device(dev);
 }
 END_TEST
 
 START_TEST(touchpad_2fg_clickfinger)
 {
-	struct litest_device *dev = litest_create_device(LITEST_BCM5974);
+	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
+	enum libinput_config_status status;
+
+	status = libinput_device_config_click_set_method(dev->libinput_device,
+							 LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
 
 	litest_drain_events(li);
 
@@ -839,8 +847,6 @@ START_TEST(touchpad_2fg_clickfinger)
 				   LIBINPUT_BUTTON_STATE_PRESSED);
 	litest_assert_button_event(li, BTN_RIGHT,
 				   LIBINPUT_BUTTON_STATE_RELEASED);
-
-	litest_delete_device(dev);
 }
 END_TEST
 
@@ -2325,8 +2331,8 @@ int main(int argc, char **argv) {
 	litest_add("touchpad:tap", clickpad_1fg_tap_click, LITEST_CLICKPAD, LITEST_ANY);
 	litest_add("touchpad:tap", clickpad_2fg_tap_click, LITEST_CLICKPAD, LITEST_SINGLE_TOUCH|LITEST_APPLE_CLICKPAD);
 
-	litest_add_no_device("touchpad:clickfinger", touchpad_1fg_clickfinger);
-	litest_add_no_device("touchpad:clickfinger", touchpad_2fg_clickfinger);
+	litest_add("touchpad:clickfinger", touchpad_1fg_clickfinger, LITEST_CLICKPAD, LITEST_ANY);
+	litest_add("touchpad:clickfinger", touchpad_2fg_clickfinger, LITEST_CLICKPAD, LITEST_ANY);
 
 	litest_add("touchpad:click", touchpad_click_defaults_clickfinger, LITEST_APPLE_CLICKPAD, LITEST_ANY);
 	litest_add("touchpad:click", touchpad_click_defaults_btnarea, LITEST_CLICKPAD, LITEST_APPLE_CLICKPAD);
