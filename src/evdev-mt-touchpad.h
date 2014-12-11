@@ -53,6 +53,7 @@ enum touchpad_model {
 
 enum touch_state {
 	TOUCH_NONE = 0,
+	TOUCH_HOVERING,
 	TOUCH_BEGIN,
 	TOUCH_UPDATE,
 	TOUCH_END
@@ -197,7 +198,12 @@ struct tp_dispatch {
 	unsigned int real_touches;		/* number of slots */
 	unsigned int ntouches;			/* no slots inc. fakes */
 	struct tp_touch *touches;		/* len == ntouches */
-	unsigned int fake_touches;		/* fake touch mask */
+	/* bit 0: BTN_TOUCH
+	 * bit 1: BTN_TOOL_FINGER
+	 * bit 2: BTN_TOOL_DOUBLETAP
+	 * ...
+	 */
+	unsigned int fake_touches;
 
 	struct {
 		int32_t margin_x;
