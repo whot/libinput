@@ -135,6 +135,57 @@ tp_get_touch(struct tp_dispatch *tp, unsigned int slot)
 	return &tp->touches[slot];
 }
 
+static inline int
+tp_fake_finger_count(struct tp_dispatch *tp)
+{
+	unsigned int fake_touches, nfake_touches;
+
+	/* don't count BTN_TOUCH */
+	fake_touches = tp->fake_touches >> 1;
+	nfake_touches = 0;
+	while (fake_touches) {
+		nfake_touches++;
+		fake_touches >>= 1;
+	}
+
+	return nfake_touches;
+}
+
+static inline bool
+tp_fake_finger_is_touching(struct tp_dispatch *tp)
+{
+	return tp->fake_touches & 0x1;
+}
+
+static inline void
+tp_fake_finger_set(struct tp_dispatch *tp,
+		   unsigned int code,
+		   bool is_press)
+{
+	unsigned int shift;
+
+	switch (code) {
+	case BTN_TOUCH:
+		shift = 0;
+		break;
+	case BTN_TOOL_FINGER:
+		shift = 1;
+		break;
+	case BTN_TOOL_DOUBLETAP:
+	case BTN_TOOL_TRIPLETAP:
+	case BTN_TOOL_QUADTAP:
+		shift = code - BTN_TOOL_DOUBLETAP + 2;
+		break;
+	default:
+		return;
+	}
+
+	if (is_press)
+		tp->fake_touches |= 1 << shift;
+	else
+		tp->fake_touches &= ~(0x1 << shift);
+}
+
 static inline void
 tp_begin_touch(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 {
@@ -253,30 +304,13 @@ tp_process_fake_touch(struct tp_dispatch *tp,
 		      uint64_t time)
 {
 	struct tp_touch *t;
-	unsigned int fake_touches;
 	unsigned int nfake_touches;
 	unsigned int i, start;
-	unsigned int shift;
 
-	if (e->code != BTN_TOUCH &&
-	    (e->code < BTN_TOOL_DOUBLETAP || e->code > BTN_TOOL_QUADTAP))
-		return;
+	tp_fake_finger_set(tp, e->code, e->value != 0);
 
-	shift = e->code == BTN_TOUCH ? 0 : (e->code - BTN_TOOL_DOUBLETAP + 1);
+	nfake_touches = tp_fake_finger_count(tp);
 
-	if (e->value)
-		tp->fake_touches |= 1 << shift;
-	else
-		tp->fake_touches &= ~(0x1 << shift);
-
-	fake_touches = tp->fake_touches;
-	nfake_touches = 0;
-	while (fake_touches) {
-		nfake_touches++;
-		fake_touches >>= 1;
-	}
-
-	/* For single touch tps we use BTN_TOUCH for begin / end of touch 0 */
 	start = tp->has_mt ? tp->real_touches : 0;
 	for (i = start; i < tp->ntouches; i++) {
 		t = tp_get_touch(tp, i);
