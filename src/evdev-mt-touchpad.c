@@ -138,17 +138,8 @@ tp_get_touch(struct tp_dispatch *tp, unsigned int slot)
 static inline int
 tp_fake_finger_count(struct tp_dispatch *tp)
 {
-	unsigned int fake_touches, nfake_touches;
-
 	/* don't count BTN_TOUCH */
-	fake_touches = tp->fake_touches >> 1;
-	nfake_touches = 0;
-	while (fake_touches) {
-		nfake_touches++;
-		fake_touches >>= 1;
-	}
-
-	return nfake_touches;
+	return __builtin_ffs(tp->fake_touches >> 1);
 }
 
 static inline bool
