@@ -31,21 +31,6 @@
 #include "litest.h"
 #include "litest-int.h"
 
-static int tracking_id;
-
-/* this is a semi-mt device, so we keep track of the touches that the tests
- * send and modify them so that the first touch is always slot 0 and sends
- * the top-left of the bounding box, the second is always slot 1 and sends
- * the bottom-right of the bounding box.
- * Lifting any of two fingers terminates slot 1
- */
-struct alps {
-	/* The actual touches requested by the test for the two slots
-	 * in the 0..100 range used by litest */
-	struct {
-		double x, y;
-	} touches[2];
-};
 
 static void alps_create(struct litest_device *d);
 
@@ -57,140 +42,27 @@ litest_alps_setup(void)
 }
 
 static void
-send_abs_xy(struct litest_device *d, double x, double y)
-{
-	struct input_event e;
-	int val;
-
-	e.type = EV_ABS;
-	e.code = ABS_X;
-	e.value = LITEST_AUTO_ASSIGN;
-	val = litest_auto_assign_value(d, &e, 0, x, y);
-	litest_event(d, EV_ABS, ABS_X, val);
-
-	e.code = ABS_Y;
-	val = litest_auto_assign_value(d, &e, 0, x, y);
-	litest_event(d, EV_ABS, ABS_Y, val);
-}
-
-static void
-send_abs_mt_xy(struct litest_device *d, double x, double y)
-{
-	struct input_event e;
-	int val;
-
-	e.type = EV_ABS;
-	e.code = ABS_MT_POSITION_X;
-	e.value = LITEST_AUTO_ASSIGN;
-	val = litest_auto_assign_value(d, &e, 0, x, y);
-	litest_event(d, EV_ABS, ABS_MT_POSITION_X, val);
-
-	e.code = ABS_MT_POSITION_Y;
-	e.value = LITEST_AUTO_ASSIGN;
-	val = litest_auto_assign_value(d, &e, 0, x, y);
-	litest_event(d, EV_ABS, ABS_MT_POSITION_Y, val);
-}
-
-static void
 alps_touch_down(struct litest_device *d, unsigned int slot, double x, double y)
 {
-	struct alps *alps = d->private;
-	double t, l, r = 0, b = 0; /* top, left, right, bottom */
+	struct litest_semi_mt *semi_mt = d->private;
 
-	if (d->ntouches_down > 2 || slot > 1)
-		return;
-
-	if (d->ntouches_down == 1) {
-		l = x;
-		t = y;
-	} else {
-		int other = (slot + 1) % 2;
-		l = min(x, alps->touches[other].x);
-		t = min(y, alps->touches[other].y);
-		r = max(x, alps->touches[other].x);
-		b = max(y, alps->touches[other].y);
-	}
-
-	send_abs_xy(d, l, t);
-
-	litest_event(d, EV_ABS, ABS_MT_SLOT, 0);
-
-	if (d->ntouches_down == 1)
-		litest_event(d, EV_ABS, ABS_MT_TRACKING_ID, ++tracking_id);
-
-	send_abs_mt_xy(d, l, t);
-
-	if (d->ntouches_down == 2) {
-		litest_event(d, EV_ABS, ABS_MT_SLOT, 1);
-		litest_event(d, EV_ABS, ABS_MT_TRACKING_ID, ++tracking_id);
-
-		send_abs_mt_xy(d, r, b);
-	}
-
-	litest_event(d, EV_SYN, SYN_REPORT, 0);
-
-	alps->touches[slot].x = x;
-	alps->touches[slot].y = y;
+	litest_semi_mt_touch_down(d, semi_mt, slot, x, y);
 }
 
 static void
 alps_touch_move(struct litest_device *d, unsigned int slot, double x, double y)
 {
-	struct alps *alps = d->private;
-	double t, l, r = 0, b = 0; /* top, left, right, bottom */
+	struct litest_semi_mt *semi_mt = d->private;
 
-	if (d->ntouches_down > 2 || slot > 1)
-		return;
-
-	if (d->ntouches_down == 1) {
-		l = x;
-		t = y;
-	} else {
-		int other = (slot + 1) % 2;
-		l = min(x, alps->touches[other].x);
-		t = min(y, alps->touches[other].y);
-		r = max(x, alps->touches[other].x);
-		b = max(y, alps->touches[other].y);
-	}
-
-	send_abs_xy(d, l, t);
-
-	litest_event(d, EV_ABS, ABS_MT_SLOT, 0);
-	send_abs_mt_xy(d, l, t);
-
-	if (d->ntouches_down == 2) {
-		litest_event(d, EV_ABS, ABS_MT_SLOT, 1);
-		send_abs_mt_xy(d, r, b);
-	}
-
-	litest_event(d, EV_SYN, SYN_REPORT, 0);
-
-	alps->touches[slot].x = x;
-	alps->touches[slot].y = y;
+	litest_semi_mt_touch_move(d, semi_mt, slot, x, y);
 }
 
 static void
 alps_touch_up(struct litest_device *d, unsigned int slot)
 {
-	struct alps *alps = d->private;
+	struct litest_semi_mt *semi_mt = d->private;
 
-	/* note: ntouches_down is decreased before we get here */
-	if (d->ntouches_down >= 2 || slot > 1)
-		return;
-
-	litest_event(d, EV_ABS, ABS_MT_SLOT, d->ntouches_down);
-	litest_event(d, EV_ABS, ABS_MT_TRACKING_ID, -1);
-
-	/* if we have one finger left, send x/y coords for that finger left.
-	   this is likely to happen with a real touchpad */
-	if (d->ntouches_down == 1) {
-		int other = (slot + 1) % 2;
-		send_abs_xy(d, alps->touches[other].x, alps->touches[other].y);
-		litest_event(d, EV_ABS, ABS_MT_SLOT, 0);
-		send_abs_mt_xy(d, alps->touches[other].x, alps->touches[other].y);
-	}
-
-	litest_event(d, EV_SYN, SYN_REPORT, 0);
+	litest_semi_mt_touch_up(d, semi_mt, slot);
 }
 
 static struct litest_device_interface interface = {
@@ -247,10 +119,10 @@ struct litest_test_device litest_alps_device = {
 static void
 alps_create(struct litest_device *d)
 {
-	struct alps *alps = zalloc(sizeof(*alps));
-	assert(alps);
+	struct litest_semi_mt *semi_mt = zalloc(sizeof(*semi_mt));
+	assert(semi_mt);
 
-	d->private = alps;
+	d->private = semi_mt;
 
 	d->uinput = litest_create_uinput_device_from_description(litest_alps_device.name,
 								 litest_alps_device.id,

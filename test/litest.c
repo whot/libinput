@@ -1276,3 +1276,144 @@ litest_pop_event_frame(struct litest_device *dev)
 	dev->skip_ev_syn = false;
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 }
+
+static void
+send_abs_xy(struct litest_device *d, double x, double y)
+{
+	struct input_event e;
+	int val;
+
+	e.type = EV_ABS;
+	e.code = ABS_X;
+	e.value = LITEST_AUTO_ASSIGN;
+	val = litest_auto_assign_value(d, &e, 0, x, y);
+	litest_event(d, EV_ABS, ABS_X, val);
+
+	e.code = ABS_Y;
+	val = litest_auto_assign_value(d, &e, 0, x, y);
+	litest_event(d, EV_ABS, ABS_Y, val);
+}
+
+static void
+send_abs_mt_xy(struct litest_device *d, double x, double y)
+{
+	struct input_event e;
+	int val;
+
+	e.type = EV_ABS;
+	e.code = ABS_MT_POSITION_X;
+	e.value = LITEST_AUTO_ASSIGN;
+	val = litest_auto_assign_value(d, &e, 0, x, y);
+	litest_event(d, EV_ABS, ABS_MT_POSITION_X, val);
+
+	e.code = ABS_MT_POSITION_Y;
+	e.value = LITEST_AUTO_ASSIGN;
+	val = litest_auto_assign_value(d, &e, 0, x, y);
+	litest_event(d, EV_ABS, ABS_MT_POSITION_Y, val);
+}
+
+void
+litest_semi_mt_touch_down(struct litest_device *d,
+			  struct litest_semi_mt *semi_mt,
+			  unsigned int slot,
+			  double x, double y)
+{
+	double t, l, r = 0, b = 0; /* top, left, right, bottom */
+
+	if (d->ntouches_down > 2 || slot > 1)
+		return;
+
+	if (d->ntouches_down == 1) {
+		l = x;
+		t = y;
+	} else {
+		int other = (slot + 1) % 2;
+		l = min(x, semi_mt->touches[other].x);
+		t = min(y, semi_mt->touches[other].y);
+		r = max(x, semi_mt->touches[other].x);
+		b = max(y, semi_mt->touches[other].y);
+	}
+
+	send_abs_xy(d, l, t);
+
+	litest_event(d, EV_ABS, ABS_MT_SLOT, 0);
+
+	if (d->ntouches_down == 1)
+		litest_event(d, EV_ABS, ABS_MT_TRACKING_ID, ++semi_mt->tracking_id);
+
+	send_abs_mt_xy(d, l, t);
+
+	if (d->ntouches_down == 2) {
+		litest_event(d, EV_ABS, ABS_MT_SLOT, 1);
+		litest_event(d, EV_ABS, ABS_MT_TRACKING_ID, ++semi_mt->tracking_id);
+
+		send_abs_mt_xy(d, r, b);
+	}
+
+	litest_event(d, EV_SYN, SYN_REPORT, 0);
+
+	semi_mt->touches[slot].x = x;
+	semi_mt->touches[slot].y = y;
+}
+
+void
+litest_semi_mt_touch_move(struct litest_device *d,
+			  struct litest_semi_mt *semi_mt,
+			  unsigned int slot,
+			  double x, double y)
+{
+	double t, l, r = 0, b = 0; /* top, left, right, bottom */
+
+	if (d->ntouches_down > 2 || slot > 1)
+		return;
+
+	if (d->ntouches_down == 1) {
+		l = x;
+		t = y;
+	} else {
+		int other = (slot + 1) % 2;
+		l = min(x, semi_mt->touches[other].x);
+		t = min(y, semi_mt->touches[other].y);
+		r = max(x, semi_mt->touches[other].x);
+		b = max(y, semi_mt->touches[other].y);
+	}
+
+	send_abs_xy(d, l, t);
+
+	litest_event(d, EV_ABS, ABS_MT_SLOT, 0);
+	send_abs_mt_xy(d, l, t);
+
+	if (d->ntouches_down == 2) {
+		litest_event(d, EV_ABS, ABS_MT_SLOT, 1);
+		send_abs_mt_xy(d, r, b);
+	}
+
+	litest_event(d, EV_SYN, SYN_REPORT, 0);
+
+	semi_mt->touches[slot].x = x;
+	semi_mt->touches[slot].y = y;
+}
+
+void
+litest_semi_mt_touch_up(struct litest_device *d,
+			struct litest_semi_mt *semi_mt,
+			unsigned int slot)
+{
+	/* note: ntouches_down is decreased before we get here */
+	if (d->ntouches_down >= 2 || slot > 1)
+		return;
+
+	litest_event(d, EV_ABS, ABS_MT_SLOT, d->ntouches_down);
+	litest_event(d, EV_ABS, ABS_MT_TRACKING_ID, -1);
+
+	/* if we have one finger left, send x/y coords for that finger left.
+	   this is likely to happen with a real touchpad */
+	if (d->ntouches_down == 1) {
+		int other = (slot + 1) % 2;
+		send_abs_xy(d, semi_mt->touches[other].x, semi_mt->touches[other].y);
+		litest_event(d, EV_ABS, ABS_MT_SLOT, 0);
+		send_abs_mt_xy(d, semi_mt->touches[other].x, semi_mt->touches[other].y);
+	}
+
+	litest_event(d, EV_SYN, SYN_REPORT, 0);
+}
