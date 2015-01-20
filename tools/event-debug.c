@@ -121,6 +121,12 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_TABLET_TOOL_BUTTON:
 		type = "TABLET_TOOL_BUTTON";
 		break;
+	case LIBINPUT_EVENT_BUTTONSET_AXIS:
+		type = "BUTTONSET_AXIS";
+		break;
+	case LIBINPUT_EVENT_BUTTONSET_BUTTON:
+		type = "BUTTONSET_BUTTON";
+		break;
 	}
 
 	printf("%-7s	%-16s ", libinput_device_get_sysname(dev), type);
@@ -172,6 +178,9 @@ print_device_notify(struct libinput_event *ev)
 	if (libinput_device_has_capability(dev,
 					   LIBINPUT_DEVICE_CAP_TABLET_TOOL))
 		printf("T");
+	if (libinput_device_has_capability(dev,
+					   LIBINPUT_DEVICE_CAP_BUTTONSET))
+		printf("b");
 
 	if (libinput_device_get_size(dev, &w, &h) == 0)
 		printf("\tsize %.2f/%.2fmm", w, h);
@@ -312,6 +321,57 @@ print_tablet_button_event(struct libinput_event *ev)
 	       libinput_event_tablet_tool_get_button(p),
 	       state == LIBINPUT_BUTTON_STATE_PRESSED ? "pressed" : "released",
 	       libinput_event_tablet_tool_get_seat_button_count(p));
+}
+
+static void
+print_buttonset_button_event(struct libinput_event *ev)
+{
+	struct libinput_event_buttonset *b = libinput_event_get_buttonset_event(ev);
+	enum libinput_button_state state;
+
+	print_event_time(libinput_event_buttonset_get_time(b));
+
+	state = libinput_event_buttonset_get_button_state(b);
+	printf("%3d %s, seat count: %u\n",
+	       libinput_event_buttonset_get_button(b),
+	       state == LIBINPUT_BUTTON_STATE_PRESSED ? "pressed" : "released",
+	       libinput_event_buttonset_get_seat_button_count(b));
+}
+
+static void
+print_buttonset_axis_event(struct libinput_event *ev)
+{
+	struct libinput_event_buttonset *b = libinput_event_get_buttonset_event(ev);
+	const char *axis_name;
+	double val;
+	unsigned int axis;
+	struct libinput_device *device = libinput_event_get_device(ev);
+
+	print_event_time(libinput_event_buttonset_get_time(b));
+
+	for (axis = 0;
+	     axis < libinput_device_buttonset_get_num_axes(device);
+	     axis++) {
+		if (!libinput_event_buttonset_axis_has_changed(b, axis))
+			continue;
+
+		switch(libinput_device_buttonset_get_axis_type(device, axis)) {
+		case LIBINPUT_BUTTONSET_AXIS_RING:
+			axis_name = "ring";
+			val = libinput_event_buttonset_get_ring_position(b, axis);
+			break;
+		case LIBINPUT_BUTTONSET_AXIS_STRIP:
+			axis_name = "strip";
+			val = libinput_event_buttonset_get_strip_position(b, axis);
+			break;
+		default:
+			axis_name = "UNKNOWN";
+			break;
+		}
+		printf("\t%s: %.2f", axis_name, val);
+	}
+
+	printf("\n");
 }
 
 static void
@@ -646,6 +706,12 @@ handle_and_print_events(struct libinput *li)
 			break;
 		case LIBINPUT_EVENT_TABLET_TOOL_BUTTON:
 			print_tablet_button_event(ev);
+			break;
+		case LIBINPUT_EVENT_BUTTONSET_BUTTON:
+			print_buttonset_button_event(ev);
+			break;
+		case LIBINPUT_EVENT_BUTTONSET_AXIS:
+			print_buttonset_axis_event(ev);
 			break;
 		}
 

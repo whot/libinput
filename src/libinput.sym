@@ -234,3 +234,37 @@ LIBINPUT_1.2 {
 	libinput_tablet_tool_set_user_data;
 	libinput_tablet_tool_unref;
 } LIBINPUT_1.1;
+
+BUTTONSET_INTERFACE {
+	libinput_device_buttonset_has_button;
+	libinput_device_buttonset_get_axis_type;
+	libinput_device_buttonset_get_num_axes;
+	libinput_event_buttonset_get_base_event;
+	libinput_event_buttonset_get_button;
+	libinput_event_buttonset_get_button_state;
+	libinput_event_buttonset_get_seat_button_count;
+	libinput_event_buttonset_get_time;
+	libinput_event_buttonset_get_time_usec;
+	libinput_event_buttonset_axis_has_changed;
+	libinput_event_get_buttonset_event;
+	libinput_event_buttonset_get_x;
+	libinput_event_buttonset_get_x_transformed;
+	libinput_event_buttonset_get_y;
+	libinput_event_buttonset_get_y_transformed;
+	libinput_event_buttonset_get_z;
+	libinput_event_buttonset_get_dx;
+	libinput_event_buttonset_get_dy;
+	libinput_event_buttonset_get_dz;
+	libinput_event_buttonset_get_rotation_x;
+	libinput_event_buttonset_get_rotation_y;
+	libinput_event_buttonset_get_rotation_z;
+	libinput_event_buttonset_get_ring_position;
+	libinput_event_buttonset_get_ring_source;
+	libinput_event_buttonset_get_strip_position;
+	libinput_event_buttonset_get_strip_source;
+	libinput_event_buttonset_get_dx;
+	libinput_event_buttonset_get_dy;
+	libinput_event_buttonset_get_dz;
+	libinput_event_buttonset_get_ring_position;
+	libinput_event_buttonset_get_strip_position;
+} LIBINPUT_1.2;

@@ -798,6 +798,9 @@ handle_event_libinput(GIOChannel *source, GIOCondition condition, gpointer data)
 		case LIBINPUT_EVENT_TABLET_TOOL_BUTTON:
 			handle_event_tablet(ev, w);
 			break;
+		case LIBINPUT_EVENT_BUTTONSET_AXIS:
+		case LIBINPUT_EVENT_BUTTONSET_BUTTON:
+			break;
 		}
 
 		libinput_event_destroy(ev);

@@ -42,6 +42,10 @@
 	if (!check_event_type(li_, __func__, type_, __VA_ARGS__, -1)) \
 		return retval_; \
 
+#define require_buttonset_axis(dev_, axis_, type_, retval_) \
+	if (!check_buttonset_axis_type(dev_, __func__, axis_, type_)) \
+		return retval_;
+
 static inline bool
 check_event_type(struct libinput *libinput,
 		 const char *function_name,
@@ -71,6 +75,32 @@ check_event_type(struct libinput *libinput,
 			       type_in, function_name);
 
 	return rc;
+}
+
+static inline bool
+check_buttonset_axis_type(struct libinput_device *device,
+			  const char *function_name,
+			  unsigned int axis,
+			  enum libinput_buttonset_axis_type type_wanted)
+{
+	enum libinput_buttonset_axis_type type;
+
+	if (axis >= libinput_device_buttonset_get_num_axes(device)) {
+		log_bug_client(device->seat->libinput,
+			       "Invalid axis number %d in %s()\n",
+			       axis, function_name);
+		return false;
+	}
+
+	type = libinput_device_buttonset_get_axis_type(device, axis);
+	if (type != type_wanted) {
+		log_bug_client(device->seat->libinput,
+			       "Invalid axis type %d (need %d for %s())\n",
+			       type, type_wanted, function_name);
+		return false;
+	} else {
+		return true;
+	}
 }
 
 struct libinput_source {
@@ -136,6 +166,28 @@ struct libinput_event_tablet_tool {
 	struct libinput_tablet_tool *tool;
 	enum libinput_tablet_tool_proximity_state proximity_state;
 	enum libinput_tablet_tool_tip_state tip_state;
+};
+
+struct libinput_buttonset_axis {
+	enum libinput_buttonset_axis_type type;
+	enum libinput_buttonset_axis_source source;
+	union {
+		double mm;
+		double normalized;
+		double delta;
+		double degrees;
+		double position;
+	} value;
+};
+
+struct libinput_event_buttonset {
+	struct libinput_event base;
+	uint32_t button;
+	enum libinput_button_state state;
+	uint32_t seat_button_count;
+	uint32_t time;
+	struct libinput_buttonset_axis axes[LIBINPUT_BUTTONSET_MAX_NUM_AXES];
+	unsigned char changed_axes[NCHARS(LIBINPUT_BUTTONSET_MAX_NUM_AXES)];
 };
 
 static void
@@ -328,6 +380,18 @@ libinput_event_get_device_notify_event(struct libinput_event *event)
 			   LIBINPUT_EVENT_DEVICE_REMOVED);
 
 	return (struct libinput_event_device_notify *) event;
+}
+
+LIBINPUT_EXPORT struct libinput_event_buttonset *
+libinput_event_get_buttonset_event(struct libinput_event *event)
+{
+	require_event_type(libinput_event_get_context(event),
+			   event->type,
+			   NULL,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS,
+			   LIBINPUT_EVENT_BUTTONSET_BUTTON);
+
+	return (struct libinput_event_buttonset *) event;
 }
 
 LIBINPUT_EXPORT uint32_t
@@ -1473,6 +1537,316 @@ libinput_tablet_tool_unref(struct libinput_tablet_tool *tool)
 	return NULL;
 }
 
+LIBINPUT_EXPORT uint32_t
+libinput_event_buttonset_get_time(struct libinput_event_buttonset *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS,
+			   LIBINPUT_EVENT_BUTTONSET_BUTTON);
+
+	return us2ms(event->time);
+}
+
+LIBINPUT_EXPORT uint64_t
+libinput_event_buttonset_get_time_usec(struct libinput_event_buttonset *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS,
+			   LIBINPUT_EVENT_BUTTONSET_BUTTON);
+
+	return event->time;
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_event_buttonset_get_button(struct libinput_event_buttonset *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_BUTTONSET_BUTTON);
+
+	return event->button;
+}
+
+LIBINPUT_EXPORT enum libinput_button_state
+libinput_event_buttonset_get_button_state(struct libinput_event_buttonset *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_BUTTONSET_BUTTON);
+
+	return event->state;
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_event_buttonset_get_seat_button_count(struct libinput_event_buttonset *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_BUTTONSET_BUTTON);
+
+	return event->seat_button_count;
+}
+
+LIBINPUT_EXPORT int
+libinput_event_buttonset_axis_has_changed(struct libinput_event_buttonset *event,
+					  unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+
+	return (NCHARS(axis) <= sizeof(event->changed_axes)) ?
+		bit_is_set(event->changed_axes, axis) : 0;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_x(struct libinput_event_buttonset *event,
+			       unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+			       axis,
+			       LIBINPUT_BUTTONSET_AXIS_X,
+			       0.0);
+
+	return event->axes[axis].value.mm;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_x_transformed(struct libinput_event_buttonset *event,
+					   unsigned int axis,
+					   uint32_t width)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+				    axis,
+				    LIBINPUT_BUTTONSET_AXIS_X,
+				    0.0);
+
+	return event->axes[axis].value.mm; /* FIXME */
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_y(struct libinput_event_buttonset *event,
+			       unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+				    axis,
+				    LIBINPUT_BUTTONSET_AXIS_Y,
+				    0.0);
+	return event->axes[axis].value.mm;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_y_transformed(struct libinput_event_buttonset *event,
+					   unsigned int axis,
+					   uint32_t height)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+				    axis,
+				    LIBINPUT_BUTTONSET_AXIS_Y,
+				    0.0);
+
+	return event->axes[axis].value.mm; /* FIXME */
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_z(struct libinput_event_buttonset *event,
+			       unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+				    axis,
+				    LIBINPUT_BUTTONSET_AXIS_Z,
+				    0.0);
+
+	return event->axes[axis].value.mm;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_dx(struct libinput_event_buttonset *event,
+				unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+				    axis,
+				    LIBINPUT_BUTTONSET_AXIS_REL_X,
+				    0.0);
+
+	return event->axes[axis].value.delta;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_dy(struct libinput_event_buttonset *event,
+				unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+				    axis,
+				    LIBINPUT_BUTTONSET_AXIS_REL_Y,
+				    0.0);
+
+	return event->axes[axis].value.delta;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_dz(struct libinput_event_buttonset *event,
+				unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+				    axis,
+				    LIBINPUT_BUTTONSET_AXIS_REL_Z,
+				    0.0);
+
+	return event->axes[axis].value.delta;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_rotation_x(struct libinput_event_buttonset *event,
+					unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+				    axis,
+				    LIBINPUT_BUTTONSET_AXIS_ROTATION_X,
+				    0.0);
+
+	return event->axes[axis].value.degrees;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_rotation_y(struct libinput_event_buttonset *event,
+					unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+				    axis,
+				    LIBINPUT_BUTTONSET_AXIS_ROTATION_Y,
+				    0.0);
+
+	return event->axes[axis].value.degrees;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_rotation_z(struct libinput_event_buttonset *event,
+					unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+				    axis,
+				    LIBINPUT_BUTTONSET_AXIS_ROTATION_Z,
+				    0.0);
+
+	return event->axes[axis].value.degrees;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_ring_position(struct libinput_event_buttonset *event,
+					   unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+				    axis,
+				    LIBINPUT_BUTTONSET_AXIS_RING,
+				    0.0);
+
+	return event->axes[axis].value.position;
+}
+
+LIBINPUT_EXPORT enum libinput_buttonset_axis_source
+libinput_event_buttonset_get_ring_source(struct libinput_event_buttonset *event,
+					 unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+				    axis,
+				    LIBINPUT_BUTTONSET_AXIS_RING,
+				    0.0);
+
+	return event->axes[axis].source;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_buttonset_get_strip_position(struct libinput_event_buttonset *event,
+					    unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+			       axis,
+			       LIBINPUT_BUTTONSET_AXIS_STRIP,
+			       0.0);
+
+	return event->axes[axis].value.position;
+}
+
+LIBINPUT_EXPORT enum libinput_buttonset_axis_source
+libinput_event_buttonset_get_strip_source(struct libinput_event_buttonset *event,
+					 unsigned int axis)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
+	require_buttonset_axis(event->base.device,
+			       axis,
+			       LIBINPUT_BUTTONSET_AXIS_STRIP,
+			       0.0);
+	return event->axes[axis].source;
+}
+
 struct libinput_source *
 libinput_add_fd(struct libinput *libinput,
 		int fd,
@@ -1952,6 +2326,9 @@ device_has_cap(struct libinput_device *device,
 		break;
 	case LIBINPUT_DEVICE_CAP_TABLET_TOOL:
 		capability = "CAP_TABLET_TOOL";
+		break;
+	case LIBINPUT_DEVICE_CAP_BUTTONSET:
+		capability = "CAP_BUTTONSET";
 		break;
 	}
 
@@ -2451,6 +2828,8 @@ event_type_to_str(enum libinput_event_type type)
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_PINCH_BEGIN);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_PINCH_UPDATE);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_PINCH_END);
+	CASE_RETURN_STRING(LIBINPUT_EVENT_BUTTONSET_AXIS);
+	CASE_RETURN_STRING(LIBINPUT_EVENT_BUTTONSET_BUTTON);
 	case LIBINPUT_EVENT_NONE:
 		abort();
 	}
@@ -2678,6 +3057,25 @@ libinput_device_keyboard_has_key(struct libinput_device *device, uint32_t code)
 					     code);
 }
 
+LIBINPUT_EXPORT int
+libinput_device_buttonset_has_button(struct libinput_device *device, uint32_t code)
+{
+	return 0; /* FIXME */
+}
+
+LIBINPUT_EXPORT enum libinput_buttonset_axis_type
+libinput_device_buttonset_get_axis_type(struct libinput_device *device,
+					unsigned int axis)
+{
+	return 0; /* FIXME */
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_device_buttonset_get_num_axes(struct libinput_device *device)
+{
+	return 0; /* FIXME */
+}
+
 LIBINPUT_EXPORT struct libinput_event *
 libinput_event_device_notify_get_base_event(struct libinput_event_device_notify *event)
 {
@@ -2746,6 +3144,18 @@ libinput_event_tablet_tool_get_base_event(struct libinput_event_tablet_tool *eve
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON);
+
+	return &event->base;
+}
+
+LIBINPUT_EXPORT struct libinput_event *
+libinput_event_buttonset_get_base_event(struct libinput_event_buttonset *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   NULL,
+			   LIBINPUT_EVENT_BUTTONSET_BUTTON,
+			   LIBINPUT_EVENT_BUTTONSET_AXIS);
 
 	return &event->base;
 }

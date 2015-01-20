@@ -33,6 +33,8 @@
 #include "libinput.h"
 #include "libinput-util.h"
 
+#define LIBINPUT_BUTTONSET_MAX_NUM_AXES 32
+
 struct libinput_source;
 
 /* A coordinate pair in device coordinates */

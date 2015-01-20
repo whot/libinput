@@ -11,6 +11,7 @@ header_files = \
 	$(top_srcdir)/src/libinput.h \
 	$(top_srcdir)/README.txt \
 	$(srcdir)/absolute-axes.dox \
+	$(srcdir)/buttonsets.dox \
 	$(srcdir)/clickpad-softbuttons.dox \
 	$(srcdir)/device-configuration-via-udev.dox \
 	$(srcdir)/faqs.dox \

@@ -1,0 +1,53 @@
+/**
+@page buttonsets Buttonset devices
+
+Devices with the @ref LIBINPUT_DEVICE_CAP_BUTTONSET capability are so-called
+buttonsets, devices that have axes, buttons or keys but are are auxiliary
+devices that do not control the pointer or the keyboard.
+Examples for buttonset devices are the physical tablet ("pad") of Wacom
+graphics tablets, the Griffin PowerMate or the 3Dconnexion SpacePilot Pro.
+
+A buttonset device may have axes and even x and y axes but those axes are
+not used to control the pointer. Joysticks and gamepads are not buttonset
+devices, libinput currently does not support those.
+
+libinput expects additional knowledge about the device to live in the
+callers, it merely abstracts the interfaces and provides a coherent API to
+the callers. A caller should know about the device in advance and thus be
+able to interpret the various axes, buttons and keys correctly.
+
+@section buttonset_buttons
+
+The set of buttons on a device is device-specific. libinput uses the Linux
+kernel's button names (BTN_* from linux/input.h) to identify buttons.
+Linux forces semantic naming on buttons (e.g. BTN_LEFT) but some devices
+have merely numbered buttons (e.g. the XKeys Pro). It is the caller's
+responsibility to detect such devices and interpret the button numbers
+correctly.
+
+libinput does not provide a function to enumerate all buttons on a device,
+instead the caller is expected to check for the buttons or keys it needs to
+handle. For example, a caller that cares about multimedia keys should check
+for the set of multimedia keys it handles rather than traversing the entire
+key space.
+
+@section buttonset_axes Buttonset axes
+
+Axes on a buttonset are numbered sequentially, zero-indexed. The index is
+the main identifier of the axis, the order of axes is not guaranteed. A
+device may gain additional axes with future releases of libinput.
+
+Each axis has a type (see @ref libinput_buttonset_axis_type). libinput does
+not guarantee the order of the types, but it does guarantee a stable order of
+axes with the same type. If a device's axes i an j are of type @ref
+LIBINPUT_BUTTONSET_AXIS_RING, libinput guarantees that i < j even when the
+number or order of axes changes.  In other words, if the left ring was the
+first ring in the axis list, it will always be the first ring in the axis
+list.
+
+A buttonset device may have relative and absolute axes. Absolute axes are
+provided in physical distances where possible, relative events are always in
+normalized relative events. libinput uses the same default DPI as for mouse
+events, see @ref motion_normalization.
+
+*/
