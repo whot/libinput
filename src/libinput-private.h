@@ -259,6 +259,14 @@ void
 notify_removed_device(struct libinput_device *device);
 
 void
+device_register_capability(struct libinput_device *device,
+			   enum libinput_device_capability capability);
+
+void
+device_unregister_capability(struct libinput_device *device,
+			     enum libinput_device_capability capability);
+
+void
 keyboard_notify_key(struct libinput_device *device,
 		    uint64_t time,
 		    uint32_t key,

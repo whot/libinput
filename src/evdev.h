@@ -272,7 +272,8 @@ evdev_device_transform_y(struct evdev_device *device,
 			 double y,
 			 uint32_t height);
 int
-evdev_device_suspend(struct evdev_device *device);
+evdev_device_suspend(struct evdev_device *device,
+		     bool want_capability_events);
 
 int
 evdev_device_resume(struct evdev_device *device);

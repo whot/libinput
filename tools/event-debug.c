@@ -76,6 +76,12 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_DEVICE_REMOVED:
 		type = "DEVICE_REMOVED";
 		break;
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED:
+		type = "CAPABILITY_ADDED";
+		break;
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED:
+		type = "CAPABILITY_REMOVED";
+		break;
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
 		type = "KEYBOARD_KEY";
 		break;
@@ -130,17 +136,6 @@ print_device_notify(struct libinput_event *ev)
 	       libinput_seat_get_physical_name(seat),
 	       libinput_seat_get_logical_name(seat));
 
-	printf(" cap:");
-	if (libinput_device_has_capability(dev,
-					   LIBINPUT_DEVICE_CAP_KEYBOARD))
-		printf("k");
-	if (libinput_device_has_capability(dev,
-					   LIBINPUT_DEVICE_CAP_POINTER))
-		printf("p");
-	if (libinput_device_has_capability(dev,
-					   LIBINPUT_DEVICE_CAP_TOUCH))
-		printf("t");
-
 	if (libinput_device_get_size(dev, &w, &h) == 0)
 		printf("\tsize %.2f/%.2fmm", w, h);
 
@@ -167,6 +162,34 @@ print_device_notify(struct libinput_event *ev)
 	printf("\n");
 
 }
+
+static void
+print_device_capability(struct libinput_event *ev)
+{
+	struct libinput_event_device_capability *c =
+		libinput_event_get_device_capability_event(ev);
+	const char *cap, *mode;
+
+	switch (libinput_event_device_capability_get_capability(c)) {
+	case LIBINPUT_DEVICE_CAP_KEYBOARD:
+		cap = "keyboard";
+		break;
+	case LIBINPUT_DEVICE_CAP_POINTER:
+		cap = "pointer";
+		break;
+	case LIBINPUT_DEVICE_CAP_TOUCH:
+		cap = "touch";
+		break;
+	}
+
+	if (libinput_event_get_type(ev) == LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED)
+		mode = "added";
+	else
+		mode = "removed";
+
+	printf(" capability %s: %s\n", mode, cap);
+}
+
 
 static void
 print_key_event(struct libinput_event *ev)
@@ -284,6 +307,10 @@ handle_and_print_events(struct libinput *li)
 			print_device_notify(ev);
 			tools_device_apply_config(libinput_event_get_device(ev),
 						  &options);
+			break;
+		case LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED:
+		case LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED:
+			print_device_capability(ev);
 			break;
 		case LIBINPUT_EVENT_KEYBOARD_KEY:
 			print_key_event(ev);

@@ -46,6 +46,11 @@ struct libinput_event_device_notify {
 	struct libinput_event base;
 };
 
+struct libinput_event_device_capability {
+	struct libinput_event base;
+	enum libinput_device_capability capability;
+};
+
 struct libinput_event_keyboard {
 	struct libinput_event base;
 	uint32_t time;
@@ -170,6 +175,8 @@ libinput_event_get_pointer_event(struct libinput_event *event)
 		abort(); /* not used as actual event type */
 	case LIBINPUT_EVENT_DEVICE_ADDED:
 	case LIBINPUT_EVENT_DEVICE_REMOVED:
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED:
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED:
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
 		break;
 	case LIBINPUT_EVENT_POINTER_MOTION:
@@ -196,6 +203,8 @@ libinput_event_get_keyboard_event(struct libinput_event *event)
 		abort(); /* not used as actual event type */
 	case LIBINPUT_EVENT_DEVICE_ADDED:
 	case LIBINPUT_EVENT_DEVICE_REMOVED:
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED:
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED:
 		break;
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
 		return (struct libinput_event_keyboard *) event;
@@ -222,6 +231,8 @@ libinput_event_get_touch_event(struct libinput_event *event)
 		abort(); /* not used as actual event type */
 	case LIBINPUT_EVENT_DEVICE_ADDED:
 	case LIBINPUT_EVENT_DEVICE_REMOVED:
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED:
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED:
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
 	case LIBINPUT_EVENT_POINTER_MOTION:
 	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
@@ -248,6 +259,8 @@ libinput_event_get_device_notify_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_DEVICE_ADDED:
 	case LIBINPUT_EVENT_DEVICE_REMOVED:
 		return (struct libinput_event_device_notify *) event;
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED:
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED:
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
 	case LIBINPUT_EVENT_POINTER_MOTION:
 	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
@@ -262,6 +275,41 @@ libinput_event_get_device_notify_event(struct libinput_event *event)
 	}
 
 	return NULL;
+}
+
+LIBINPUT_EXPORT struct libinput_event_device_capability *
+libinput_event_get_device_capability_event(struct libinput_event *event)
+{
+	switch (event->type) {
+	case LIBINPUT_EVENT_NONE:
+		abort(); /* not used as actual event type */
+	case LIBINPUT_EVENT_DEVICE_ADDED:
+	case LIBINPUT_EVENT_DEVICE_REMOVED:
+		break;
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED:
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED:
+		return (struct libinput_event_device_capability *) event;
+	case LIBINPUT_EVENT_KEYBOARD_KEY:
+	case LIBINPUT_EVENT_POINTER_MOTION:
+	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
+	case LIBINPUT_EVENT_POINTER_BUTTON:
+	case LIBINPUT_EVENT_POINTER_AXIS:
+	case LIBINPUT_EVENT_TOUCH_DOWN:
+	case LIBINPUT_EVENT_TOUCH_UP:
+	case LIBINPUT_EVENT_TOUCH_MOTION:
+	case LIBINPUT_EVENT_TOUCH_CANCEL:
+	case LIBINPUT_EVENT_TOUCH_FRAME:
+		break;
+	}
+
+	return NULL;
+}
+
+LIBINPUT_EXPORT enum libinput_device_capability
+libinput_event_device_capability_get_capability(
+	struct libinput_event_device_capability *event)
+{
+	return event->capability;
 }
 
 LIBINPUT_EXPORT uint32_t
@@ -929,6 +977,40 @@ notify_removed_device(struct libinput_device *device)
 	post_base_event(device,
 			LIBINPUT_EVENT_DEVICE_REMOVED,
 			&removed_device_event->base);
+}
+
+void
+device_register_capability(struct libinput_device *device,
+			   enum libinput_device_capability capability)
+{
+	struct libinput_event_device_capability *capability_event;
+
+	capability_event = malloc(sizeof *capability_event);
+
+	*capability_event = (struct libinput_event_device_capability) {
+		.capability = capability,
+	};
+
+	post_base_event(device,
+			LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED,
+			&capability_event->base);
+}
+
+void
+device_unregister_capability(struct libinput_device *device,
+			     enum libinput_device_capability capability)
+{
+	struct libinput_event_device_capability *capability_event;
+
+	capability_event = malloc(sizeof *capability_event);
+
+	*capability_event = (struct libinput_event_device_capability) {
+		.capability = capability,
+	};
+
+	post_base_event(device,
+			LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED,
+			&capability_event->base);
 }
 
 void

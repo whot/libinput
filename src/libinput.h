@@ -158,6 +158,9 @@ enum libinput_event_type {
 	 */
 	LIBINPUT_EVENT_DEVICE_REMOVED,
 
+	LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED = 200,
+	LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED,
+
 	LIBINPUT_EVENT_KEYBOARD_KEY = 300,
 
 	LIBINPUT_EVENT_POINTER_MOTION = 400,
@@ -222,6 +225,15 @@ struct libinput_event;
  * An event notifying the caller of a device being added or removed.
  */
 struct libinput_event_device_notify;
+
+/**
+ * @ingroup event
+ * @struct libinput_event_device_capability
+ *
+ * An event notifying the caller of a device capability being added or
+ * removed
+ */
+struct libinput_event_device_capability;
 
 /**
  * @ingroup event_keyboard
@@ -368,6 +380,38 @@ libinput_event_get_device_notify_event(struct libinput_event *event);
  */
 struct libinput_event *
 libinput_event_device_notify_get_base_event(struct libinput_event_device_notify *event);
+
+/**
+ * @ingroup event
+ *
+ * Return the capability event that is this input event. If the event type
+ * does not match the capability event types, this function returns NULL.
+ *
+ * The inverse of this function is
+ * libinput_event_device_capability_get_base_event().
+ *
+ * @return A capability event, or NULL for other events
+ */
+struct libinput_event_device_capability *
+libinput_event_get_device_capability_event(struct libinput_event *event);
+
+/**
+ * @ingroup event
+ *
+ * @return The capability registered or unregistered from this device
+ */
+enum libinput_device_capability
+libinput_event_device_capability_get_capability(
+	struct libinput_event_device_capability *event);
+
+/**
+ * @ingroup event
+ *
+ * @return The generic libinput_event of this event
+ */
+struct libinput_event *
+libinput_event_device_capability_get_base_event(
+			struct libinput_event_device_capability *event);
 
 /**
  * @defgroup event_keyboard Keyboard events

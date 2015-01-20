@@ -958,6 +958,12 @@ litest_event_type_str(struct libinput_event *event)
 	case LIBINPUT_EVENT_DEVICE_REMOVED:
 		str = "REMOVED";
 		break;
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED:
+		str = "CAPABILITY ADDED";
+		break;
+	case LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED:
+		str = "CAPABILITY REMOVED";
+		break;
 	case LIBINPUT_EVENT_KEYBOARD_KEY:
 		str = "KEY";
 		break;

@@ -241,6 +241,10 @@ START_TEST(udev_change_seat)
 
 	libinput_dispatch(li);
 
+	litest_drain_typed_events(li,
+				  LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED,
+				  -1);
+
 	event = libinput_get_event(li);
 	ck_assert_int_eq(libinput_event_get_type(event),
 			 LIBINPUT_EVENT_DEVICE_REMOVED);
@@ -411,8 +415,10 @@ START_TEST(udev_device_sysname)
 	libinput_dispatch(li);
 
 	while ((ev = libinput_get_event(li))) {
-		if (libinput_event_get_type(ev) != LIBINPUT_EVENT_DEVICE_ADDED)
+		if (libinput_event_get_type(ev) != LIBINPUT_EVENT_DEVICE_ADDED) {
+			libinput_event_destroy(ev);
 			continue;
+		}
 
 		device = libinput_event_get_device(ev);
 		sysname = libinput_device_get_sysname(device);

@@ -121,8 +121,11 @@ local:
 
 LIBINPUT_0.9.0 {
 global:
+	libinput_event_device_capability_get_capability;
 	libinput_device_config_click_get_default_method;
 	libinput_device_config_click_get_method;
 	libinput_device_config_click_get_methods;
 	libinput_device_config_click_set_method;
+	libinput_event_get_device_capability_event;
+
 } LIBINPUT_0.8.0;

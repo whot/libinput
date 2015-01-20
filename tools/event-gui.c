@@ -441,6 +441,9 @@ handle_event_libinput(GIOChannel *source, GIOCondition condition, gpointer data)
 		case LIBINPUT_EVENT_DEVICE_REMOVED:
 			handle_event_device_notify(ev);
 			break;
+		case LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED:
+		case LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED:
+			break;
 		case LIBINPUT_EVENT_POINTER_MOTION:
 			handle_event_motion(ev, w);
 			break;

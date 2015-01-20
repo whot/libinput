@@ -211,6 +211,10 @@ START_TEST(path_seat_change)
 
 	libinput_dispatch(li);
 
+	litest_drain_typed_events(li,
+				  LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED,
+				  -1);
+
 	event = libinput_get_event(li);
 	ck_assert(event != NULL);
 
@@ -354,14 +358,14 @@ START_TEST(path_device_sysname)
 	libinput_dispatch(dev->libinput);
 
 	while ((ev = libinput_get_event(dev->libinput))) {
-		if (libinput_event_get_type(ev) != LIBINPUT_EVENT_DEVICE_ADDED)
-			continue;
-
-		device = libinput_event_get_device(ev);
-		sysname = libinput_device_get_sysname(device);
-		ck_assert(sysname != NULL && strlen(sysname) > 1);
-		ck_assert(strchr(sysname, '/') == NULL);
-		ck_assert_int_eq(strncmp(sysname, "event", 5), 0);
+		if (libinput_event_get_type(ev) ==
+			    LIBINPUT_EVENT_DEVICE_ADDED) {
+			device = libinput_event_get_device(ev);
+			sysname = libinput_device_get_sysname(device);
+			ck_assert(sysname != NULL && strlen(sysname) > 1);
+			ck_assert(strchr(sysname, '/') == NULL);
+			ck_assert_int_eq(strncmp(sysname, "event", 5), 0);
+		}
 
 		libinput_event_destroy(ev);
 	}
@@ -537,7 +541,7 @@ START_TEST(path_add_device_suspend_resume)
 	struct libinput_event *event;
 	struct libevdev_uinput *uinput1, *uinput2;
 	int rc;
-	int nevents;
+	int ndevices;
 	void *userdata = &rc;
 
 	uinput1 = litest_create_uinput_device("test device", NULL,
@@ -564,44 +568,53 @@ START_TEST(path_add_device_suspend_resume)
 
 	libinput_dispatch(li);
 
-	nevents = 0;
+	ndevices = 0;
 	while ((event = libinput_get_event(li))) {
 		enum libinput_event_type type;
 		type = libinput_event_get_type(event);
-		ck_assert_int_eq(type, LIBINPUT_EVENT_DEVICE_ADDED);
+		if (type != LIBINPUT_EVENT_DEVICE_ADDED &&
+		    type != LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED)
+			ck_assert_msg(type, "Expected device/capability added");
 		libinput_event_destroy(event);
-		nevents++;
+		if (type == LIBINPUT_EVENT_DEVICE_ADDED)
+			ndevices++;
 	}
 
-	ck_assert_int_eq(nevents, 2);
+	ck_assert_int_eq(ndevices, 2);
 
 	libinput_suspend(li);
 	libinput_dispatch(li);
 
-	nevents = 0;
+	ndevices = 0;
 	while ((event = libinput_get_event(li))) {
 		enum libinput_event_type type;
 		type = libinput_event_get_type(event);
-		ck_assert_int_eq(type, LIBINPUT_EVENT_DEVICE_REMOVED);
+		if (type != LIBINPUT_EVENT_DEVICE_REMOVED &&
+		    type != LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED)
+			ck_assert_msg(type, "Expected device/capability removed");
 		libinput_event_destroy(event);
-		nevents++;
+		if (type == LIBINPUT_EVENT_DEVICE_REMOVED)
+			ndevices++;
 	}
 
-	ck_assert_int_eq(nevents, 2);
+	ck_assert_int_eq(ndevices, 2);
 
 	libinput_resume(li);
 	libinput_dispatch(li);
 
-	nevents = 0;
+	ndevices = 0;
 	while ((event = libinput_get_event(li))) {
 		enum libinput_event_type type;
 		type = libinput_event_get_type(event);
-		ck_assert_int_eq(type, LIBINPUT_EVENT_DEVICE_ADDED);
+		if (type != LIBINPUT_EVENT_DEVICE_ADDED &&
+		    type != LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED)
+			ck_assert_msg(type, "Expected device/capability added");
 		libinput_event_destroy(event);
-		nevents++;
+		if (type == LIBINPUT_EVENT_DEVICE_ADDED)
+			ndevices++;
 	}
 
-	ck_assert_int_eq(nevents, 2);
+	ck_assert_int_eq(ndevices, 2);
 
 	libevdev_uinput_destroy(uinput1);
 	libevdev_uinput_destroy(uinput2);
@@ -619,7 +632,7 @@ START_TEST(path_add_device_suspend_resume_fail)
 	struct libinput_event *event;
 	struct libevdev_uinput *uinput1, *uinput2;
 	int rc;
-	int nevents;
+	int ndevices;
 	void *userdata = &rc;
 
 	uinput1 = litest_create_uinput_device("test device", NULL,
@@ -647,30 +660,36 @@ START_TEST(path_add_device_suspend_resume_fail)
 
 	libinput_dispatch(li);
 
-	nevents = 0;
+	ndevices = 0;
 	while ((event = libinput_get_event(li))) {
 		enum libinput_event_type type;
 		type = libinput_event_get_type(event);
-		ck_assert_int_eq(type, LIBINPUT_EVENT_DEVICE_ADDED);
+		if (type != LIBINPUT_EVENT_DEVICE_ADDED &&
+		    type != LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED)
+			ck_assert_msg(type, "Expected device/capability added");
 		libinput_event_destroy(event);
-		nevents++;
+		if (type == LIBINPUT_EVENT_DEVICE_ADDED)
+			ndevices++;
 	}
 
-	ck_assert_int_eq(nevents, 2);
+	ck_assert_int_eq(ndevices, 2);
 
 	libinput_suspend(li);
 	libinput_dispatch(li);
 
-	nevents = 0;
+	ndevices = 0;
 	while ((event = libinput_get_event(li))) {
 		enum libinput_event_type type;
 		type = libinput_event_get_type(event);
-		ck_assert_int_eq(type, LIBINPUT_EVENT_DEVICE_REMOVED);
+		if (type != LIBINPUT_EVENT_DEVICE_REMOVED &&
+		    type != LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED)
+			ck_assert_msg(type, "Expected device/capability removed");
 		libinput_event_destroy(event);
-		nevents++;
+		if (type == LIBINPUT_EVENT_DEVICE_REMOVED)
+			ndevices++;
 	}
 
-	ck_assert_int_eq(nevents, 2);
+	ck_assert_int_eq(ndevices, 2);
 
 	/* now drop one of the devices */
 	libevdev_uinput_destroy(uinput1);
@@ -679,20 +698,27 @@ START_TEST(path_add_device_suspend_resume_fail)
 
 	libinput_dispatch(li);
 
-	nevents = 0;
+	ndevices = 0;
 	while ((event = libinput_get_event(li))) {
 		enum libinput_event_type type;
 		type = libinput_event_get_type(event);
 		/* We expect one device being added, second one fails,
 		 * causing a removed event for the first one */
-		if (type != LIBINPUT_EVENT_DEVICE_ADDED &&
-		    type != LIBINPUT_EVENT_DEVICE_REMOVED)
+		switch(type) {
+		case LIBINPUT_EVENT_DEVICE_ADDED:
+		case LIBINPUT_EVENT_DEVICE_REMOVED:
+			ndevices++;
+			break;
+		case LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED:
+		case LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED:
+			break;
+		default:
 			ck_abort();
+		}
 		libinput_event_destroy(event);
-		nevents++;
 	}
 
-	ck_assert_int_eq(nevents, 2);
+	ck_assert_int_eq(ndevices, 2);
 
 	libevdev_uinput_destroy(uinput2);
 	libinput_unref(li);
@@ -709,7 +735,7 @@ START_TEST(path_add_device_suspend_resume_remove_device)
 	struct libinput_event *event;
 	struct libevdev_uinput *uinput1, *uinput2;
 	int rc;
-	int nevents;
+	int ndevices;
 	void *userdata = &rc;
 
 	uinput1 = litest_create_uinput_device("test device", NULL,
@@ -737,30 +763,36 @@ START_TEST(path_add_device_suspend_resume_remove_device)
 	libinput_device_ref(device);
 	libinput_dispatch(li);
 
-	nevents = 0;
+	ndevices = 0;
 	while ((event = libinput_get_event(li))) {
 		enum libinput_event_type type;
 		type = libinput_event_get_type(event);
-		ck_assert_int_eq(type, LIBINPUT_EVENT_DEVICE_ADDED);
+		if (type != LIBINPUT_EVENT_DEVICE_ADDED &&
+		    type != LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED)
+			ck_assert_msg(type, "Expected device/capability added");
 		libinput_event_destroy(event);
-		nevents++;
+		if (type == LIBINPUT_EVENT_DEVICE_ADDED)
+			ndevices++;
 	}
 
-	ck_assert_int_eq(nevents, 2);
+	ck_assert_int_eq(ndevices, 2);
 
 	libinput_suspend(li);
 	libinput_dispatch(li);
 
-	nevents = 0;
+	ndevices = 0;
 	while ((event = libinput_get_event(li))) {
 		enum libinput_event_type type;
 		type = libinput_event_get_type(event);
-		ck_assert_int_eq(type, LIBINPUT_EVENT_DEVICE_REMOVED);
+		if (type != LIBINPUT_EVENT_DEVICE_REMOVED &&
+		    type != LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED)
+			ck_assert_msg(type, "Expected device/capability removed");
 		libinput_event_destroy(event);
-		nevents++;
+		if (type == LIBINPUT_EVENT_DEVICE_REMOVED)
+			ndevices++;
 	}
 
-	ck_assert_int_eq(nevents, 2);
+	ck_assert_int_eq(ndevices, 2);
 
 	/* now drop and remove one of the devices */
 	libevdev_uinput_destroy(uinput2);
@@ -772,16 +804,19 @@ START_TEST(path_add_device_suspend_resume_remove_device)
 
 	libinput_dispatch(li);
 
-	nevents = 0;
+	ndevices = 0;
 	while ((event = libinput_get_event(li))) {
 		enum libinput_event_type type;
 		type = libinput_event_get_type(event);
-		ck_assert_int_eq(type, LIBINPUT_EVENT_DEVICE_ADDED);
+		if (type != LIBINPUT_EVENT_DEVICE_ADDED &&
+		    type != LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED)
+			ck_assert_msg(type, "Expected device/capability added");
 		libinput_event_destroy(event);
-		nevents++;
+		if (type == LIBINPUT_EVENT_DEVICE_ADDED)
+			ndevices++;
 	}
 
-	ck_assert_int_eq(nevents, 1);
+	ck_assert_int_eq(ndevices, 1);
 
 	libevdev_uinput_destroy(uinput1);
 	libinput_unref(li);
@@ -889,10 +924,12 @@ main(int argc, char **argv)
 	litest_add_no_device("path:suspend", path_add_device_suspend_resume);
 	litest_add_no_device("path:suspend", path_add_device_suspend_resume_fail);
 	litest_add_no_device("path:suspend", path_add_device_suspend_resume_remove_device);
+
 	litest_add_for_device("path:seat", path_added_seat, LITEST_SYNAPTICS_CLICKPAD);
 	litest_add_for_device("path:seat", path_seat_change, LITEST_SYNAPTICS_CLICKPAD);
 	litest_add("path:device events", path_added_device, LITEST_ANY, LITEST_ANY);
 	litest_add("path:device events", path_device_sysname, LITEST_ANY, LITEST_ANY);
+
 	litest_add_for_device("path:device events", path_add_device, LITEST_SYNAPTICS_CLICKPAD);
 	litest_add_no_device("path:device events", path_add_invalid_path);
 	litest_add_for_device("path:device events", path_remove_device, LITEST_SYNAPTICS_CLICKPAD);

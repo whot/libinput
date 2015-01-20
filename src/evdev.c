@@ -785,7 +785,7 @@ evdev_sendevents_set_mode(struct libinput_device *device,
 		evdev_device_resume(evdev);
 		break;
 	case LIBINPUT_CONFIG_SEND_EVENTS_DISABLED:
-		evdev_device_suspend(evdev);
+		evdev_device_suspend(evdev, false);
 		break;
 	default: /* no support for combined modes yet */
 		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
@@ -1559,6 +1559,23 @@ out:
 	return rc;
 }
 
+static void
+evdev_register_device_capabilities(struct evdev_device *device)
+{
+	if (device->seat_caps & EVDEV_DEVICE_POINTER) {
+		device_register_capability(&device->base,
+					   LIBINPUT_DEVICE_CAP_POINTER);
+	}
+	if (device->seat_caps & EVDEV_DEVICE_KEYBOARD) {
+		device_register_capability(&device->base,
+					   LIBINPUT_DEVICE_CAP_KEYBOARD);
+	}
+	if (device->seat_caps & EVDEV_DEVICE_TOUCH) {
+		device_register_capability(&device->base,
+					   LIBINPUT_DEVICE_CAP_TOUCH);
+	}
+}
+
 struct evdev_device *
 evdev_device_create(struct libinput_seat *seat,
 		    struct udev_device *udev_device)
@@ -1643,6 +1660,7 @@ evdev_device_create(struct libinput_seat *seat,
 
 	evdev_tag_device(device);
 	evdev_notify_added_device(device);
+	evdev_register_device_capabilities(device);
 
 	return device;
 
@@ -1995,9 +2013,25 @@ evdev_notify_resumed_device(struct evdev_device *device)
 }
 
 int
-evdev_device_suspend(struct evdev_device *device)
+evdev_device_suspend(struct evdev_device *device,
+		     bool want_capability_events)
 {
 	evdev_notify_suspended_device(device);
+
+	if (want_capability_events) {
+		if (device->seat_caps & EVDEV_DEVICE_POINTER) {
+			device_unregister_capability(&device->base,
+					     LIBINPUT_DEVICE_CAP_POINTER);
+		}
+		if (device->seat_caps & EVDEV_DEVICE_KEYBOARD) {
+			device_unregister_capability(&device->base,
+					     LIBINPUT_DEVICE_CAP_KEYBOARD);
+		}
+		if (device->seat_caps & EVDEV_DEVICE_TOUCH) {
+			device_unregister_capability(&device->base,
+					     LIBINPUT_DEVICE_CAP_TOUCH);
+		}
+	}
 
 	if (device->source) {
 		libinput_remove_source(device->base.seat->libinput,
@@ -2096,7 +2130,7 @@ evdev_device_remove(struct evdev_device *device)
 			d->dispatch->interface->device_removed(d, device);
 	}
 
-	evdev_device_suspend(device);
+	evdev_device_suspend(device, true);
 
 	if (device->dispatch->interface->remove)
 		device->dispatch->interface->remove(device->dispatch);

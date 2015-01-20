@@ -940,7 +940,7 @@ tp_suspend(struct tp_dispatch *tp, struct evdev_device *device)
 		/* Enlarge topbutton area while suspended */
 		tp_init_top_softbuttons(tp, device, 1.5);
 	} else {
-		evdev_device_suspend(device);
+		evdev_device_suspend(device, false);
 	}
 }
 

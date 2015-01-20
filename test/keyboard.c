@@ -261,6 +261,9 @@ START_TEST(keyboard_key_auto_release)
 		if (type == LIBINPUT_EVENT_DEVICE_REMOVED) {
 			libinput_event_destroy(event);
 			break;
+		} else if (type == LIBINPUT_EVENT_DEVICE_CAPABILITY_REMOVED) {
+			libinput_event_destroy(event);
+			continue;
 		}
 
 		ck_assert_int_eq(type, LIBINPUT_EVENT_KEYBOARD_KEY);
