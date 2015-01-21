@@ -427,19 +427,27 @@ START_TEST(fake_mt_exists)
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
 	struct libinput_event *event;
+	struct libinput_event_device_capability *cev;
 	struct libinput_device *device;
 
 	litest_wait_for_event_of_type(li, LIBINPUT_EVENT_DEVICE_ADDED, -1);
 	event = libinput_get_event(li);
 	device = libinput_event_get_device(event);
+	libinput_device_ref(device);
+	libinput_event_destroy(event);
 
-	ck_assert(!libinput_device_has_capability(device,
-						  LIBINPUT_DEVICE_CAP_TOUCH));
+	litest_wait_for_event_of_type(li,
+				      LIBINPUT_EVENT_DEVICE_CAPABILITY_ADDED,
+				      -1);
+	event = libinput_get_event(li);
+	cev = libinput_event_get_device_capability_event(event);
 
 	/* This test may need fixing if we add other fake-mt devices that
 	 * have different capabilities */
-	ck_assert(libinput_device_has_capability(device,
-						 LIBINPUT_DEVICE_CAP_POINTER));
+	ck_assert_int_eq(libinput_event_device_capability_get_capability(cev),
+			 LIBINPUT_DEVICE_CAP_POINTER);
+	libinput_event_destroy(event);
+	libinput_device_unref(device);
 }
 END_TEST
 

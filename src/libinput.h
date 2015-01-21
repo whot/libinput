@@ -1593,13 +1593,18 @@ libinput_device_led_update(struct libinput_device *device,
 /**
  * @ingroup device
  *
- * Check if the given device has the specified capability
+ * Check if the given device has the specified capability.
+ *
+ * @note This function should not be used. It suffers from potential race
+ * conditions as it will give the capabilities of the device right now which
+ * may be different to the capabilities as seen in the event stream.
  *
  * @return 1 if the given device has the capability or 0 if not
  */
 int
 libinput_device_has_capability(struct libinput_device *device,
-			       enum libinput_device_capability capability);
+			       enum libinput_device_capability capability)
+	LIBINPUT_ATTRIBUTE_DEPRECATED;
 
 /**
  * @ingroup device
