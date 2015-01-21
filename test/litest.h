@@ -156,6 +156,8 @@ void litest_keyboard_key(struct litest_device *d,
 void litest_wait_for_event(struct libinput *li);
 void litest_wait_for_event_of_type(struct libinput *li, ...);
 void litest_drain_events(struct libinput *li);
+void litest_drain_typed_events(struct libinput *li,
+			       ...);
 void litest_assert_empty_queue(struct libinput *li);
 void litest_assert_button_event(struct libinput *li,
 				unsigned int button,
