@@ -114,6 +114,14 @@ struct libinput_event_touch {
 	struct device_coords point;
 };
 
+struct libinput_event_gesture {
+	struct libinput_event base;
+	uint32_t time;
+	int finger_count;
+	struct normalized_coords delta;
+	struct normalized_coords delta_unaccel;
+};
+
 static void
 libinput_default_log_func(struct libinput *libinput,
 			  enum libinput_log_priority priority,
@@ -235,6 +243,19 @@ libinput_event_get_touch_event(struct libinput_event *event)
 			   LIBINPUT_EVENT_TOUCH_FRAME);
 
 	return (struct libinput_event_touch *) event;
+}
+
+LIBINPUT_EXPORT struct libinput_event_gesture *
+libinput_event_get_gesture_event(struct libinput_event *event)
+{
+	require_event_type(libinput_event_get_context(event),
+			   event->type,
+			   NULL,
+			   LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN,
+			   LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE,
+			   LIBINPUT_EVENT_GESTURE_SWIPE_END);
+
+	return (struct libinput_event_gesture *) event;
 }
 
 LIBINPUT_EXPORT struct libinput_event_device_notify *
@@ -635,6 +656,44 @@ libinput_event_touch_get_y(struct libinput_event_touch *event)
 			   LIBINPUT_EVENT_TOUCH_MOTION);
 
 	return evdev_convert_to_mm(device->abs.absinfo_y, event->point.y);
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_event_gesture_get_time(struct libinput_event_gesture *event)
+{
+	return event->time;
+}
+
+LIBINPUT_EXPORT int
+libinput_event_gesture_get_finger_count(struct libinput_event_gesture *event)
+{
+	return event->finger_count;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_gesture_get_dx(struct libinput_event_gesture *event)
+{
+	return event->delta.x;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_gesture_get_dy(struct libinput_event_gesture *event)
+{
+	return event->delta.y;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_gesture_get_dx_unaccelerated(
+	struct libinput_event_gesture *event)
+{
+	return event->delta_unaccel.x;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_gesture_get_dy_unaccelerated(
+	struct libinput_event_gesture *event)
+{
+	return event->delta_unaccel.y;
 }
 
 struct libinput_source *
@@ -1086,6 +1145,9 @@ device_has_cap(struct libinput_device *device,
 	case LIBINPUT_DEVICE_CAP_TOUCH:
 		capability = "CAP_TOUCH";
 		break;
+	case LIBINPUT_DEVICE_CAP_GESTURE:
+		capability = "CAP_GESTURE";
+		break;
 	}
 
 	log_bug_libinput(device->seat->libinput,
@@ -1340,6 +1402,34 @@ touch_notify_frame(struct libinput_device *device,
 	post_device_event(device, time,
 			  LIBINPUT_EVENT_TOUCH_FRAME,
 			  &touch_event->base);
+}
+
+void
+gesture_notify_swipe(struct libinput_device *device,
+		     uint64_t time,
+		     enum libinput_event_type type,
+		     int finger_count,
+		     const struct normalized_coords *delta,
+		     const struct normalized_coords *unaccel)
+{
+	struct libinput_event_gesture *gesture_event;
+
+	if (!device_has_cap(device, LIBINPUT_DEVICE_CAP_GESTURE))
+		return;
+
+	gesture_event = zalloc(sizeof *gesture_event);
+	if (!gesture_event)
+		return;
+
+	*gesture_event = (struct libinput_event_gesture) {
+		.time = time,
+		.finger_count = finger_count,
+		.delta = *delta,
+		.delta_unaccel = *unaccel,
+	};
+
+	post_device_event(device, time, type,
+			  &gesture_event->base);
 }
 
 static void
@@ -1604,6 +1694,12 @@ libinput_event_touch_get_base_event(struct libinput_event_touch *event)
 			   LIBINPUT_EVENT_TOUCH_CANCEL,
 			   LIBINPUT_EVENT_TOUCH_FRAME);
 
+	return &event->base;
+}
+
+LIBINPUT_EXPORT struct libinput_event *
+libinput_event_gesture_get_base_event(struct libinput_event_gesture *event)
+{
 	return &event->base;
 }
 

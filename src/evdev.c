@@ -1907,6 +1907,7 @@ evdev_configure_device(struct evdev_device *device)
 
 	if (udev_tags & EVDEV_UDEV_TAG_TOUCHPAD) {
 		device->dispatch = evdev_mt_touchpad_create(device);
+		device->seat_caps |= EVDEV_DEVICE_GESTURE;
 		log_info(libinput,
 			 "input device '%s', %s is a touchpad\n",
 			 device->devname, devnode);
@@ -2272,6 +2273,8 @@ evdev_device_has_capability(struct evdev_device *device,
 		return !!(device->seat_caps & EVDEV_DEVICE_KEYBOARD);
 	case LIBINPUT_DEVICE_CAP_TOUCH:
 		return !!(device->seat_caps & EVDEV_DEVICE_TOUCH);
+	case LIBINPUT_DEVICE_CAP_GESTURE:
+		return !!(device->seat_caps & EVDEV_DEVICE_GESTURE);
 	default:
 		return 0;
 	}

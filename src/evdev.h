@@ -62,7 +62,8 @@ enum evdev_event_type {
 enum evdev_device_seat_capability {
 	EVDEV_DEVICE_POINTER = (1 << 0),
 	EVDEV_DEVICE_KEYBOARD = (1 << 1),
-	EVDEV_DEVICE_TOUCH = (1 << 2)
+	EVDEV_DEVICE_TOUCH = (1 << 2),
+	EVDEV_DEVICE_GESTURE = (1 << 5),
 };
 
 enum evdev_device_tags {

@@ -57,7 +57,8 @@ enum libinput_log_priority {
 enum libinput_device_capability {
 	LIBINPUT_DEVICE_CAP_KEYBOARD = 0,
 	LIBINPUT_DEVICE_CAP_POINTER = 1,
-	LIBINPUT_DEVICE_CAP_TOUCH = 2
+	LIBINPUT_DEVICE_CAP_TOUCH = 2,
+	LIBINPUT_DEVICE_CAP_GESTURE = 5,
 };
 
 /**
@@ -176,7 +177,11 @@ enum libinput_event_type {
 	 * Signals the end of a set of touchpoints at one device sample
 	 * time. This event has no coordinate information attached.
 	 */
-	LIBINPUT_EVENT_TOUCH_FRAME
+	LIBINPUT_EVENT_TOUCH_FRAME,
+
+	LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN = 800,
+	LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE,
+	LIBINPUT_EVENT_GESTURE_SWIPE_END,
 };
 
 /**
@@ -359,6 +364,19 @@ libinput_event_get_keyboard_event(struct libinput_event *event);
  */
 struct libinput_event_touch *
 libinput_event_get_touch_event(struct libinput_event *event);
+
+/**
+ * @ingroup event
+ *
+ * Return the gesture event that is this input event. If the event type does
+ * not match the gesture event types, this function returns NULL.
+ *
+ * The inverse of this function is libinput_event_gesture_get_base_event().
+ *
+ * @return A gesture event, or NULL for other events
+ */
+struct libinput_event_gesture *
+libinput_event_get_gesture_event(struct libinput_event *event);
 
 /**
  * @ingroup event
@@ -921,6 +939,132 @@ libinput_event_touch_get_y_transformed(struct libinput_event_touch *event,
  */
 struct libinput_event *
 libinput_event_touch_get_base_event(struct libinput_event_touch *event);
+
+/**
+ * @defgroup event_gesture Gesture events
+ *
+ * Gesture events are generated when a gesture is recognized on a touchpad.
+ *
+ * Gesture sequences always start with a LIBINPUT_EVENT_GESTURE_FOO_START
+ * event. All following gesture events will be of the
+ * LIBINPUT_EVENT_GESTURE_FOO_UPDATE type until a
+ * LIBINPUT_EVENT_GESTURE_FOO_END is generated which signals the end of the
+ * gesture.
+ */
+
+/**
+ * @ingroup event_gesture
+ *
+ * @return The event time for this event
+ */
+uint32_t
+libinput_event_gesture_get_time(struct libinput_event_gesture *event);
+
+/**
+ * @ingroup event_gesture
+ *
+ * @return The generic libinput_event of this event
+ */
+struct libinput_event *
+libinput_event_gesture_get_base_event(struct libinput_event_gesture *event);
+
+/**
+ * @ingroup event_gesture
+ *
+ * Return the number of fingers used for a gesture. This can be used e.g.
+ * to differentiate between 3 or 4 finger swipes.
+ *
+ * This function can be called on all gesture events and the returned finger
+ * count value will not change during a sequence.
+ *
+ * @return the number of fingers used for a gesture
+ */
+int
+libinput_event_gesture_get_finger_count(struct libinput_event_gesture *event);
+
+/**
+ * @ingroup event_gesture
+ *
+ * Return the delta between the last event and the current event. For gesture
+ * events that are not of type @ref LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE, this
+ * function returns 0.
+ *
+ * If a device employs pointer acceleration, the delta returned by this
+ * function is the accelerated delta.
+ *
+ * Relative motion deltas are normalized to represent those of a device with
+ * 1000dpi resolution. See @ref motion_normalization for more details.
+ *
+ * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE.
+ *
+ * @return the relative x movement since the last event
+ */
+double
+libinput_event_gesture_get_dx(struct libinput_event_gesture *event);
+
+/**
+ * @ingroup event_gesture
+ *
+ * Return the delta between the last event and the current event. For gesture
+ * events that are not of type @ref LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE, this
+ * function returns 0.
+ *
+ * If a device employs pointer acceleration, the delta returned by this
+ * function is the accelerated delta.
+ *
+ * Relative motion deltas are normalized to represent those of a device with
+ * 1000dpi resolution. See @ref motion_normalization for more details.
+ *
+ * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE.
+ *
+ * @return the relative y movement since the last event
+ */
+double
+libinput_event_gesture_get_dy(struct libinput_event_gesture *event);
+
+/**
+ * @ingroup event_gesture
+ *
+ * Return the relative delta of the unaccelerated motion vector of the
+ * current event. For gesture events that are not of type @ref
+ * LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE, this function returns 0.
+ *
+ * Relative unaccelerated motion deltas are normalized to represent those of a
+ * device with 1000dpi resolution. See @ref motion_normalization for more
+ * details. Note that unaccelerated events are not equivalent to 'raw' events
+ * as read from the device.
+ *
+ * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE.
+ *
+ * @return the unaccelerated relative x movement since the last event
+ */
+double
+libinput_event_gesture_get_dx_unaccelerated(
+	struct libinput_event_gesture *event);
+
+/**
+ * @ingroup event_gesture
+ *
+ * Return the relative delta of the unaccelerated motion vector of the
+ * current event. For gesture events that are not of type @ref
+ * LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE, this function returns 0.
+ *
+ * Relative unaccelerated motion deltas are normalized to represent those of a
+ * device with 1000dpi resolution. See @ref motion_normalization for more
+ * details. Note that unaccelerated events are not equivalent to 'raw' events
+ * as read from the device.
+ *
+ * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE.
+ *
+ * @return the unaccelerated relative y movement since the last event
+ */
+double
+libinput_event_gesture_get_dy_unaccelerated(
+	struct libinput_event_gesture *event);
 
 /**
  * @defgroup base Initialization and manipulation of libinput contexts

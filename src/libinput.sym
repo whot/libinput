@@ -146,3 +146,14 @@ LIBINPUT_0.19.0 {
 	libinput_device_config_tap_get_drag_lock_enabled;
 	libinput_device_config_tap_get_default_drag_lock_enabled;
 } LIBINPUT_0.15.0;
+
+TOUCHPAD_GESTURES {
+	libinput_event_gesture_get_base_event;
+	libinput_event_gesture_get_dx;
+	libinput_event_gesture_get_dx_unaccelerated;
+	libinput_event_gesture_get_dy;
+	libinput_event_gesture_get_dy_unaccelerated;
+	libinput_event_gesture_get_finger_count;
+	libinput_event_gesture_get_time;
+	libinput_event_get_gesture_event;
+} LIBINPUT_0.19.0;
