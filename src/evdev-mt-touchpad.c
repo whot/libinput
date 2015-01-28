@@ -1107,6 +1107,12 @@ tp_tag_device(struct evdev_device *device,
 	if (udev_device_get_property_value(udev_device,
 					   "TOUCHPAD_TRACKPOINT_BUTTONS"))
 		device->tags |= EVDEV_TAG_TOUCHPAD_TRACKPOINT;
+
+	/* Magic version tag: used by the litest device. Should never be set
+	 * in real life but allows us to test for these features without
+	 * requiring custom udev rules during make check */
+	if (libevdev_get_id_version(device->evdev) == 0xfffa)
+		device->tags |= EVDEV_TAG_TOUCHPAD_TRACKPOINT;
 }
 
 static struct evdev_dispatch_interface tp_interface = {

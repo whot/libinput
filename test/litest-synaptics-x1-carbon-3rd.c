@@ -65,6 +65,7 @@ static struct input_id input_id = {
 	.bustype = 0x11,
 	.vendor = 0x2,
 	.product = 0x7,
+	.version = 0xfffa, /* Magic value, used to detect this test device */
 };
 
 static int events[] = {
