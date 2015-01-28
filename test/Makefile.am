@@ -24,6 +24,7 @@ liblitest_la_SOURCES = \
 	litest-synaptics-hover.c \
 	litest-synaptics-st.c \
 	litest-synaptics-t440.c \
+	litest-synaptics-x1-carbon-3rd.c \
 	litest-trackpoint.c \
 	litest-wacom-touch.c \
 	litest-xen-virtual-pointer.c \
