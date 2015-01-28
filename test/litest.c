@@ -1048,6 +1048,7 @@ litest_create_uinput_device_from_description(const char *name,
 		libevdev_set_id_bustype(dev, id->bustype);
 		libevdev_set_id_vendor(dev, id->vendor);
 		libevdev_set_id_product(dev, id->product);
+		libevdev_set_id_version(dev, id->version);
 	}
 
 	abs = abs_info;
