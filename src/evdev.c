@@ -49,6 +49,35 @@ enum evdev_key_type {
 	EVDEV_KEY_TYPE_BUTTON,
 };
 
+enum evdev_device_udev_tags {
+        EVDEV_UDEV_TAG_KEYBOARD = (1 << 0),
+        EVDEV_UDEV_TAG_MOUSE = (1 << 1),
+        EVDEV_UDEV_TAG_TOUCHPAD = (1 << 2),
+        EVDEV_UDEV_TAG_TOUCHSCREEN = (1 << 3),
+        EVDEV_UDEV_TAG_TABLET = (1 << 4),
+        EVDEV_UDEV_TAG_JOYSTICK = (1 << 5),
+        EVDEV_UDEV_TAG_ACCELEROMETER = (1 << 6),
+};
+
+struct evdev_udev_tag_match {
+	const char *name;
+	enum evdev_device_udev_tags tag;
+};
+
+static const struct evdev_udev_tag_match evdev_udev_tag_matches[] = {
+	{"ID_INPUT_KEYBOARD",		EVDEV_UDEV_TAG_KEYBOARD},
+	{"ID_INPUT_KEY",		EVDEV_UDEV_TAG_KEYBOARD},
+	{"ID_INPUT_MOUSE",		EVDEV_UDEV_TAG_MOUSE},
+	{"ID_INPUT_TOUCHPAD",		EVDEV_UDEV_TAG_TOUCHPAD},
+	{"ID_INPUT_TOUCHSCREEN",	EVDEV_UDEV_TAG_TOUCHSCREEN},
+	{"ID_INPUT_TABLET",		EVDEV_UDEV_TAG_TABLET},
+	{"ID_INPUT_JOYSTICK",		EVDEV_UDEV_TAG_JOYSTICK},
+	{"ID_INPUT_ACCELEROMETER",	EVDEV_UDEV_TAG_ACCELEROMETER},
+
+	/* sentinel value */
+	{ 0 },
+};
+
 static void
 hw_set_key_down(struct evdev_device *device, int code, int pressed)
 {
@@ -1319,6 +1348,25 @@ evdev_fix_abs_resolution(struct libevdev *evdev,
 	}
 }
 
+static enum evdev_device_udev_tags
+evdev_device_get_udev_tags(struct evdev_device *device,
+			   struct udev_device *udev_device)
+{
+	const char *prop;
+	enum evdev_device_udev_tags tags = 0;
+	const struct evdev_udev_tag_match *match = evdev_udev_tag_matches;
+
+	while (match->name) {
+		prop = udev_device_get_property_value(device->udev_device,
+						      match->name);
+		if (prop)
+			tags |= match->tag;
+
+		match++;
+	}
+	return tags;
+}
+
 static int
 evdev_configure_device(struct evdev_device *device)
 {
@@ -1333,6 +1381,9 @@ evdev_configure_device(struct evdev_device *device)
 	int slot;
 	unsigned int i;
 	const char *devnode = udev_device_get_devnode(device->udev_device);
+	enum evdev_device_udev_tags udev_tags;
+
+	udev_tags = evdev_device_get_udev_tags(device, device->udev_device);
 
 	has_rel = 0;
 	has_abs = 0;
@@ -1341,6 +1392,18 @@ evdev_configure_device(struct evdev_device *device)
 	has_joystick_button = 0;
 	has_keyboard = 0;
 	has_touch = 0;
+
+	if (udev_tags)
+		log_info(libinput,
+			 "input device '%s', %s is tagged by udev as:%s%s%s%s%s%s\n",
+			 device->devname, devnode,
+			 udev_tags & EVDEV_UDEV_TAG_KEYBOARD ? " Keyboard" : "",
+			 udev_tags & EVDEV_UDEV_TAG_MOUSE ? " Mouse" : "",
+			 udev_tags & EVDEV_UDEV_TAG_TOUCHPAD ? " Touchpad" : "",
+			 udev_tags & EVDEV_UDEV_TAG_TOUCHSCREEN ? " Touchscreen" : "",
+			 udev_tags & EVDEV_UDEV_TAG_TABLET ? " Tablet" : "",
+			 udev_tags & EVDEV_UDEV_TAG_JOYSTICK ? " Joystick" : "",
+			 udev_tags & EVDEV_UDEV_TAG_ACCELEROMETER ? " Accelerometer" : "");
 
 	for (i = BTN_JOYSTICK; i <= BTN_PINKIE; i++)
 		if (libevdev_has_event_code(evdev, EV_KEY, i))
