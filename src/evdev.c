@@ -1373,47 +1373,36 @@ evdev_configure_device(struct evdev_device *device)
 	struct libinput *libinput = device->base.seat->libinput;
 	struct libevdev *evdev = device->evdev;
 	const struct input_absinfo *absinfo;
-	int has_abs, has_rel, has_mt;
-	int has_button, has_keyboard, has_touch, has_joystick_button;
 	struct mt_slot *slots;
 	int num_slots;
 	int active_slot;
 	int slot;
-	unsigned int i;
 	const char *devnode = udev_device_get_devnode(device->udev_device);
 	enum evdev_device_udev_tags udev_tags;
 
 	udev_tags = evdev_device_get_udev_tags(device, device->udev_device);
 
-	has_rel = 0;
-	has_abs = 0;
-	has_mt = 0;
-	has_button = 0;
-	has_joystick_button = 0;
-	has_keyboard = 0;
-	has_touch = 0;
-
-	if (udev_tags)
+	if (udev_tags == 0) {
 		log_info(libinput,
-			 "input device '%s', %s is tagged by udev as:%s%s%s%s%s%s\n",
-			 device->devname, devnode,
-			 udev_tags & EVDEV_UDEV_TAG_KEYBOARD ? " Keyboard" : "",
-			 udev_tags & EVDEV_UDEV_TAG_MOUSE ? " Mouse" : "",
-			 udev_tags & EVDEV_UDEV_TAG_TOUCHPAD ? " Touchpad" : "",
-			 udev_tags & EVDEV_UDEV_TAG_TOUCHSCREEN ? " Touchscreen" : "",
-			 udev_tags & EVDEV_UDEV_TAG_TABLET ? " Tablet" : "",
-			 udev_tags & EVDEV_UDEV_TAG_JOYSTICK ? " Joystick" : "",
-			 udev_tags & EVDEV_UDEV_TAG_ACCELEROMETER ? " Accelerometer" : "");
+			 "input device '%s', %s not tagged as input device\n",
+			 device->devname, devnode);
+		return -1;
+	}
 
-	for (i = BTN_JOYSTICK; i <= BTN_PINKIE; i++)
-		if (libevdev_has_event_code(evdev, EV_KEY, i))
-			has_joystick_button = 1;
+	log_info(libinput,
+		 "input device '%s', %s is tagged by udev as:%s%s%s%s%s%s\n",
+		 device->devname, devnode,
+		 udev_tags & EVDEV_UDEV_TAG_KEYBOARD ? " Keyboard" : "",
+		 udev_tags & EVDEV_UDEV_TAG_MOUSE ? " Mouse" : "",
+		 udev_tags & EVDEV_UDEV_TAG_TOUCHPAD ? " Touchpad" : "",
+		 udev_tags & EVDEV_UDEV_TAG_TOUCHSCREEN ? " Touchscreen" : "",
+		 udev_tags & EVDEV_UDEV_TAG_TABLET ? " Tablet" : "",
+		 udev_tags & EVDEV_UDEV_TAG_JOYSTICK ? " Joystick" : "",
+		 udev_tags & EVDEV_UDEV_TAG_ACCELEROMETER ? " Accelerometer" : "");
 
-	for (i = BTN_GAMEPAD; i <= BTN_TR2; i++)
-		if (libevdev_has_event_code(evdev, EV_KEY, i))
-			has_joystick_button = 1;
-
-	if (has_joystick_button) {
+	/* libwacom *adds* TABLET, TOUCHPAD but leaves JOYSTICK in place, so
+	   make sure we only ignore real joystick devices */
+	if ((udev_tags & EVDEV_UDEV_TAG_JOYSTICK) == udev_tags) {
 		log_info(libinput,
 			 "input device '%s', %s is a joystick, ignoring\n",
 			 device->devname, devnode);
@@ -1428,7 +1417,6 @@ evdev_configure_device(struct evdev_device *device)
 						     absinfo))
 				device->abs.fake_resolution = 1;
 			device->abs.absinfo_x = absinfo;
-			has_abs = 1;
 		}
 		if ((absinfo = libevdev_get_abs_info(evdev, ABS_Y))) {
 			if (evdev_fix_abs_resolution(evdev,
@@ -1436,7 +1424,6 @@ evdev_configure_device(struct evdev_device *device)
 						     absinfo))
 				device->abs.fake_resolution = 1;
 			device->abs.absinfo_y = absinfo;
-			has_abs = 1;
 		}
 
 		/* Fake MT devices have the ABS_MT_SLOT bit set because of
@@ -1444,8 +1431,7 @@ evdev_configure_device(struct evdev_device *device)
 		   just have too many ABS_ axes */
 		if (libevdev_has_event_code(evdev, EV_ABS, ABS_MT_SLOT) &&
 		    libevdev_get_num_slots(evdev) == -1) {
-			has_mt = 0;
-			has_touch = 0;
+			udev_tags &= ~EVDEV_UDEV_TAG_TOUCHSCREEN;
 		} else if (libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_X) &&
 			   libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_Y)) {
 			absinfo = libevdev_get_abs_info(evdev, ABS_MT_POSITION_X);
@@ -1462,8 +1448,6 @@ evdev_configure_device(struct evdev_device *device)
 				device->abs.fake_resolution = 1;
 			device->abs.absinfo_y = absinfo;
 			device->is_mt = 1;
-			has_touch = 1;
-			has_mt = 1;
 
 			/* We only handle the slotted Protocol B in libinput.
 			   Devices with ABS_MT_POSITION_* but not ABS_MT_SLOT
@@ -1498,75 +1482,42 @@ evdev_configure_device(struct evdev_device *device)
 		}
 	}
 
-	if (libevdev_has_event_code(evdev, EV_REL, REL_X) ||
-	    libevdev_has_event_code(evdev, EV_REL, REL_Y))
-		has_rel = 1;
-
-	if (libevdev_has_event_type(evdev, EV_KEY)) {
-		if (!libevdev_has_property(evdev, INPUT_PROP_DIRECT) &&
-		    libevdev_has_event_code(evdev, EV_KEY, BTN_TOOL_FINGER) &&
-		    !libevdev_has_event_code(evdev, EV_KEY, BTN_TOOL_PEN) &&
-		    (has_abs || has_mt)) {
-			device->dispatch = evdev_mt_touchpad_create(device);
-			log_info(libinput,
-				 "input device '%s', %s is a touchpad\n",
-				 device->devname, devnode);
-			return device->dispatch == NULL ? -1 : 0;
-		}
-
-		for (i = 0; i < KEY_MAX; i++) {
-			if (libevdev_has_event_code(evdev, EV_KEY, i)) {
-				switch (get_key_type(i)) {
-				case EVDEV_KEY_TYPE_NONE:
-					break;
-				case EVDEV_KEY_TYPE_KEY:
-					has_keyboard = 1;
-					break;
-				case EVDEV_KEY_TYPE_BUTTON:
-					has_button = 1;
-					break;
-				}
-			}
-		}
-
-		if (libevdev_has_event_code(evdev, EV_KEY, BTN_TOUCH))
-			has_touch = 1;
+	if (udev_tags & EVDEV_UDEV_TAG_TOUCHPAD) {
+		device->dispatch = evdev_mt_touchpad_create(device);
+		log_info(libinput,
+			 "input device '%s', %s is a touchpad\n",
+			 device->devname, devnode);
+		return device->dispatch == NULL ? -1 : 0;
 	}
-	if (libevdev_has_event_type(evdev, EV_LED))
-		has_keyboard = 1;
 
-	if ((has_abs || has_rel) && has_button) {
-		if (has_rel &&
+	if (udev_tags & EVDEV_UDEV_TAG_MOUSE) {
+		if (!libevdev_has_event_code(evdev, EV_ABS, ABS_X) &&
+		    !libevdev_has_event_code(evdev, EV_ABS, ABS_Y) &&
 		    evdev_device_init_pointer_acceleration(device) == -1)
 			return -1;
 
 		device->seat_caps |= EVDEV_DEVICE_POINTER;
 
 		log_info(libinput,
-			 "input device '%s', %s is a pointer caps =%s%s%s\n",
-			 device->devname, devnode,
-			 has_abs ? " absolute-motion" : "",
-			 has_rel ? " relative-motion": "",
-			 has_button ? " button" : "");
+			 "input device '%s', %s is a pointer caps\n",
+			 device->devname, devnode);
 
 		/* want left-handed config option */
 		device->left_handed.want_enabled = true;
 		/* want natural-scroll config option */
 		device->scroll.natural_scrolling_enabled = true;
-	}
-
-	if (has_rel && has_button) {
 		/* want button scrolling config option */
 		device->scroll.want_button = 1;
 	}
 
-	if (has_keyboard) {
+	if (udev_tags & EVDEV_UDEV_TAG_KEYBOARD) {
 		device->seat_caps |= EVDEV_DEVICE_KEYBOARD;
 		log_info(libinput,
 			 "input device '%s', %s is a keyboard\n",
 			 device->devname, devnode);
 	}
-	if (has_touch && !has_button) {
+
+	if (udev_tags & EVDEV_UDEV_TAG_TOUCHSCREEN) {
 		device->seat_caps |= EVDEV_DEVICE_TOUCH;
 		log_info(libinput,
 			 "input device '%s', %s is a touch device\n",
