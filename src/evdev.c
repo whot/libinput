@@ -57,6 +57,7 @@ enum evdev_device_udev_tags {
         EVDEV_UDEV_TAG_TABLET = (1 << 4),
         EVDEV_UDEV_TAG_JOYSTICK = (1 << 5),
         EVDEV_UDEV_TAG_ACCELEROMETER = (1 << 6),
+        EVDEV_UDEV_TAG_INPUT = (1 << 7),
 };
 
 struct evdev_udev_tag_match {
@@ -65,6 +66,7 @@ struct evdev_udev_tag_match {
 };
 
 static const struct evdev_udev_tag_match evdev_udev_tag_matches[] = {
+	{"ID_INPUT",			EVDEV_UDEV_TAG_INPUT},
 	{"ID_INPUT_KEYBOARD",		EVDEV_UDEV_TAG_KEYBOARD},
 	{"ID_INPUT_KEY",		EVDEV_UDEV_TAG_KEYBOARD},
 	{"ID_INPUT_MOUSE",		EVDEV_UDEV_TAG_MOUSE},
@@ -1382,7 +1384,8 @@ evdev_configure_device(struct evdev_device *device)
 
 	udev_tags = evdev_device_get_udev_tags(device, device->udev_device);
 
-	if (udev_tags == 0) {
+	if ((udev_tags & EVDEV_UDEV_TAG_INPUT) == 0 ||
+	    (udev_tags & ~EVDEV_UDEV_TAG_INPUT) == 0) {
 		log_info(libinput,
 			 "input device '%s', %s not tagged as input device\n",
 			 device->devname, devnode);
