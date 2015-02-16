@@ -855,15 +855,10 @@ START_TEST(tool_ref)
 	litest_event(dev, EV_MSC, MSC_SERIAL, 1000);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	libinput_dispatch(li);
-	while ((event = libinput_get_event(li))) {
-		if (libinput_event_get_type(event) ==
-		    LIBINPUT_EVENT_TABLET_PROXIMITY) {
-			break;
-		}
-		libinput_event_destroy(event);
-	}
-
+	litest_wait_for_event_of_type(li,
+				      LIBINPUT_EVENT_TABLET_PROXIMITY,
+				      -1);
+	event = libinput_get_event(li);
 	tablet_event = libinput_event_get_tablet_event(event);
 	tool = libinput_event_tablet_get_tool(tablet_event);
 
