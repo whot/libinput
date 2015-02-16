@@ -71,6 +71,17 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 	case ABS_MISC:
 		tablet->current_tool_id = e->value;
 		break;
+	/* Intuos 3 strip data. Should only happen on the Pad device, not on
+	   the Pen device. */
+	case ABS_RX:
+	case ABS_RY:
+	/* Only on the 4D mouse (Intuos2), obsolete */
+	case ABS_RZ:
+	/* Only on the 4D mouse (Intuos2), obsolete.
+	   The 24HD sends ABS_THROTTLE on the Pad device for the second
+	   wheel but we shouldn't get here on kernel >= 3.17.
+	   */
+	case ABS_THROTTLE:
 	default:
 		log_info(device->base.seat->libinput,
 			 "Unhandled ABS event code %#x\n", e->code);
