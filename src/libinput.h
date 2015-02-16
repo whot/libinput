@@ -142,6 +142,7 @@ enum libinput_tablet_axis {
 	LIBINPUT_TABLET_AXIS_PRESSURE = 4,
 	LIBINPUT_TABLET_AXIS_TILT_X = 5,
 	LIBINPUT_TABLET_AXIS_TILT_Y = 6,
+	LIBINPUT_TABLET_AXIS_ROTATION_Z = 7,
 };
 
 /**
@@ -1050,6 +1051,11 @@ libinput_event_tablet_axis_has_changed(struct libinput_event_tablet *event,
  * - @ref LIBINPUT_TABLET_AXIS_TILT_X and @ref LIBINPUT_TABLET_AXIS_TILT_Y -
  *   normalized value between -1 and 1 that indicates the X or Y tilt of the
  *   tool
+ * - @ref LIBINPUT_TABLET_AXIS_ROTATION_Z - The z rotation of the tool in
+ *   degrees, clockwise from the tool's logical neutral position. For the
+ *   @ref LIBINPUT_TOOL_MOUSE and @ref LIBINPUT_TOOL_LENS tools the logical
+ *   neutral position is pointing to the current logical north of the
+ *   tablet.
  *
  * @note This function may be called for a specific axis even if
  * libinput_event_tablet_axis_has_changed() returns 0 for that axis.

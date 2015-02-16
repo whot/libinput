@@ -1197,6 +1197,82 @@ START_TEST(mouse_buttons)
 }
 END_TEST
 
+START_TEST(mouse_rotation)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
+	struct libinput_event_tablet *tev;
+	int angle;
+	int tilt_center_x, tilt_center_y;
+	const struct input_absinfo *abs;
+	double val, old_val = 0;
+
+	struct axis_replacement axes[] = {
+		{ ABS_DISTANCE, 10 },
+		{ ABS_TILT_X, 0 },
+		{ ABS_TILT_Y, 0 },
+		{ -1, -1 }
+	};
+
+	if (!libevdev_has_event_code(dev->evdev,
+				    EV_KEY,
+				    BTN_TOOL_MOUSE))
+		return;
+
+	abs = libevdev_get_abs_info(dev->evdev, ABS_TILT_X);
+	ck_assert_notnull(abs);
+	tilt_center_x = (abs->maximum - abs->minimum + 1) / 2;
+
+	abs = libevdev_get_abs_info(dev->evdev, ABS_TILT_Y);
+	ck_assert_notnull(abs);
+	tilt_center_y = (abs->maximum - abs->minimum + 1) / 2;
+
+	litest_drain_events(li);
+
+	litest_push_event_frame(dev);
+	litest_tablet_proximity_in(dev, 10, 10, axes);
+	litest_event(dev, EV_KEY, BTN_TOOL_MOUSE, 1);
+	litest_pop_event_frame(dev);
+
+	litest_drain_events(li);
+
+	/* cos/sin are 90 degrees offset from the north-is-zero that
+	   libinput uses. 175 is the CCW offset in the mouse HW */
+	for (angle = 5; angle < 360; angle += 5) {
+		double a = (angle - 90 - 175)/180.0 * M_PI;
+		int x, y;
+
+		x = cos(a) * 20 + tilt_center_x;
+		y = sin(a) * 20 + tilt_center_y;
+
+		litest_event(dev, EV_ABS, ABS_TILT_X, x);
+		litest_event(dev, EV_ABS, ABS_TILT_Y, y);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+
+		litest_wait_for_event_of_type(li,
+					      LIBINPUT_EVENT_TABLET_AXIS,
+					      -1);
+		event = libinput_get_event(li);
+		tev = libinput_event_get_tablet_event(event);
+		ck_assert(libinput_event_tablet_axis_has_changed(tev,
+					 LIBINPUT_TABLET_AXIS_ROTATION_Z));
+		val = libinput_event_tablet_get_axis_value(tev,
+					 LIBINPUT_TABLET_AXIS_ROTATION_Z);
+
+		/* rounding error galore, we can't test for anything more
+		   precise than these */
+		litest_assert_double_lt(val, 360.0);
+		litest_assert_double_gt(val, old_val);
+		litest_assert_double_lt(val, angle + 5);
+
+		old_val = val;
+		libinput_event_destroy(event);
+		litest_assert_empty_queue(li);
+	}
+}
+END_TEST
+
 int
 main(int argc, char **argv)
 {
@@ -1219,6 +1295,7 @@ main(int argc, char **argv)
 	litest_add("tablet:pad", pad_buttons_ignored, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:mouse", mouse_tool, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:mouse", mouse_buttons, LITEST_TABLET, LITEST_ANY);
+	litest_add("tablet:mouse", mouse_rotation, LITEST_TABLET, LITEST_ANY);
 
 	return litest_run(argc, argv);
 }

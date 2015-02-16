@@ -584,6 +584,7 @@ libinput_event_tablet_get_axis_value(struct libinput_event_tablet *event,
 		case LIBINPUT_TABLET_AXIS_PRESSURE:
 		case LIBINPUT_TABLET_AXIS_TILT_X:
 		case LIBINPUT_TABLET_AXIS_TILT_Y:
+		case LIBINPUT_TABLET_AXIS_ROTATION_Z:
 			return event->axes[axis];
 		default:
 			return 0;
