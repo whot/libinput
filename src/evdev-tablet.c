@@ -40,6 +40,18 @@
 #define tablet_get_released_buttons(tablet_,field_) \
        ((tablet_)->prev_button_state.field_ & ~((tablet_)->button_state.field_))
 
+static int
+tablet_device_has_axis(struct tablet_dispatch *tablet,
+		       enum libinput_tablet_axis axis)
+{
+	unsigned int code;
+
+	code = axis_to_evcode(axis);
+	return libevdev_has_event_code(tablet->device->evdev,
+				       EV_ABS,
+				       code);
+}
+
 static void
 tablet_process_absolute(struct tablet_dispatch *tablet,
 			struct evdev_device *device,
@@ -96,9 +108,7 @@ tablet_mark_all_axes_changed(struct tablet_dispatch *tablet,
 	enum libinput_tablet_axis a;
 
 	for (a = LIBINPUT_TABLET_AXIS_X; a <= LIBINPUT_TABLET_AXIS_MAX; a++) {
-		if (libevdev_has_event_code(device->evdev,
-					    EV_ABS,
-					    axis_to_evcode(a)))
+		if (tablet_device_has_axis(tablet, a))
 			set_bit(tablet->changed_axes, a);
 	}
 
@@ -647,9 +657,7 @@ tablet_init(struct tablet_dispatch *tablet,
 	for (axis = LIBINPUT_TABLET_AXIS_X;
 	     axis <= LIBINPUT_TABLET_AXIS_MAX;
 	     axis++) {
-		if (libevdev_has_event_code(device->evdev,
-					    EV_ABS,
-					    axis_to_evcode(axis)))
+		if (tablet_device_has_axis(tablet, axis))
 			set_bit(tablet->axis_caps, axis);
 	}
 
