@@ -761,18 +761,14 @@ START_TEST(tool_serial)
 	litest_event(dev, EV_MSC, MSC_SERIAL, 1000);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	libinput_dispatch(li);
-	while ((event = libinput_get_event(li))) {
-		if (libinput_event_get_type(event) ==
-		    LIBINPUT_EVENT_TABLET_PROXIMITY) {
-			tablet_event = libinput_event_get_tablet_event(event);
-			tool = libinput_event_tablet_get_tool(tablet_event);
-
-			ck_assert_uint_eq(libinput_tool_get_serial(tool), 1000);
-		}
-
-		libinput_event_destroy(event);
-	}
+	litest_wait_for_event_of_type(li,
+				      LIBINPUT_EVENT_TABLET_PROXIMITY,
+				      -1);
+	event = libinput_get_event(li);
+	tablet_event = libinput_event_get_tablet_event(event);
+	tool = libinput_event_tablet_get_tool(tablet_event);
+	ck_assert_uint_eq(libinput_tool_get_serial(tool), 1000);
+	libinput_event_destroy(event);
 }
 END_TEST
 
@@ -783,7 +779,6 @@ START_TEST(serial_changes_tool)
 	struct libinput_event_tablet *tablet_event;
 	struct libinput_event *event;
 	struct libinput_tool *tool;
-	bool tool_updated = false;
 
 	litest_drain_events(li);
 
@@ -798,20 +793,15 @@ START_TEST(serial_changes_tool)
 	litest_event(dev, EV_MSC, MSC_SERIAL, 2000);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	libinput_dispatch(li);
-	while ((event = libinput_get_event(li))) {
-		if (libinput_event_get_type(event) ==
-		    LIBINPUT_EVENT_TABLET_PROXIMITY) {
-			tablet_event = libinput_event_get_tablet_event(event);
-			tool = libinput_event_tablet_get_tool(tablet_event);
+	litest_wait_for_event_of_type(li,
+				      LIBINPUT_EVENT_TABLET_PROXIMITY,
+				      -1);
+	event = libinput_get_event(li);
+	tablet_event = libinput_event_get_tablet_event(event);
+	tool = libinput_event_tablet_get_tool(tablet_event);
 
-			ck_assert_uint_eq(libinput_tool_get_serial(tool), 2000);
-			tool_updated = true;
-		}
-
-		libinput_event_destroy(event);
-	}
-	ck_assert(tool_updated);
+	ck_assert_uint_eq(libinput_tool_get_serial(tool), 2000);
+	libinput_event_destroy(event);
 }
 END_TEST
 
