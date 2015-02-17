@@ -288,14 +288,12 @@ tablet_axis_changed_sym(struct libinput_event_tablet *t,
 }
 
 static void
-print_tablet_axis_event(struct libinput_event *ev)
+print_tablet_axes(struct libinput_event_tablet *t)
 {
-	struct libinput_event_tablet *t = libinput_event_get_tablet_event(ev);
+	struct libinput_tool *tool = libinput_event_tablet_get_tool(t);
 	double x, y;
 	double dist, pressure;
 	double rotation, slider;
-
-	print_event_time(libinput_event_tablet_get_time(t));
 
 	x = libinput_event_tablet_get_axis_value(t, LIBINPUT_TABLET_AXIS_X);
 	y = libinput_event_tablet_get_axis_value(t, LIBINPUT_TABLET_AXIS_Y);
@@ -303,33 +301,64 @@ print_tablet_axis_event(struct libinput_event *ev)
 	       x, tablet_axis_changed_sym(t, LIBINPUT_TABLET_AXIS_X),
 	       y, tablet_axis_changed_sym(t, LIBINPUT_TABLET_AXIS_Y));
 
-	x = libinput_event_tablet_get_axis_value(t, LIBINPUT_TABLET_AXIS_TILT_X);
-	y = libinput_event_tablet_get_axis_value(t, LIBINPUT_TABLET_AXIS_TILT_Y);
-	printf("\ttilt: %.2f%s/%.2f%s ",
-	       x, tablet_axis_changed_sym(t, LIBINPUT_TABLET_AXIS_TILT_X),
-	       y, tablet_axis_changed_sym(t, LIBINPUT_TABLET_AXIS_TILT_Y));
+	if (libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_TILT_X) ||
+	    libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_TILT_Y)) {
+		x = libinput_event_tablet_get_axis_value(t,
+					 LIBINPUT_TABLET_AXIS_TILT_X);
+		y = libinput_event_tablet_get_axis_value(t,
+					 LIBINPUT_TABLET_AXIS_TILT_Y);
+		printf("\ttilt: %.2f%s/%.2f%s ",
+		       x, tablet_axis_changed_sym(t,
+					  LIBINPUT_TABLET_AXIS_TILT_X),
+		       y, tablet_axis_changed_sym(t,
+					  LIBINPUT_TABLET_AXIS_TILT_Y));
+	}
 
-	dist = libinput_event_tablet_get_axis_value(t, LIBINPUT_TABLET_AXIS_DISTANCE);
-	pressure = libinput_event_tablet_get_axis_value(t, LIBINPUT_TABLET_AXIS_PRESSURE);
-	if (dist)
-		printf("distance: %.2f%s",
-		       dist, tablet_axis_changed_sym(t, LIBINPUT_TABLET_AXIS_DISTANCE));
-	else
-		printf("pressure: %.2f%s",
-		       pressure, tablet_axis_changed_sym(t, LIBINPUT_TABLET_AXIS_PRESSURE));
+	if (libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_DISTANCE) ||
+	    libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_PRESSURE)) {
+		dist = libinput_event_tablet_get_axis_value(t,
+					LIBINPUT_TABLET_AXIS_DISTANCE);
+		pressure = libinput_event_tablet_get_axis_value(t,
+					LIBINPUT_TABLET_AXIS_PRESSURE);
+		if (dist) {
+			printf("\tdistance: %.2f%s",
+			       dist,
+			       tablet_axis_changed_sym(t,
+					       LIBINPUT_TABLET_AXIS_DISTANCE));
+		} else {
+			printf("\tpressure: %.2f%s",
+			       pressure,
+			       tablet_axis_changed_sym(t,
+					       LIBINPUT_TABLET_AXIS_PRESSURE));
+		}
+	}
 
-	rotation = libinput_event_tablet_get_axis_value(t,
+	if (libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_ROTATION_Z)) {
+		rotation = libinput_event_tablet_get_axis_value(t,
 					LIBINPUT_TABLET_AXIS_ROTATION_Z);
-	printf(" rotation: %.2f%s",
-	       rotation,
-	       tablet_axis_changed_sym(t, LIBINPUT_TABLET_AXIS_ROTATION_Z));
+		printf("\trotation: %.2f%s",
+		       rotation,
+		       tablet_axis_changed_sym(t,
+				       LIBINPUT_TABLET_AXIS_ROTATION_Z));
+	}
 
-	slider = libinput_event_tablet_get_axis_value(t,
+	if (libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_SLIDER)) {
+		slider = libinput_event_tablet_get_axis_value(t,
 					LIBINPUT_TABLET_AXIS_SLIDER);
-	printf(" slider: %.2f%s",
-	       slider,
-	       tablet_axis_changed_sym(t, LIBINPUT_TABLET_AXIS_SLIDER));
+		printf("\tslider: %.2f%s",
+		       slider,
+		       tablet_axis_changed_sym(t,
+				       LIBINPUT_TABLET_AXIS_SLIDER));
+	}
+}
 
+static void
+print_tablet_axis_event(struct libinput_event *ev)
+{
+	struct libinput_event_tablet *t = libinput_event_get_tablet_event(ev);
+
+	print_event_time(libinput_event_tablet_get_time(t));
+	print_tablet_axes(t);
 	printf("\n");
 }
 
@@ -350,8 +379,6 @@ print_proximity_event(struct libinput_event *ev)
 	enum libinput_tool_proximity_state state;
 	const char *tool_str,
 	           *state_str;
-	double x, y;
-	double dist, pressure;
 
 	switch (libinput_tool_get_type(tool)) {
 	case LIBINPUT_TOOL_PEN:
@@ -387,28 +414,7 @@ print_proximity_event(struct libinput_event *ev)
 	print_event_time(libinput_event_tablet_get_time(t));
 
 	if (state == LIBINPUT_TOOL_PROXIMITY_IN) {
-		x = libinput_event_tablet_get_axis_value(
-					t, LIBINPUT_TABLET_AXIS_X);
-		y = libinput_event_tablet_get_axis_value(
-					t, LIBINPUT_TABLET_AXIS_Y);
-		printf("\t%.2f/%.2f", x, y);
-
-		x = libinput_event_tablet_get_axis_value(
-					t, LIBINPUT_TABLET_AXIS_TILT_X);
-		y = libinput_event_tablet_get_axis_value(
-					t, LIBINPUT_TABLET_AXIS_TILT_Y);
-		printf("\ttilt: %.2f/%.2f ", x, y);
-
-		dist = libinput_event_tablet_get_axis_value(
-					t, LIBINPUT_TABLET_AXIS_DISTANCE);
-		pressure = libinput_event_tablet_get_axis_value(
-					t, LIBINPUT_TABLET_AXIS_PRESSURE);
-
-		if (dist)
-			printf("\tdistance: %.2f ", dist);
-		else
-			printf("\tpressure: %.2f ", pressure);
-
+		print_tablet_axes(t);
 		state_str = "proximity-in";
 	} else if (state == LIBINPUT_TOOL_PROXIMITY_OUT) {
 		state_str = "proximity-out";
@@ -417,7 +423,7 @@ print_proximity_event(struct libinput_event *ev)
 		abort();
 	}
 
-	printf("%s (%#x) %s",
+	printf("\t%s (%#x) %s",
 	       tool_str, libinput_tool_get_serial(tool), state_str);
 
 	printf("\taxes:");
