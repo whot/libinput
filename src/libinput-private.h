@@ -30,7 +30,7 @@
 #include "libinput.h"
 #include "libinput-util.h"
 
-#define LIBINPUT_TABLET_AXIS_MAX LIBINPUT_TABLET_AXIS_ROTATION_Z
+#define LIBINPUT_TABLET_AXIS_MAX LIBINPUT_TABLET_AXIS_SLIDER
 
 struct libinput_source;
 

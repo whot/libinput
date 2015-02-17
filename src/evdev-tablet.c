@@ -107,6 +107,7 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 	case ABS_TILT_X:
 	case ABS_TILT_Y:
 	case ABS_DISTANCE:
+	case ABS_WHEEL:
 		axis = evcode_to_axis(e->code);
 		if (axis == LIBINPUT_TABLET_AXIS_NONE) {
 			log_bug_libinput(device->base.seat->libinput,
@@ -189,7 +190,7 @@ tablet_update_tool(struct tablet_dispatch *tablet,
 }
 
 static inline double
-normalize_pressure_or_dist(const struct input_absinfo *absinfo)
+normalize_pressure_dist_slider(const struct input_absinfo *absinfo)
 {
 	double range = absinfo->maximum - absinfo->minimum;
 	double value = (absinfo->value - absinfo->minimum) / range;
@@ -286,7 +287,8 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 			break;
 		case LIBINPUT_TABLET_AXIS_DISTANCE:
 		case LIBINPUT_TABLET_AXIS_PRESSURE:
-			tablet->axes[a] = normalize_pressure_or_dist(absinfo);
+		case LIBINPUT_TABLET_AXIS_SLIDER:
+			tablet->axes[a] = normalize_pressure_dist_slider(absinfo);
 			break;
 		case LIBINPUT_TABLET_AXIS_TILT_X:
 		case LIBINPUT_TABLET_AXIS_TILT_Y:
@@ -502,6 +504,8 @@ tool_set_bits_from_libwacom(const struct tablet_dispatch *tablet,
 	   separately. */
 	switch(type) {
 	case WSTYLUS_AIRBRUSH:
+		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_SLIDER);
+		/* fall-through */
 	case WSTYLUS_MARKER:
 	case WSTYLUS_GENERAL:
 	case WSTYLUS_INKING:
@@ -551,6 +555,7 @@ tool_set_bits(const struct tablet_dispatch *tablet,
 		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_DISTANCE);
 		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_TILT_X);
 		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_TILT_Y);
+		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_SLIDER);
 		break;
 	case LIBINPUT_TOOL_MOUSE:
 	case LIBINPUT_TOOL_LENS:

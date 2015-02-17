@@ -293,7 +293,7 @@ print_tablet_axis_event(struct libinput_event *ev)
 	struct libinput_event_tablet *t = libinput_event_get_tablet_event(ev);
 	double x, y;
 	double dist, pressure;
-	double rotation;
+	double rotation, slider;
 
 	print_event_time(libinput_event_tablet_get_time(t));
 
@@ -323,6 +323,12 @@ print_tablet_axis_event(struct libinput_event *ev)
 	printf(" rotation: %.2f%s",
 	       rotation,
 	       tablet_axis_changed_sym(t, LIBINPUT_TABLET_AXIS_ROTATION_Z));
+
+	slider = libinput_event_tablet_get_axis_value(t,
+					LIBINPUT_TABLET_AXIS_SLIDER);
+	printf(" slider: %.2f%s",
+	       slider,
+	       tablet_axis_changed_sym(t, LIBINPUT_TABLET_AXIS_SLIDER));
 
 	printf("\n");
 }
