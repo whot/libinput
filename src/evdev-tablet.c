@@ -119,7 +119,8 @@ tablet_update_tool(struct tablet_dispatch *tablet,
 }
 
 static inline double
-normalize_pressure_or_dist(const struct input_absinfo * absinfo) {
+normalize_pressure_or_dist(const struct input_absinfo *absinfo)
+{
 	double range = absinfo->maximum - absinfo->minimum;
 	double value = (absinfo->value - absinfo->minimum) / range;
 
@@ -127,7 +128,8 @@ normalize_pressure_or_dist(const struct input_absinfo * absinfo) {
 }
 
 static inline double
-normalize_tilt(const struct input_absinfo * absinfo) {
+normalize_tilt(const struct input_absinfo *absinfo)
+{
 	double range = absinfo->maximum - absinfo->minimum;
 	double value = (absinfo->value - absinfo->minimum) / range;
 
