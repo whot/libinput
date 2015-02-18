@@ -139,8 +139,11 @@ LIBINPUT_0.11.0 {
 } LIBINPUT_0.9.0;
 
 LIBINPUT_0.12.0 {
-	/* tablet APIs, they are not part of any stable API promise yet.
-	 * keep them separate */
+} LIBINPUT_0.11.0;
+
+/* tablet APIs, they are not part of any stable API promise yet.
+ * keep them separate */
+LIBINPUT_TABLET_SUPPORT {
 	libinput_event_get_tablet_event;
 	libinput_event_tablet_axis_has_changed;
 	libinput_event_tablet_get_axis_value;
@@ -160,4 +163,4 @@ LIBINPUT_0.12.0 {
 	libinput_tool_ref;
 	libinput_tool_set_user_data;
 	libinput_tool_unref;
-} LIBINPUT_0.11.0;
+} LIBINPUT_0.12.0;
