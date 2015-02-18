@@ -1056,7 +1056,8 @@ libinput_event_tablet_axis_has_changed(struct libinput_event_tablet *event,
  *   degrees, clockwise from the tool's logical neutral position. For the
  *   @ref LIBINPUT_TOOL_MOUSE and @ref LIBINPUT_TOOL_LENS tools the logical
  *   neutral position is pointing to the current logical north of the
- *   tablet.
+ *   tablet. For the @ref LIBINPUT_TOOL_BRUSH tool, the logical neutral
+ *   position is with the buttons pointing up.
  * - @ref LIBINPUT_TABLET_AXIS_SLIDER - A slider on the tool, normalized
  *   from 0 to 1. e.g. the wheel-like tool on the Wacom Airbrush.
  *

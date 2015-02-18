@@ -103,6 +103,7 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 	switch (e->code) {
 	case ABS_X:
 	case ABS_Y:
+	case ABS_Z:
 	case ABS_PRESSURE:
 	case ABS_TILT_X:
 	case ABS_TILT_Y:
@@ -240,6 +241,16 @@ convert_tilt_to_rotation(struct tablet_dispatch *tablet)
 	set_bit(tablet->changed_axes, LIBINPUT_TABLET_AXIS_ROTATION_Z);
 }
 
+static double
+convert_to_degrees(const struct input_absinfo *absinfo, double offset)
+{
+	/* range is [0, 360[, i.e. range + 1 */
+	double range = absinfo->maximum - absinfo->minimum + 1;
+	double value = (absinfo->value - absinfo->minimum) / range;
+
+	return fmod(value * 360.0 + offset, 360.0);
+}
+
 static void
 tablet_check_notify_axes(struct tablet_dispatch *tablet,
 			 struct evdev_device *device,
@@ -263,14 +274,13 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 
 		/* ROTATION_Z is higher than TILT_X/Y so we know that the
 		   tilt axes are already normalized and set */
-		if (a == LIBINPUT_TABLET_AXIS_ROTATION_Z) {
-			if (tablet->current_tool_type == LIBINPUT_TOOL_MOUSE ||
-			    tablet->current_tool_type == LIBINPUT_TOOL_LENS) {
-				convert_tilt_to_rotation(tablet);
-				axes[LIBINPUT_TABLET_AXIS_TILT_X] = 0;
-				axes[LIBINPUT_TABLET_AXIS_TILT_Y] = 0;
-				axes[a] = tablet->axes[a];
-			}
+		if (a == LIBINPUT_TABLET_AXIS_ROTATION_Z &&
+		   (tablet->current_tool_type == LIBINPUT_TOOL_MOUSE ||
+		    tablet->current_tool_type == LIBINPUT_TOOL_LENS)) {
+			convert_tilt_to_rotation(tablet);
+			axes[LIBINPUT_TABLET_AXIS_TILT_X] = 0;
+			axes[LIBINPUT_TABLET_AXIS_TILT_Y] = 0;
+			axes[a] = tablet->axes[a];
 			continue;
 		}
 
@@ -293,6 +303,10 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 		case LIBINPUT_TABLET_AXIS_TILT_X:
 		case LIBINPUT_TABLET_AXIS_TILT_Y:
 			tablet->axes[a] = normalize_tilt(absinfo);
+			break;
+		case LIBINPUT_TABLET_AXIS_ROTATION_Z:
+			/* artpen has 0 with buttons pointing east */
+			tablet->axes[a] = convert_to_degrees(absinfo, 90);
 			break;
 		default:
 			log_bug_libinput(device->base.seat->libinput,
@@ -507,6 +521,10 @@ tool_set_bits_from_libwacom(const struct tablet_dispatch *tablet,
 		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_SLIDER);
 		/* fall-through */
 	case WSTYLUS_MARKER:
+		if (type == WSTYLUS_MARKER)
+			copy_axis_cap(tablet, tool,
+				      LIBINPUT_TABLET_AXIS_ROTATION_Z);
+		/* fallthrough */
 	case WSTYLUS_GENERAL:
 	case WSTYLUS_INKING:
 	case WSTYLUS_CLASSIC:
@@ -556,6 +574,7 @@ tool_set_bits(const struct tablet_dispatch *tablet,
 		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_TILT_X);
 		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_TILT_Y);
 		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_SLIDER);
+		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_ROTATION_Z);
 		break;
 	case LIBINPUT_TOOL_MOUSE:
 	case LIBINPUT_TOOL_LENS:

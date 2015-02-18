@@ -1359,6 +1359,99 @@ START_TEST(airbrush_wheel)
 }
 END_TEST
 
+START_TEST(artpen_tool)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
+	struct libinput_event_tablet *tev;
+	struct libinput_tool *tool;
+
+	if (!libevdev_has_event_code(dev->evdev,
+				    EV_ABS,
+				    ABS_Z))
+		return;
+
+	litest_drain_events(li);
+
+	litest_event(dev, EV_KEY, BTN_TOOL_PEN, 1);
+	litest_event(dev, EV_ABS, ABS_MISC, 0x804); /* Art Pen */
+	litest_event(dev, EV_MSC, MSC_SERIAL, 1000);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+
+	litest_wait_for_event_of_type(li,
+				      LIBINPUT_EVENT_TABLET_PROXIMITY,
+				      -1);
+	event = libinput_get_event(li);
+	tev = libinput_event_get_tablet_event(event);
+	tool = libinput_event_tablet_get_tool(tev);
+	ck_assert_notnull(tool);
+	ck_assert_int_eq(libinput_tool_get_type(tool),
+			 LIBINPUT_TOOL_PEN);
+	ck_assert(libinput_tool_has_axis(tool,
+					 LIBINPUT_TABLET_AXIS_ROTATION_Z));
+
+	libinput_event_destroy(event);
+}
+END_TEST
+
+START_TEST(artpen_rotation)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
+	struct libinput_event_tablet *tev;
+	const struct input_absinfo *abs;
+	double val;
+	double scale;
+	int angle;
+
+	if (!libevdev_has_event_code(dev->evdev,
+				    EV_ABS,
+				    ABS_Z))
+		return;
+
+	litest_drain_events(li);
+
+	abs = libevdev_get_abs_info(dev->evdev, ABS_Z);
+	ck_assert_notnull(abs);
+
+	litest_event(dev, EV_KEY, BTN_TOOL_BRUSH, 1);
+	litest_event(dev, EV_ABS, ABS_MISC, 0x804); /* Art Pen */
+	litest_event(dev, EV_MSC, MSC_SERIAL, 1000);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+
+	/* start with non-zero */
+	litest_event(dev, EV_ABS, ABS_Z, 10);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+
+	litest_drain_events(li);
+
+	scale = (abs->maximum - abs->minimum + 1)/360.0;
+	for (angle = 0; angle < 360; angle += 8) {
+		int a = angle * scale + abs->minimum;
+
+		litest_event(dev, EV_ABS, ABS_Z, a);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+
+		litest_wait_for_event_of_type(li,
+					      LIBINPUT_EVENT_TABLET_AXIS,
+					      -1);
+		event = libinput_get_event(li);
+		tev = libinput_event_get_tablet_event(event);
+		ck_assert(libinput_event_tablet_axis_has_changed(tev,
+					 LIBINPUT_TABLET_AXIS_ROTATION_Z));
+		val = libinput_event_tablet_get_axis_value(tev,
+					 LIBINPUT_TABLET_AXIS_ROTATION_Z);
+
+		/* artpen has a 90 deg offset cw */
+		ck_assert_int_eq(round(val), (angle + 90) % 360);
+		libinput_event_destroy(event);
+		litest_assert_empty_queue(li);
+	}
+}
+END_TEST
+
 int
 main(int argc, char **argv)
 {
@@ -1384,6 +1477,8 @@ main(int argc, char **argv)
 	litest_add("tablet:mouse", mouse_rotation, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:airbrush", airbrush_tool, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:airbrush", airbrush_wheel, LITEST_TABLET, LITEST_ANY);
+	litest_add("tablet:artpen", artpen_tool, LITEST_TABLET, LITEST_ANY);
+	litest_add("tablet:artpen", artpen_rotation, LITEST_TABLET, LITEST_ANY);
 
 	return litest_run(argc, argv);
 }
