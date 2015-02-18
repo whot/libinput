@@ -159,6 +159,7 @@ LIBINPUT_TABLET_SUPPORT {
 	libinput_tool_get_tool_id;
 	libinput_tool_get_type;
 	libinput_tool_get_user_data;
+	libinput_tool_has_button;
 	libinput_tool_has_axis;
 	libinput_tool_ref;
 	libinput_tool_set_user_data;

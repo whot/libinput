@@ -382,6 +382,51 @@ copy_axis_cap(const struct tablet_dispatch *tablet,
 		set_bit(tool->axis_caps, axis);
 }
 
+static inline void
+copy_button_cap(const struct tablet_dispatch *tablet,
+		struct libinput_tool *tool,
+		uint32_t button)
+{
+	struct libevdev *evdev = tablet->device->evdev;
+	if (libevdev_has_event_code(evdev, EV_KEY, button))
+		set_bit(tool->buttons, button);
+}
+
+static void
+tool_set_bits_from_libwacom(const struct tablet_dispatch *tablet,
+			    struct libinput_tool *tool)
+{
+#if HAVE_LIBWACOM
+	WacomDeviceDatabase *db;
+	const WacomStylus *s = NULL;
+	int code;
+
+	db = libwacom_database_new();
+	if (!db)
+		goto out;
+	s = libwacom_stylus_get_for_id(db, tool->tool_id);
+	if (!s)
+		goto out;
+
+	if (libwacom_stylus_get_type(s) == WSTYLUS_PUCK) {
+		for (code = BTN_LEFT;
+		     code < BTN_LEFT + libwacom_stylus_get_num_buttons(s);
+		     code++)
+			copy_button_cap(tablet, tool, code);
+	} else {
+		if (libwacom_stylus_get_num_buttons(s) >= 2)
+			copy_button_cap(tablet, tool, BTN_STYLUS2);
+		if (libwacom_stylus_get_num_buttons(s) >= 1)
+			copy_button_cap(tablet, tool, BTN_STYLUS);
+		copy_button_cap(tablet, tool, BTN_TOUCH);
+	}
+
+out:
+	if (db)
+		libwacom_database_destroy(db);
+#endif
+}
+
 static void
 tool_set_bits(const struct tablet_dispatch *tablet,
 	      struct libinput_tool *tool)
@@ -413,6 +458,34 @@ tool_set_bits(const struct tablet_dispatch *tablet,
 	default:
 		break;
 	}
+
+#if HAVE_LIBWACOM
+	tool_set_bits_from_libwacom(tablet, tool);
+#else
+	/* If we don't have libwacom, copy all pen-related ones from the
+	   tablet vs all mouse-related ones */
+	switch (type) {
+	case LIBINPUT_TOOL_PEN:
+	case LIBINPUT_TOOL_BRUSH:
+	case LIBINPUT_TOOL_AIRBRUSH:
+	case LIBINPUT_TOOL_PENCIL:
+	case LIBINPUT_TOOL_ERASER:
+		copy_button_cap(tablet, tool, BTN_STYLUS);
+		copy_button_cap(tablet, tool, BTN_STYLUS2);
+		copy_button_cap(tablet, tool, BTN_TOUCH);
+		break;
+	case LIBINPUT_TOOL_MOUSE:
+	case LIBINPUT_TOOL_LENS:
+		copy_button_cap(tablet, tool, BTN_LEFT);
+		copy_button_cap(tablet, tool, BTN_MIDDLE);
+		copy_button_cap(tablet, tool, BTN_RIGHT);
+		copy_button_cap(tablet, tool, BTN_SIDE);
+		copy_button_cap(tablet, tool, BTN_EXTRA);
+		break;
+	default:
+		break;
+	}
+#endif
 }
 
 static struct libinput_tool *

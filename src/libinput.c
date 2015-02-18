@@ -681,6 +681,16 @@ libinput_tool_has_axis(struct libinput_tool *tool,
 	return bit_is_set(tool->axis_caps, axis);
 }
 
+LIBINPUT_EXPORT int
+libinput_tool_has_button(struct libinput_tool *tool,
+			 uint32_t code)
+{
+	if (NCHARS(code) > sizeof(tool->buttons))
+		return 0;
+
+	return bit_is_set(tool->buttons, code);
+}
+
 LIBINPUT_EXPORT void
 libinput_tool_set_user_data(struct libinput_tool *tool,
 			    void *user_data)

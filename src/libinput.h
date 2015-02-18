@@ -1244,6 +1244,21 @@ libinput_tool_has_axis(struct libinput_tool *tool,
 /**
  * @ingroup event_tablet
  *
+ * Check if a tablet tool has a button with the
+ * passed-in code (see linux/input.h).
+ *
+ * @param tool A tablet tool
+ * @param code button code to check for
+ *
+ * @return 1 if the tool supports this button code, 0 if it does not
+ */
+int
+libinput_tool_has_button(struct libinput_tool *tool,
+		         uint32_t code);
+
+/**
+ * @ingroup event_tablet
+ *
  * Decrement the ref count of tool by one. When the ref count of tool reaches 0,
  * the memory allocated for tool will be freed.
  *
