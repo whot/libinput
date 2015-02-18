@@ -76,12 +76,21 @@ tp_get_average_touches_delta(struct tp_dispatch *tp)
 static void
 tp_gesture_start(struct tp_dispatch *tp, uint64_t time)
 {
+	const struct normalized_coords zero = { 0.0, 0.0 };
+
 	if (tp->gesture.started)
 		return;
 
 	switch (tp->gesture.finger_count) {
 	case 2:
 		/* NOP */
+		break;
+	case 3:
+	case 4:
+		gesture_notify_swipe(&tp->device->base, time,
+				     LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN,
+				     tp->gesture.finger_count,
+				     &zero, &zero);
 		break;
 	}
 	tp->gesture.started = true;
@@ -137,6 +146,23 @@ tp_gesture_post_twofinger_scroll(struct tp_dispatch *tp, uint64_t time)
 			  &delta);
 }
 
+static void
+tp_gesture_post_swipe(struct tp_dispatch *tp, uint64_t time)
+{
+	struct normalized_coords delta, unaccel;
+
+	unaccel = tp_get_average_touches_delta(tp);
+	delta = tp_filter_motion(tp, &unaccel, time);
+
+	if (!normalized_is_zero(delta) || !normalized_is_zero(unaccel)) {
+		tp_gesture_start(tp, time);
+		gesture_notify_swipe(&tp->device->base, time,
+				     LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE,
+				     tp->gesture.finger_count,
+				     &delta, &unaccel);
+	}
+}
+
 void
 tp_gesture_post_events(struct tp_dispatch *tp, uint64_t time)
 {
@@ -161,6 +187,10 @@ tp_gesture_post_events(struct tp_dispatch *tp, uint64_t time)
 	case 2:
 		tp_gesture_post_twofinger_scroll(tp, time);
 		break;
+	case 3:
+	case 4:
+		tp_gesture_post_swipe(tp, time);
+		break;
 	}
 }
 
@@ -178,12 +208,21 @@ tp_gesture_stop_twofinger_scroll(struct tp_dispatch *tp, uint64_t time)
 void
 tp_gesture_stop(struct tp_dispatch *tp, uint64_t time)
 {
+	const struct normalized_coords zero = { 0.0, 0.0 };
+
 	if (!tp->gesture.started)
 		return;
 
 	switch (tp->gesture.finger_count) {
 	case 2:
 		tp_gesture_stop_twofinger_scroll(tp, time);
+		break;
+	case 3:
+	case 4:
+		gesture_notify_swipe(&tp->device->base, time,
+				     LIBINPUT_EVENT_GESTURE_SWIPE_END,
+				     tp->gesture.finger_count,
+				     &zero, &zero);
 		break;
 	}
 	tp->gesture.started = false;
