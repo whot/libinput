@@ -419,6 +419,38 @@ print_proximity_event(struct libinput_event *ev)
 
 	printf("%s (%#x) %s",
 	       tool_str, libinput_tool_get_serial(tool), state_str);
+
+	printf("\taxes:");
+	if (libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_DISTANCE))
+		printf("d");
+	if (libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_PRESSURE))
+		printf("p");
+	if (libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_TILT_X) ||
+	    libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_TILT_Y))
+		printf("t");
+	if (libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_ROTATION_Z))
+		printf("r");
+	if (libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_SLIDER))
+		printf("s");
+
+	printf("\tbtn:");
+	if (libinput_tool_has_button(tool, BTN_TOUCH))
+		printf("T");
+	if (libinput_tool_has_button(tool, BTN_STYLUS))
+		printf("S");
+	if (libinput_tool_has_button(tool, BTN_STYLUS2))
+		printf("S2");
+	if (libinput_tool_has_button(tool, BTN_LEFT))
+		printf("L");
+	if (libinput_tool_has_button(tool, BTN_MIDDLE))
+		printf("M");
+	if (libinput_tool_has_button(tool, BTN_RIGHT))
+		printf("R");
+	if (libinput_tool_has_button(tool, BTN_SIDE))
+		printf("Sd");
+	if (libinput_tool_has_button(tool, BTN_EXTRA))
+		printf("Ex");
+
 	printf("\n");
 }
 
