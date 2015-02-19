@@ -1405,6 +1405,27 @@ litest_assert_button_event(struct libinput *li, unsigned int button,
 }
 
 void
+litest_assert_tablet_button_event(struct libinput *li, unsigned int button,
+				  enum libinput_button_state state)
+{
+	struct libinput_event *event;
+	struct libinput_event_tablet *tev;
+
+	litest_wait_for_event(li);
+	event = libinput_get_event(li);
+
+	ck_assert(event != NULL);
+	ck_assert_int_eq(libinput_event_get_type(event),
+			 LIBINPUT_EVENT_TABLET_BUTTON);
+	tev = libinput_event_get_tablet_event(event);
+	ck_assert_int_eq(libinput_event_tablet_get_button(tev),
+			 button);
+	ck_assert_int_eq(libinput_event_tablet_get_button_state(tev),
+			 state);
+	libinput_event_destroy(event);
+}
+
+void
 litest_assert_scroll(struct libinput *li,
 		     enum libinput_pointer_axis axis,
 		     int minimum_movement)
