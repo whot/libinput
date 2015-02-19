@@ -27,6 +27,10 @@
 #include <stdbool.h>
 #include <string.h>
 
+#if HAVE_LIBWACOM
+#include <libwacom/libwacom.h>
+#endif
+
 #define tablet_set_status(tablet_,s_) (tablet_)->status |= (s_)
 #define tablet_unset_status(tablet_,s_) (tablet_)->status &= ~(s_)
 #define tablet_has_status(tablet_,s_) (!!((tablet_)->status & (s_)))
@@ -645,6 +649,45 @@ tablet_init(struct tablet_dispatch *tablet,
 	return 0;
 }
 
+static void
+tablet_init_left_handed(struct evdev_device *device)
+{
+#if HAVE_LIBWACOM
+	struct libinput *libinput = device->base.seat->libinput;
+	WacomDeviceDatabase *db;
+	WacomDevice *d = NULL;
+	WacomError *error;
+	int vid, pid;
+
+	vid = evdev_device_get_id_vendor(device);
+	pid = evdev_device_get_id_product(device);
+
+	db = libwacom_database_new();
+	if (!db)
+		return;
+	error = libwacom_error_new();
+	d = libwacom_new_from_usbid(db, vid, pid, error);
+
+	if (d) {
+		if (libwacom_is_reversible(d))
+		    evdev_init_left_handed(device,
+					   tablet_change_to_left_handed);
+	} else if (libwacom_error_get_code(error) == WERROR_UNKNOWN_MODEL) {
+		log_info(libinput, "Tablet unknown to libwacom\n");
+	} else {
+		log_error(libinput,
+			  "libwacom error: %s\n",
+			  libwacom_error_get_message(error));
+	}
+
+	if (error)
+		libwacom_error_free(&error);
+	if (d)
+		libwacom_destroy(d);
+	libwacom_database_destroy(db);
+#endif
+}
+
 struct evdev_dispatch *
 evdev_tablet_create(struct evdev_device *device)
 {
@@ -659,7 +702,7 @@ evdev_tablet_create(struct evdev_device *device)
 		return NULL;
 	}
 
-	evdev_init_left_handed(device, tablet_change_to_left_handed);
+	tablet_init_left_handed(device);
 
 	return &tablet->base;
 }

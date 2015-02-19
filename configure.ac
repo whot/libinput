@@ -165,6 +165,19 @@ if test "x$build_tests" = "xyes"; then
 	AC_PATH_PROG(VALGRIND, [valgrind])
 fi
 
+AC_ARG_ENABLE(libwacom,
+	      AS_HELP_STRING([--enable-libwacom],
+			     [Use libwacom for tablet identification (default=enabled)]),
+	      [use_libwacom="$enableval"],
+	      [use_libwacom="yes"])
+if test "x$use_libwacom" = "xyes"; then
+	PKG_CHECK_MODULES(LIBWACOM, [libwacom], [HAVE_LIBWACOM="yes"])
+	AC_DEFINE(HAVE_LIBWACOM, 1, [Build with libwacom])
+else
+	HAVE_LIBWACOM="no"
+fi
+AC_SUBST(HAVE_LIBWACOM)
+
 AM_CONDITIONAL(HAVE_VALGRIND, [test "x$VALGRIND" != "x"])
 AM_CONDITIONAL(BUILD_TESTS, [test "x$build_tests" = "xyes"])
 AM_CONDITIONAL(BUILD_DOCS, [test "x$build_documentation" = "xyes"])
@@ -186,6 +199,7 @@ AC_MSG_RESULT([
 	Prefix			${prefix}
 	udev base dir		${UDEV_DIR}
 
+	libwacom enabled	${HAVE_LIBWACOM}
 	Build documentation	${build_documentation}
 	Build tests		${build_tests}
 	Tests use valgrind	${VALGRIND}

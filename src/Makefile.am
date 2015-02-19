@@ -31,12 +31,14 @@ libinput_la_SOURCES =			\
 libinput_la_LIBADD = $(MTDEV_LIBS) \
 		     $(LIBUDEV_LIBS) \
 		     $(LIBEVDEV_LIBS) \
+		     $(LIBWACOM_LIBS) \
 		     libinput-util.la
 
 libinput_la_CFLAGS = -I$(top_srcdir)/include \
 		     $(MTDEV_CFLAGS)	\
 		     $(LIBUDEV_CFLAGS)	\
 		     $(LIBEVDEV_CFLAGS)	\
+		     $(LIBWACOM_CFLAGS) \
 		     $(GCC_CFLAGS)
 EXTRA_libinput_la_DEPENDENCIES = $(srcdir)/libinput.sym
 
