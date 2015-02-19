@@ -244,6 +244,27 @@ tablet_update_button(struct tablet_dispatch *tablet,
 	}
 }
 
+static inline enum libinput_tool_type
+tablet_evcode_to_tool(int code)
+{
+	enum libinput_tool_type type;
+
+	switch (code) {
+	case BTN_TOOL_PEN:	type = LIBINPUT_TOOL_PEN;	break;
+	case BTN_TOOL_RUBBER:	type = LIBINPUT_TOOL_ERASER;	break;
+	case BTN_TOOL_BRUSH:	type = LIBINPUT_TOOL_BRUSH;	break;
+	case BTN_TOOL_PENCIL:	type = LIBINPUT_TOOL_PENCIL;	break;
+	case BTN_TOOL_AIRBRUSH:	type = LIBINPUT_TOOL_AIRBRUSH;	break;
+	case BTN_TOOL_FINGER:	type = LIBINPUT_TOOL_FINGER;	break;
+	case BTN_TOOL_MOUSE:	type = LIBINPUT_TOOL_MOUSE;	break;
+	case BTN_TOOL_LENS:	type = LIBINPUT_TOOL_LENS;	break;
+	default:
+		abort();
+	}
+
+	return type;
+}
+
 static void
 tablet_process_key(struct tablet_dispatch *tablet,
 		   struct evdev_device *device,
@@ -259,8 +280,10 @@ tablet_process_key(struct tablet_dispatch *tablet,
 	case BTN_TOOL_FINGER:
 	case BTN_TOOL_MOUSE:
 	case BTN_TOOL_LENS:
-		/* These codes have an equivalent libinput_tool value */
-		tablet_update_tool(tablet, device, e->code, e->value);
+		tablet_update_tool(tablet,
+				   device,
+				   tablet_evcode_to_tool(e->code),
+				   e->value);
 		break;
 	case BTN_TOUCH:
 		if (e->value)

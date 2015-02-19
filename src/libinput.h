@@ -159,7 +159,7 @@ struct libinput_tool;
  * LIBINPUT_DEVICE_CAP_TABLET capability.
  */
 enum libinput_tool_type {
-	LIBINPUT_TOOL_PEN = 0x140, /* Matches BTN_TOOL_PEN */
+	LIBINPUT_TOOL_PEN = 1,
 	LIBINPUT_TOOL_ERASER,
 	LIBINPUT_TOOL_BRUSH,
 	LIBINPUT_TOOL_PENCIL,
