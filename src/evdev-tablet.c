@@ -408,14 +408,17 @@ copy_button_cap(const struct tablet_dispatch *tablet,
 		set_bit(tool->buttons, button);
 }
 
-static void
+static inline int
 tool_set_bits_from_libwacom(const struct tablet_dispatch *tablet,
 			    struct libinput_tool *tool)
 {
+	int rc = 1;
+
 #if HAVE_LIBWACOM
 	WacomDeviceDatabase *db;
 	const WacomStylus *s = NULL;
 	int code;
+	WacomStylusType type;
 
 	db = libwacom_database_new();
 	if (!db)
@@ -424,7 +427,8 @@ tool_set_bits_from_libwacom(const struct tablet_dispatch *tablet,
 	if (!s)
 		goto out;
 
-	if (libwacom_stylus_get_type(s) == WSTYLUS_PUCK) {
+	type = libwacom_stylus_get_type(s);
+	if (type == WSTYLUS_PUCK) {
 		for (code = BTN_LEFT;
 		     code < BTN_LEFT + libwacom_stylus_get_num_buttons(s);
 		     code++)
@@ -437,10 +441,30 @@ tool_set_bits_from_libwacom(const struct tablet_dispatch *tablet,
 		copy_button_cap(tablet, tool, BTN_TOUCH);
 	}
 
+	/* Eventually we want libwacom to tell us each axis on each device
+	   separately. */
+	switch(type) {
+	case WSTYLUS_AIRBRUSH:
+	case WSTYLUS_MARKER:
+	case WSTYLUS_GENERAL:
+	case WSTYLUS_INKING:
+	case WSTYLUS_CLASSIC:
+	case WSTYLUS_STROKE:
+		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_PRESSURE);
+		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_DISTANCE);
+		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_TILT_X);
+		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_TILT_Y);
+		break;
+	default:
+		break;
+	}
+
+	rc = 0;
 out:
 	if (db)
 		libwacom_database_destroy(db);
 #endif
+	return rc;
 }
 
 static void
@@ -449,16 +473,13 @@ tool_set_bits(const struct tablet_dispatch *tablet,
 {
 	enum libinput_tool_type type = tool->type;
 
-	/* Determine the axis capabilities of the tool. Here's a break
-	 * down of the heuristics used here:
-	 * - The Wacom art pen supports all of the extra axes, along
-	 *   with rotation
-	 * - The Wacom airbrush supports a wheel with a ~90 deg
-	 *   range.
-	 * - All of normal pens and the airbrush support all of the
-	 *   extra axes if the tablet can report them
-	 * - All of the mouse-like devices don't report any of
-	 *   the extra axes except for rotation (calculated from tilt x/y).
+#if HAVE_LIBWACOM
+	if (tool_set_bits_from_libwacom(tablet, tool) == 0)
+		return;
+#endif
+	/* If we don't have libwacom, we simply copy any axis we have on the
+	   tablet onto the tool. Except we know that mice only have rotation
+	   anyway.
 	 */
 	switch (type) {
 	case LIBINPUT_TOOL_PEN:
@@ -475,9 +496,6 @@ tool_set_bits(const struct tablet_dispatch *tablet,
 		break;
 	}
 
-#if HAVE_LIBWACOM
-	tool_set_bits_from_libwacom(tablet, tool);
-#else
 	/* If we don't have libwacom, copy all pen-related ones from the
 	   tablet vs all mouse-related ones */
 	switch (type) {
@@ -501,7 +519,6 @@ tool_set_bits(const struct tablet_dispatch *tablet,
 	default:
 		break;
 	}
-#endif
 }
 
 static struct libinput_tool *
