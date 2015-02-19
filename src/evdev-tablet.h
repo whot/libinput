@@ -59,6 +59,7 @@ struct tablet_dispatch {
 	struct button_state prev_button_state;
 
 	enum libinput_tool_type current_tool_type;
+	uint32_t current_tool_id;
 	uint32_t current_tool_serial;
 };
 

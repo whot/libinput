@@ -62,6 +62,11 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 		set_bit(tablet->changed_axes, axis);
 		tablet_set_status(tablet, TABLET_AXES_UPDATED);
 		break;
+	/* tool_id is the identifier for the tool we can use in libwacom
+	 * to identify it (if we have one anyway) */
+	case ABS_MISC:
+		tablet->current_tool_id = e->value;
+		break;
 	default:
 		log_info(device->base.seat->libinput,
 			 "Unhandled ABS event code %#x\n", e->code);
@@ -324,6 +329,7 @@ tablet_process_misc(struct tablet_dispatch *tablet,
 static struct libinput_tool *
 tablet_get_tool(struct tablet_dispatch *tablet,
 		enum libinput_tool_type type,
+		uint32_t tool_id,
 		uint32_t serial)
 {
 	struct libinput_tool *tool = NULL, *t;
@@ -362,6 +368,7 @@ tablet_get_tool(struct tablet_dispatch *tablet,
 		*tool = (struct libinput_tool) {
 			.type = type,
 			.serial = serial,
+			.tool_id = tool_id,
 			.refcount = 1,
 		};
 
@@ -499,6 +506,7 @@ tablet_flush(struct tablet_dispatch *tablet,
 	struct libinput_tool *tool =
 		tablet_get_tool(tablet,
 				tablet->current_tool_type,
+				tablet->current_tool_id,
 				tablet->current_tool_serial);
 
 	if (tablet_has_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY)) {

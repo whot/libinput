@@ -663,6 +663,12 @@ libinput_tool_get_type(struct libinput_tool *tool)
 }
 
 LIBINPUT_EXPORT uint32_t
+libinput_tool_get_tool_id(struct libinput_tool *tool)
+{
+	return tool->tool_id;
+}
+
+LIBINPUT_EXPORT uint32_t
 libinput_tool_get_serial(struct libinput_tool *tool)
 {
 	return tool->serial;

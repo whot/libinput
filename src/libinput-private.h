@@ -188,6 +188,7 @@ struct libinput_device {
 struct libinput_tool {
 	struct list link;
 	uint32_t serial;
+	uint32_t tool_id;
 	enum libinput_tool_type type;
 	unsigned char axis_caps[NCHARS(LIBINPUT_TABLET_AXIS_MAX + 1)];
 	int refcount;

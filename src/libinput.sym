@@ -153,6 +153,7 @@ LIBINPUT_0.12.0 {
 	libinput_event_tablet_get_x_transformed;
 	libinput_event_tablet_get_y_transformed;
 	libinput_tool_get_serial;
+	libinput_tool_get_tool_id;
 	libinput_tool_get_type;
 	libinput_tool_get_user_data;
 	libinput_tool_has_axis;

@@ -160,6 +160,7 @@ struct libinput_tool;
  * usage of the tool as advertised by the manufacturer. Multiple different
  * physical tools may share the same tool type, e.g. a Wacom Classic Pen,
  * Wacom Pro Pen and a Wacom Grip Pen are all of type LIBINPUT_TOOL_PEN.
+ * Use libinput_tool_get_tool_id() to get a specific model where applicable.
  *
  * Note that on some device, the eraser tool is on the tail end of a pen
  * device. On other devices, e.g. MS Surface 3, the eraser is the pen tip
@@ -1192,9 +1193,29 @@ libinput_event_tablet_get_time(struct libinput_event_tablet *event);
  *
  * @param tool The libinput tool
  * @return The tool type for this tool object
+ *
+ * @see libinput_tool_get_tool_id
  */
 enum libinput_tool_type
 libinput_tool_get_type(struct libinput_tool *tool);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the tool ID for a tool object. If nonzero, this number identifies
+ * the specific type of the tool with more precision than the type returned in
+ * libinput_tool_get_type(). Not all tablets support a tool ID.
+ *
+ * Tablets known to support tool IDs include the Wacom Intuos 3, 4, 5, Wacom
+ * Cintiq and Wacom Intuos Pro series.
+ *
+ * @param tool The libinput tool
+ * @return The tool ID for this tool object or 0 if none is provided
+ *
+ * @see libinput_tool_get_type
+ */
+uint32_t
+libinput_tool_get_tool_id(struct libinput_tool *tool);
 
 /**
  * @ingroup event_tablet
