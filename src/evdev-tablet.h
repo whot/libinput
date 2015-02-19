@@ -27,6 +27,7 @@
 #include "evdev.h"
 
 #define LIBINPUT_TABLET_AXIS_NONE 0
+#define LIBINPUT_TOOL_NONE 0
 
 enum tablet_status {
 	TABLET_NONE = 0,

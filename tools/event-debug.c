@@ -340,9 +340,6 @@ print_proximity_event(struct libinput_event *ev)
 	double dist, pressure;
 
 	switch (libinput_tool_get_type(tool)) {
-	case LIBINPUT_TOOL_NONE:
-		tool_str = "none";
-		break;
 	case LIBINPUT_TOOL_PEN:
 		tool_str = "pen";
 		break;
