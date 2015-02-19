@@ -41,7 +41,7 @@ enum tablet_status {
 };
 
 struct button_state {
-	uint32_t stylus_buttons; /* bitmask of evcode - BTN_TOUCH */
+	unsigned char stylus_buttons[NCHARS(KEY_CNT)];
 };
 
 struct tablet_dispatch {
