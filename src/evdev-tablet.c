@@ -275,12 +275,20 @@ tablet_update_button(struct tablet_dispatch *tablet,
 		     uint32_t evcode,
 		     uint32_t enable)
 {
-
-	if (evcode >= BTN_MISC && evcode <= BTN_TASK) {
-		return;
-	} else if (evcode >= BTN_TOUCH && evcode <= BTN_STYLUS2) {
-		/* noop */
-	} else {
+	switch (evcode) {
+	case BTN_LEFT:
+	case BTN_RIGHT:
+	case BTN_MIDDLE:
+	case BTN_SIDE:
+	case BTN_EXTRA:
+	case BTN_FORWARD:
+	case BTN_BACK:
+	case BTN_TASK:
+	case BTN_TOUCH:
+	case BTN_STYLUS:
+	case BTN_STYLUS2:
+		break;
+	default:
 		log_info(tablet->device->base.seat->libinput,
 			 "Unhandled button %s (%#x)\n",
 			 libevdev_event_code_get_name(EV_KEY, evcode), evcode);
@@ -344,6 +352,14 @@ tablet_process_key(struct tablet_dispatch *tablet,
 			tablet_unset_status(tablet, TABLET_STYLUS_IN_CONTACT);
 
 		/* Fall through */
+	case BTN_LEFT:
+	case BTN_RIGHT:
+	case BTN_MIDDLE:
+	case BTN_SIDE:
+	case BTN_EXTRA:
+	case BTN_FORWARD:
+	case BTN_BACK:
+	case BTN_TASK:
 	case BTN_STYLUS:
 	case BTN_STYLUS2:
 	default:

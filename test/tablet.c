@@ -1103,6 +1103,100 @@ START_TEST(tool_capabilities)
 }
 END_TEST
 
+START_TEST(mouse_tool)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
+	struct libinput_event_tablet *tev;
+	struct libinput_tool *tool;
+
+	if (!libevdev_has_event_code(dev->evdev,
+				    EV_KEY,
+				    BTN_TOOL_MOUSE))
+		return;
+
+	litest_drain_events(li);
+
+	litest_event(dev, EV_KEY, BTN_TOOL_MOUSE, 1);
+	litest_event(dev, EV_MSC, MSC_SERIAL, 1000);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+
+	litest_wait_for_event_of_type(li,
+				      LIBINPUT_EVENT_TABLET_PROXIMITY,
+				      -1);
+	event = libinput_get_event(li);
+	tev = libinput_event_get_tablet_event(event);
+	tool = libinput_event_tablet_get_tool(tev);
+	ck_assert_notnull(tool);
+	ck_assert_int_eq(libinput_tool_get_type(tool),
+			 LIBINPUT_TOOL_MOUSE);
+
+	libinput_event_destroy(event);
+}
+END_TEST
+
+START_TEST(mouse_buttons)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
+	struct libinput_event_tablet *tev;
+	struct libinput_tool *tool;
+	int code;
+
+	if (!libevdev_has_event_code(dev->evdev,
+				    EV_KEY,
+				    BTN_TOOL_MOUSE))
+		return;
+
+	litest_drain_events(li);
+
+	litest_event(dev, EV_KEY, BTN_TOOL_MOUSE, 1);
+	litest_event(dev, EV_ABS, ABS_MISC, 0x806); /* 5-button mouse tool_id */
+	litest_event(dev, EV_MSC, MSC_SERIAL, 1000);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+
+	litest_wait_for_event_of_type(li,
+				      LIBINPUT_EVENT_TABLET_PROXIMITY,
+				      -1);
+	event = libinput_get_event(li);
+	tev = libinput_event_get_tablet_event(event);
+	tool = libinput_event_tablet_get_tool(tev);
+	ck_assert_notnull(tool);
+	libinput_tool_ref(tool);
+
+	libinput_event_destroy(event);
+
+	for (code = BTN_LEFT; code <= BTN_TASK; code++) {
+		bool has_button = libevdev_has_event_code(dev->evdev,
+							  EV_KEY,
+							  code);
+		ck_assert_int_eq(!!has_button,
+				 !!libinput_tool_has_button(tool, code));
+
+		if (!has_button)
+			continue;
+
+		litest_event(dev, EV_KEY, code, 1);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+		libinput_dispatch(li);
+		litest_event(dev, EV_KEY, code, 0);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+		libinput_dispatch(li);
+
+		litest_assert_tablet_button_event(li,
+					  code,
+					  LIBINPUT_BUTTON_STATE_PRESSED);
+		litest_assert_tablet_button_event(li,
+					  code,
+					  LIBINPUT_BUTTON_STATE_RELEASED);
+	}
+
+	libinput_tool_unref(tool);
+}
+END_TEST
+
 int
 main(int argc, char **argv)
 {
@@ -1123,6 +1217,8 @@ main(int argc, char **argv)
 	litest_add_for_device("tablet:left_handed", no_left_handed, LITEST_WACOM_CINTIQ);
 	litest_add("tablet:normalization", normalization, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:pad", pad_buttons_ignored, LITEST_TABLET, LITEST_ANY);
+	litest_add("tablet:mouse", mouse_tool, LITEST_TABLET, LITEST_ANY);
+	litest_add("tablet:mouse", mouse_buttons, LITEST_TABLET, LITEST_ANY);
 
 	return litest_run(argc, argv);
 }
