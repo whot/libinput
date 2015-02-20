@@ -82,6 +82,10 @@ tablet_device_has_axis(struct tablet_dispatch *tablet,
 			    libevdev_has_event_code(evdev,
 						    EV_ABS,
 						    ABS_TILT_Y));
+	} else if (axis == LIBINPUT_TABLET_AXIS_REL_WHEEL) {
+		has_axis = libevdev_has_event_code(evdev,
+						   EV_REL,
+						   REL_WHEEL);
 	} else {
 		code = axis_to_evcode(axis);
 		has_axis = libevdev_has_event_code(evdev,
@@ -251,6 +255,15 @@ convert_to_degrees(const struct input_absinfo *absinfo, double offset)
 	return fmod(value * 360.0 + offset, 360.0);
 }
 
+static inline double
+normalize_wheel(struct tablet_dispatch *tablet,
+		int value)
+{
+	struct evdev_device *device = tablet->device;
+
+	return value * device->scroll.wheel_click_angle;
+}
+
 static void
 tablet_check_notify_axes(struct tablet_dispatch *tablet,
 			 struct evdev_device *device,
@@ -280,6 +293,11 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 			convert_tilt_to_rotation(tablet);
 			axes[LIBINPUT_TABLET_AXIS_TILT_X] = 0;
 			axes[LIBINPUT_TABLET_AXIS_TILT_Y] = 0;
+			axes[a] = tablet->axes[a];
+			continue;
+		} else if (a == LIBINPUT_TABLET_AXIS_REL_WHEEL) {
+			tablet->axes[a] = normalize_wheel(tablet,
+							  tablet->deltas[a]);
 			axes[a] = tablet->axes[a];
 			continue;
 		}
@@ -442,6 +460,35 @@ tablet_process_key(struct tablet_dispatch *tablet,
 }
 
 static void
+tablet_process_relative(struct tablet_dispatch *tablet,
+			struct evdev_device *device,
+			struct input_event *e,
+			uint32_t time)
+{
+	enum libinput_tablet_axis axis;
+	switch (e->code) {
+	case REL_WHEEL:
+		axis = rel_evcode_to_axis(e->code);
+		if (axis == LIBINPUT_TABLET_AXIS_NONE) {
+			log_bug_libinput(device->base.seat->libinput,
+					 "Invalid ABS event code %#x\n",
+					 e->code);
+			break;
+		}
+		set_bit(tablet->changed_axes, axis);
+		tablet->deltas[axis] = -1 * e->value;
+		tablet_set_status(tablet, TABLET_AXES_UPDATED);
+		break;
+	default:
+		log_info(tablet->device->base.seat->libinput,
+			 "Unhandled relative axis %s (%#x)\n",
+			 libevdev_event_code_get_name(EV_REL, e->code),
+			 e->code);
+		return;
+	}
+}
+
+static void
 tablet_process_misc(struct tablet_dispatch *tablet,
 		    struct evdev_device *device,
 		    struct input_event *e,
@@ -536,6 +583,11 @@ tool_set_bits_from_libwacom(const struct tablet_dispatch *tablet,
 		break;
 	case WSTYLUS_PUCK:
 		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_ROTATION_Z);
+		/* lens cursors don't have a wheel */
+		if (!libwacom_stylus_has_lens(s))
+			copy_axis_cap(tablet,
+				      tool,
+				      LIBINPUT_TABLET_AXIS_REL_WHEEL);
 		break;
 	default:
 		break;
@@ -579,6 +631,7 @@ tool_set_bits(const struct tablet_dispatch *tablet,
 	case LIBINPUT_TOOL_MOUSE:
 	case LIBINPUT_TOOL_LENS:
 		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_ROTATION_Z);
+		copy_axis_cap(tablet, tool, LIBINPUT_TABLET_AXIS_REL_WHEEL);
 		break;
 	default:
 		break;
@@ -825,6 +878,9 @@ tablet_process(struct evdev_dispatch *dispatch,
 	switch (e->type) {
 	case EV_ABS:
 		tablet_process_absolute(tablet, device, e, time);
+		break;
+	case EV_REL:
+		tablet_process_relative(tablet, device, e, time);
 		break;
 	case EV_KEY:
 		tablet_process_key(tablet, device, e, time);

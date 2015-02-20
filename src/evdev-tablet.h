@@ -50,6 +50,7 @@ struct tablet_dispatch {
 	unsigned char status;
 	unsigned char changed_axes[NCHARS(LIBINPUT_TABLET_AXIS_MAX + 1)];
 	double axes[LIBINPUT_TABLET_AXIS_MAX + 1];
+	double deltas[LIBINPUT_TABLET_AXIS_MAX + 1];
 	unsigned char axis_caps[NCHARS(LIBINPUT_TABLET_AXIS_MAX + 1)];
 
 	/* Only used for tablets that don't report serial numbers */
@@ -92,6 +93,23 @@ evcode_to_axis(const uint32_t evcode)
 		break;
 	case ABS_WHEEL:
 		axis = LIBINPUT_TABLET_AXIS_SLIDER;
+		break;
+	default:
+		axis = LIBINPUT_TABLET_AXIS_NONE;
+		break;
+	}
+
+	return axis;
+}
+
+static inline enum libinput_tablet_axis
+rel_evcode_to_axis(const uint32_t evcode)
+{
+	enum libinput_tablet_axis axis;
+
+	switch (evcode) {
+	case REL_WHEEL:
+		axis = LIBINPUT_TABLET_AXIS_REL_WHEEL;
 		break;
 	default:
 		axis = LIBINPUT_TABLET_AXIS_NONE;

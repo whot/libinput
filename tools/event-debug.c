@@ -293,7 +293,7 @@ print_tablet_axes(struct libinput_event_tablet *t)
 	struct libinput_tool *tool = libinput_event_tablet_get_tool(t);
 	double x, y;
 	double dist, pressure;
-	double rotation, slider;
+	double rotation, slider, wheel;
 
 	x = libinput_event_tablet_get_axis_value(t, LIBINPUT_TABLET_AXIS_X);
 	y = libinput_event_tablet_get_axis_value(t, LIBINPUT_TABLET_AXIS_Y);
@@ -349,6 +349,15 @@ print_tablet_axes(struct libinput_event_tablet *t)
 		       slider,
 		       tablet_axis_changed_sym(t,
 				       LIBINPUT_TABLET_AXIS_SLIDER));
+	}
+
+	if (libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_REL_WHEEL)) {
+		wheel = libinput_event_tablet_get_axis_value(t,
+					LIBINPUT_TABLET_AXIS_REL_WHEEL);
+		printf("\twheel: %.2f%s",
+		       wheel,
+		       tablet_axis_changed_sym(t,
+				       LIBINPUT_TABLET_AXIS_REL_WHEEL));
 	}
 }
 

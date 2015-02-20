@@ -144,6 +144,7 @@ enum libinput_tablet_axis {
 	LIBINPUT_TABLET_AXIS_TILT_Y = 6,
 	LIBINPUT_TABLET_AXIS_ROTATION_Z = 7,
 	LIBINPUT_TABLET_AXIS_SLIDER = 8,
+	LIBINPUT_TABLET_AXIS_REL_WHEEL = 9,
 };
 
 /**
@@ -1060,6 +1061,9 @@ libinput_event_tablet_axis_has_changed(struct libinput_event_tablet *event,
  *   position is with the buttons pointing up.
  * - @ref LIBINPUT_TABLET_AXIS_SLIDER - A slider on the tool, normalized
  *   from 0 to 1. e.g. the wheel-like tool on the Wacom Airbrush.
+ * - @ref LIBINPUT_TABLET_AXIS_REL_WHEEL - A relative wheel on the tool,
+ *   similar or equivalent to a mouse wheel. The value is a delta from the
+ *   device's previous position, in degrees.
  *
  * @note This function may be called for a specific axis even if
  * libinput_event_tablet_axis_has_changed() returns 0 for that axis.
