@@ -146,6 +146,7 @@ LIBINPUT_0.12.0 {
 LIBINPUT_TABLET_SUPPORT {
 	libinput_event_get_tablet_event;
 	libinput_event_tablet_axis_has_changed;
+	libinput_event_tablet_get_axis_delta;
 	libinput_event_tablet_get_axis_value;
 	libinput_event_tablet_get_button;
 	libinput_event_tablet_get_button_state;

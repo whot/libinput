@@ -86,6 +86,7 @@ struct libinput_event_tablet {
 	uint32_t seat_button_count;
 	uint32_t time;
 	double axes[LIBINPUT_TABLET_AXIS_MAX + 1];
+	double deltas[LIBINPUT_TABLET_AXIS_MAX + 1];
 	unsigned char changed_axes[NCHARS(LIBINPUT_TABLET_AXIS_MAX + 1)];
 	struct libinput_tool *tool;
 	enum libinput_tool_proximity_state proximity_state;
@@ -588,6 +589,37 @@ libinput_event_tablet_get_axis_value(struct libinput_event_tablet *event,
 		case LIBINPUT_TABLET_AXIS_SLIDER:
 		case LIBINPUT_TABLET_AXIS_REL_WHEEL:
 			return event->axes[axis];
+		default:
+			return 0;
+	}
+}
+
+LIBINPUT_EXPORT double
+libinput_event_tablet_get_axis_delta(struct libinput_event_tablet *event,
+				     enum libinput_tablet_axis axis)
+{
+	struct evdev_device *device =
+		(struct evdev_device *) event->base.device;
+
+	if (event->base.type != LIBINPUT_EVENT_TABLET_AXIS &&
+	    event->base.type != LIBINPUT_EVENT_TABLET_PROXIMITY)
+		return 0;
+
+	switch(axis) {
+		case LIBINPUT_TABLET_AXIS_X:
+			return evdev_convert_to_mm(device->abs.absinfo_x,
+						   event->deltas[axis]);
+		case LIBINPUT_TABLET_AXIS_Y:
+			return evdev_convert_to_mm(device->abs.absinfo_y,
+						   event->deltas[axis]);
+		case LIBINPUT_TABLET_AXIS_DISTANCE:
+		case LIBINPUT_TABLET_AXIS_PRESSURE:
+		case LIBINPUT_TABLET_AXIS_TILT_X:
+		case LIBINPUT_TABLET_AXIS_TILT_Y:
+		case LIBINPUT_TABLET_AXIS_ROTATION_Z:
+		case LIBINPUT_TABLET_AXIS_SLIDER:
+		case LIBINPUT_TABLET_AXIS_REL_WHEEL:
+			return event->deltas[axis];
 		default:
 			return 0;
 	}
@@ -1400,7 +1432,8 @@ tablet_notify_axis(struct libinput_device *device,
 		   uint32_t time,
 		   struct libinput_tool *tool,
 		   unsigned char *changed_axes,
-		   double *axes)
+		   double *axes,
+		   double *deltas)
 {
 	struct libinput_event_tablet *axis_event;
 
@@ -1417,6 +1450,7 @@ tablet_notify_axis(struct libinput_device *device,
 	       changed_axes,
 	       sizeof(axis_event->changed_axes));
 	memcpy(axis_event->axes, axes, sizeof(axis_event->axes));
+	memcpy(axis_event->deltas, deltas, sizeof(axis_event->deltas));
 
 	post_device_event(device,
 			  time,
@@ -1449,6 +1483,8 @@ tablet_notify_proximity(struct libinput_device *device,
 	memcpy(proximity_event->changed_axes,
 	       changed_axes,
 	       sizeof(proximity_event->changed_axes));
+
+	/* deltas are always 0 on prox-in/out */
 
 	post_device_event(device,
 			  time,

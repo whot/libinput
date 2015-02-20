@@ -1062,8 +1062,8 @@ libinput_event_tablet_axis_has_changed(struct libinput_event_tablet *event,
  * - @ref LIBINPUT_TABLET_AXIS_SLIDER - A slider on the tool, normalized
  *   from 0 to 1. e.g. the wheel-like tool on the Wacom Airbrush.
  * - @ref LIBINPUT_TABLET_AXIS_REL_WHEEL - A relative wheel on the tool,
- *   similar or equivalent to a mouse wheel. The value is a delta from the
- *   device's previous position, in degrees.
+ *   similar or equivalent to a mouse wheel. The value is always 0, use
+ *   libinput_event_tablet_get_axis_delta() instead.
  *
  * @note This function may be called for a specific axis even if
  * libinput_event_tablet_axis_has_changed() returns 0 for that axis.
@@ -1075,6 +1075,29 @@ libinput_event_tablet_axis_has_changed(struct libinput_event_tablet *event,
  */
 double
 libinput_event_tablet_get_axis_value(struct libinput_event_tablet *event,
+				     enum libinput_tablet_axis axis);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the delta for a given axis for a tablet. The interpretation of the
+ * value is axis-dependent:
+ * - @ref LIBINPUT_TABLET_AXIS_REL_WHEEL - A relative wheel on the tool,
+ *   similar or equivalent to a mouse wheel. The value is a delta from the
+ *   device's previous position, in degrees.
+ * For all other axes, see libinput_event_tablet_get_axis_value() for
+ * details.
+ *
+ * @note The delta is *not* the delta to the previous event, but the delta
+ * to the previous axis state, i.e. the delta to the last event that
+ * libinput_event_tablet_axis_has_changed() returned true for this axis.
+ *
+ * @param event The libinput tablet event
+ * @param axis The axis to retrieve the value of
+ * @return The delta to the previous axis value
+ */
+double
+libinput_event_tablet_get_axis_delta(struct libinput_event_tablet *event,
 				     enum libinput_tablet_axis axis);
 
 /**

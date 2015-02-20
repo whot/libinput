@@ -349,7 +349,8 @@ tablet_notify_axis(struct libinput_device *device,
 		   uint32_t time,
 		   struct libinput_tool *tool,
 		   unsigned char *changed_axes,
-		   double *axes);
+		   double *axes,
+		   double *deltas);
 
 void
 tablet_notify_proximity(struct libinput_device *device,
