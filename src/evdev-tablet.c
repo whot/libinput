@@ -317,6 +317,7 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	int a;
 	double axes[LIBINPUT_TABLET_AXIS_MAX + 1] = {0};
 	double deltas[LIBINPUT_TABLET_AXIS_MAX + 1] = {0};
+	double deltas_discrete[LIBINPUT_TABLET_AXIS_MAX + 1] = {0};
 	double oldval;
 
 	for (a = LIBINPUT_TABLET_AXIS_X; a <= LIBINPUT_TABLET_AXIS_MAX; a++) {
@@ -342,6 +343,7 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 			deltas[a] = get_delta(a, tablet->axes[a], oldval);
 			continue;
 		} else if (a == LIBINPUT_TABLET_AXIS_REL_WHEEL) {
+			deltas_discrete[a] = tablet->deltas[a];
 			deltas[a] = normalize_wheel(tablet,
 						    tablet->deltas[a]);
 			axes[a] = 0;
@@ -403,7 +405,8 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 					   tool,
 					   tablet->changed_axes,
 					   axes,
-					   deltas);
+					   deltas,
+					   deltas_discrete);
 	}
 
 	memset(tablet->changed_axes, 0, sizeof(tablet->changed_axes));

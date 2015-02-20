@@ -1103,6 +1103,28 @@ libinput_event_tablet_get_axis_delta(struct libinput_event_tablet *event,
 /**
  * @ingroup event_tablet
  *
+ * Return the delta for a given axis for a tablet in discrete steps.
+ * How a value translates into a discrete step depends on the axis:
+ * - @ref LIBINPUT_TABLET_AXIS_REL_WHEEL - the returned value is the number
+ * of physical mouse wheel clicks.
+ * For all other axes, this function returns 0.
+ *
+ * @note The delta is *not* the delta to the previous event, but the delta
+ * to the previous axis state, i.e. the delta to the last event that
+ * libinput_event_tablet_axis_has_changed() returned true for this axis.
+ *
+ * @param event The libinput tablet event
+ * @param axis The axis to retrieve the value of
+ * @return The delta to the previous axis value in discrete steps
+ */
+double
+libinput_event_tablet_get_axis_delta_discrete(
+				      struct libinput_event_tablet *event,
+				      enum libinput_tablet_axis axis);
+
+/**
+ * @ingroup event_tablet
+ *
  * Return the current absolute x coordinate of the tablet event, transformed to
  * screen coordinates.
  *

@@ -375,13 +375,13 @@ print_tablet_axes(struct libinput_event_tablet *t)
 	if (libinput_tool_has_axis(tool, LIBINPUT_TABLET_AXIS_REL_WHEEL)) {
 		wheel = libinput_event_tablet_get_axis_value(t,
 					LIBINPUT_TABLET_AXIS_REL_WHEEL);
-		delta = libinput_event_tablet_get_axis_delta(t,
+		delta = libinput_event_tablet_get_axis_delta_discrete(t,
 					LIBINPUT_TABLET_AXIS_REL_WHEEL);
-		printf("\twheel: %.2f%s (%.2f)",
+		printf("\twheel: %.2f%s (%d)",
 		       wheel,
 		       tablet_axis_changed_sym(t,
 				       LIBINPUT_TABLET_AXIS_REL_WHEEL),
-		       delta);
+		       (int)delta);
 	}
 }
 
