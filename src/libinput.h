@@ -851,7 +851,7 @@ libinput_event_pointer_get_axis_source(struct libinput_event_pointer *event);
  * value translates into a discrete step depends on the source.
  *
  * If the source is @ref LIBINPUT_POINTER_AXIS_SOURCE_WHEEL, the discrete
- * value correspond to the number of physical mouse clicks.
+ * value correspond to the number of physical mouse wheel clicks.
  *
  * If the source is @ref LIBINPUT_POINTER_AXIS_SOURCE_CONTINUOUS or @ref
  * LIBINPUT_POINTER_AXIS_SOURCE_FINGER, the discrete value is always 0.
