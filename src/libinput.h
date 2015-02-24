@@ -156,17 +156,30 @@ struct libinput_tool;
  * @ingroup device
  *
  * Available tool types for a device. It must have the @ref
- * LIBINPUT_DEVICE_CAP_TABLET capability.
+ * LIBINPUT_DEVICE_CAP_TABLET capability. The tool type defines the default
+ * usage of the tool as advertised by the manufacturer. Multiple different
+ * physical tools may share the same tool type, e.g. a Wacom Classic Pen,
+ * Wacom Pro Pen and a Wacom Grip Pen are all of type LIBINPUT_TOOL_PEN.
+ *
+ * Note that on some device, the eraser tool is on the tail end of a pen
+ * device. On other devices, e.g. MS Surface 3, the eraser is the pen tip
+ * while a button is held down.
+ *
+ * @note The @ref libinput_tool_type can only describe the default physical
+ * type of the device. For devices with adjustible physical properties
+ * the tool type remains the same, i.e. putting a Wacom stroke nib into a
+ * classic pen leaves the tool type as @ref LIBINPUT_TOOL_PEN.
  */
 enum libinput_tool_type {
-	LIBINPUT_TOOL_PEN = 1,
-	LIBINPUT_TOOL_ERASER,
-	LIBINPUT_TOOL_BRUSH,
-	LIBINPUT_TOOL_PENCIL,
-	LIBINPUT_TOOL_AIRBRUSH,
-	LIBINPUT_TOOL_FINGER,
-	LIBINPUT_TOOL_MOUSE,
-	LIBINPUT_TOOL_LENS
+	LIBINPUT_TOOL_PEN = 1,		/**< A generic pen */
+	LIBINPUT_TOOL_ERASER,		/**< Eraser */
+	LIBINPUT_TOOL_BRUSH,		/**< A paintbrush-like tool */
+	LIBINPUT_TOOL_PENCIL,		/**< Physical drawing tool, e.g.
+					     Wacom Inking Pen */
+	LIBINPUT_TOOL_AIRBRUSH,		/**< An airbrush-like tool */
+	LIBINPUT_TOOL_FINGER,		/**< Touch */
+	LIBINPUT_TOOL_MOUSE,		/**< A mouse bound to the tablet */
+	LIBINPUT_TOOL_LENS,		/**< A mouse tool with a lens */
 };
 
 /**
