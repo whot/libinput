@@ -1334,6 +1334,105 @@ START_TEST(mouse_rotation)
 }
 END_TEST
 
+START_TEST(mouse_wheel)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
+	struct libinput_event_tablet *tev;
+	struct libinput_tool *tool;
+	const struct input_absinfo *abs;
+	double val;
+	int i;
+
+	if (!libevdev_has_event_code(dev->evdev,
+				     EV_REL,
+				     REL_WHEEL))
+		return;
+
+	litest_drain_events(li);
+
+	litest_event(dev, EV_KEY, BTN_TOOL_MOUSE, 1);
+	litest_event(dev, EV_ABS, ABS_MISC, 0x806); /* 5-button mouse tool_id */
+	litest_event(dev, EV_MSC, MSC_SERIAL, 1000);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+
+	litest_wait_for_event_of_type(li,
+				      LIBINPUT_EVENT_TABLET_PROXIMITY,
+				      -1);
+	event = libinput_get_event(li);
+	tev = libinput_event_get_tablet_event(event);
+	tool = libinput_event_tablet_get_tool(tev);
+	ck_assert_notnull(tool);
+	libinput_tool_ref(tool);
+
+	libinput_event_destroy(event);
+
+	ck_assert(libinput_tool_has_axis(tool,
+					 LIBINPUT_TABLET_AXIS_REL_WHEEL));
+
+	for (i = 0; i < 3; i++) {
+		litest_event(dev, EV_REL, REL_WHEEL, -1);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+
+		litest_wait_for_event_of_type(li, LIBINPUT_EVENT_TABLET_AXIS, -1);
+
+		event = libinput_get_event(li);
+		tev = libinput_event_get_tablet_event(event);
+		ck_assert(libinput_event_tablet_axis_has_changed(tev,
+						LIBINPUT_TABLET_AXIS_REL_WHEEL));
+		val = libinput_event_tablet_get_axis_value(tev,
+						LIBINPUT_TABLET_AXIS_REL_WHEEL);
+		ck_assert_int_eq(val, 0);
+
+		val = libinput_event_tablet_get_axis_delta(tev,
+						LIBINPUT_TABLET_AXIS_REL_WHEEL);
+		ck_assert_int_eq(val, 15);
+
+		val = libinput_event_tablet_get_axis_delta_discrete(tev,
+						LIBINPUT_TABLET_AXIS_REL_WHEEL);
+		ck_assert_int_eq(val, 1);
+
+		libinput_event_destroy(event);
+
+		litest_assert_empty_queue(li);
+	}
+
+	for (i = 2; i < 5; i++) {
+		/* send  x/y events to make sure we reset the wheel */
+		abs = libevdev_get_abs_info(dev->evdev, ABS_X);
+		litest_event(dev, EV_ABS, ABS_X, (abs->maximum - abs->minimum)/i);
+		abs = libevdev_get_abs_info(dev->evdev, ABS_Y);
+		litest_event(dev, EV_ABS, ABS_Y, (abs->maximum - abs->minimum)/i);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+
+		litest_wait_for_event_of_type(li, LIBINPUT_EVENT_TABLET_AXIS, -1);
+
+		event = libinput_get_event(li);
+		tev = libinput_event_get_tablet_event(event);
+		ck_assert(!libinput_event_tablet_axis_has_changed(tev,
+						LIBINPUT_TABLET_AXIS_REL_WHEEL));
+		val = libinput_event_tablet_get_axis_value(tev,
+						LIBINPUT_TABLET_AXIS_REL_WHEEL);
+		ck_assert_int_eq(val, 0);
+
+		val = libinput_event_tablet_get_axis_delta(tev,
+						LIBINPUT_TABLET_AXIS_REL_WHEEL);
+		ck_assert_int_eq(val, 0);
+
+		val = libinput_event_tablet_get_axis_delta_discrete(tev,
+						LIBINPUT_TABLET_AXIS_ROTATION_Z);
+		ck_assert_int_eq(val, 0);
+
+		libinput_event_destroy(event);
+
+		litest_assert_empty_queue(li);
+	}
+
+	libinput_tool_unref(tool);
+}
+END_TEST
+
 START_TEST(airbrush_tool)
 {
 	struct litest_device *dev = litest_current_device();
@@ -1542,6 +1641,7 @@ main(int argc, char **argv)
 	litest_add("tablet:mouse", mouse_tool, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:mouse", mouse_buttons, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:mouse", mouse_rotation, LITEST_TABLET, LITEST_ANY);
+	litest_add("tablet:mouse", mouse_wheel, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:airbrush", airbrush_tool, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:airbrush", airbrush_wheel, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:artpen", artpen_tool, LITEST_TABLET, LITEST_ANY);
