@@ -1095,68 +1095,61 @@ START_TEST(tool_capabilities)
 	struct litest_device *intuos;
 	struct litest_device *bamboo;
 	struct libinput_event *event;
+	struct libinput_event_tablet *t;
+	struct libinput_tool *tool;
 
 	/* The axis capabilities of a tool can differ depending on the type of
 	 * tablet the tool is being used with */
-	bamboo = litest_create_device_with_overrides(LITEST_WACOM_BAMBOO,
-						     NULL,
-						     NULL,
-						     NULL,
-						     NULL);
-	intuos = litest_create_device_with_overrides(LITEST_WACOM_INTUOS,
-						     NULL,
-						     NULL,
-						     NULL,
-						     NULL);
+	bamboo = litest_add_device(li, LITEST_WACOM_BAMBOO);
+	intuos = litest_add_device(li, LITEST_WACOM_INTUOS);
 
 	litest_event(bamboo, EV_KEY, BTN_TOOL_PEN, 1);
 	litest_event(bamboo, EV_SYN, SYN_REPORT, 0);
 
 	libinput_dispatch(li);
-	while ((event = libinput_get_event(li))) {
-		if (libinput_event_get_type(event) ==
-		    LIBINPUT_EVENT_TABLET_PROXIMITY) {
-			struct libinput_event_tablet *t =
-				libinput_event_get_tablet_event(event);
-			struct libinput_tool *tool =
-				libinput_event_tablet_get_tool(t);
 
-			ck_assert(libinput_tool_has_axis(tool,
-							 LIBINPUT_TABLET_AXIS_PRESSURE));
-			ck_assert(libinput_tool_has_axis(tool,
-							 LIBINPUT_TABLET_AXIS_DISTANCE));
-			ck_assert(!libinput_tool_has_axis(tool,
-							  LIBINPUT_TABLET_AXIS_TILT_X));
-			ck_assert(!libinput_tool_has_axis(tool,
-							  LIBINPUT_TABLET_AXIS_TILT_Y));
-		}
+	litest_wait_for_event_of_type(li,
+				      LIBINPUT_EVENT_TABLET_PROXIMITY,
+				      -1);
 
-		libinput_event_destroy(event);
-	}
+	event = libinput_get_event(li);
+	t = libinput_event_get_tablet_event(event);
+	tool = libinput_event_tablet_get_tool(t);
+
+	ck_assert(libinput_tool_has_axis(tool,
+					 LIBINPUT_TABLET_AXIS_PRESSURE));
+	ck_assert(libinput_tool_has_axis(tool,
+					 LIBINPUT_TABLET_AXIS_DISTANCE));
+	ck_assert(!libinput_tool_has_axis(tool,
+					  LIBINPUT_TABLET_AXIS_TILT_X));
+	ck_assert(!libinput_tool_has_axis(tool,
+					  LIBINPUT_TABLET_AXIS_TILT_Y));
+
+	libinput_event_destroy(event);
+	litest_assert_empty_queue(li);
 
 	litest_event(intuos, EV_KEY, BTN_TOOL_PEN, 1);
 	litest_event(intuos, EV_SYN, SYN_REPORT, 0);
 
-	while ((event = libinput_get_event(li))) {
-		if (libinput_event_get_type(event) ==
-		    LIBINPUT_EVENT_TABLET_PROXIMITY) {
-			struct libinput_event_tablet *t =
-				libinput_event_get_tablet_event(event);
-			struct libinput_tool *tool =
-				libinput_event_tablet_get_tool(t);
+	litest_wait_for_event_of_type(li,
+				      LIBINPUT_EVENT_TABLET_PROXIMITY,
+				      -1);
 
-			ck_assert(libinput_tool_has_axis(tool,
-							 LIBINPUT_TABLET_AXIS_PRESSURE));
-			ck_assert(libinput_tool_has_axis(tool,
-							 LIBINPUT_TABLET_AXIS_DISTANCE));
-			ck_assert(libinput_tool_has_axis(tool,
-							 LIBINPUT_TABLET_AXIS_TILT_X));
-			ck_assert(libinput_tool_has_axis(tool,
-							 LIBINPUT_TABLET_AXIS_TILT_Y));
-		}
+	event = libinput_get_event(li);
+	t = libinput_event_get_tablet_event(event);
+	tool = libinput_event_tablet_get_tool(t);
 
-		libinput_event_destroy(event);
-	}
+	ck_assert(libinput_tool_has_axis(tool,
+					 LIBINPUT_TABLET_AXIS_PRESSURE));
+	ck_assert(libinput_tool_has_axis(tool,
+					 LIBINPUT_TABLET_AXIS_DISTANCE));
+	ck_assert(libinput_tool_has_axis(tool,
+					 LIBINPUT_TABLET_AXIS_TILT_X));
+	ck_assert(libinput_tool_has_axis(tool,
+					 LIBINPUT_TABLET_AXIS_TILT_Y));
+
+	libinput_event_destroy(event);
+	litest_assert_empty_queue(li);
 
 	litest_delete_device(bamboo);
 	litest_delete_device(intuos);
