@@ -1157,6 +1157,48 @@ START_TEST(tool_capabilities)
 }
 END_TEST
 
+START_TEST(tool_in_prox_before_start)
+{
+	struct libinput *li;
+	struct litest_device *dev = litest_current_device();
+	struct libinput_event *event;
+	struct axis_replacement axes[] = {
+		{ ABS_DISTANCE, 10 },
+		{ ABS_TILT_X, 0 },
+		{ ABS_TILT_Y, 0 },
+		{ -1, -1 }
+	};
+	const char *devnode;
+
+	litest_tablet_proximity_in(dev, 10, 10, axes);
+
+	/* for simplicity, we create a new litest context */
+	devnode = libevdev_uinput_get_devnode(dev->uinput);
+	li = litest_create_context();
+	libinput_path_add_device(li, devnode);
+
+	litest_wait_for_event_of_type(li,
+				      LIBINPUT_EVENT_DEVICE_ADDED,
+				      -1);
+	event = libinput_get_event(li);
+	libinput_event_destroy(event);
+
+	litest_assert_empty_queue(li);
+	litest_tablet_motion(dev, 10, 20, axes);
+	litest_tablet_motion(dev, 30, 40, axes);
+	litest_assert_empty_queue(li);
+	litest_event(dev, EV_KEY, BTN_STYLUS, 1);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	litest_event(dev, EV_KEY, BTN_STYLUS, 1);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	litest_assert_empty_queue(li);
+	litest_tablet_proximity_out(dev);
+	litest_assert_empty_queue(li);
+
+	libinput_unref(li);
+}
+END_TEST
+
 START_TEST(mouse_tool)
 {
 	struct litest_device *dev = litest_current_device();
@@ -1615,6 +1657,7 @@ main(int argc, char **argv)
 {
 	litest_add("tablet:tool", tool_ref, LITEST_TABLET | LITEST_TOOL_SERIAL, LITEST_ANY);
 	litest_add_no_device("tablet:tool", tool_capabilities);
+	litest_add("tablet:tool", tool_in_prox_before_start, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:tool_serial", tool_serial, LITEST_TABLET | LITEST_TOOL_SERIAL, LITEST_ANY);
 	litest_add("tablet:tool_serial", serial_changes_tool, LITEST_TABLET | LITEST_TOOL_SERIAL, LITEST_ANY);
 	litest_add("tablet:tool_serial", invalid_serials, LITEST_TABLET | LITEST_TOOL_SERIAL, LITEST_ANY);

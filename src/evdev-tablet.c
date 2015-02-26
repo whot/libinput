@@ -190,7 +190,7 @@ tablet_update_tool(struct tablet_dispatch *tablet,
 		tablet_set_status(tablet, TABLET_TOOL_ENTERING_PROXIMITY);
 		tablet_unset_status(tablet, TABLET_TOOL_OUT_OF_PROXIMITY);
 	}
-	else
+	else if (!tablet_has_status(tablet, TABLET_TOOL_OUT_OF_PROXIMITY))
 		tablet_set_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY);
 }
 
@@ -863,6 +863,9 @@ tablet_flush(struct tablet_dispatch *tablet,
 				tablet->current_tool_id,
 				tablet->current_tool_serial);
 
+	if (tablet_has_status(tablet, TABLET_TOOL_OUT_OF_PROXIMITY))
+		return;
+
 	if (tablet_has_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY)) {
 		/* Release all stylus buttons */
 		memset(tablet->button_state.stylus_buttons,
@@ -910,7 +913,11 @@ tablet_flush(struct tablet_dispatch *tablet,
 
 		tablet_change_to_left_handed(device);
 	}
+}
 
+static inline void
+tablet_reset_state(struct tablet_dispatch *tablet)
+{
 	/* Update state */
 	memcpy(&tablet->prev_button_state,
 	       &tablet->button_state,
@@ -941,6 +948,7 @@ tablet_process(struct evdev_dispatch *dispatch,
 		break;
 	case EV_SYN:
 		tablet_flush(tablet, device, time);
+		tablet_reset_state(tablet);
 		break;
 	default:
 		log_error(device->base.seat->libinput,
