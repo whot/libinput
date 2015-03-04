@@ -374,6 +374,15 @@ gesture_notify_swipe(struct libinput_device *device,
 		     const struct normalized_coords *unaccel);
 
 void
+gesture_notify_pinch(struct libinput_device *device,
+		     uint64_t time,
+		     enum libinput_event_type type,
+		     const struct normalized_coords *delta,
+		     const struct normalized_coords *unaccel,
+		     double scale,
+		     double angle);
+
+void
 touch_notify_frame(struct libinput_device *device,
 		   uint64_t time);
 

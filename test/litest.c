@@ -1689,6 +1689,15 @@ litest_event_type_str(struct libinput_event *event)
 	case LIBINPUT_EVENT_GESTURE_SWIPE_END:
 		str = "GESTURE SWIPE END";
 		break;
+	case LIBINPUT_EVENT_GESTURE_PINCH_BEGIN:
+		str = "GESTURE PINCH START";
+		break;
+	case LIBINPUT_EVENT_GESTURE_PINCH_UPDATE:
+		str = "GESTURE PINCH UPDATE";
+		break;
+	case LIBINPUT_EVENT_GESTURE_PINCH_END:
+		str = "GESTURE PINCH END";
+		break;
 	}
 	return str;
 }

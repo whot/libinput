@@ -120,6 +120,8 @@ struct libinput_event_gesture {
 	int finger_count;
 	struct normalized_coords delta;
 	struct normalized_coords delta_unaccel;
+	double scale;
+	double angle;
 };
 
 static void
@@ -253,7 +255,10 @@ libinput_event_get_gesture_event(struct libinput_event *event)
 			   NULL,
 			   LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN,
 			   LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE,
-			   LIBINPUT_EVENT_GESTURE_SWIPE_END);
+			   LIBINPUT_EVENT_GESTURE_SWIPE_END,
+			   LIBINPUT_EVENT_GESTURE_PINCH_BEGIN,
+			   LIBINPUT_EVENT_GESTURE_PINCH_UPDATE,
+			   LIBINPUT_EVENT_GESTURE_PINCH_END);
 
 	return (struct libinput_event_gesture *) event;
 }
@@ -694,6 +699,18 @@ libinput_event_gesture_get_dy_unaccelerated(
 	struct libinput_event_gesture *event)
 {
 	return event->delta_unaccel.y;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_gesture_get_scale(struct libinput_event_gesture *event)
+{
+	return event->scale;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_gesture_get_angle_delta(struct libinput_event_gesture *event)
+{
+	return event->angle;
 }
 
 struct libinput_source *
@@ -1404,13 +1421,15 @@ touch_notify_frame(struct libinput_device *device,
 			  &touch_event->base);
 }
 
-void
-gesture_notify_swipe(struct libinput_device *device,
-		     uint64_t time,
-		     enum libinput_event_type type,
-		     int finger_count,
-		     const struct normalized_coords *delta,
-		     const struct normalized_coords *unaccel)
+static void
+gesture_notify(struct libinput_device *device,
+	       uint64_t time,
+	       enum libinput_event_type type,
+	       int finger_count,
+	       const struct normalized_coords *delta,
+	       const struct normalized_coords *unaccel,
+	       double scale,
+	       double angle)
 {
 	struct libinput_event_gesture *gesture_event;
 
@@ -1426,10 +1445,36 @@ gesture_notify_swipe(struct libinput_device *device,
 		.finger_count = finger_count,
 		.delta = *delta,
 		.delta_unaccel = *unaccel,
+		.scale = scale,
+		.angle = angle,
 	};
 
 	post_device_event(device, time, type,
 			  &gesture_event->base);
+}
+
+void
+gesture_notify_swipe(struct libinput_device *device,
+		     uint64_t time,
+		     enum libinput_event_type type,
+		     int finger_count,
+		     const struct normalized_coords *delta,
+		     const struct normalized_coords *unaccel)
+{
+	gesture_notify(device, time, type, finger_count, delta, unaccel,
+		       0.0, 0.0);
+}
+
+void
+gesture_notify_pinch(struct libinput_device *device,
+		     uint64_t time,
+		     enum libinput_event_type type,
+		     const struct normalized_coords *delta,
+		     const struct normalized_coords *unaccel,
+		     double scale,
+		     double angle)
+{
+	gesture_notify(device, time, type, 2, delta, unaccel, scale, angle);
 }
 
 static void
