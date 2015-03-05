@@ -410,6 +410,39 @@ device_delta(struct device_coords a, struct device_coords b)
 	return delta;
 }
 
+static inline struct device_float_coords
+device_average(struct device_coords a, struct device_coords b)
+{
+	struct device_float_coords average;
+
+	average.x = (a.x + b.x) / 2.0;
+	average.y = (a.y + b.y) / 2.0;
+
+	return average;
+}
+
+static inline struct device_float_coords
+device_float_delta(struct device_float_coords a, struct device_float_coords b)
+{
+	struct device_float_coords delta;
+
+	delta.x = a.x - b.x;
+	delta.y = a.y - b.y;
+
+	return delta;
+}
+
+static inline struct device_float_coords
+device_float_average(struct device_float_coords a, struct device_float_coords b)
+{
+	struct device_float_coords average;
+
+	average.x = (a.x + b.x) / 2.0;
+	average.y = (a.y + b.y) / 2.0;
+
+	return average;
+}
+
 static inline double
 normalized_length(struct normalized_coords norm)
 {

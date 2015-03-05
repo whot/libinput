@@ -1271,7 +1271,7 @@ START_TEST(touchpad_2fg_scroll_slow_distance)
 		y_move = 7.0 * y->resolution /
 					(y->maximum - y->minimum) * 100;
 	} else {
-		y_move = 10.0;
+		y_move = 20.0;
 	}
 
 	litest_drain_events(li);
@@ -1320,7 +1320,7 @@ START_TEST(touchpad_2fg_scroll_source)
 
 	litest_drain_events(li);
 
-	test_2fg_scroll(dev, 0, 20, 0);
+	test_2fg_scroll(dev, 0, 30, 0);
 	litest_wait_for_event_of_type(li, LIBINPUT_EVENT_POINTER_AXIS, -1);
 
 	while ((event = libinput_get_event(li))) {

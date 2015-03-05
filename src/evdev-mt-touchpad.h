@@ -129,6 +129,13 @@ enum tp_edge_scroll_touch_state {
 	EDGE_SCROLL_TOUCH_STATE_AREA,
 };
 
+enum tp_gesture_2fg_state {
+	GESTURE_2FG_STATE_NONE,
+	GESTURE_2FG_STATE_UNKNOWN,
+	GESTURE_2FG_STATE_SCROLL,
+	GESTURE_2FG_STATE_PINCH,
+};
+
 struct tp_touch {
 	struct tp_dispatch *tp;
 	enum touch_state state;
@@ -181,6 +188,10 @@ struct tp_touch {
 		struct device_coords first; /* first coordinates if is_palm == true */
 		uint32_t time; /* first timestamp if is_palm == true */
 	} palm;
+
+	struct {
+		struct device_coords initial;
+	} gesture;
 };
 
 struct tp_dispatch {
@@ -216,6 +227,13 @@ struct tp_dispatch {
 		unsigned int finger_count;
 		unsigned int finger_count_pending;
 		struct libinput_timer finger_count_switch_timer;
+		enum tp_gesture_2fg_state twofinger_state;
+		struct tp_touch *touches[2];
+		uint64_t initial_time;
+		double initial_distance;
+		double prev_scale;
+		double angle;
+		struct device_float_coords center;
 	} gesture;
 
 	struct {
