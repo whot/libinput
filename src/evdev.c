@@ -224,6 +224,13 @@ evdev_device_transform_y(struct evdev_device *device,
 	return scale_axis(device->abs.absinfo_y, y, height);
 }
 
+static inline void
+normalize_delta(struct evdev_device *device, double *dx, double *dy)
+{
+	*dx = *dx * (double)device->dpi / DEFAULT_MOUSE_DPI;
+	*dy = *dy * (double)device->dpi / DEFAULT_MOUSE_DPI;
+}
+
 static void
 evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 {
@@ -243,10 +250,9 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 	case EVDEV_NONE:
 		return;
 	case EVDEV_RELATIVE_MOTION:
-		dx_unaccel = device->rel.dx / ((double) device->dpi /
-					       DEFAULT_MOUSE_DPI);
-		dy_unaccel = device->rel.dy / ((double) device->dpi /
-					       DEFAULT_MOUSE_DPI);
+		dx_unaccel = device->rel.dx;
+		dy_unaccel = device->rel.dy;
+		normalize_delta(device, &dx_unaccel, &dy_unaccel);
 		device->rel.dx = 0;
 		device->rel.dy = 0;
 
