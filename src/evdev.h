@@ -62,7 +62,7 @@ enum evdev_device_tags {
 
 struct mt_slot {
 	int32_t seat_slot;
-	int32_t x, y;
+	coordinate_t x, y;
 };
 
 struct evdev_device {
@@ -81,7 +81,7 @@ struct evdev_device {
 		const struct input_absinfo *absinfo_x, *absinfo_y;
 		int fake_resolution;
 
-		int32_t x, y;
+		coordinate_t x, y;
 		int32_t seat_slot;
 
 		int apply_calibration;
@@ -98,7 +98,7 @@ struct evdev_device {
 	struct mtdev *mtdev;
 
 	struct {
-		int dx, dy;
+		coordinate_t dx, dy;
 	} rel;
 
 	struct {

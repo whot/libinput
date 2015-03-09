@@ -30,6 +30,17 @@
 #include "libinput.h"
 #include "libinput-util.h"
 
+typedef struct {
+	int32_t i;
+} coordinate_t;
+
+typedef struct {
+	double dbl;
+} normalized_t;
+
+#define normalized(x_) (x_).dbl
+#define coordinate(x_) (x_).i
+
 struct libinput_source;
 
 struct libinput_interface_backend {
