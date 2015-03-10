@@ -193,19 +193,12 @@ evdev_device_led_update(struct evdev_device *device, enum libinput_led leds)
 }
 
 static void
-transform_absolute(struct evdev_device *device, coordinate_t *x, coordinate_t *y)
+transform_absolute(struct evdev_device *device, int32_t *x, int32_t *y)
 {
-	int *ix, *iy;
 	if (!device->abs.apply_calibration)
 		return;
 
-	ix = &coordinate(*x);
-	iy = &coordinate(*y);
-
-	matrix_mult_vec(&device->abs.calibration, ix, iy);
-
-	coordinate(*x) = *ix;
-	coordinate(*y) = *iy;
+	matrix_mult_vec(&device->abs.calibration, x, y);
 }
 
 static inline double
@@ -232,10 +225,10 @@ evdev_device_transform_y(struct evdev_device *device,
 }
 
 static inline void
-normalize_delta(struct evdev_device *device, normalized_t *dx, normalized_t *dy)
+normalize_delta(struct evdev_device *device, double *dx, double *dy)
 {
-	normalized(*dx) = normalized(*dx) * (double)device->dpi / DEFAULT_MOUSE_DPI;
-	normalized(*dy) = normalized(*dy) * (double)device->dpi / DEFAULT_MOUSE_DPI;
+	*dx = *dx * (double)device->dpi / DEFAULT_MOUSE_DPI;
+	*dy = *dy * (double)device->dpi / DEFAULT_MOUSE_DPI;
 }
 
 static void
@@ -243,8 +236,8 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 {
 	struct libinput *libinput = device->base.seat->libinput;
 	struct motion_params motion;
-	normalized_t dx_unaccel, dy_unaccel;
-	coordinate_t cx, cy;
+	double dx_unaccel, dy_unaccel;
+	int32_t cx, cy;
 	int32_t x, y;
 	int slot;
 	int seat_slot;
@@ -257,11 +250,11 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 	case EVDEV_NONE:
 		return;
 	case EVDEV_RELATIVE_MOTION:
-		normalized(dx_unaccel) = coordinate(device->rel.dx);
-		normalized(dy_unaccel) = coordinate(device->rel.dy);
+		dx_unaccel = device->rel.dx;
+		dy_unaccel = device->rel.dy;
 		normalize_delta(device, &dx_unaccel, &dy_unaccel);
-		coordinate(device->rel.dx) = 0;
-		coordinate(device->rel.dy) = 0;
+		device->rel.dx = 0;
+		device->rel.dy = 0;
 
 		/* Use unaccelerated deltas for pointing stick scroll */
 		if (device->scroll.method == LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN &&
@@ -269,24 +262,23 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 			if (device->scroll.button_scroll_active)
 				evdev_post_scroll(device, time,
 						  LIBINPUT_POINTER_AXIS_SOURCE_CONTINUOUS,
-						  normalized(dx_unaccel),
-						  normalized(dy_unaccel));
+						  dx_unaccel, dy_unaccel);
 			break;
 		}
 
 		/* Apply pointer acceleration. */
-		motion.dx = normalized(dx_unaccel);
-		motion.dy = normalized(dy_unaccel);
+		motion.dx = dx_unaccel;
+		motion.dy = dy_unaccel;
 		filter_dispatch(device->pointer.filter, &motion, device, time);
 
 		if (motion.dx == 0.0 && motion.dy == 0.0 &&
-		    normalized(dx_unaccel) == 0.0 && normalized(dy_unaccel) == 0.0) {
+		    dx_unaccel == 0.0 && dy_unaccel == 0.0) {
 			break;
 		}
 
 		pointer_notify_motion(base, time,
 				      motion.dx, motion.dy,
-				      normalized(dx_unaccel), normalized(dy_unaccel));
+				      dx_unaccel, dy_unaccel);
 		break;
 	case EVDEV_ABSOLUTE_MT_DOWN:
 		if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
@@ -307,12 +299,9 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 			break;
 
 		seat->slot_map |= 1 << seat_slot;
-		cx = device->mt.slots[slot].x;
-		cy = device->mt.slots[slot].y;
-		transform_absolute(device, &cx, &cy);
-
-		x = coordinate(cx);
-		y = coordinate(cy);
+		x = device->mt.slots[slot].x;
+		y = device->mt.slots[slot].y;
+		transform_absolute(device, &x, &y);
 
 		touch_notify_touch_down(base, time, slot, seat_slot, x, y);
 		break;
@@ -321,17 +310,13 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 			break;
 
 		seat_slot = device->mt.slots[slot].seat_slot;
-		cx = device->mt.slots[slot].x;
-		cy = device->mt.slots[slot].y;
+		x = device->mt.slots[slot].x;
+		y = device->mt.slots[slot].y;
 
 		if (seat_slot == -1)
 			break;
 
-		transform_absolute(device, &cx, &cy);
-
-		x = coordinate(cx);
-		y = coordinate(cy);
-
+		transform_absolute(device, &x, &y);
 		touch_notify_touch_motion(base, time, slot, seat_slot, x, y);
 		break;
 	case EVDEV_ABSOLUTE_MT_UP:
@@ -372,15 +357,14 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 		cy = device->abs.y;
 		transform_absolute(device, &cx, &cy);
 
-		touch_notify_touch_down(base, time, -1, seat_slot,
-					coordinate(cx), coordinate(cy));
+		touch_notify_touch_down(base, time, -1, seat_slot, cx, cy);
 		break;
 	case EVDEV_ABSOLUTE_MOTION:
 		cx = device->abs.x;
 		cy = device->abs.y;
 		transform_absolute(device, &cx, &cy);
-		x = coordinate(cx);
-		y = coordinate(cy);
+		x = cx;
+		y = cy;
 
 		if (device->seat_caps & EVDEV_DEVICE_TOUCH) {
 			seat_slot = device->abs.seat_slot;
@@ -569,12 +553,12 @@ evdev_process_touch(struct evdev_device *device,
 			device->pending_event = EVDEV_ABSOLUTE_MT_UP;
 		break;
 	case ABS_MT_POSITION_X:
-		coordinate(device->mt.slots[device->mt.slot].x) = e->value;
+		device->mt.slots[device->mt.slot].x = e->value;
 		if (device->pending_event == EVDEV_NONE)
 			device->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
 		break;
 	case ABS_MT_POSITION_Y:
-		coordinate(device->mt.slots[device->mt.slot].y) = e->value;
+		device->mt.slots[device->mt.slot].y = e->value;
 		if (device->pending_event == EVDEV_NONE)
 			device->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
 		break;
@@ -587,12 +571,12 @@ evdev_process_absolute_motion(struct evdev_device *device,
 {
 	switch (e->code) {
 	case ABS_X:
-		coordinate(device->abs.x) = e->value;
+		device->abs.x = e->value;
 		if (device->pending_event == EVDEV_NONE)
 			device->pending_event = EVDEV_ABSOLUTE_MOTION;
 		break;
 	case ABS_Y:
-		coordinate(device->abs.y) = e->value;
+		device->abs.y = e->value;
 		if (device->pending_event == EVDEV_NONE)
 			device->pending_event = EVDEV_ABSOLUTE_MOTION;
 		break;
@@ -630,13 +614,13 @@ evdev_process_relative(struct evdev_device *device,
 	case REL_X:
 		if (device->pending_event != EVDEV_RELATIVE_MOTION)
 			evdev_flush_pending_event(device, time);
-		coordinate(device->rel.dx) += e->value;
+		device->rel.dx += e->value;
 		device->pending_event = EVDEV_RELATIVE_MOTION;
 		break;
 	case REL_Y:
 		if (device->pending_event != EVDEV_RELATIVE_MOTION)
 			evdev_flush_pending_event(device, time);
-		coordinate(device->rel.dy) += e->value;
+		device->rel.dy += e->value;
 		device->pending_event = EVDEV_RELATIVE_MOTION;
 		break;
 	case REL_WHEEL:
@@ -1523,8 +1507,8 @@ evdev_configure_device(struct evdev_device *device)
 
 			for (slot = 0; slot < num_slots; ++slot) {
 				slots[slot].seat_slot = -1;
-				coordinate(slots[slot].x) = 0;
-				coordinate(slots[slot].y) = 0;
+				slots[slot].x = 0;
+				slots[slot].y = 0;
 			}
 			device->mt.slots = slots;
 			device->mt.slots_len = num_slots;
@@ -1704,8 +1688,8 @@ evdev_device_create(struct libinput_seat *seat,
 	device->is_mt = 0;
 	device->mtdev = NULL;
 	device->udev_device = udev_device_ref(udev_device);
-	coordinate(device->rel.dx) = 0;
-	coordinate(device->rel.dy) = 0;
+	device->rel.dx = 0;
+	device->rel.dy = 0;
 	device->abs.seat_slot = -1;
 	device->dispatch = NULL;
 	device->fd = fd;
