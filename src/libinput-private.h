@@ -32,6 +32,16 @@
 
 struct libinput_source;
 
+/* A coordinate pair in device coordinates */
+struct device_coords {
+	int x, y;
+};
+
+/* A dpi-normalized coordinate pair */
+struct normalized_coords {
+	double x, y;
+};
+
 struct libinput_interface_backend {
 	int (*resume)(struct libinput *libinput);
 	void (*suspend)(struct libinput *libinput);
