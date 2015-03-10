@@ -532,12 +532,14 @@ tp_tap_exceeds_motion_threshold(struct tp_dispatch *tp,
 {
 	int threshold = DEFAULT_TAP_MOVE_THRESHOLD;
 	double dx, dy;
+	struct normalized_coords normalized;
 
 	dx = abs(t->tap.initial.x - t->point.x);
 	dy = abs(t->tap.initial.y - t->point.y);
-	tp_normalize_delta(tp, &dx, &dy);
+	tp_normalize_delta(tp, dx, dy, &normalized);
 
-	return dx * dx + dy * dy > threshold * threshold;
+	return normalized.x * normalized.x + normalized.y * normalized.y
+			> threshold * threshold;
 }
 
 static bool

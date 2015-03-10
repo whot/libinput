@@ -277,14 +277,16 @@ struct tp_dispatch {
 	for (unsigned int _i = 0; _i < (_tp)->ntouches && (_t = &(_tp)->touches[_i]); _i++)
 
 static inline void
-tp_normalize_delta(struct tp_dispatch *tp, double *dx, double *dy)
+tp_normalize_delta(struct tp_dispatch *tp,
+		   double dx, double dy,
+		   struct normalized_coords *normalized)
 {
-	*dx = *dx * tp->accel.x_scale_coeff;
-	*dy = *dy * tp->accel.y_scale_coeff;
+	normalized->x = dx * tp->accel.x_scale_coeff;
+	normalized->y = dy * tp->accel.y_scale_coeff;
 }
 
-void
-tp_get_delta(struct tp_touch *t, double *dx, double *dy);
+struct normalized_coords
+tp_get_delta(struct tp_touch *t);
 
 void
 tp_filter_motion(struct tp_dispatch *tp,

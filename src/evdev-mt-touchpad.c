@@ -250,24 +250,26 @@ tp_estimate_delta(int x0, int x1, int x2, int x3)
 	return (x0 + x1 - x2 - x3) / 4.0;
 }
 
-void
-tp_get_delta(struct tp_touch *t, double *dx, double *dy)
+struct normalized_coords
+tp_get_delta(struct tp_touch *t)
 {
-	if (t->history.count < TOUCHPAD_MIN_SAMPLES) {
-		*dx = 0;
-		*dy = 0;
-		return;
-	}
+	double dx, dy; /* in device coords */
+	struct normalized_coords normalized = { 0.0, 0.0 };
 
-	*dx = tp_estimate_delta(tp_motion_history_offset(t, 0)->x,
-				tp_motion_history_offset(t, 1)->x,
-				tp_motion_history_offset(t, 2)->x,
-				tp_motion_history_offset(t, 3)->x);
-	*dy = tp_estimate_delta(tp_motion_history_offset(t, 0)->y,
-				tp_motion_history_offset(t, 1)->y,
-				tp_motion_history_offset(t, 2)->y,
-				tp_motion_history_offset(t, 3)->y);
-	tp_normalize_delta(t->tp, dx, dy);
+	if (t->history.count < TOUCHPAD_MIN_SAMPLES)
+		return normalized;
+
+	dx = tp_estimate_delta(tp_motion_history_offset(t, 0)->x,
+			       tp_motion_history_offset(t, 1)->x,
+			       tp_motion_history_offset(t, 2)->x,
+			       tp_motion_history_offset(t, 3)->x);
+	dy = tp_estimate_delta(tp_motion_history_offset(t, 0)->y,
+			       tp_motion_history_offset(t, 1)->y,
+			       tp_motion_history_offset(t, 2)->y,
+			       tp_motion_history_offset(t, 3)->y);
+	tp_normalize_delta(t->tp, dx, dy, &normalized);
+
+	return normalized;
 }
 
 static void

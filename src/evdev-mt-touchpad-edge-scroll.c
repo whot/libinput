@@ -311,8 +311,9 @@ tp_edge_scroll_post_events(struct tp_dispatch *tp, uint64_t time)
 	struct libinput_device *device = &tp->device->base;
 	struct tp_touch *t;
 	enum libinput_pointer_axis axis;
-	double dx, dy, *delta;
+	double *delta;
 	double initial_dx, initial_dy, *initial_delta;
+	struct normalized_coords normalized;
 
 	if (tp->scroll.method != LIBINPUT_CONFIG_SCROLL_EDGE)
 		return 0;
@@ -335,20 +336,21 @@ tp_edge_scroll_post_events(struct tp_dispatch *tp, uint64_t time)
 				continue;
 			case EDGE_RIGHT:
 				axis = LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL;
-				delta = &dy;
+				delta = &normalized.y;
 				initial_delta = &initial_dy;
 				break;
 			case EDGE_BOTTOM:
 				axis = LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL;
-				delta = &dx;
+				delta = &normalized.x;
 				initial_delta = &initial_dx;
 				break;
 			default: /* EDGE_RIGHT | EDGE_BOTTOM */
 				continue; /* Don't know direction yet, skip */
 		}
 
-		tp_get_delta(t, &dx, &dy);
-		tp_filter_motion(tp, &dx, &dy, NULL, NULL, time);
+		normalized = tp_get_delta(t);
+		tp_filter_motion(tp, &normalized.x, &normalized.y,
+				 NULL, NULL, time);
 
 		switch (t->scroll.edge_state) {
 		case EDGE_SCROLL_TOUCH_STATE_NONE:
@@ -361,14 +363,12 @@ tp_edge_scroll_post_events(struct tp_dispatch *tp, uint64_t time)
 			initial_dx = t->point.x - t->scroll.initial.x;
 			initial_dy = t->point.y - t->scroll.initial.y;
 			tp_normalize_delta(tp,
-					   &initial_dx,
-					   &initial_dy);
+					   initial_dx,
+					   initial_dy,
+					   &normalized);
 			if (fabs(*initial_delta) < DEFAULT_SCROLL_THRESHOLD) {
-				dx = 0.0;
-				dy = 0.0;
-			} else {
-				dx = initial_dx;
-				dy = initial_dy;
+				normalized.x = 0.0;
+				normalized.y = 0.0;
 			}
 			break;
 		case EDGE_SCROLL_TOUCH_STATE_EDGE:
@@ -381,7 +381,7 @@ tp_edge_scroll_post_events(struct tp_dispatch *tp, uint64_t time)
 		pointer_notify_axis(device, time,
 				    AS_MASK(axis),
 				    LIBINPUT_POINTER_AXIS_SOURCE_FINGER,
-				    dx, dy,
+				    normalized.x, normalized.y,
 				    0, 0);
 		t->scroll.direction = axis;
 

@@ -36,7 +36,7 @@ tp_get_touches_delta(struct tp_dispatch *tp, double *dx, double *dy, bool averag
 {
 	struct tp_touch *t;
 	unsigned int i, nchanged = 0;
-	double tmpx, tmpy;
+	struct normalized_coords normalized;
 
 	*dx = 0.0;
 	*dy = 0.0;
@@ -46,10 +46,10 @@ tp_get_touches_delta(struct tp_dispatch *tp, double *dx, double *dy, bool averag
 
 		if (tp_touch_active(tp, t) && t->dirty) {
 			nchanged++;
-			tp_get_delta(t, &tmpx, &tmpy);
+			normalized = tp_get_delta(t);
 
-			*dx += tmpx;
-			*dy += tmpy;
+			*dx += normalized.x;
+			*dy += normalized.y;
 		}
 	}
 
