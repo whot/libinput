@@ -45,17 +45,17 @@ enum scroll_event {
 };
 
 static uint32_t
-tp_touch_get_edge(struct tp_dispatch *tp, struct tp_touch *touch)
+tp_touch_get_edge(struct tp_dispatch *tp, struct tp_touch *t)
 {
 	uint32_t edge = EDGE_NONE;
 
 	if (tp->scroll.method != LIBINPUT_CONFIG_SCROLL_EDGE)
 		return EDGE_NONE;
 
-	if (touch->x > tp->scroll.right_edge)
+	if (t->x > tp->scroll.right_edge)
 		edge |= EDGE_RIGHT;
 
-	if (touch->y > tp->scroll.bottom_edge)
+	if (t->y > tp->scroll.bottom_edge)
 		edge |= EDGE_BOTTOM;
 
 	return edge;
