@@ -122,11 +122,6 @@ enum tp_edge_scroll_touch_state {
 	EDGE_SCROLL_TOUCH_STATE_AREA,
 };
 
-struct tp_motion {
-	int32_t x;
-	int32_t y;
-};
-
 struct tp_touch {
 	struct tp_dispatch *tp;
 	enum touch_state state;
@@ -137,7 +132,7 @@ struct tp_touch {
 	uint64_t millis;
 
 	struct {
-		struct tp_motion samples[TOUCHPAD_HISTORY_LENGTH];
+		struct device_coords samples[TOUCHPAD_HISTORY_LENGTH];
 		unsigned int index;
 		unsigned int count;
 	} history;

@@ -46,7 +46,7 @@ tp_hysteresis(int in, int center, int margin)
 		return center + diff + margin;
 }
 
-static inline struct tp_motion *
+static inline struct device_coords *
 tp_motion_history_offset(struct tp_touch *t, int offset)
 {
 	int offset_index =
