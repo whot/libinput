@@ -80,14 +80,14 @@ button_event_to_str(enum button_event event) {
 static inline bool
 is_inside_bottom_button_area(struct tp_dispatch *tp, struct tp_touch *t)
 {
-	return t->y >= tp->buttons.bottom_area.top_edge;
+	return t->point.y >= tp->buttons.bottom_area.top_edge;
 }
 
 static inline bool
 is_inside_bottom_right_area(struct tp_dispatch *tp, struct tp_touch *t)
 {
 	return is_inside_bottom_button_area(tp, t) &&
-	       t->x > tp->buttons.bottom_area.rightbutton_left_edge;
+	       t->point.x > tp->buttons.bottom_area.rightbutton_left_edge;
 }
 
 static inline bool
@@ -100,29 +100,29 @@ is_inside_bottom_left_area(struct tp_dispatch *tp, struct tp_touch *t)
 static inline bool
 is_inside_top_button_area(struct tp_dispatch *tp, struct tp_touch *t)
 {
-	return t->y <= tp->buttons.top_area.bottom_edge;
+	return t->point.y <= tp->buttons.top_area.bottom_edge;
 }
 
 static inline bool
 is_inside_top_right_area(struct tp_dispatch *tp, struct tp_touch *t)
 {
 	return is_inside_top_button_area(tp, t) &&
-	       t->x > tp->buttons.top_area.rightbutton_left_edge;
+	       t->point.x > tp->buttons.top_area.rightbutton_left_edge;
 }
 
 static inline bool
 is_inside_top_left_area(struct tp_dispatch *tp, struct tp_touch *t)
 {
 	return is_inside_top_button_area(tp, t) &&
-	       t->x < tp->buttons.top_area.leftbutton_right_edge;
+	       t->point.x < tp->buttons.top_area.leftbutton_right_edge;
 }
 
 static inline bool
 is_inside_top_middle_area(struct tp_dispatch *tp, struct tp_touch *t)
 {
 	return is_inside_top_button_area(tp, t) &&
-	       t->x >= tp->buttons.top_area.leftbutton_right_edge &&
-	       t->x <= tp->buttons.top_area.rightbutton_left_edge;
+	       t->point.x >= tp->buttons.top_area.leftbutton_right_edge &&
+	       t->point.x <= tp->buttons.top_area.rightbutton_left_edge;
 }
 
 static void

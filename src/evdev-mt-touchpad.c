@@ -87,8 +87,7 @@ tp_motion_history_push(struct tp_touch *t)
 	if (t->history.count < TOUCHPAD_HISTORY_LENGTH)
 		t->history.count++;
 
-	t->history.samples[motion_index].x = t->x;
-	t->history.samples[motion_index].y = t->y;
+	t->history.samples[motion_index] = t->point;
 	t->history.index = motion_index;
 }
 
@@ -96,23 +95,22 @@ static inline void
 tp_motion_hysteresis(struct tp_dispatch *tp,
 		     struct tp_touch *t)
 {
-	int x = t->x,
-	    y = t->y;
+	int x = t->point.x,
+	    y = t->point.y;
 
 	if (t->history.count == 0) {
-		t->hysteresis.center_x = t->x;
-		t->hysteresis.center_y = t->y;
+		t->hysteresis_center = t->point;
 	} else {
 		x = tp_hysteresis(x,
-				  t->hysteresis.center_x,
-				  tp->hysteresis.margin_x);
+				  t->hysteresis_center.x,
+				  tp->hysteresis_margin.x);
 		y = tp_hysteresis(y,
-				  t->hysteresis.center_y,
-				  tp->hysteresis.margin_y);
-		t->hysteresis.center_x = x;
-		t->hysteresis.center_y = y;
-		t->x = x;
-		t->y = y;
+				  t->hysteresis_center.y,
+				  tp->hysteresis_margin.y);
+		t->hysteresis_center.x = x;
+		t->hysteresis_center.y = y;
+		t->point.x = x;
+		t->point.y = y;
 	}
 }
 
@@ -281,13 +279,13 @@ tp_process_absolute(struct tp_dispatch *tp,
 
 	switch(e->code) {
 	case ABS_MT_POSITION_X:
-		t->x = e->value;
+		t->point.x = e->value;
 		t->millis = time;
 		t->dirty = true;
 		tp->queued |= TOUCHPAD_EVENT_MOTION;
 		break;
 	case ABS_MT_POSITION_Y:
-		t->y = e->value;
+		t->point.y = e->value;
 		t->millis = time;
 		t->dirty = true;
 		tp->queued |= TOUCHPAD_EVENT_MOTION;
@@ -312,13 +310,13 @@ tp_process_absolute_st(struct tp_dispatch *tp,
 
 	switch(e->code) {
 	case ABS_X:
-		t->x = e->value;
+		t->point.x = e->value;
 		t->millis = time;
 		t->dirty = true;
 		tp->queued |= TOUCHPAD_EVENT_MOTION;
 		break;
 	case ABS_Y:
-		t->y = e->value;
+		t->point.y = e->value;
 		t->millis = time;
 		t->dirty = true;
 		tp->queued |= TOUCHPAD_EVENT_MOTION;
@@ -418,8 +416,8 @@ tp_unpin_finger(struct tp_dispatch *tp, struct tp_touch *t)
 	if (!t->pinned.is_pinned)
 		return;
 
-	xdist = abs(t->x - t->pinned.center_x);
-	ydist = abs(t->y - t->pinned.center_y);
+	xdist = abs(t->point.x - t->pinned.center.x);
+	ydist = abs(t->point.y - t->pinned.center.y);
 
 	if (xdist * xdist + ydist * ydist >=
 			tp->buttons.motion_dist * tp->buttons.motion_dist) {
@@ -428,8 +426,8 @@ tp_unpin_finger(struct tp_dispatch *tp, struct tp_touch *t)
 	}
 
 	/* The finger may slowly drift, adjust the center */
-	t->pinned.center_x = t->x + t->pinned.center_x / 2;
-	t->pinned.center_y = t->y + t->pinned.center_y / 2;
+	t->pinned.center.x = t->point.x + t->pinned.center.x / 2;
+	t->pinned.center.y = t->point.y + t->pinned.center.y / 2;
 }
 
 static void
@@ -439,8 +437,7 @@ tp_pin_fingers(struct tp_dispatch *tp)
 
 	tp_for_each_touch(tp, t) {
 		t->pinned.is_pinned = true;
-		t->pinned.center_x = t->x;
-		t->pinned.center_y = t->y;
+		t->pinned.center = t->point;
 	}
 }
 
@@ -466,8 +463,9 @@ tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	 */
 	if (t->palm.is_palm) {
 		if (time < t->palm.time + PALM_TIMEOUT &&
-		    (t->x > tp->palm.left_edge && t->x < tp->palm.right_edge)) {
-			int dirs = vector_get_direction(t->x - t->palm.x, t->y - t->palm.y);
+		    (t->point.x > tp->palm.left_edge && t->point.x < tp->palm.right_edge)) {
+			int dirs = vector_get_direction(t->point.x - t->palm.first.x,
+							t->point.y - t->palm.first.y);
 			if ((dirs & DIRECTIONS) && !(dirs & ~DIRECTIONS)) {
 				t->palm.is_palm = false;
 			}
@@ -478,7 +476,7 @@ tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	/* palm must start in exclusion zone, it's ok to move into
 	   the zone without being a palm */
 	if (t->state != TOUCH_BEGIN ||
-	    (t->x > tp->palm.left_edge && t->x < tp->palm.right_edge))
+	    (t->point.x > tp->palm.left_edge && t->point.x < tp->palm.right_edge))
 		return;
 
 	/* don't detect palm in software button areas, it's
@@ -490,8 +488,7 @@ tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 
 	t->palm.is_palm = true;
 	t->palm.time = time;
-	t->palm.x = t->x;
-	t->palm.y = t->y;
+	t->palm.first = t->point;
 }
 
 static void
@@ -566,8 +563,7 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 			tp_motion_history_reset(t);
 
 		if (i >= tp->real_touches && t->state != TOUCH_NONE) {
-			t->x = first->x;
-			t->y = first->y;
+			t->point = first->point;
 			if (!t->dirty)
 				t->dirty = first->dirty;
 		}
@@ -1155,9 +1151,9 @@ tp_init(struct tp_dispatch *tp,
 		     device->abs.absinfo_y->minimum);
 	diagonal = sqrt(width*width + height*height);
 
-	tp->hysteresis.margin_x =
+	tp->hysteresis_margin.x =
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
-	tp->hysteresis.margin_y =
+	tp->hysteresis_margin.y =
 		diagonal / DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR;
 
 	if (tp_init_accel(tp, diagonal) != 0)

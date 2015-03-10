@@ -52,10 +52,10 @@ tp_touch_get_edge(struct tp_dispatch *tp, struct tp_touch *t)
 	if (tp->scroll.method != LIBINPUT_CONFIG_SCROLL_EDGE)
 		return EDGE_NONE;
 
-	if (t->x > tp->scroll.right_edge)
+	if (t->point.x > tp->scroll.right_edge)
 		edge |= EDGE_RIGHT;
 
-	if (t->y > tp->scroll.bottom_edge)
+	if (t->point.y > tp->scroll.bottom_edge)
 		edge |= EDGE_BOTTOM;
 
 	return edge;
@@ -76,8 +76,7 @@ tp_edge_scroll_set_state(struct tp_dispatch *tp,
 		break;
 	case EDGE_SCROLL_TOUCH_STATE_EDGE_NEW:
 		t->scroll.edge = tp_touch_get_edge(tp, t);
-		t->scroll.initial_x = t->x;
-		t->scroll.initial_y = t->y;
+		t->scroll.initial = t->point;
 		libinput_timer_set(&t->scroll.timer,
 				   t->millis + DEFAULT_SCROLL_LOCK_TIMEOUT);
 		break;
@@ -359,8 +358,8 @@ tp_edge_scroll_post_events(struct tp_dispatch *tp, uint64_t time)
 					 t->scroll.edge_state);
 			break;
 		case EDGE_SCROLL_TOUCH_STATE_EDGE_NEW:
-			initial_dx = t->x - t->scroll.initial_x;
-			initial_dy = t->y - t->scroll.initial_y;
+			initial_dx = t->point.x - t->scroll.initial.x;
+			initial_dy = t->point.y - t->scroll.initial.y;
 			tp_normalize_delta(tp,
 					   &initial_dx,
 					   &initial_dy);

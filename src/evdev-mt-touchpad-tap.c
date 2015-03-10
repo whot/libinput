@@ -533,8 +533,8 @@ tp_tap_exceeds_motion_threshold(struct tp_dispatch *tp,
 	int threshold = DEFAULT_TAP_MOVE_THRESHOLD;
 	double dx, dy;
 
-	dx = abs(t->tap.initial_x - t->x);
-	dy = abs(t->tap.initial_y - t->y);
+	dx = abs(t->tap.initial.x - t->point.x);
+	dy = abs(t->tap.initial.y - t->point.y);
 	tp_normalize_delta(tp, &dx, &dy);
 
 	return dx * dx + dy * dy > threshold * threshold;
@@ -571,8 +571,7 @@ tp_tap_handle_state(struct tp_dispatch *tp, uint64_t time)
 
 		if (t->state == TOUCH_BEGIN) {
 			t->tap.state = TAP_TOUCH_STATE_TOUCH;
-			t->tap.initial_x = t->x;
-			t->tap.initial_y = t->y;
+			t->tap.initial = t->point;
 			tp_tap_handle_event(tp, t, TAP_EVENT_TOUCH, time);
 		} else if (t->state == TOUCH_END) {
 			tp_tap_handle_event(tp, t, TAP_EVENT_RELEASE, time);

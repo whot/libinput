@@ -127,8 +127,7 @@ struct tp_touch {
 	enum touch_state state;
 	bool has_ended;				/* TRACKING_ID == -1 */
 	bool dirty;
-	int32_t x;				/* in device coordinates */
-	int32_t y;				/* in device coordinates */
+	struct device_coords point;
 	uint64_t millis;
 
 	struct {
@@ -137,10 +136,7 @@ struct tp_touch {
 		unsigned int count;
 	} history;
 
-	struct {
-		int32_t center_x;		/* in device coordinates */
-		int32_t center_y;		/* in device coordinates */
-	} hysteresis;
+	struct device_coords hysteresis_center;
 
 	/* A pinned touchpoint is the one that pressed the physical button
 	 * on a clickpad. After the release, it won't move until the center
@@ -148,8 +144,7 @@ struct tp_touch {
 	 */
 	struct {
 		bool is_pinned;
-		int32_t center_x;		/* in device coordinates */
-		int32_t center_y;		/* in device coordinates */
+		struct device_coords center;
 	} pinned;
 
 	/* Software-button state and timeout if applicable */
@@ -162,7 +157,7 @@ struct tp_touch {
 
 	struct {
 		enum tp_tap_touch_state state;
-		int32_t initial_x, initial_y;	/* in device coordinates */
+		struct device_coords initial;
 	} tap;
 
 	struct {
@@ -170,14 +165,12 @@ struct tp_touch {
 		uint32_t edge;
 		int direction;
 		struct libinput_timer timer;
-		int32_t initial_x;		/* in device coordinates */
-		int32_t initial_y;		/* in device coordinates */
+		struct device_coords initial;
 	} scroll;
 
 	struct {
 		bool is_palm;
-		int32_t x, y;  /* first coordinates if is_palm == true,
-				  in device coordinates */
+		struct device_coords first; /* first coordinates if is_palm == true */
 		uint32_t time; /* first timestamp if is_palm == true */
 	} palm;
 };
@@ -202,10 +195,7 @@ struct tp_dispatch {
 	 */
 	unsigned int fake_touches;
 
-	struct {
-		int32_t margin_x;		/* in device coordiantes */
-		int32_t margin_y;		/* in device coordiantes */
-	} hysteresis;
+	struct device_coords hysteresis_margin;
 
 	struct {
 		double x_scale_coeff;
