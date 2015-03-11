@@ -239,7 +239,6 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 {
 	struct libinput *libinput = device->base.seat->libinput;
 	struct motion_params motion;
-	int32_t x, y;
 	int slot;
 	int seat_slot;
 	struct libinput_device *base = &device->base;
@@ -304,7 +303,7 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 		transform_absolute(device, &point);
 
 		touch_notify_touch_down(base, time, slot, seat_slot,
-					point.x, point.y);
+					&point);
 		break;
 	case EVDEV_ABSOLUTE_MT_MOTION:
 		if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
@@ -318,7 +317,7 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 
 		transform_absolute(device, &point);
 		touch_notify_touch_motion(base, time, slot, seat_slot,
-					  point.x, point.y);
+					  &point);
 		break;
 	case EVDEV_ABSOLUTE_MT_UP:
 		if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
@@ -357,14 +356,11 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 		point = device->abs.point;
 		transform_absolute(device, &point);
 
-		touch_notify_touch_down(base, time, -1, seat_slot,
-					point.x, point.y);
+		touch_notify_touch_down(base, time, -1, seat_slot, &point);
 		break;
 	case EVDEV_ABSOLUTE_MOTION:
 		point = device->abs.point;
 		transform_absolute(device, &point);
-		x = point.x;
-		y = point.y;
 
 		if (device->seat_caps & EVDEV_DEVICE_TOUCH) {
 			seat_slot = device->abs.seat_slot;
@@ -372,7 +368,8 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 			if (seat_slot == -1)
 				break;
 
-			touch_notify_touch_motion(base, time, -1, seat_slot, x, y);
+			touch_notify_touch_motion(base, time, -1, seat_slot,
+						  &point);
 		} else if (device->seat_caps & EVDEV_DEVICE_POINTER) {
 			pointer_notify_motion_absolute(base, time, &point);
 		}

@@ -1068,8 +1068,7 @@ touch_notify_touch_down(struct libinput_device *device,
 			uint64_t time,
 			int32_t slot,
 			int32_t seat_slot,
-			double x,
-			double y)
+			const struct device_coords *point)
 {
 	struct libinput_event_touch *touch_event;
 
@@ -1081,8 +1080,8 @@ touch_notify_touch_down(struct libinput_device *device,
 		.time = time,
 		.slot = slot,
 		.seat_slot = seat_slot,
-		.x = x,
-		.y = y,
+		.x = point->x,
+		.y = point->y,
 	};
 
 	post_device_event(device, time,
@@ -1095,8 +1094,7 @@ touch_notify_touch_motion(struct libinput_device *device,
 			  uint64_t time,
 			  int32_t slot,
 			  int32_t seat_slot,
-			  double x,
-			  double y)
+			  const struct device_coords *point)
 {
 	struct libinput_event_touch *touch_event;
 
@@ -1108,8 +1106,8 @@ touch_notify_touch_motion(struct libinput_device *device,
 		.time = time,
 		.slot = slot,
 		.seat_slot = seat_slot,
-		.x = x,
-		.y = y,
+		.x = point->x,
+		.y = point->y,
 	};
 
 	post_device_event(device, time,

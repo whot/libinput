@@ -318,16 +318,14 @@ touch_notify_touch_down(struct libinput_device *device,
 			uint64_t time,
 			int32_t slot,
 			int32_t seat_slot,
-			double x,
-			double y);
+			const struct device_coords *point);
 
 void
 touch_notify_touch_motion(struct libinput_device *device,
 			  uint64_t time,
 			  int32_t slot,
 			  int32_t seat_slot,
-			  double x,
-			  double y);
+			  const struct device_coords *point);
 
 void
 touch_notify_touch_up(struct libinput_device *device,
