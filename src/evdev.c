@@ -589,6 +589,7 @@ evdev_notify_axis(struct evdev_device *device,
 		  double x_discrete, double y_discrete)
 {
 	struct normalized_coords delta = *delta_in;
+
 	if (device->scroll.natural_scrolling_enabled) {
 		delta.x *= -1;
 		delta.y *= -1;
