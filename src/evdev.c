@@ -244,7 +244,6 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 	int seat_slot;
 	struct libinput_device *base = &device->base;
 	struct libinput_seat *seat = base->seat;
-	struct normalized_coords normalized;
 	struct normalized_coords accel, unaccel;
 	struct device_coords point;
 
