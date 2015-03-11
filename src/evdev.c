@@ -245,6 +245,7 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 	struct libinput_device *base = &device->base;
 	struct libinput_seat *seat = base->seat;
 	struct normalized_coords normalized;
+	struct normalized_coords accel, unaccel;
 	struct device_coords point;
 
 	slot = device->mt.slot;
@@ -253,7 +254,7 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 	case EVDEV_NONE:
 		return;
 	case EVDEV_RELATIVE_MOTION:
-		normalize_delta(device, &device->rel, &normalized);
+		normalize_delta(device, &device->rel, &unaccel);
 		device->rel.x = 0;
 		device->rel.y = 0;
 
@@ -263,23 +264,25 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 			if (device->scroll.button_scroll_active)
 				evdev_post_scroll(device, time,
 						  LIBINPUT_POINTER_AXIS_SOURCE_CONTINUOUS,
-						  &normalized);
+						  &unaccel);
 			break;
 		}
 
 		/* Apply pointer acceleration. */
-		motion.dx = normalized.x;
-		motion.dy = normalized.y;
+		motion.dx = unaccel.x;
+		motion.dy = unaccel.y;
 		filter_dispatch(device->pointer.filter, &motion, device, time);
+		accel.x = motion.dx;
+		accel.y = motion.dy;
 
-		if (motion.dx == 0.0 && motion.dy == 0.0 &&
-		    normalized.x == 0.0 && normalized.y == 0.0) {
+		if (accel.x == 0.0 && accel.y == 0.0 &&
+		    unaccel.x == 0.0 && unaccel.y == 0.0) {
 			break;
 		}
 
 		pointer_notify_motion(base, time,
-				      motion.dx, motion.dy,
-				      normalized.x, normalized.x);
+				      accel.x, accel.y,
+				      unaccel.x, unaccel.x);
 		break;
 	case EVDEV_ABSOLUTE_MT_DOWN:
 		if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
