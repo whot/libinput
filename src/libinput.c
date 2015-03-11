@@ -59,8 +59,7 @@ struct libinput_event_pointer {
 	uint32_t time;
 	struct normalized_coords delta;
 	struct device_coords absolute;
-	double x_discrete;
-	double y_discrete;
+	struct discrete_coords discrete;
 	double dx_unaccel;
 	double dy_unaccel;
 	uint32_t button;
@@ -428,10 +427,10 @@ libinput_event_pointer_get_axis_value_discrete(struct libinput_event_pointer *ev
 	} else {
 		switch (axis) {
 		case LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL:
-			value = event->x_discrete;
+			value = event->discrete.x;
 			break;
 		case LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL:
-			value = event->y_discrete;
+			value = event->discrete.y;
 			break;
 		}
 	}
@@ -1037,7 +1036,7 @@ pointer_notify_axis(struct libinput_device *device,
 		    uint32_t axes,
 		    enum libinput_pointer_axis_source source,
 		    const struct normalized_coords *delta,
-		    double x_discrete, double y_discrete)
+		    const struct discrete_coords *discrete)
 {
 	struct libinput_event_pointer *axis_event;
 
@@ -1050,8 +1049,7 @@ pointer_notify_axis(struct libinput_device *device,
 		.delta = *delta,
 		.source = source,
 		.axes = axes,
-		.x_discrete = x_discrete,
-		.y_discrete = y_discrete,
+		.discrete = *discrete,
 	};
 
 	post_device_event(device, time,

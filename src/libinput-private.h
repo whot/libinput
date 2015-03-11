@@ -42,6 +42,11 @@ struct normalized_coords {
 	double x, y;
 };
 
+/* A discrete step pair (mouse wheels) */
+struct discrete_coords {
+	int x, y;
+};
+
 struct libinput_interface_backend {
 	int (*resume)(struct libinput *libinput);
 	void (*suspend)(struct libinput *libinput);
@@ -310,8 +315,7 @@ pointer_notify_axis(struct libinput_device *device,
 		    uint32_t axes,
 		    enum libinput_pointer_axis_source source,
 		    const struct normalized_coords *delta,
-		    double x_discrete,
-		    double y_discrete);
+		    const struct discrete_coords *discrete);
 
 void
 touch_notify_touch_down(struct libinput_device *device,

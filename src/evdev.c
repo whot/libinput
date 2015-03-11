@@ -586,15 +586,16 @@ evdev_notify_axis(struct evdev_device *device,
 		  uint32_t axes,
 		  enum libinput_pointer_axis_source source,
 		  const struct normalized_coords *delta_in,
-		  double x_discrete, double y_discrete)
+		  const struct discrete_coords *discrete_in)
 {
 	struct normalized_coords delta = *delta_in;
+	struct discrete_coords discrete = *discrete_in;
 
 	if (device->scroll.natural_scrolling_enabled) {
 		delta.x *= -1;
 		delta.y *= -1;
-		x_discrete *= -1;
-		y_discrete *= -1;
+		discrete.x *= -1;
+		discrete.y *= -1;
 	}
 
 	pointer_notify_axis(&device->base,
@@ -602,7 +603,7 @@ evdev_notify_axis(struct evdev_device *device,
 			    axes,
 			    source,
 			    &delta,
-			    x_discrete, y_discrete);
+			    &discrete);
 }
 
 static inline void
@@ -610,6 +611,7 @@ evdev_process_relative(struct evdev_device *device,
 		       struct input_event *e, uint64_t time)
 {
 	struct normalized_coords wheel_degrees = { 0.0, 0.0 };
+	struct discrete_coords discrete = { 0.0, 0.0 };
 
 	switch (e->code) {
 	case REL_X:
@@ -628,26 +630,26 @@ evdev_process_relative(struct evdev_device *device,
 		evdev_flush_pending_event(device, time);
 		wheel_degrees.y = -1 * e->value *
 					device->scroll.wheel_click_angle;
+		discrete.y = -1 * e->value;
 		evdev_notify_axis(
 			device,
 			time,
 			AS_MASK(LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL),
 			LIBINPUT_POINTER_AXIS_SOURCE_WHEEL,
 			&wheel_degrees,
-			0.0,
-			-1 * e->value);
+			&discrete);
 		break;
 	case REL_HWHEEL:
 		evdev_flush_pending_event(device, time);
 		wheel_degrees.x = e->value * device->scroll.wheel_click_angle;
+		discrete.x = e->value;
 		evdev_notify_axis(
 			device,
 			time,
 			AS_MASK(LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL),
 			LIBINPUT_POINTER_AXIS_SOURCE_WHEEL,
 			&wheel_degrees,
-			e->value,
-			0.0);
+			&discrete);
 		break;
 	}
 }
@@ -1977,13 +1979,15 @@ evdev_post_scroll(struct evdev_device *device,
 			       LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL))
 		event.x = 0.0;
 
-	if (event.x != 0.0 || event.y != 0.0)
+	if (event.x != 0.0 || event.y != 0.0) {
+		const struct discrete_coords zero_discrete = { 0.0, 0.0 };
 		evdev_notify_axis(device,
 				  time,
 				  device->scroll.direction,
 				  source,
 				  &event,
-				  0.0, 0.0);
+				  &zero_discrete);
+	}
 }
 
 void
@@ -1992,6 +1996,7 @@ evdev_stop_scroll(struct evdev_device *device,
 		  enum libinput_pointer_axis_source source)
 {
 	const struct normalized_coords zero = { 0.0, 0.0 };
+	const struct discrete_coords zero_discrete = { 0.0, 0.0 };
 
 	/* terminate scrolling with a zero scroll event */
 	if (device->scroll.direction != 0)
@@ -2000,7 +2005,7 @@ evdev_stop_scroll(struct evdev_device *device,
 				    device->scroll.direction,
 				    source,
 				    &zero,
-				    0.0, 0.0);
+				    &zero_discrete);
 
 	device->scroll.buildup.x = 0;
 	device->scroll.buildup.y = 0;
