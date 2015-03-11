@@ -986,8 +986,7 @@ pointer_notify_motion(struct libinput_device *device,
 void
 pointer_notify_motion_absolute(struct libinput_device *device,
 			       uint64_t time,
-			       double x,
-			       double y)
+			       const struct device_coords *point)
 {
 	struct libinput_event_pointer *motion_absolute_event;
 
@@ -997,8 +996,8 @@ pointer_notify_motion_absolute(struct libinput_device *device,
 
 	*motion_absolute_event = (struct libinput_event_pointer) {
 		.time = time,
-		.x = x,
-		.y = y,
+		.x = point->x,
+		.y = point->y,
 	};
 
 	post_device_event(device, time,

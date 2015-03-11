@@ -374,7 +374,7 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 
 			touch_notify_touch_motion(base, time, -1, seat_slot, x, y);
 		} else if (device->seat_caps & EVDEV_DEVICE_POINTER) {
-			pointer_notify_motion_absolute(base, time, x, y);
+			pointer_notify_motion_absolute(base, time, &point);
 		}
 		break;
 	case EVDEV_ABSOLUTE_TOUCH_UP:

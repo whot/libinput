@@ -296,8 +296,7 @@ pointer_notify_motion(struct libinput_device *device,
 void
 pointer_notify_motion_absolute(struct libinput_device *device,
 			       uint64_t time,
-			       double x,
-			       double y);
+			       const struct device_coords *point);
 
 void
 pointer_notify_button(struct libinput_device *device,
