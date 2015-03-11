@@ -314,6 +314,7 @@ tp_edge_scroll_post_events(struct tp_dispatch *tp, uint64_t time)
 	double *delta;
 	double initial_dx, initial_dy, *initial_delta;
 	struct normalized_coords normalized;
+	const struct normalized_coords zero = { 0.0, 0.0 };
 
 	if (tp->scroll.method != LIBINPUT_CONFIG_SCROLL_EDGE)
 		return 0;
@@ -325,8 +326,6 @@ tp_edge_scroll_post_events(struct tp_dispatch *tp, uint64_t time)
 		switch (t->scroll.edge) {
 			case EDGE_NONE:
 				if (t->scroll.direction != -1) {
-					const struct normalized_coords zero =
-						{ 0.0, 0.0 };
 					/* Send stop scroll event */
 					pointer_notify_axis(device, time,
 						AS_MASK(t->scroll.direction),
