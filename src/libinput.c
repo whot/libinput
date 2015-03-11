@@ -75,8 +75,7 @@ struct libinput_event_touch {
 	uint32_t time;
 	int32_t slot;
 	int32_t seat_slot;
-	double x;
-	double y;
+	struct device_coords point;
 };
 
 static void
@@ -469,7 +468,7 @@ libinput_event_touch_get_x(struct libinput_event_touch *event)
 	struct evdev_device *device =
 		(struct evdev_device *) event->base.device;
 
-	return evdev_convert_to_mm(device->abs.absinfo_x, event->x);
+	return evdev_convert_to_mm(device->abs.absinfo_x, event->point.x);
 }
 
 LIBINPUT_EXPORT double
@@ -479,7 +478,7 @@ libinput_event_touch_get_x_transformed(struct libinput_event_touch *event,
 	struct evdev_device *device =
 		(struct evdev_device *) event->base.device;
 
-	return evdev_device_transform_x(device, event->x, width);
+	return evdev_device_transform_x(device, event->point.x, width);
 }
 
 LIBINPUT_EXPORT double
@@ -489,7 +488,7 @@ libinput_event_touch_get_y_transformed(struct libinput_event_touch *event,
 	struct evdev_device *device =
 		(struct evdev_device *) event->base.device;
 
-	return evdev_device_transform_y(device, event->y, height);
+	return evdev_device_transform_y(device, event->point.y, height);
 }
 
 LIBINPUT_EXPORT double
@@ -498,7 +497,7 @@ libinput_event_touch_get_y(struct libinput_event_touch *event)
 	struct evdev_device *device =
 		(struct evdev_device *) event->base.device;
 
-	return evdev_convert_to_mm(device->abs.absinfo_y, event->y);
+	return evdev_convert_to_mm(device->abs.absinfo_y, event->point.y);
 }
 
 struct libinput_source *
@@ -1080,8 +1079,7 @@ touch_notify_touch_down(struct libinput_device *device,
 		.time = time,
 		.slot = slot,
 		.seat_slot = seat_slot,
-		.x = point->x,
-		.y = point->y,
+		.point = *point,
 	};
 
 	post_device_event(device, time,
@@ -1106,8 +1104,7 @@ touch_notify_touch_motion(struct libinput_device *device,
 		.time = time,
 		.slot = slot,
 		.seat_slot = seat_slot,
-		.x = point->x,
-		.y = point->y,
+		.point = *point,
 	};
 
 	post_device_event(device, time,
