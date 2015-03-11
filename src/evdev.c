@@ -280,9 +280,7 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 			break;
 		}
 
-		pointer_notify_motion(base, time,
-				      accel.x, accel.y,
-				      unaccel.x, unaccel.x);
+		pointer_notify_motion(base, time, &accel, &unaccel);
 		break;
 	case EVDEV_ABSOLUTE_MT_DOWN:
 		if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
