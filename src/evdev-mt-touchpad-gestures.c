@@ -31,15 +31,13 @@
 
 #define DEFAULT_GESTURE_SWITCH_TIMEOUT 100 /* ms */
 
-static void
-tp_get_touches_delta(struct tp_dispatch *tp, double *dx, double *dy, bool average)
+static struct normalized_coords
+tp_get_touches_delta(struct tp_dispatch *tp, bool average)
 {
 	struct tp_touch *t;
 	unsigned int i, nchanged = 0;
 	struct normalized_coords normalized;
-
-	*dx = 0.0;
-	*dy = 0.0;
+	struct normalized_coords delta = {0.0, 0.0};
 
 	for (i = 0; i < tp->real_touches; i++) {
 		t = &tp->touches[i];
@@ -48,28 +46,30 @@ tp_get_touches_delta(struct tp_dispatch *tp, double *dx, double *dy, bool averag
 			nchanged++;
 			normalized = tp_get_delta(t);
 
-			*dx += normalized.x;
-			*dy += normalized.y;
+			delta.x += normalized.x;
+			delta.y += normalized.y;
 		}
 	}
 
 	if (!average || nchanged == 0)
-		return;
+		return delta;
 
-	*dx /= nchanged;
-	*dy /= nchanged;
+	delta.x /= nchanged;
+	delta.y /= nchanged;
+
+	return delta;
 }
 
-static inline void
-tp_get_combined_touches_delta(struct tp_dispatch *tp, double *dx, double *dy)
+static inline struct normalized_coords
+tp_get_combined_touches_delta(struct tp_dispatch *tp)
 {
-	tp_get_touches_delta(tp, dx, dy, false);
+	return tp_get_touches_delta(tp, false);
 }
 
-static inline void
-tp_get_average_touches_delta(struct tp_dispatch *tp, double *dx, double *dy)
+static inline struct normalized_coords
+tp_get_average_touches_delta(struct tp_dispatch *tp)
 {
-	tp_get_touches_delta(tp, dx, dy, true);
+	return tp_get_touches_delta(tp, true);
 }
 
 static void
@@ -89,39 +89,41 @@ tp_gesture_start(struct tp_dispatch *tp, uint64_t time)
 static void
 tp_gesture_post_pointer_motion(struct tp_dispatch *tp, uint64_t time)
 {
-	double dx = 0.0, dy = 0.0;
 	double dx_unaccel, dy_unaccel;
+	struct normalized_coords delta;
 
 	/* When a clickpad is clicked, combine motion of all active touches */
 	if (tp->buttons.is_clickpad && tp->buttons.state)
-		tp_get_combined_touches_delta(tp, &dx, &dy);
+		delta = tp_get_combined_touches_delta(tp);
 	else
-		tp_get_average_touches_delta(tp, &dx, &dy);
+		delta = tp_get_average_touches_delta(tp);
 
-	tp_filter_motion(tp, &dx, &dy, &dx_unaccel, &dy_unaccel, time);
+	tp_filter_motion(tp, &delta.x, &delta.y, &dx_unaccel, &dy_unaccel, time);
 
-	if (dx != 0.0 || dy != 0.0 || dx_unaccel != 0.0 || dy_unaccel != 0.0) {
+	if (delta.x != 0.0 || delta.y != 0.0 ||
+	    dx_unaccel != 0.0 || dy_unaccel != 0.0) {
 		pointer_notify_motion(&tp->device->base, time,
-				      dx, dy, dx_unaccel, dy_unaccel);
+				      delta.x, delta.y,
+				      dx_unaccel, dy_unaccel);
 	}
 }
 
 static void
 tp_gesture_post_twofinger_scroll(struct tp_dispatch *tp, uint64_t time)
 {
-	double dx = 0, dy =0;
+	struct normalized_coords delta;
 
-	tp_get_average_touches_delta(tp, &dx, &dy);
-	tp_filter_motion(tp, &dx, &dy, NULL, NULL, time);
+	delta = tp_get_average_touches_delta(tp);
+	tp_filter_motion(tp, &delta.x, &delta.y, NULL, NULL, time);
 
-	if (dx == 0.0 && dy == 0.0)
+	if (delta.x == 0.0 && delta.y == 0.0)
 		return;
 
 	tp_gesture_start(tp, time);
 	evdev_post_scroll(tp->device,
 			  time,
 			  LIBINPUT_POINTER_AXIS_SOURCE_FINGER,
-			  dx, dy);
+			  delta.x, delta.y);
 }
 
 void
