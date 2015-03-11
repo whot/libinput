@@ -114,8 +114,7 @@ struct evdev_device {
 		bool button_scroll_active;
 		double threshold;
 		uint32_t direction;
-		double buildup_vertical;
-		double buildup_horizontal;
+		struct normalized_coords buildup;
 
 		struct libinput_device_config_natural_scroll config_natural;
 		/* set during device init if we want natural scrolling,
@@ -304,8 +303,7 @@ void
 evdev_post_scroll(struct evdev_device *device,
 		  uint64_t time,
 		  enum libinput_pointer_axis_source source,
-		  double dx,
-		  double dy);
+		  const struct normalized_coords *delta);
 
 void
 evdev_stop_scroll(struct evdev_device *device,

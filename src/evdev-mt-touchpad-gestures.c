@@ -123,7 +123,7 @@ tp_gesture_post_twofinger_scroll(struct tp_dispatch *tp, uint64_t time)
 	evdev_post_scroll(tp->device,
 			  time,
 			  LIBINPUT_POINTER_AXIS_SOURCE_FINGER,
-			  delta.x, delta.y);
+			  &delta);
 }
 
 void
