@@ -32,6 +32,7 @@
 
 #include "libinput-private.h"
 #include "timer.h"
+#include "filter.h"
 
 /* The HW DPI rate we normalize to before calculating pointer acceleration */
 #define DEFAULT_MOUSE_DPI 1000
@@ -215,7 +216,8 @@ evdev_device_create(struct libinput_seat *seat,
 		    struct udev_device *device);
 
 int
-evdev_device_init_pointer_acceleration(struct evdev_device *device);
+evdev_device_init_pointer_acceleration(struct evdev_device *device,
+				       accel_profile_func_t profile);
 
 struct evdev_dispatch *
 evdev_touchpad_create(struct evdev_device *device);

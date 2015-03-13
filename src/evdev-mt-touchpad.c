@@ -29,7 +29,9 @@
 
 #include "evdev-mt-touchpad.h"
 
-#define DEFAULT_ACCEL_NUMERATOR 1200.0
+/* Number found by trial-and error, seems to be 1200, divided by the
+ * TP_MAGIC_SLOWDOWN in filter.c */
+#define DEFAULT_ACCEL_NUMERATOR 3000.0
 #define DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR 700.0
 #define DEFAULT_TRACKPOINT_ACTIVITY_TIMEOUT 500 /* ms */
 
@@ -976,18 +978,6 @@ tp_init_accel(struct tp_dispatch *tp, double diagonal)
 	if (res_x > 1 && res_y > 1) {
 		tp->accel.x_scale_coeff = (DEFAULT_MOUSE_DPI/25.4) / res_x;
 		tp->accel.y_scale_coeff = (DEFAULT_MOUSE_DPI/25.4) / res_y;
-
-		/* FIXME: once normalized, touchpads see the same
-		   acceleration as mice. that is technically correct but
-		   subjectively wrong, we expect a touchpad to be a lot
-		   slower than a mouse.
-		   For now, apply a magic factor here until this is
-		   fixed in the actual filter code.
-		 */
-		{
-			tp->accel.x_scale_coeff *= TP_MAGIC_SLOWDOWN;
-			tp->accel.y_scale_coeff *= TP_MAGIC_SLOWDOWN;
-		}
 	} else {
 	/*
 	 * For touchpads where the driver does not provide resolution, fall
@@ -997,7 +987,9 @@ tp_init_accel(struct tp_dispatch *tp, double diagonal)
 		tp->accel.y_scale_coeff = DEFAULT_ACCEL_NUMERATOR / diagonal;
 	}
 
-	if (evdev_device_init_pointer_acceleration(tp->device) == -1)
+	if (evdev_device_init_pointer_acceleration(
+                                       tp->device,
+                                       touchpad_accel_profile_linear) == -1)
 		return -1;
 
 	return 0;

@@ -1256,11 +1256,10 @@ evdev_accel_config_get_default_speed(struct libinput_device *device)
 }
 
 int
-evdev_device_init_pointer_acceleration(struct evdev_device *device)
+evdev_device_init_pointer_acceleration(struct evdev_device *device,
+				       accel_profile_func_t profile)
 {
-	device->pointer.filter =
-		create_pointer_accelerator_filter(
-			pointer_accel_profile_linear);
+	device->pointer.filter = create_pointer_accelerator_filter(profile);
 	if (!device->pointer.filter)
 		return -1;
 
@@ -1521,7 +1520,9 @@ evdev_configure_device(struct evdev_device *device)
 	if (udev_tags & EVDEV_UDEV_TAG_MOUSE) {
 		if (!libevdev_has_event_code(evdev, EV_ABS, ABS_X) &&
 		    !libevdev_has_event_code(evdev, EV_ABS, ABS_Y) &&
-		    evdev_device_init_pointer_acceleration(device) == -1)
+		    evdev_device_init_pointer_acceleration(
+					device,
+					pointer_accel_profile_linear) == -1)
 			return -1;
 
 		device->seat_caps |= EVDEV_DEVICE_POINTER;

@@ -327,3 +327,24 @@ pointer_accel_profile_linear(struct motion_filter *filter,
 
 	return min(max_accel, s2 > 1 ? s2 : s1);
 }
+
+double
+touchpad_accel_profile_linear(struct motion_filter *filter,
+                              void *data,
+                              double speed_in,
+                              uint64_t time)
+{
+	/* Once normalized, touchpads see the same
+	   acceleration as mice. that is technically correct but
+	   subjectively wrong, we expect a touchpad to be a lot
+	   slower than a mouse. Apply a magic factor here and proceed
+	   as normal.  */
+	const double TP_MAGIC_SLOWDOWN = 0.4;
+	double speed_out;
+
+	speed_in *= TP_MAGIC_SLOWDOWN;
+
+	speed_out = pointer_accel_profile_linear(filter, data, speed_in, time);
+
+	return speed_out * TP_MAGIC_SLOWDOWN;
+}
