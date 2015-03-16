@@ -963,17 +963,8 @@ tp_init_accel(struct tp_dispatch *tp, double diagonal)
 {
 	int res_x, res_y;
 
-	if (tp->has_mt) {
-		res_x = libevdev_get_abs_resolution(tp->device->evdev,
-						    ABS_MT_POSITION_X);
-		res_y = libevdev_get_abs_resolution(tp->device->evdev,
-						    ABS_MT_POSITION_Y);
-	} else {
-		res_x = libevdev_get_abs_resolution(tp->device->evdev,
-						    ABS_X);
-		res_y = libevdev_get_abs_resolution(tp->device->evdev,
-						    ABS_Y);
-	}
+	res_x = tp->device->abs.absinfo_x->resolution;
+	res_y = tp->device->abs.absinfo_y->resolution;
 
 	/*
 	 * Not all touchpads report the same amount of units/mm (resolution).
