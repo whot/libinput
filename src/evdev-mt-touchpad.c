@@ -968,6 +968,22 @@ tp_init_accel(struct tp_dispatch *tp, double diagonal)
 	res_x = tp->device->abs.absinfo_x->resolution;
 	res_y = tp->device->abs.absinfo_y->resolution;
 
+	/* Mac touchpads seem to all be the same size (except the most
+	 * recent ones)
+	 * http://www.moshi.com/trackpad-protector-trackguard-macbook-pro#silver
+	 */
+	if (tp->model == MODEL_UNIBODY_MACBOOK && tp->device->abs.fake_resolution) {
+		const struct input_absinfo *abs;
+		int width, height;
+
+		abs = tp->device->abs.absinfo_x;
+		width = abs->maximum - abs->minimum;
+		abs = tp->device->abs.absinfo_y;
+		height = abs->maximum - abs->minimum;
+		res_x = width/104.4;
+		res_y = height/75.4;
+	}
+
 	/*
 	 * Not all touchpads report the same amount of units/mm (resolution).
 	 * Normalize motion events to the default mouse DPI as base
