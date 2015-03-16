@@ -256,6 +256,7 @@ tp_edge_scroll_init(struct tp_dispatch *tp, struct evdev_device *device)
 		 */
 		edge_width = width * .04;
 		edge_height = height * .054;
+		break;
 	}
 
 	tp->scroll.right_edge = device->abs.absinfo_x->maximum - edge_width;
