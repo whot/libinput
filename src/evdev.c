@@ -1444,6 +1444,7 @@ evdev_read_model(struct evdev_device *device)
 		enum evdev_device_model model;
 	} model_map[] = {
 		{ "LIBINPUT_MODEL_LENOVO_X230", EVDEV_MODEL_LENOVO_X230 },
+		{ "LIBINPUT_MODEL_CHROMEBOOK", EVDEV_MODEL_CHROMEBOOK },
 		{ NULL, EVDEV_MODEL_DEFAULT },
 	};
 	const struct model_map *m = model_map;
