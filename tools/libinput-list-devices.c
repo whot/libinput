@@ -30,6 +30,7 @@
 #include <libudev.h>
 
 #include <libinput.h>
+#include <libinput-version.h>
 
 #include "shared.h"
 
@@ -240,6 +241,23 @@ print_device_notify(struct libinput_event *ev)
 	printf("\n");
 }
 
+static inline void
+usage(void)
+{
+	printf("Usage: %s [--help|--version]\n"
+	       "\n"
+	       "This tool creates a libinput context on the default seat \"seat0\"\n"
+	       "and lists all devices recognized by libinput and the configuration options.\n"
+	       "Where multiple options are possible, the default is prefixed with \"*\".\n"
+	       "\n"
+	       "Options:\n"
+	       "--help ...... show this help\n"
+	       "--version ... show version information\n"
+	       "\n"
+	       "This tool requires access to the /dev/input/eventX nodes.\n",
+	       program_invocation_short_name);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -248,16 +266,16 @@ main(int argc, char **argv)
 	struct libinput_event *ev;
 
 	if (argc > 1) {
-		printf("Usage: %s [--help]\n"
-		       "\n"
-		       "This tool creates a libinput context on the default seat \"seat0\"\n"
-		       "and lists all devices recognized by libinput and the configuration options.\n"
-		       "Where multiple options are possible, the default is prefixed with \"*\".\n"
-		       "\n"
-		       "This tool requires access to the /dev/input/eventX nodes.\n",
-		       program_invocation_short_name);
-
-		return 1;
+		if (strcmp(argv[1], "--help") == 0) {
+			usage();
+			return 0;
+		} else if (strcmp(argv[1], "--version") == 0) {
+			printf("%s\n", LIBINPUT_VERSION);
+			return 0;
+		} else {
+			usage();
+			return 1;
+		}
 	}
 
 	tools_init_options(&options);
