@@ -750,6 +750,12 @@ tp_destroy(struct evdev_dispatch *dispatch)
 }
 
 static void
+tp_release_fake_touches(struct tp_dispatch *tp)
+{
+	tp->fake_touches = 0;
+}
+
+static void
 tp_clear_state(struct tp_dispatch *tp)
 {
 	uint64_t now = libinput_now(tp->device->base.seat->libinput);
@@ -772,6 +778,7 @@ tp_clear_state(struct tp_dispatch *tp)
 	tp_for_each_touch(tp, t) {
 		tp_end_sequence(tp, t, now);
 	}
+	tp_release_fake_touches(tp);
 
 	tp_handle_state(tp, now);
 }
