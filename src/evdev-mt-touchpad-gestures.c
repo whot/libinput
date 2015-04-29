@@ -418,7 +418,7 @@ tp_gesture_post_events(struct tp_dispatch *tp, uint64_t time)
 
 	/* When tap-and-dragging, or a clickpad is clicked force 1fg mode */
 	if (tp_tap_dragging(tp) || (tp->buttons.is_clickpad && tp->buttons.state)) {
-		tp_gesture_stop(tp, time);
+		tp_gesture_stop(tp, time, 1);
 		tp->gesture.finger_count = 1;
 		tp->gesture.finger_count_pending = 0;
 	}
@@ -453,11 +453,10 @@ tp_gesture_stop_twofinger_scroll(struct tp_dispatch *tp, uint64_t time)
 }
 
 void
-tp_gesture_stop(struct tp_dispatch *tp, uint64_t time)
+tp_gesture_stop(struct tp_dispatch *tp, uint64_t time, int cancelled)
 {
 	struct libinput *libinput = tp->device->base.seat->libinput;
 	enum tp_gesture_2fg_state twofinger_state = tp->gesture.twofinger_state;
-	const struct normalized_coords zero = { 0.0, 0.0 };
 
 	tp->gesture.twofinger_state = GESTURE_2FG_STATE_NONE;
 
@@ -477,18 +476,15 @@ tp_gesture_stop(struct tp_dispatch *tp, uint64_t time)
 			tp_gesture_stop_twofinger_scroll(tp, time);
 			break;
 		case GESTURE_2FG_STATE_PINCH:
-			gesture_notify_pinch(&tp->device->base, time,
-					    LIBINPUT_EVENT_GESTURE_PINCH_END,
-					    &zero, &zero, 0.0, 0.0);
+			gesture_notify_pinch_end(&tp->device->base, time,
+						 cancelled);
 			break;
 		}
 		break;
 	case 3:
 	case 4:
-		gesture_notify_swipe(&tp->device->base, time,
-				     LIBINPUT_EVENT_GESTURE_SWIPE_END,
-				     tp->gesture.finger_count,
-				     &zero, &zero);
+		gesture_notify_swipe_end(&tp->device->base, time,
+					 tp->gesture.finger_count, cancelled);
 		break;
 	}
 	tp->gesture.started = false;
@@ -502,7 +498,7 @@ tp_gesture_finger_count_switch_timeout(uint64_t now, void *data)
 	if (!tp->gesture.finger_count_pending)
 		return;
 
-	tp_gesture_stop(tp, now); /* End current gesture */
+	tp_gesture_stop(tp, now, 1); /* End current gesture */
 	tp->gesture.finger_count = tp->gesture.finger_count_pending;
 	tp->gesture.finger_count_pending = 0;
 }
@@ -520,7 +516,7 @@ tp_gesture_handle_state(struct tp_dispatch *tp, uint64_t time)
 	if (active_touches != tp->gesture.finger_count) {
 		/* If all fingers are lifted immediately end the gesture */
 		if (active_touches == 0) {
-			tp_gesture_stop(tp, time);
+			tp_gesture_stop(tp, time, 0);
 			tp->gesture.finger_count = 0;
 			tp->gesture.finger_count_pending = 0;
 		/* Immediately switch to new mode to avoid initial latency */

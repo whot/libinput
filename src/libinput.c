@@ -118,6 +118,7 @@ struct libinput_event_gesture {
 	struct libinput_event base;
 	uint32_t time;
 	int finger_count;
+	int cancelled;
 	struct normalized_coords delta;
 	struct normalized_coords delta_unaccel;
 	double scale;
@@ -673,6 +674,12 @@ LIBINPUT_EXPORT int
 libinput_event_gesture_get_finger_count(struct libinput_event_gesture *event)
 {
 	return event->finger_count;
+}
+
+LIBINPUT_EXPORT int
+libinput_event_gesture_get_cancelled(struct libinput_event_gesture *event)
+{
+	return event->cancelled;
 }
 
 LIBINPUT_EXPORT double
@@ -1426,6 +1433,7 @@ gesture_notify(struct libinput_device *device,
 	       uint64_t time,
 	       enum libinput_event_type type,
 	       int finger_count,
+	       int cancelled,
 	       const struct normalized_coords *delta,
 	       const struct normalized_coords *unaccel,
 	       double scale,
@@ -1443,6 +1451,7 @@ gesture_notify(struct libinput_device *device,
 	*gesture_event = (struct libinput_event_gesture) {
 		.time = time,
 		.finger_count = finger_count,
+		.cancelled = cancelled,
 		.delta = *delta,
 		.delta_unaccel = *unaccel,
 		.scale = scale,
@@ -1461,8 +1470,20 @@ gesture_notify_swipe(struct libinput_device *device,
 		     const struct normalized_coords *delta,
 		     const struct normalized_coords *unaccel)
 {
-	gesture_notify(device, time, type, finger_count, delta, unaccel,
+	gesture_notify(device, time, type, finger_count, 0, delta, unaccel,
 		       0.0, 0.0);
+}
+
+void
+gesture_notify_swipe_end(struct libinput_device *device,
+			 uint64_t time,
+			 int finger_count,
+			 int cancelled)
+{
+	const struct normalized_coords zero = { 0.0, 0.0 };
+
+	gesture_notify(device, time, LIBINPUT_EVENT_GESTURE_SWIPE_END,
+		       finger_count, cancelled, &zero, &zero, 0.0, 0.0);
 }
 
 void
@@ -1474,7 +1495,19 @@ gesture_notify_pinch(struct libinput_device *device,
 		     double scale,
 		     double angle)
 {
-	gesture_notify(device, time, type, 2, delta, unaccel, scale, angle);
+	gesture_notify(device, time, type, 2, 0, delta, unaccel,
+		       scale, angle);
+}
+
+void
+gesture_notify_pinch_end(struct libinput_device *device,
+			 uint64_t time,
+			 int cancelled)
+{
+	const struct normalized_coords zero = { 0.0, 0.0 };
+
+	gesture_notify(device, time, LIBINPUT_EVENT_GESTURE_PINCH_END,
+		       2, cancelled, &zero, &zero, 0.0, 0.0);
 }
 
 static void

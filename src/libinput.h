@@ -988,6 +988,23 @@ libinput_event_gesture_get_finger_count(struct libinput_event_gesture *event);
 /**
  * @ingroup event_gesture
  *
+ * Return if the gesture ended normally, or if it was cancelled.
+ * For gesture events that are not of type
+ * @ref LIBINPUT_EVENT_GESTURE_SWIPE_END or
+ * @ref LIBINPUT_EVENT_GESTURE_PINCH_END, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_GESTURE_SWIPE_END or
+ * @ref LIBINPUT_EVENT_GESTURE_PINCH_END.
+ *
+ * @return 0 or 1, with 1 indicating that the gesture was cancelled.
+ */
+int
+libinput_event_gesture_get_cancelled(struct libinput_event_gesture *event);
+
+/**
+ * @ingroup event_gesture
+ *
  * Return the delta between the last event and the current event. For gesture
  * events that are not of type @ref LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE or
  * @ref LIBINPUT_EVENT_GESTURE_PINCH_UPDATE, this function returns 0.
