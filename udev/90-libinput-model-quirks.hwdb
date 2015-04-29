@@ -44,3 +44,23 @@ libinput:name:Atmel maXTouch Touchpad:dmi:*svn*GOOGLE*:pn*Samus*:
 # X230 (Tablet)
 libinput:name:SynPS/2 Synaptics TouchPad:dmi:*svnLENOVO:*:pvrThinkPadX230*
  LIBINPUT_MODEL_LENOVO_X230=1
+
+##########################################
+# System76
+##########################################
+
+# Bonobo Professional
+libinput:name:SynPS/2 Synaptics TouchPad:dmi:*svnSystem76*pvrbonp5*
+ LIBINPUT_MODEL_SYSTEM76_BONOBO=1
+
+# Clevo
+libinput:name:SynPS/2 Synaptics TouchPad:dmi:*pnW740SU*rnW740SU*
+ LIBINPUT_MODEL_SYSTEM76_CLEVO=1
+
+# Galago Ultra Pro
+libinput:name:SynPS/2 Synaptics TouchPad:dmi:*svnSystem76*pvrgalu1*
+ LIBINPUT_MODEL_SYSTEM76_GALAGO=1
+
+# Kudu Professional
+libinput:name:SynPS/2 Synaptics TouchPad:dmi:*svnSystem76*pvrkudp1*
+ LIBINPUT_MODEL_SYSTEM76_KUDU=1

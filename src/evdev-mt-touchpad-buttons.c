@@ -650,11 +650,21 @@ tp_click_get_default_method(struct tp_dispatch *tp)
 
 	if (!tp->buttons.is_clickpad)
 		return LIBINPUT_CONFIG_CLICK_METHOD_NONE;
-	else if (libevdev_get_id_vendor(tp->device->evdev) == VENDOR_ID_APPLE ||
-		device->model == EVDEV_MODEL_CHROMEBOOK)
+	else if (libevdev_get_id_vendor(tp->device->evdev) == VENDOR_ID_APPLE)
 		return LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
-	else
-		return LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
+
+	switch (device->model) {
+	case EVDEV_MODEL_CHROMEBOOK:
+	case EVDEV_MODEL_SYSTEM76_BONOBO:
+	case EVDEV_MODEL_SYSTEM76_CLEVO:
+	case EVDEV_MODEL_SYSTEM76_GALAGO:
+	case EVDEV_MODEL_SYSTEM76_KUDU:
+		return LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
+	default:
+		break;
+	}
+
+	return LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
 }
 
 static enum libinput_config_click_method
