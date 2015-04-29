@@ -182,6 +182,9 @@ START_TEST(touch_double_touch_down_up)
 	dev = litest_current_device();
 	libinput = dev->libinput;
 
+	/* note: this test is a false negative, libevdev will filter
+	 * tracking IDs re-used in the same slot. */
+
 	litest_touch_down(dev, 0, 0, 0);
 	litest_touch_down(dev, 0, 0, 0);
 	litest_touch_up(dev, 0);
