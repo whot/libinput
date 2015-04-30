@@ -36,10 +36,29 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 
+#include <sys/timerfd.h>
+#include <assert.h>
+
 #include <libinput.h>
 #include <libinput-util.h>
 
 #include "shared.h"
+
+/* XXX:kinetics
+ * Adjustable parameters, you can tweak those to play around a bit
+ */
+/* speed calculation only considers the last X events */
+#define CLICK_EVENTS_COUNT 5
+/* Max allowed time between two real wheel events (for the last NEVENTS), if
+ * greater we won't trigger kinetics */
+#define MAX_TIME_BETWEEN_EVENTS 100 /* ms */
+/* movement of the scroll bar in pixels per mouse click. Only a visual
+ * adjustment, you shouldn't need to toggle this. */
+#define CLICK_MOVEMENT_IN_PX 10
+/* Speed at which kinetic scrolling kicks in, in clicks/s */
+#define THRESHOLD_SPEED 0.2 /* clicks/ms */
+/* Friction factor: many clicks per second per second to reduce */
+#define FRICTION 1
 
 #define clip(val_, min_, max_) min((max_), max((min_), (val_)))
 
@@ -48,6 +67,12 @@ struct tools_options options;
 struct touch {
 	int active;
 	int x, y;
+};
+
+/* XXX kinetics */
+struct wheel_event {
+	uint32_t time;
+	int v, h;
 };
 
 struct window {
@@ -72,6 +97,16 @@ struct window {
 	int l, m, r;
 
 	struct libinput_device *devices[50];
+
+	/* XXX: kinetic scrolling things */
+	struct kinetics {
+		struct wheel_event events[CLICK_EVENTS_COUNT];
+		int timerfd;
+		double speed; /* clicks/ms, reduces through friction */
+		uint32_t start_time; /* last physical event that triggered
+					kinetics */
+		uint32_t last_time; /* last emulated event */
+	} kinetics;
 };
 
 static int
@@ -353,11 +388,203 @@ handle_event_touch(struct libinput_event *ev, struct window *w)
 	touch->y = (int)y;
 }
 
+/* XXX: kinetics */
+/*************************************************************************
+ * Simple speed calculation: take the last 5 events, and require all to be
+ * in the same direction and each of them less than 100ms from the previous
+ * one.
+ *
+ * Add up the values (likely more than 1 click per event at that speed),
+ * divide by the total time of those last 5 events and you have a speed in
+ * clicks/ms.
+ *
+ * Set a timer for the next calculated event. If we wake up and there hasn't
+ * been a more recent physical event in the pipe, reduce the speed by a
+ * friction factor, emulate a wheel click (visually only) and re-schedule a
+ * wakeup.
+ *
+ ************************************************************************/
+static int
+calculate_wheel_speed(struct window *w, double *v_out, double *h_out)
+{
+	double v = 0.0,
+	       h = 0.0;
+	int i;
+	struct wheel_event *cur, *next;
+	struct wheel_event *last, *first;
+	uint32_t tdelta;
+
+	for (i = 0; i < ARRAY_LENGTH(w->kinetics.events) - 1; i++) {
+		cur = &w->kinetics.events[i];
+		next = &w->kinetics.events[i + 1];
+		/* not enough events */
+		if (next->time == 0)
+			return 1;
+
+		/* last X events aren't close enough together */
+		if (cur->time - next->time > MAX_TIME_BETWEEN_EVENTS)
+			return 1;
+
+		/* require all events to go in the same direction */
+		if (signbit(cur->v) != signbit(next->v) ||
+		    signbit(cur->h) != signbit(next->h))
+			return 1;
+
+		/* add up all values */
+		v += cur->v;
+		h += cur->h;
+	}
+
+	first = &w->kinetics.events[0];
+	last = &w->kinetics.events[ARRAY_LENGTH(w->kinetics.events) - 1];
+	tdelta = first->time - last->time;
+
+	/* calculate v, h as clicks per ms for the last
+	 * ARRAY_LENGTH(w->kinetics.events) events */
+	v = v/tdelta;
+	h = h/tdelta;
+
+	*v_out = v;
+	*h_out = h;
+
+	return 0;
+}
+
+/* XXX: kinetics */
+static void
+kinetics_arm_timer_for_speed(struct window *w, uint32_t now)
+{
+	struct itimerspec its = { { 0, 0 }, { 0, 0 } };
+	uint64_t next; /* milliseconds */
+	int r;
+	uint32_t tdelta;
+	double friction;
+
+	/* speed is in clicks per ms, reduce by friction clicks per ms */
+	tdelta = now - w->kinetics.last_time;
+	friction = 1.0 * tdelta * FRICTION/1000.0;
+
+	if (fabs(w->kinetics.speed) < fabs(friction)) {
+		printf("time: %d Well, that was fun. I need to lie down now.\n",
+		       now);
+		w->kinetics.speed = 0.0;
+		return;
+	}
+
+	if (w->kinetics.speed > 0.001)
+		w->kinetics.speed -= friction;
+	else if (w->kinetics.speed < -0.001)
+		w->kinetics.speed += friction;
+
+	w->kinetics.last_time = now;
+
+	/* ms until next click */
+	next = now + 1.0/fabs(w->kinetics.speed);
+	its.it_value.tv_sec = next/1000;
+	its.it_value.tv_nsec = (next % 1000) * 1000 * 1000;
+
+	r = timerfd_settime(w->kinetics.timerfd, TFD_TIMER_ABSTIME, &its, NULL);
+	assert(r == 0);
+
+	printf("time: %d speed %f next: %ld Wheeeee!\n",
+	       now, w->kinetics.speed, next);
+}
+
+/* XXX: kinetics */
+static void
+handle_wheel_kinetics(struct libinput_event_pointer *p, struct window *w)
+{
+	int vclicks = 0, hclicks = 0;
+	struct kinetics *kinetics = &w->kinetics;
+	struct wheel_event *cur = &kinetics->events[0];
+	double vspeed, hspeed;
+
+	/* get the wheel click data */
+	if (libinput_event_pointer_has_axis(p,
+					    LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL))
+		vclicks = libinput_event_pointer_get_axis_value_discrete(p,
+					LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL);
+	if (libinput_event_pointer_has_axis(p,
+					    LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL))
+		hclicks = libinput_event_pointer_get_axis_value_discrete(p,
+					LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL);
+
+	w->vy += vclicks * CLICK_MOVEMENT_IN_PX;
+	w->vy = clip(w->vy, 0, w->height);
+	w->hx += hclicks * CLICK_MOVEMENT_IN_PX;
+	w->hx = clip(w->hx, 0, w->width);
+
+	/* store the current click time in the list with all previous events */
+	memmove(&kinetics->events[1],
+		&kinetics->events[0],
+		sizeof(kinetics->events) -
+			sizeof(kinetics->events[0]));
+	cur->time = libinput_event_pointer_get_time(p);
+	cur->v = vclicks;
+	cur->h = hclicks;
+
+	if (calculate_wheel_speed(w, &vspeed, &hspeed) == 0) {
+		printf("time: %d real event speed: vert %f\n", cur->time, vspeed);
+		/* only vertical for now */
+		if (fabs(vspeed) > THRESHOLD_SPEED) {
+			printf("time: %d Kinetics started, off we go\n",
+			       cur->time);
+			w->kinetics.speed = vspeed;
+			w->kinetics.start_time = cur->time;
+			w->kinetics.last_time = cur->time;
+			kinetics_arm_timer_for_speed(w, w->kinetics.start_time);
+		}
+	}
+}
+
+/* XXX: kinetics */
+static gboolean
+handle_kinetics_timer(GIOChannel *source, GIOCondition condition, gpointer data)
+{
+	struct window *w = data;
+	uint64_t now;
+	struct timespec ts = { 0, 0 };
+	struct wheel_event *most_recent = &w->kinetics.events[0];
+
+	/* drain the fd */
+	read(w->kinetics.timerfd, &now, sizeof(now));
+
+	/* abort if there's a more recent wheel event. this happens
+	 * happens on wheels with low resistance or when the user manually
+	 * slows to down */
+	if (most_recent->time > w->kinetics.start_time) {
+		printf("Aborting, got more wheel events (newest is %d, start time was %d)\n",
+		       most_recent->time, w->kinetics.start_time);
+		return TRUE;
+	}
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	now = ts.tv_sec * 1000ULL + ts.tv_nsec / 1000000;
+
+	kinetics_arm_timer_for_speed(w, now);
+
+	if (w->kinetics.speed > 0.0)
+		w->vy += CLICK_MOVEMENT_IN_PX;
+	else
+		w->vy -= CLICK_MOVEMENT_IN_PX;
+	w->vy = clip(w->vy, 0, w->height);
+
+	gtk_widget_queue_draw(w->area);
+	return TRUE;
+}
+
 static void
 handle_event_axis(struct libinput_event *ev, struct window *w)
 {
 	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
 	double value;
+
+	/* XXX kinetics */
+	if (libinput_event_pointer_get_axis_source(p) ==
+	    LIBINPUT_POINTER_AXIS_SOURCE_WHEEL) {
+		handle_wheel_kinetics(p, w);
+		return;
+	}
 
 	if (libinput_event_pointer_has_axis(p,
 			LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL)) {
@@ -480,12 +707,19 @@ handle_event_libinput(GIOChannel *source, GIOCondition condition, gpointer data)
 }
 
 static void
-sockets_init(struct libinput *li)
+sockets_init(struct libinput *li, struct window *w)
 {
 	GIOChannel *c = g_io_channel_unix_new(libinput_get_fd(li));
 
 	g_io_channel_set_encoding(c, NULL, NULL);
 	g_io_add_watch(c, G_IO_IN, handle_event_libinput, li);
+
+	/* XXX: kinetics */
+	w->kinetics.timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
+	assert(w->kinetics.timerfd >= 0);
+	c = g_io_channel_unix_new(w->kinetics.timerfd);
+	g_io_channel_set_encoding(c, NULL, NULL);
+	g_io_add_watch(c, G_IO_IN, handle_kinetics_timer, w);
 }
 
 static int
@@ -529,7 +763,7 @@ main(int argc, char *argv[])
 		return 1;
 
 	window_init(&w);
-	sockets_init(li);
+	sockets_init(li, &w);
 
 	gtk_main();
 
