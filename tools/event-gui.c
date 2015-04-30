@@ -56,9 +56,9 @@
  * adjustment, you shouldn't need to toggle this. */
 #define CLICK_MOVEMENT_IN_PX 10
 /* Speed at which kinetic scrolling kicks in, in clicks/s */
-#define THRESHOLD_SPEED 0.2 /* clicks/ms */
+#define THRESHOLD_SPEED 0.1 /* clicks/ms */
 /* Friction factor: many clicks per second per second to reduce */
-#define FRICTION 1
+#define FRICTION 0.5
 
 #define clip(val_, min_, max_) min((max_), max((min_), (val_)))
 
