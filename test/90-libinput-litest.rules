@@ -1,0 +1,9 @@
+ACTION!="add|change", GOTO="libinput_litest_end"
+KERNEL!="event[0-9]*", GOTO="libinput_litest_end"
+
+# let everyone access litest test devices
+KERNELS=="input*", \
+   ATTRS{name}=="litest *", \
+   MODE="0777"
+
+LABEL="libinput_device_group_end"

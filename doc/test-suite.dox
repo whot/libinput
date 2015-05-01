@@ -23,6 +23,12 @@ Most tests require the creation of uinput devices and access to the
 resulting `/dev/input/eventX` nodes. Some tests require temporary udev rules.
 <b>This usually requires the tests to be run as root</b>.
 
+To run tests as a user, some local configuration is required:
+
+- install the udev rules file `$srcdir/test/90-libinput-litest.rules`
+- ``chmod o+rw /dev/uinput``
+- ``chmod o+rw /run/udev/rules.d``
+
 @section test-filtering Selective running of tests
 
 Check enables tests to be grouped into suites and test cases, litest uses

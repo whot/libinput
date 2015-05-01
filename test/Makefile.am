@@ -130,4 +130,4 @@ check: valgrind
 
 endif
 endif
-EXTRA_DIST=valgrind.suppressions
+EXTRA_DIST=valgrind.suppressions 90-libinput-litest.rules
