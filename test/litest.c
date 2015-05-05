@@ -186,7 +186,8 @@ litest_drop_udev_rules(void)
 static void
 litest_add_tcase_for_device(struct suite *suite,
 			    void *func,
-			    const struct litest_test_device *dev)
+			    const struct litest_test_device *dev,
+			    const struct range *range)
 {
 	struct test *t;
 	const char *test_name = dev->shortname;
@@ -195,7 +196,13 @@ litest_add_tcase_for_device(struct suite *suite,
 		if (strcmp(t->name, test_name) != 0)
 			continue;
 
-		tcase_add_test(t->tc, func);
+		if (range)
+			tcase_add_loop_test(t->tc,
+					    func,
+					    range->lower,
+					    range->upper);
+		else
+			tcase_add_test(t->tc, func);
 		return;
 	}
 
@@ -218,7 +225,9 @@ litest_add_tcase_for_device(struct suite *suite,
 }
 
 static void
-litest_add_tcase_no_device(struct suite *suite, void *func)
+litest_add_tcase_no_device(struct suite *suite,
+			   void *func,
+			   const struct range *range)
 {
 	struct test *t;
 	const char *test_name = "no device";
@@ -227,7 +236,10 @@ litest_add_tcase_no_device(struct suite *suite, void *func)
 		if (strcmp(t->name, test_name) != 0)
 			continue;
 
-		tcase_add_test(t->tc, func);
+		if (range)
+			tcase_add_loop_test(t->tc, func, range->lower, range->upper);
+		else
+			tcase_add_test(t->tc, func);
 		return;
 	}
 
@@ -243,7 +255,8 @@ litest_add_tcase_no_device(struct suite *suite, void *func)
 static void
 litest_add_tcase(struct suite *suite, void *func,
 		 enum litest_device_feature required,
-		 enum litest_device_feature excluded)
+		 enum litest_device_feature excluded,
+		 const struct range *range)
 {
 	struct litest_test_device **dev = devices;
 
@@ -252,17 +265,17 @@ litest_add_tcase(struct suite *suite, void *func,
 
 	if (required == LITEST_DISABLE_DEVICE &&
 	    excluded == LITEST_DISABLE_DEVICE) {
-		litest_add_tcase_no_device(suite, func);
+		litest_add_tcase_no_device(suite, func, range);
 	} else if (required != LITEST_ANY || excluded != LITEST_ANY) {
 		while (*dev) {
 			if (((*dev)->features & required) == required &&
 			    ((*dev)->features & excluded) == 0)
-				litest_add_tcase_for_device(suite, func, *dev);
+				litest_add_tcase_for_device(suite, func, *dev, range);
 			dev++;
 		}
 	} else {
 		while (*dev) {
-			litest_add_tcase_for_device(suite, func, *dev);
+			litest_add_tcase_for_device(suite, func, *dev, range);
 			dev++;
 		}
 	}
@@ -272,6 +285,18 @@ void
 litest_add_no_device(const char *name, void *func)
 {
 	litest_add(name, func, LITEST_DISABLE_DEVICE, LITEST_DISABLE_DEVICE);
+}
+
+void
+litest_add_ranged_no_device(const char *name,
+			    void *func,
+			    const struct range *range)
+{
+	litest_add_ranged(name,
+			  func,
+			  LITEST_DISABLE_DEVICE,
+			  LITEST_DISABLE_DEVICE,
+			  range);
 }
 
 static struct suite *
@@ -304,13 +329,32 @@ litest_add(const char *name,
 	   enum litest_device_feature required,
 	   enum litest_device_feature excluded)
 {
-	litest_add_tcase(get_suite(name), func, required, excluded);
+	litest_add_ranged(name, func, required, excluded, NULL);
+}
+
+void
+litest_add_ranged(const char *name,
+		  void *func,
+		  enum litest_device_feature required,
+		  enum litest_device_feature excluded,
+		  const struct range *range)
+{
+	litest_add_tcase(get_suite(name), func, required, excluded, range);
 }
 
 void
 litest_add_for_device(const char *name,
 		      void *func,
 		      enum litest_device_type type)
+{
+	litest_add_ranged_for_device(name, func, type, NULL);
+}
+
+void
+litest_add_ranged_for_device(const char *name,
+			     void *func,
+			     enum litest_device_type type,
+			     const struct range *range)
 {
 	struct suite *s;
 	struct litest_test_device **dev = devices;
@@ -320,7 +364,7 @@ litest_add_for_device(const char *name,
 	s = get_suite(name);
 	while (*dev) {
 		if ((*dev)->type == type) {
-			litest_add_tcase_for_device(s, func, *dev);
+			litest_add_tcase_for_device(s, func, *dev, range);
 			return;
 		}
 		dev++;
