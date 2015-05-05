@@ -102,8 +102,14 @@ libinput_timer_handler(void *data)
 	struct libinput_timer *timer, *tmp;
 	uint64_t now;
 	uint64_t discard;
+	int r;
 
-	read(libinput->timer.fd, &discard, sizeof(discard));
+	r = read(libinput->timer.fd, &discard, sizeof(discard));
+	if (r == -1 && errno != EAGAIN)
+		log_bug_libinput(libinput,
+				 "Error %d reading from timerfd (%s)",
+				 errno,
+				 strerror(errno));
 
 	now = libinput_now(libinput);
 	if (now == 0)
