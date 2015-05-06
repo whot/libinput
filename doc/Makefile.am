@@ -18,7 +18,8 @@ header_files = \
 	$(srcdir)/scrolling.dox \
 	$(srcdir)/seats.dox \
 	$(srcdir)/t440-support.dox \
-	$(srcdir)/tapping.dox
+	$(srcdir)/tapping.dox \
+	$(srcdir)/test-suite.dox
 
 diagram_files = \
 	$(srcdir)/dot/seats-sketch.gv \

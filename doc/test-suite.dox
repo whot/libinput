@@ -1,0 +1,66 @@
+/**
+@page test-suite libinput test suite
+
+The libinput test suite is based on
+[Check](http://check.sourceforge.net/doc/check_html/) and runs automatically
+during `make check`. Check itself is wrapped into a libinput-specific test
+suite called *litest*. Tests are found in `$srcdir/test/`, the test binaries are
+prefixed with `test-` and can be run individually. 
+
+@section test-config X.Org config to avoid interference
+
+uinput devices created by the test suite are usually recognised by X as
+input devices. All events sent through these devices will generate X events
+and interfere with your desktop.
+
+Copy the file `$srcdir/test/50-litest.conf` into your `/etc/X11/xorg.conf.d`
+and restart X. This will ignore any litest devices and thus not interfere
+with your desktop.
+
+@section test-root Permissions required to run tests
+
+Most tests require the creation of uinput devices and access to the
+resulting `/dev/input/eventX` nodes. Some tests require temporary udev rules.
+<b>This usually requires the tests to be run as root</b>.
+
+@section test-filtering Selective running of tests
+
+Check enables tests to be grouped into suites and test cases, litest uses
+test suites as a general feature-specific grouping (e.g. "touchpad:tap") and
+instantiates one test case per device. The --list flag shows the list of
+suites and tests.
+@code
+$ ./test/test-device --list
+device:wheel:
+	wheel only
+	blackwidow
+device:invalid devices:
+	no device
+device:group:
+	no device
+	logitech trackball
+	MS surface cover
+	mouse_roccat
+	wheel only
+	blackwidow
+...
+@endcode
+
+In the above example, the "device:wheel" suite is run for the "wheel only" and
+the "blackwidow" device. Both devices are automatically instantiated through
+uinput by litest. The "no device" entry signals that litest does not
+instantiate a uinput device for a specific test.
+
+Check provides two filters through environment variables: <b>CK_RUN_SUITE</b>
+and <b>CK_RUN_CASE</b>. They may be used independently or combined to narrow
+down the set of tests to run. For example:
+
+@code
+$ CK_RUN_SUITE="device:wheel" ./test/test-device
+$ CK_RUN_CASE="wheel only" ./test/test-device
+$ CK_RUN_SUITE="device:wheel" CK_RUN_CASE="wheel only" ./test/test-device
+@endcode
+
+Check and litest currently do not provide a way to run a specific test
+function only.
+*/
