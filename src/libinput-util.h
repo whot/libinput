@@ -244,4 +244,15 @@ int parse_mouse_dpi_property(const char *prop);
 int parse_mouse_wheel_click_angle_property(const char *prop);
 double parse_trackpoint_accel_property(const char *prop);
 
+enum udev_status {
+	UDEV_DEVICE_SUCCESS,
+	UDEV_DEVICE_INVALID,
+	UDEV_DEVICE_TIMEOUT
+};
+
+enum udev_status
+udev_device_from_devnode(struct udev *udev,
+			 const char *devnode,
+			 struct udev_device **device_return);
+
 #endif /* LIBINPUT_UTIL_H */

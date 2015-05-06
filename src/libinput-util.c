@@ -232,3 +232,39 @@ parse_trackpoint_accel_property(const char *prop)
 
 	return accel;
 }
+
+enum udev_status
+udev_device_from_devnode(struct udev *udev,
+			 const char *devnode,
+			 struct udev_device **device_return)
+{
+	struct udev_device *dev;
+	struct stat st;
+	size_t count = 0;
+	enum udev_status rc = UDEV_DEVICE_SUCCESS;
+
+	if (stat(devnode, &st) < 0)
+		return UDEV_DEVICE_INVALID;
+
+	dev = udev_device_new_from_devnum(udev, 'c', st.st_rdev);
+
+	while (dev && !udev_device_get_is_initialized(dev)) {
+		udev_device_unref(dev);
+		msleep(10);
+		dev = udev_device_new_from_devnum(udev, 'c', st.st_rdev);
+
+		count++;
+		if (count > 10) {
+			rc = UDEV_DEVICE_TIMEOUT;
+			break;
+		}
+	}
+
+	if (!dev)
+		rc = UDEV_DEVICE_INVALID;
+	else
+		*device_return = dev;
+
+	return rc;
+
+}
