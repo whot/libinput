@@ -135,7 +135,8 @@ static struct list all_tests;
 static void
 litest_reload_udev_rules(void)
 {
-	system("udevadm control --reload-rules");
+	if (geteuid() == 0)
+		system("udevadm control --reload-rules");
 }
 
 static int
