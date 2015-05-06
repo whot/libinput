@@ -1203,6 +1203,9 @@ litest_create_uinput_device_from_description(const char *name,
 	};
 	char buf[512];
 	const char *devnode;
+	struct udev *udev;
+	struct udev_device *udev_device;
+	enum udev_status status;
 
 	dev = libevdev_new();
 	ck_assert(dev != NULL);
@@ -1248,6 +1251,17 @@ litest_create_uinput_device_from_description(const char *name,
 	libevdev_free(dev);
 
 	devnode = libevdev_uinput_get_devnode(uinput);
+
+	/* make sure the device is initialized, i.e. all rules have been
+	 * applied */
+	udev = udev_new();
+	status = udev_device_from_devnode(udev,
+					  devnode,
+					  &udev_device);
+	ck_assert_int_eq(status, UDEV_DEVICE_SUCCESS);
+	udev_device_unref(udev_device);
+	udev_unref(udev);
+
 	ck_assert_notnull(devnode);
 	fd = open(devnode, O_RDONLY);
 	ck_assert_int_gt(fd, -1);
