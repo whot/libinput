@@ -582,9 +582,71 @@ START_TEST(touch_protocol_a_2fg_touch)
 }
 END_TEST
 
+START_TEST(touch_initial_state)
+{
+	struct litest_device *dev;
+	struct libinput *libinput1, *libinput2;
+	struct libinput_event *ev1, *ev2;
+	struct libinput_event_touch *t1, *t2;
+	int axis = _i; /* looped test */
+
+	dev = litest_current_device();
+	libinput1 = dev->libinput;
+	litest_touch_down(dev, 0, 40, 60);
+	litest_touch_up(dev, 0);
+
+	/* device is now on some x/y value */
+	litest_drain_events(libinput1);
+
+	libinput2 = litest_create_context();
+	libinput_path_add_device(libinput2,
+				 libevdev_uinput_get_devnode(dev->uinput));
+	litest_drain_events(libinput2);
+
+	if (axis == ABS_X)
+		litest_touch_down(dev, 0, 40, 70);
+	else
+		litest_touch_down(dev, 0, 70, 60);
+	litest_touch_up(dev, 0);
+
+	litest_wait_for_event(libinput1);
+	litest_wait_for_event(libinput2);
+
+	while (libinput_next_event_type(libinput1)) {
+		ev1 = libinput_get_event(libinput1);
+		ev2 = libinput_get_event(libinput2);
+
+		t1 = litest_is_touch_event(ev1, 0);
+		t2 = litest_is_touch_event(ev2, 0);
+
+		ck_assert_int_eq(libinput_event_get_type(ev1),
+				 libinput_event_get_type(ev2));
+
+		if (libinput_event_get_type(ev1) == LIBINPUT_EVENT_TOUCH_UP ||
+		    libinput_event_get_type(ev1) == LIBINPUT_EVENT_TOUCH_FRAME)
+			break;
+
+		ck_assert_int_eq(libinput_event_touch_get_x(t1),
+				 libinput_event_touch_get_x(t2));
+		ck_assert_int_eq(libinput_event_touch_get_y(t1),
+				 libinput_event_touch_get_y(t2));
+
+		libinput_event_destroy(ev1);
+		libinput_event_destroy(ev2);
+	}
+
+	libinput_event_destroy(ev1);
+	libinput_event_destroy(ev2);
+
+	libinput_unref(libinput2);
+}
+END_TEST
+
 int
 main(int argc, char **argv)
 {
+	struct range axes = { ABS_X, ABS_Y + 1};
+
 	litest_add("touch:frame", touch_frame_events, LITEST_TOUCH, LITEST_ANY);
 	litest_add_no_device("touch:abs-transform", touch_abs_transform);
 	litest_add_no_device("touch:many-slots", touch_many_slots);
@@ -604,6 +666,8 @@ main(int argc, char **argv)
 	litest_add("touch:protocol a", touch_protocol_a_init, LITEST_PROTOCOL_A, LITEST_ANY);
 	litest_add("touch:protocol a", touch_protocol_a_touch, LITEST_PROTOCOL_A, LITEST_ANY);
 	litest_add("touch:protocol a", touch_protocol_a_2fg_touch, LITEST_PROTOCOL_A, LITEST_ANY);
+
+	litest_add_ranged("touch:state", touch_initial_state, LITEST_TOUCH, LITEST_PROTOCOL_A, &axes);
 
 	return litest_run(argc, argv);
 }
