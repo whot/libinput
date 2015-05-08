@@ -1805,6 +1805,8 @@ evdev_configure_device(struct evdev_device *device)
 			device->abs.fake_resolution = 1;
 		device->abs.absinfo_x = libevdev_get_abs_info(evdev, ABS_X);
 		device->abs.absinfo_y = libevdev_get_abs_info(evdev, ABS_Y);
+		device->abs.point.x = device->abs.absinfo_x->value;
+		device->abs.point.y = device->abs.absinfo_y->value;
 
 		if (evdev_is_fake_mt_device(device)) {
 			udev_tags &= ~EVDEV_UDEV_TAG_TOUCHSCREEN;
