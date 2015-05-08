@@ -986,6 +986,28 @@ tp_init_touch(struct tp_dispatch *tp,
 	t->has_ended = true;
 }
 
+static void
+tp_sync_touch(struct tp_dispatch *tp,
+	      struct evdev_device *device,
+	      struct tp_touch *t,
+	      int slot)
+{
+	struct libevdev *evdev = device->evdev;
+
+	if (!libevdev_fetch_slot_value(evdev,
+				       slot,
+				       ABS_MT_POSITION_X,
+				       &t->point.x))
+		t->point.x = libevdev_get_event_value(evdev, EV_ABS, ABS_X);
+	if (!libevdev_fetch_slot_value(evdev,
+				       slot,
+				       ABS_MT_POSITION_Y,
+				       &t->point.y))
+		t->point.y = libevdev_get_event_value(evdev, EV_ABS, ABS_Y);
+
+	libevdev_fetch_slot_value(evdev, slot, ABS_MT_DISTANCE, &t->distance);
+}
+
 static int
 tp_init_slots(struct tp_dispatch *tp,
 	      struct evdev_device *device)
@@ -1032,6 +1054,12 @@ tp_init_slots(struct tp_dispatch *tp,
 
 	for (i = 0; i < tp->ntouches; i++)
 		tp_init_touch(tp, &tp->touches[i]);
+
+	/* Always sync the first touch so we get ABS_X/Y synced on
+	 * single-touch touchpads */
+	tp_sync_touch(tp, device, &tp->touches[0], 0);
+	for (i = 1; i < tp->num_slots; i++)
+		tp_sync_touch(tp, device, &tp->touches[i], i);
 
 	return 0;
 }

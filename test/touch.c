@@ -588,9 +588,14 @@ START_TEST(touch_initial_state)
 	struct libinput *libinput1, *libinput2;
 	struct libinput_event *ev1, *ev2;
 	struct libinput_event_touch *t1, *t2;
+	struct libinput_device *device1, *device2;
 	int axis = _i; /* looped test */
 
 	dev = litest_current_device();
+	device1 = dev->libinput_device;
+	libinput_device_config_tap_set_enabled(device1,
+					       LIBINPUT_CONFIG_TAP_DISABLED);
+
 	libinput1 = dev->libinput;
 	litest_touch_down(dev, 0, 40, 60);
 	litest_touch_up(dev, 0);
@@ -599,8 +604,11 @@ START_TEST(touch_initial_state)
 	litest_drain_events(libinput1);
 
 	libinput2 = litest_create_context();
-	libinput_path_add_device(libinput2,
-				 libevdev_uinput_get_devnode(dev->uinput));
+	device2 = libinput_path_add_device(libinput2,
+					   libevdev_uinput_get_devnode(
+							       dev->uinput));
+	libinput_device_config_tap_set_enabled(device2,
+					       LIBINPUT_CONFIG_TAP_DISABLED);
 	litest_drain_events(libinput2);
 
 	if (axis == ABS_X)
