@@ -418,7 +418,7 @@ tp_gesture_post_events(struct tp_dispatch *tp, uint64_t time)
 
 	/* When tap-and-dragging, or a clickpad is clicked force 1fg mode */
 	if (tp_tap_dragging(tp) || (tp->buttons.is_clickpad && tp->buttons.state)) {
-		tp_gesture_stop(tp, time, 1);
+		tp_gesture_cancel(tp, time);
 		tp->gesture.finger_count = 1;
 		tp->gesture.finger_count_pending = 0;
 	}
@@ -452,8 +452,8 @@ tp_gesture_stop_twofinger_scroll(struct tp_dispatch *tp, uint64_t time)
 			  LIBINPUT_POINTER_AXIS_SOURCE_FINGER);
 }
 
-void
-tp_gesture_stop(struct tp_dispatch *tp, uint64_t time, int cancelled)
+static void
+tp_gesture_end(struct tp_dispatch *tp, uint64_t time, bool cancelled)
 {
 	struct libinput *libinput = tp->device->base.seat->libinput;
 	enum tp_gesture_2fg_state twofinger_state = tp->gesture.twofinger_state;
@@ -490,6 +490,18 @@ tp_gesture_stop(struct tp_dispatch *tp, uint64_t time, int cancelled)
 	tp->gesture.started = false;
 }
 
+void
+tp_gesture_cancel(struct tp_dispatch *tp, uint64_t time)
+{
+	tp_gesture_end(tp, time, true);
+}
+
+void
+tp_gesture_stop(struct tp_dispatch *tp, uint64_t time)
+{
+	tp_gesture_end(tp, time, false);
+}
+
 static void
 tp_gesture_finger_count_switch_timeout(uint64_t now, void *data)
 {
@@ -498,7 +510,7 @@ tp_gesture_finger_count_switch_timeout(uint64_t now, void *data)
 	if (!tp->gesture.finger_count_pending)
 		return;
 
-	tp_gesture_stop(tp, now, 1); /* End current gesture */
+	tp_gesture_cancel(tp, now); /* End current gesture */
 	tp->gesture.finger_count = tp->gesture.finger_count_pending;
 	tp->gesture.finger_count_pending = 0;
 }
@@ -516,7 +528,7 @@ tp_gesture_handle_state(struct tp_dispatch *tp, uint64_t time)
 	if (active_touches != tp->gesture.finger_count) {
 		/* If all fingers are lifted immediately end the gesture */
 		if (active_touches == 0) {
-			tp_gesture_stop(tp, time, 0);
+			tp_gesture_stop(tp, time);
 			tp->gesture.finger_count = 0;
 			tp->gesture.finger_count_pending = 0;
 		/* Immediately switch to new mode to avoid initial latency */

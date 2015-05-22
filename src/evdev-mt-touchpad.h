@@ -432,7 +432,10 @@ void
 tp_remove_gesture(struct tp_dispatch *tp);
 
 void
-tp_gesture_stop(struct tp_dispatch *tp, uint64_t time, int cancelled);
+tp_gesture_stop(struct tp_dispatch *tp, uint64_t time);
+
+void
+tp_gesture_cancel(struct tp_dispatch *tp, uint64_t time);
 
 void
 tp_gesture_handle_state(struct tp_dispatch *tp, uint64_t time);
