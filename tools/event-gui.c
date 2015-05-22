@@ -72,6 +72,12 @@ struct window {
 	/* l/m/r mouse buttons */
 	int l, m, r;
 
+	/* touchpad swipe */
+	struct {
+		int nfingers;
+		double x, y;
+	} swipe;
+
 	struct libinput_device *devices[50];
 };
 
@@ -104,10 +110,27 @@ draw(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
 	struct window *w = data;
 	struct touch *t;
+	int i;
 
 	cairo_set_source_rgb(cr, 1, 1, 1);
 	cairo_rectangle(cr, 0, 0, w->width, w->height);
 	cairo_fill(cr);
+
+	/* swipe */
+	cairo_save(cr);
+	cairo_translate(cr, w->swipe.x, w->swipe.y);
+	for (i = 0; i < w->swipe.nfingers; i++) {
+		cairo_set_source_rgb(cr, .8, .8, .4);
+		cairo_arc(cr, (i - 2) * 40, 0, 20, 0, 2 * M_PI);
+		cairo_fill(cr);
+	}
+
+	for (i = 0; i < 4; i++) { /* 4 fg max */
+		cairo_set_source_rgb(cr, 0, 0, 0);
+		cairo_arc(cr, (i - 2) * 40, 0, 20, 0, 2 * M_PI);
+		cairo_stroke(cr);
+	}
+	cairo_restore(cr);
 
 	/* draw pointer sprite */
 	cairo_set_source_rgb(cr, 0, 0, 0);
@@ -185,6 +208,9 @@ map_event_cb(GtkWidget *widget, GdkEvent *event, gpointer data)
 	w->vy = w->height/2;
 	w->hx = w->width/2;
 	w->hy = w->height/2;
+
+	w->swipe.x = w->width/2;
+	w->swipe.y = w->height/2;
 
 	g_signal_connect(G_OBJECT(w->area), "draw", G_CALLBACK(draw), w);
 
@@ -428,6 +454,37 @@ handle_event_button(struct libinput_event *ev, struct window *w)
 
 }
 
+static void
+handle_event_swipe(struct libinput_event *ev, struct window *w)
+{
+	struct libinput_event_gesture *g = libinput_event_get_gesture_event(ev);
+	int nfingers;
+	double dx, dy;
+
+	nfingers = libinput_event_gesture_get_finger_count(g);
+
+	switch (libinput_event_get_type(ev)) {
+	case LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN:
+		w->swipe.nfingers = nfingers;
+		w->swipe.x = w->width/2;
+		w->swipe.y = w->height/2;
+		break;
+	case LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE:
+		dx = libinput_event_gesture_get_dx(g);
+		dy = libinput_event_gesture_get_dy(g);
+		w->swipe.x += dx;
+		w->swipe.y += dy;
+		break;
+	case LIBINPUT_EVENT_GESTURE_SWIPE_END:
+		w->swipe.nfingers = 0;
+		w->swipe.x = w->width/2;
+		w->swipe.y = w->height/2;
+		break;
+	default:
+		abort();
+	}
+}
+
 static gboolean
 handle_event_libinput(GIOChannel *source, GIOCondition condition, gpointer data)
 {
@@ -476,6 +533,8 @@ handle_event_libinput(GIOChannel *source, GIOCondition condition, gpointer data)
 		case LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN:
 		case LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE:
 		case LIBINPUT_EVENT_GESTURE_SWIPE_END:
+			handle_event_swipe(ev, w);
+			break;
 		case LIBINPUT_EVENT_GESTURE_PINCH_BEGIN:
 		case LIBINPUT_EVENT_GESTURE_PINCH_UPDATE:
 		case LIBINPUT_EVENT_GESTURE_PINCH_END:
