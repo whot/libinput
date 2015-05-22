@@ -97,7 +97,7 @@ tp_gesture_start(struct tp_dispatch *tp, uint64_t time)
 		case GESTURE_2FG_STATE_PINCH:
 			gesture_notify_pinch(&tp->device->base, time,
 					    LIBINPUT_EVENT_GESTURE_PINCH_BEGIN,
-					    &zero, &zero, 0.0, 0.0);
+					    &zero, &zero, 1.0, 0.0);
 			break;
 		}
 		break;
@@ -477,6 +477,7 @@ tp_gesture_end(struct tp_dispatch *tp, uint64_t time, bool cancelled)
 			break;
 		case GESTURE_2FG_STATE_PINCH:
 			gesture_notify_pinch_end(&tp->device->base, time,
+						 tp->gesture.prev_scale,
 						 cancelled);
 			break;
 		}

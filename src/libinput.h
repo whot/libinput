@@ -1101,10 +1101,19 @@ libinput_event_gesture_get_dy_unaccelerated(
  * together by 50% then the scale will become 0.5, if they move twice as far
  * apart as initially the scale becomes 2.0, etc.
  *
- * For gesture events that are not of type @ref
- * LIBINPUT_EVENT_GESTURE_PINCH_UPDATE, this function returns 0.
+ * For gesture events that are of type @ref
+ * LIBINPUT_EVENT_GESTURE_PINCH_BEGIN, this function returns 1.0.
+ *
+ * For gesture events that are of type @ref
+ * LIBINPUT_EVENT_GESTURE_PINCH_END, this function returns the scale value
+ * of the most recent @ref LIBINPUT_EVENT_GESTURE_PINCH_UPDATE event (if
+ * any) or 1.0 otherwise.
+ *
+ * For all other events this function returns 0.
  *
  * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_GESTURE_PINCH_BEGIN, @ref
+ * LIBINPUT_EVENT_GESTURE_PINCH_END or
  * @ref LIBINPUT_EVENT_GESTURE_PINCH_UPDATE.
  *
  * @return the absolute scale of a pinch gesture

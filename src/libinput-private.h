@@ -391,6 +391,7 @@ gesture_notify_pinch(struct libinput_device *device,
 void
 gesture_notify_pinch_end(struct libinput_device *device,
 			 uint64_t time,
+			 double scale,
 			 int cancelled);
 
 void
