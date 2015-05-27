@@ -141,9 +141,11 @@ struct tp_touch {
 	enum touch_state state;
 	bool has_ended;				/* TRACKING_ID == -1 */
 	bool dirty;
+	bool is_thumb;
 	struct device_coords point;
 	uint64_t millis;
 	int distance;				/* distance == 0 means touch */
+	int pressure;
 
 	struct {
 		struct device_coords samples[TOUCHPAD_HISTORY_LENGTH];
@@ -173,6 +175,7 @@ struct tp_touch {
 	struct {
 		enum tp_tap_touch_state state;
 		struct device_coords initial;
+		bool is_thumb;
 	} tap;
 
 	struct {
@@ -234,6 +237,7 @@ struct tp_dispatch {
 		double prev_scale;
 		double angle;
 		struct device_float_coords center;
+		uint32_t thumb_mask;
 	} gesture;
 
 	struct {
@@ -317,6 +321,11 @@ struct tp_dispatch {
 
 		uint64_t keyboard_last_press_time;
 	} dwt;
+
+	struct {
+		bool detect_thumbs;
+		int threshold;
+	} thumb;
 };
 
 #define tp_for_each_touch(_tp, _t) \

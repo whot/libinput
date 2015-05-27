@@ -525,10 +525,33 @@ tp_gesture_handle_state(struct tp_dispatch *tp, uint64_t time)
 {
 	unsigned int active_touches = 0;
 	struct tp_touch *t;
+	uint32_t old_thumb_mask, thumb_mask = 0;
+	int i = 0;
 
-	tp_for_each_touch(tp, t)
+	tp_for_each_touch(tp, t) {
 		if (tp_touch_active(tp, t))
 			active_touches++;
+
+		if (t->is_thumb)
+			thumb_mask |= 1 << i;
+		i++;
+	}
+
+	old_thumb_mask = tp->gesture.thumb_mask;
+	tp->gesture.thumb_mask = thumb_mask;
+
+	/* active touches does not include thumb touches, need to count those
+	 * separately, in a bitmask.
+	 * then, if the finger count changes and/or the thumb count changes
+	 * -> cancel gesture.
+	 */
+	if (thumb_mask != old_thumb_mask) {
+		/* if a thumb is detected during a gesture, that gesture is
+		 * cancelled and the user effectively needs to restart. we
+		 * could be smarter, but the complexity isn't worth it */
+		tp_gesture_cancel(tp, time);
+		return;
+	}
 
 	if (active_touches != tp->gesture.finger_count) {
 		/* If all fingers are lifted immediately end the gesture */

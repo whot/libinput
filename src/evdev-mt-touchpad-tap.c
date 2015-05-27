@@ -691,7 +691,20 @@ tp_tap_handle_state(struct tp_dispatch *tp, uint64_t time)
 		    tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS)
 			t->tap.state = TAP_TOUCH_STATE_DEAD;
 
+		/* If a touch was considered thumb for tapping once, we
+		 * ignore it for the rest of lifetime */
+		if (t->tap.is_thumb)
+			continue;
+
 		if (t->state == TOUCH_BEGIN) {
+			/* The simple version: if a touch is a thumb on
+			 * begin we ignore it. All other thumb touches
+			 * follow the normal tap state for now */
+			if (t->is_thumb) {
+				t->tap.is_thumb = true;
+				continue;
+			}
+
 			t->tap.state = TAP_TOUCH_STATE_TOUCH;
 			t->tap.initial = t->point;
 			tp_tap_handle_event(tp, t, TAP_EVENT_TOUCH, time);

@@ -212,6 +212,7 @@ tp_begin_touch(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	t->millis = time;
 	tp->nfingers_down++;
 	t->palm.time = time;
+	t->tap.is_thumb = false;
 	assert(tp->nfingers_down >= 1);
 }
 
@@ -240,6 +241,7 @@ tp_end_touch(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	t->pinned.is_pinned = false;
 	t->millis = time;
 	t->palm.time = 0;
+	t->is_thumb = false;
 	assert(tp->nfingers_down >= 1);
 	tp->nfingers_down--;
 	tp->queued |= TOUCHPAD_EVENT_MOTION;
@@ -313,6 +315,9 @@ tp_process_absolute(struct tp_dispatch *tp,
 			tp_new_touch(tp, t, time);
 		else
 			tp_end_sequence(tp, t, time);
+		break;
+	case ABS_MT_PRESSURE:
+		t->pressure = e->value;
 		break;
 	}
 }
@@ -461,6 +466,7 @@ tp_touch_active(struct tp_dispatch *tp, struct tp_touch *t)
 	return (t->state == TOUCH_BEGIN || t->state == TOUCH_UPDATE) &&
 		t->palm.state == PALM_NONE &&
 		!t->pinned.is_pinned &&
+		!t->is_thumb &&
 		tp_button_touch_active(tp, t) &&
 		tp_edge_scroll_touch_active(tp, t);
 }
@@ -604,6 +610,35 @@ out:
 }
 
 static void
+tp_thumb_detect(struct tp_dispatch *tp, struct tp_touch *t)
+{
+	/* once a thumb, always a thumb */
+	if (!tp->thumb.detect_thumbs || t->is_thumb)
+		return;
+
+	/* Want to hear something sad? if the thumb is at the edge of the
+	 * touchpad (partially offit), this won't trigger because we don't
+	 * get the contact surface area to meet the presure threshold.
+	 * go cry in a corner
+	 */
+	if (t->pressure < tp->thumb.threshold)
+		return;
+
+	t->is_thumb = true;
+
+	/* now what? we marked it as thumb, so:
+	 *
+	 * - pointer motion must ignore this touch
+	 * - clickfinger must ignore this touch for finger count
+	 * - software buttons are unaffected
+	 * - edge scrolling unaffected
+	 * - gestures: cancel
+	 * - tapping: honour thumb on begin, ignore it otherwise for now,
+	 *   this gets a tad complicated otherwise
+	 */
+}
+
+static void
 tp_unhover_abs_distance(struct tp_dispatch *tp, uint64_t time)
 {
 	struct tp_touch *t;
@@ -721,6 +756,7 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 		if (!t->dirty)
 			continue;
 
+		tp_thumb_detect(tp, t);
 		tp_palm_detect(tp, t, time);
 
 		tp_motion_hysteresis(tp, t);
@@ -1478,6 +1514,30 @@ tp_init_sendevents(struct tp_dispatch *tp,
 }
 
 static int
+tp_init_thumb(struct tp_dispatch *tp)
+{
+	struct evdev_device *device = tp->device;
+	const struct input_absinfo *abs;
+
+	abs = libevdev_get_abs_info(device->evdev, ABS_MT_PRESSURE);
+	if (!abs)
+		return 0;
+
+	if (abs->maximum - abs->minimum < 255)
+		return 0;
+
+	/* The touchpads we looked at so far have a clear thumb threshold of
+	 * ~100, you don't reach that with a normal finger interaction.
+	 * Note: "thumb" means massive touch that should not interact, not
+	 * "using the tip of my thumb for a pinch gestures".
+	 */
+	tp->thumb.threshold = 100;
+	tp->thumb.detect_thumbs = true;
+
+	return 0;
+}
+
+static int
 tp_sanity_check(struct tp_dispatch *tp,
 		struct evdev_device *device)
 {
@@ -1557,6 +1617,9 @@ tp_init(struct tp_dispatch *tp,
 		return -1;
 
 	if (tp_init_gesture(tp) != 0)
+		return -1;
+
+	if (tp_init_thumb(tp) != 0)
 		return -1;
 
 	device->seat_caps |= EVDEV_DEVICE_POINTER;

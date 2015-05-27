@@ -829,6 +829,9 @@ tp_check_clickfinger_distance(struct tp_dispatch *tp,
 	if (!t1 || !t2)
 		return 0;
 
+	if (t1->is_thumb || t2->is_thumb)
+		return 0;
+
 	x = abs(t1->point.x - t2->point.x);
 	y = abs(t1->point.y - t2->point.y);
 
