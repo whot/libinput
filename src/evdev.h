@@ -361,10 +361,11 @@ evdev_device_get_size(struct evdev_device *device,
 		      double *h);
 
 int
-evdev_device_has_button(struct evdev_device *device, uint32_t code);
-
+evdev_device_pointer_has_button(struct evdev_device *device,
+				uint32_t code);
 int
-evdev_device_has_key(struct evdev_device *device, uint32_t code);
+evdev_device_keyboard_has_key(struct evdev_device *device,
+			      uint32_t code);
 
 double
 evdev_device_transform_x(struct evdev_device *device,
