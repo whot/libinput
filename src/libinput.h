@@ -953,6 +953,8 @@ libinput_event_touch_get_base_event(struct libinput_event_touch *event);
  * LIBINPUT_EVENT_GESTURE_FOO_UPDATE type until a
  * LIBINPUT_EVENT_GESTURE_FOO_END is generated which signals the end of the
  * gesture.
+ *
+ * See @ref gestures for more information on gesture handling.
  */
 
 /**

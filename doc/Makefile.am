@@ -14,6 +14,7 @@ header_files = \
 	$(srcdir)/clickpad-softbuttons.dox \
 	$(srcdir)/device-configuration-via-udev.dox \
 	$(srcdir)/faqs.dox \
+	$(srcdir)/gestures.dox \
 	$(srcdir)/normalization-of-relative-motion.dox \
 	$(srcdir)/palm-detection.dox \
 	$(srcdir)/scrolling.dox \
@@ -33,8 +34,11 @@ diagram_files = \
 	$(srcdir)/svg/button-scrolling.svg \
 	$(srcdir)/svg/edge-scrolling.svg \
 	$(srcdir)/svg/palm-detection.svg \
+	$(srcdir)/svg/pinch-gestures.svg \
+	$(srcdir)/svg/swipe-gestures.svg \
 	$(srcdir)/svg/tap-n-drag.svg \
 	$(srcdir)/svg/top-software-buttons.svg \
+	$(srcdir)/svg/touchscreen-gestures.svg \
 	$(srcdir)/svg/twofinger-scrolling.svg
 
 html/index.html: libinput.doxygen $(header_files) $(diagram_files)
