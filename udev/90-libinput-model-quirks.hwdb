@@ -84,3 +84,8 @@ libinput:name:SynPS/2 Synaptics TouchPad:dmi:*svnSystem76*pvrkudp1*
 ##########################################
 libinput:touchpad:input:b0003v056Ap*
  LIBINPUT_MODEL_WACOM_TOUCHPAD=1
+
+
+
+libinput:name:Logitech G500s Laser Gaming Mouse:dmi:*
+ MOUSE_DPI=400
