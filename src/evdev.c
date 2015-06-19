@@ -2083,6 +2083,8 @@ evdev_device_create(struct libinput_seat *seat,
 	device->scroll.wheel_click_angle =
 		evdev_read_wheel_click_prop(device);
 	device->model = evdev_read_model(device);
+	device->dpi = evdev_read_dpi_prop(device);
+
 	/* at most 5 SYN_DROPPED log-messages per 30s */
 	ratelimit_init(&device->syn_drop_limit, 30ULL * 1000, 5);
 
@@ -2092,8 +2094,6 @@ evdev_device_create(struct libinput_seat *seat,
 
 	if (evdev_configure_device(device) == -1)
 		goto err;
-
-	device->dpi = evdev_read_dpi_prop(device);
 
 	if (device->seat_caps == 0) {
 		unhandled_device = 1;
