@@ -199,7 +199,8 @@ main(int argc, char **argv)
 		OPT_SPEED,
 	};
 
-	filter = create_pointer_accelerator_filter(pointer_accel_profile_linear);
+	filter = create_pointer_accelerator_filter(pointer_accel_profile_linear,
+						   1000);
 	assert(filter != NULL);
 
 	while (1) {

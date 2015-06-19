@@ -1395,7 +1395,8 @@ int
 evdev_device_init_pointer_acceleration(struct evdev_device *device,
 				       accel_profile_func_t profile)
 {
-	device->pointer.filter = create_pointer_accelerator_filter(profile);
+	device->pointer.filter = create_pointer_accelerator_filter(profile,
+								   device->dpi);
 	if (!device->pointer.filter)
 		return -1;
 

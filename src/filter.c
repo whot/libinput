@@ -111,6 +111,8 @@ struct pointer_accelerator {
 	double threshold;	/* units/ms */
 	double accel;		/* unitless factor */
 	double incline;		/* incline of the function */
+
+	int dpi;
 };
 
 static void
@@ -346,7 +348,8 @@ struct motion_filter_interface accelerator_interface = {
 };
 
 struct motion_filter *
-create_pointer_accelerator_filter(accel_profile_func_t profile)
+create_pointer_accelerator_filter(accel_profile_func_t profile,
+				  int dpi)
 {
 	struct pointer_accelerator *filter;
 
@@ -368,6 +371,8 @@ create_pointer_accelerator_filter(accel_profile_func_t profile)
 	filter->threshold = DEFAULT_THRESHOLD;
 	filter->accel = DEFAULT_ACCELERATION;
 	filter->incline = DEFAULT_INCLINE;
+
+	filter->dpi = dpi;
 
 	return &filter->base;
 }
