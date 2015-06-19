@@ -413,7 +413,7 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	   subjectively wrong, we expect a touchpad to be a lot
 	   slower than a mouse. Apply a magic factor here and proceed
 	   as normal.  */
-	const double TP_MAGIC_SLOWDOWN = 0.4;
+	const double TP_MAGIC_SLOWDOWN = 1;
 	double speed_out;
 
 	speed_in *= TP_MAGIC_SLOWDOWN;
