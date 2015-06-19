@@ -168,6 +168,7 @@ usage(void)
 	       "--maxdx=<double>  ... in motion mode only. Stop increasing dx at maxdx\n"
 	       "--steps=<double>  ... in motion and delta modes only. Increase dx by step each round\n"
 	       "--speed=<double>  ... accel speed [-1, 1], default 0\n"
+	       "--dpi=<int>	... device resolution in DPI (default: 1000)\n"
 	       "\n"
 	       "If extra arguments are present and mode is not given, mode defaults to 'sequence'\n"
 	       "and the arguments are interpreted as sequence of delta x coordinates\n"
@@ -191,17 +192,16 @@ main(int argc, char **argv)
 	     print_sequence = false;
 	double custom_deltas[1024];
 	double speed = 0.0;
+	int dpi = 1000;
+
 	enum {
 		OPT_MODE = 1,
 		OPT_NEVENTS,
 		OPT_MAXDX,
 		OPT_STEP,
 		OPT_SPEED,
+		OPT_DPI,
 	};
-
-	filter = create_pointer_accelerator_filter(pointer_accel_profile_linear,
-						   1000);
-	assert(filter != NULL);
 
 	while (1) {
 		int c;
@@ -212,6 +212,7 @@ main(int argc, char **argv)
 			{"maxdx", 1, 0, OPT_MAXDX },
 			{"step", 1, 0, OPT_STEP },
 			{"speed", 1, 0, OPT_SPEED },
+			{"dpi", 1, 0, OPT_DPI },
 			{0, 0, 0, 0}
 		};
 
@@ -259,6 +260,9 @@ main(int argc, char **argv)
 		case OPT_SPEED:
 			speed = strtod(optarg, NULL);
 			break;
+		case OPT_DPI:
+			dpi = strtod(optarg, NULL);
+			break;
 		default:
 			usage();
 			exit(1);
@@ -266,6 +270,9 @@ main(int argc, char **argv)
 		}
 	}
 
+	filter = create_pointer_accelerator_filter(pointer_accel_profile_linear,
+						   dpi);
+	assert(filter != NULL);
 	filter_set_speed(filter, speed);
 
 	if (!isatty(STDIN_FILENO)) {
