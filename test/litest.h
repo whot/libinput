@@ -177,6 +177,11 @@ struct litest_device {
 	char *udev_rule_file;
 };
 
+struct axis_replacement {
+	int32_t evcode;
+	int32_t value;
+};
+
 /* A loop range, resolves to:
    for (i = lower; i < upper; i++)
  */
@@ -285,16 +290,27 @@ void litest_event(struct litest_device *t,
 int litest_auto_assign_value(struct litest_device *d,
 			     const struct input_event *ev,
 			     int slot, double x, double y,
+			     struct axis_replacement *axes,
 			     bool touching);
 void litest_touch_up(struct litest_device *d, unsigned int slot);
 void litest_touch_move(struct litest_device *d,
 		       unsigned int slot,
 		       double x,
 		       double y);
+void litest_touch_move_extended(struct litest_device *d,
+				unsigned int slot,
+				double x,
+				double y,
+				struct axis_replacement *axes);
 void litest_touch_down(struct litest_device *d,
 		       unsigned int slot,
 		       double x,
 		       double y);
+void litest_touch_down_extended(struct litest_device *d,
+				unsigned int slot,
+				double x,
+				double y,
+				struct axis_replacement *axes);
 void litest_touch_move_to(struct litest_device *d,
 			  unsigned int slot,
 			  double x_from, double y_from,
