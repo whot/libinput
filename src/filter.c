@@ -77,8 +77,8 @@ filter_get_speed(struct motion_filter *filter)
  * Default parameters for pointer acceleration profiles.
  */
 
-#define DEFAULT_THRESHOLD 0.15			/* in units/ms */
-#define DEFAULT_ACCELERATION 3.0		/* unitless factor */
+#define DEFAULT_THRESHOLD 0.4			/* in units/ms */
+#define DEFAULT_ACCELERATION 2.0		/* unitless factor */
 #define DEFAULT_INCLINE 1.1			/* unitless factor */
 
 /*
@@ -263,14 +263,9 @@ accelerator_filter(struct motion_filter *filter,
 		(struct pointer_accelerator *) filter;
 	double velocity; /* units/ms */
 	double accel_value; /* unitless factor */
-	struct normalized_coords accelerated, normalized;
+	struct normalized_coords accelerated;
 
-	/* normalize to a 100dpi device */
-	normalized = *unaccelerated;
-	normalized.x *= 0.2;
-	normalized.y *= 0.2;
-
-	feed_trackers(accel, &normalized, time);
+	feed_trackers(accel, unaccelerated, time);
 	velocity = calculate_velocity(accel, time);
 	accel_value = calculate_acceleration(accel,
 					     data,
@@ -278,10 +273,10 @@ accelerator_filter(struct motion_filter *filter,
 					     accel->last_velocity,
 					     time);
 
-	accelerated.x = accel_value * normalized.x;
-	accelerated.y = accel_value * normalized.y;
+	accelerated.x = accel_value * unaccelerated->x;
+	accelerated.y = accel_value * unaccelerated->y;
 
-	accel->last = normalized;
+	accel->last = *unaccelerated;
 
 	accel->last_velocity = velocity;
 
