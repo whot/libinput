@@ -1497,6 +1497,10 @@ evdev_read_dpi_prop(struct evdev_device *device)
 					    DEFAULT_MOUSE_DPI);
 			dpi = DEFAULT_MOUSE_DPI;
 		}
+		log_info(libinput,
+			 "Device '%s' has custom DPI setting of %d\n",
+			 device->devname,
+			 dpi);
 	}
 
 	return dpi;
