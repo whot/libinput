@@ -278,9 +278,16 @@ accelerator_filter(struct motion_filter *filter,
 					     velocity,
 					     accel->last_velocity,
 					     time);
+	//accel_value /= dpi_factor;
 
 	accelerated.x = accel_value * unnormalized.x;
 	accelerated.y = accel_value * unnormalized.y;
+
+#if 0
+	printf("------- %.2f/%.2f accel to %.2f/%.2f\n",
+	       unnormalized.x, unnormalized.y,
+	       accelerated.x, accelerated.y);
+#endif
 
 	accel->last = unnormalized;
 
@@ -410,6 +417,12 @@ pointer_accel_profile_linear_low_dpi(struct motion_filter *filter,
 
 	factor = min(max_accel, s2 > 1 ? s2 : s1);
 
+#if 0
+	printf("::::::::::::::::: speed is %.2f u/s (%.2f)\n",
+	       speed_in * 1000,
+	       factor);
+#endif
+
 	return factor;
 }
 
@@ -432,7 +445,11 @@ pointer_accel_profile_linear(struct motion_filter *filter,
 	s2 = 1 + (speed_in - threshold) * incline;
 
 	factor =  min(max_accel, s2 > 1 ? s2 : s1);
-
+#if 0
+	printf(">>>>>>>:::::::::: speed is %.2fu/s (%.2f)\n",
+	       speed_in * 1000,
+	       factor);
+#endif
 	return factor;
 }
 

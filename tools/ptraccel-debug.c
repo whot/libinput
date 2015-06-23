@@ -142,7 +142,7 @@ print_accel_func(struct motion_filter *filter,
 	double vel;
 
 	printf("# gnuplot:\n");
-	printf("# set xlabel \"speed\"\n");
+	printf("# set xlabel \"speed (u/ms @ 1000dpi)\"\n");
 	printf("# set ylabel \"raw accel factor\"\n");
 	printf("# set style data lines\n");
 	printf("# plot \"gnuplot.data\" using 1:2\n");
