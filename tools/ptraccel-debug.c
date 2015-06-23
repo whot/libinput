@@ -136,7 +136,8 @@ print_ptraccel_sequence(struct motion_filter *filter,
 }
 
 static void
-print_accel_func(struct motion_filter *filter)
+print_accel_func(struct motion_filter *filter,
+		 accel_profile_func_t profile)
 {
 	double vel;
 
@@ -146,10 +147,10 @@ print_accel_func(struct motion_filter *filter)
 	printf("# set style data lines\n");
 	printf("# plot \"gnuplot.data\" using 1:2\n");
 	for (vel = 0.0; vel < 3.0; vel += .0001) {
-		double result = pointer_accel_profile_linear(filter,
-                                                             NULL,
-                                                             vel,
-                                                             0 /* time */);
+		double result = profile(filter,
+					NULL,
+					vel,
+					0 /* time */);
 		printf("%.4f\t%.4f\n", vel, result);
 	}
 }
@@ -270,8 +271,14 @@ main(int argc, char **argv)
 		}
 	}
 
-	filter = create_pointer_accelerator_filter(pointer_accel_profile_linear,
-						   dpi);
+	accel_profile_func_t profile;
+
+	if (dpi < 1000)
+		profile = pointer_accel_profile_linear_low_dpi;
+	else
+		profile = pointer_accel_profile_linear;
+
+	filter = create_pointer_accelerator_filter(profile, dpi);
 	assert(filter != NULL);
 	filter_set_speed(filter, speed);
 
@@ -295,7 +302,7 @@ main(int argc, char **argv)
 	}
 
 	if (print_accel)
-		print_accel_func(filter);
+		print_accel_func(filter, profile);
 	else if (print_delta)
 		print_ptraccel_deltas(filter, step);
 	else if (print_motion)
