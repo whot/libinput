@@ -1809,6 +1809,19 @@ evdev_configure_mt_device(struct evdev_device *device)
 	return 0;
 }
 
+static inline int
+evdev_init_accel(struct evdev_device *device)
+{
+	accel_profile_func_t profile;
+
+	if (device->dpi < 1000)
+		profile = pointer_accel_profile_linear_low_dpi;
+	else
+		profile = pointer_accel_profile_linear;
+
+	return evdev_device_init_pointer_acceleration(device, profile);
+}
+
 static int
 evdev_configure_device(struct evdev_device *device)
 {
@@ -1900,9 +1913,7 @@ evdev_configure_device(struct evdev_device *device)
 	    udev_tags & EVDEV_UDEV_TAG_POINTINGSTICK) {
 		if (libevdev_has_event_code(evdev, EV_REL, REL_X) &&
 		    libevdev_has_event_code(evdev, EV_REL, REL_Y) &&
-		    evdev_device_init_pointer_acceleration(
-					device,
-					pointer_accel_profile_linear) == -1)
+		    evdev_init_accel(device) == -1)
 			return -1;
 
 		device->seat_caps |= EVDEV_DEVICE_POINTER;

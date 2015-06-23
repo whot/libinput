@@ -264,8 +264,14 @@ accelerator_filter(struct motion_filter *filter,
 	double velocity; /* units/ms */
 	double accel_value; /* unitless factor */
 	struct normalized_coords accelerated;
+	struct normalized_coords unnormalized;
+	double dpi_factor = accel->dpi/1000.0;
 
-	feed_trackers(accel, unaccelerated, time);
+	dpi_factor = min(1.0, dpi_factor);
+	unnormalized.x = unaccelerated->x * dpi_factor;
+	unnormalized.y = unaccelerated->y * dpi_factor;
+
+	feed_trackers(accel, &unnormalized, time);
 	velocity = calculate_velocity(accel, time);
 	accel_value = calculate_acceleration(accel,
 					     data,
@@ -273,10 +279,10 @@ accelerator_filter(struct motion_filter *filter,
 					     accel->last_velocity,
 					     time);
 
-	accelerated.x = accel_value * unaccelerated->x;
-	accelerated.y = accel_value * unaccelerated->y;
+	accelerated.x = accel_value * unnormalized.x;
+	accelerated.y = accel_value * unnormalized.y;
 
-	accel->last = *unaccelerated;
+	accel->last = unnormalized;
 
 	accel->last_velocity = velocity;
 
@@ -375,6 +381,36 @@ create_pointer_accelerator_filter(accel_profile_func_t profile,
 	filter->dpi = dpi;
 
 	return &filter->base;
+}
+
+/* Note: speed_in is semi-normalized. For devices >= 1000dpi resolution it
+ * is normalized, for devices below that it is semi-normalized */
+
+double
+pointer_accel_profile_linear_low_dpi(struct motion_filter *filter,
+				     void *data,
+				     double speed_in,
+				     uint64_t time)
+{
+	struct pointer_accelerator *accel_filter =
+		(struct pointer_accelerator *)filter;
+
+	double s1, s2;
+	double max_accel = accel_filter->accel; /* unitless factor */
+	const double threshold = accel_filter->threshold; /* units/ms */
+	const double incline = accel_filter->incline;
+	double factor;
+	double dpi_factor = accel_filter->dpi/1000.0;
+
+	if (accel_filter->dpi < 1000)
+		max_accel /= dpi_factor;
+
+	s1 = 1;
+	s2 = 1 + (speed_in - threshold * dpi_factor) * incline;
+
+	factor = min(max_accel, s2 > 1 ? s2 : s1);
+
+	return factor;
 }
 
 double

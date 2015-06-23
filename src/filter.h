@@ -66,6 +66,11 @@ create_pointer_accelerator_filter(accel_profile_func_t filter,
  */
 
 double
+pointer_accel_profile_linear_low_dpi(struct motion_filter *filter,
+				     void *data,
+				     double speed_in,
+				     uint64_t time);
+double
 pointer_accel_profile_linear(struct motion_filter *filter,
 			     void *data,
 			     double speed_in,
