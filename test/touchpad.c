@@ -32,6 +32,19 @@
 #include "libinput-util.h"
 #include "litest.h"
 
+static void
+enable_edge_scroll(struct litest_device *dev)
+{
+	enum libinput_config_status status, expected;
+	struct libinput_device *device = dev->libinput_device;
+
+	status = libinput_device_config_scroll_set_method(device,
+					  LIBINPUT_CONFIG_SCROLL_EDGE);
+
+	expected = LIBINPUT_CONFIG_STATUS_SUCCESS;
+	litest_assert_int_eq(status, expected);
+}
+
 START_TEST(touchpad_1fg_motion)
 {
 	struct litest_device *dev = litest_current_device();
@@ -1441,19 +1454,6 @@ START_TEST(touchpad_scroll_natural)
 
 }
 END_TEST
-
-static void
-enable_edge_scroll(struct litest_device *dev)
-{
-	enum libinput_config_status status, expected;
-	struct libinput_device *device = dev->libinput_device;
-
-	status = libinput_device_config_scroll_set_method(device,
-					  LIBINPUT_CONFIG_SCROLL_EDGE);
-
-	expected = LIBINPUT_CONFIG_STATUS_SUCCESS;
-	litest_assert_int_eq(status, expected);
-}
 
 START_TEST(touchpad_edge_scroll)
 {
