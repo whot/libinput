@@ -832,12 +832,10 @@ tp_check_clickfinger_distance(struct tp_dispatch *tp,
 	x = abs(t1->point.x - t2->point.x);
 	y = abs(t1->point.y - t2->point.y);
 
-	/* no resolution, so let's assume they're close enough together */
+	/* no resolution, so let's assume they're close enough together if
+	   they're within 30% of the touchpad width or height */
 	if (tp->device->abs.fake_resolution) {
 		int w, h;
-
-		/* Use a maximum of 30% of the touchpad width or height if
-		 * we dont' have resolution. */
 		w = tp->device->abs.dimensions.x;
 		h = tp->device->abs.dimensions.y;
 
