@@ -34,7 +34,6 @@
 
 #define CASE_RETURN_STRING(a) case a: return #a
 
-#define DEFAULT_SCROLL_LOCK_TIMEOUT 300 /* ms */
 /* Use a reasonably large threshold until locked into scrolling mode, to
    avoid accidentally locking in scrolling mode when trying to use the entire
    touchpad to move the pointer. The user can wait for the timeout to trigger
@@ -92,6 +91,23 @@ tp_touch_get_edge(struct tp_dispatch *tp, struct tp_touch *t)
 	return edge;
 }
 
+static inline void
+tp_edge_scroll_set_timer(struct tp_dispatch *tp,
+			 struct tp_touch *t)
+{
+	const int DEFAULT_SCROLL_LOCK_TIMEOUT = 300; /* ms */
+	/* if we use software buttons, we disable timeout-based
+	 * edge scrolling. A finger resting on the button areas is
+	 * likely there to trigger a button event.
+	 */
+	if (tp->buttons.click_method ==
+	    LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS)
+		return;
+
+	libinput_timer_set(&t->scroll.timer,
+			   t->millis + DEFAULT_SCROLL_LOCK_TIMEOUT);
+}
+
 static void
 tp_edge_scroll_set_state(struct tp_dispatch *tp,
 			 struct tp_touch *t,
@@ -108,8 +124,7 @@ tp_edge_scroll_set_state(struct tp_dispatch *tp,
 	case EDGE_SCROLL_TOUCH_STATE_EDGE_NEW:
 		t->scroll.edge = tp_touch_get_edge(tp, t);
 		t->scroll.initial = t->point;
-		libinput_timer_set(&t->scroll.timer,
-				   t->millis + DEFAULT_SCROLL_LOCK_TIMEOUT);
+		tp_edge_scroll_set_timer(tp, t);
 		break;
 	case EDGE_SCROLL_TOUCH_STATE_EDGE:
 		break;

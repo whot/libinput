@@ -943,6 +943,10 @@ tp_notify_clickpadbutton(struct tp_dispatch *tp,
 	if (tp->device->suspended)
 		return 0;
 
+	/* A button click always terminates edge scrolling, even if we
+	 * don't end up sending a button event. */
+	tp_edge_scroll_stop_events(tp, time);
+
 	/*
 	 * If the user has requested clickfinger replace the button chosen
 	 * by the softbutton code with one based on the number of fingers.

@@ -1350,13 +1350,10 @@ tp_scroll_config_scroll_method_get_methods(struct libinput_device *device)
 {
 	struct evdev_device *evdev = (struct evdev_device*)device;
 	struct tp_dispatch *tp = (struct tp_dispatch*)evdev->dispatch;
-	uint32_t methods = LIBINPUT_CONFIG_SCROLL_NO_SCROLL;
+	uint32_t methods = LIBINPUT_CONFIG_SCROLL_EDGE;
 
 	if (tp->ntouches >= 2)
 		methods |= LIBINPUT_CONFIG_SCROLL_2FG;
-
-	if (!tp->buttons.is_clickpad)
-		methods |= LIBINPUT_CONFIG_SCROLL_EDGE;
 
 	return methods;
 }

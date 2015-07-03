@@ -55,10 +55,8 @@ scroll).
 Due to the layout of the edges, diagonal scrolling is not possible. The
 behavior of edge scrolling using both edges at the same time is undefined.
 
-Edge scrolling conflicts with @ref clickpad_softbuttons and is
-not usually available on clickpads. See
-http://who-t.blogspot.com.au/2015/03/why-libinput-doesnt-support-edge.html
-for details.
+Edge scrolling overlaps with @ref clickpad_softbuttons. A physical click on
+a clickpad ends scrolling.
 
 @section button_scrolling On-Button scrolling
 
