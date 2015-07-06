@@ -307,7 +307,14 @@ print_gesture_event_without_coords(struct libinput_event *ev)
 {
 	struct libinput_event_gesture *t = libinput_event_get_gesture_event(ev);
 	int finger_count = libinput_event_gesture_get_finger_count(t);
-	int cancelled = libinput_event_gesture_get_cancelled(t);
+	int cancelled = 0;
+	enum libinput_event_type type;
+
+	type = libinput_event_get_type(ev);
+
+	if (type == LIBINPUT_EVENT_GESTURE_SWIPE_END ||
+	    type == LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN)
+	    cancelled = libinput_event_gesture_get_cancelled(t);
 
 	print_event_time(libinput_event_gesture_get_time(t));
 	printf("%d%s\n", finger_count, cancelled ? " cancelled" : "");
