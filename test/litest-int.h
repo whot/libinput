@@ -79,6 +79,8 @@ struct litest_device_interface {
 	void (*touch_move)(struct litest_device *d, unsigned int slot, double x, double y);
 	void (*touch_up)(struct litest_device *d, unsigned int slot);
 
+	int32_t (*get_axis_default)(struct litest_device *d, unsigned int code);
+
 	/**
 	 * Set of of events to execute on touch down, terminated by a .type
 	 * and .code value of -1. If the event value is LITEST_AUTO_ASSIGN,

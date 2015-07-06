@@ -1208,19 +1208,22 @@ litest_event(struct litest_device *d, unsigned int type,
 	litest_assert_int_eq(ret, 0);
 }
 
-static int32_t
+static bool
 axis_replacement_value(struct axis_replacement *axes,
-		       int32_t evcode)
+		       int32_t evcode,
+		       int32_t *value)
 {
 	struct axis_replacement *axis = axes;
 
 	while (axis->evcode != -1) {
-		if (axis->evcode == evcode)
-			return axis->value;
+		if (axis->evcode == evcode) {
+			*value = axis->value;
+			return true;
+		}
 		axis++;
 	}
 
-	return -1;
+	return false;
 }
 
 int
@@ -1255,8 +1258,13 @@ litest_auto_assign_value(struct litest_device *d,
 		value = touching ? 0 : 1;
 		break;
 	default:
-		if (axes)
-			value = axis_replacement_value(axes, ev->code);
+		value = -1;
+		if (!axes)
+			break;
+
+		if (!axis_replacement_value(axes, ev->code, &value) &&
+		    d->interface->get_axis_default)
+			d->interface->get_axis_default(d, ev->code, &value);
 		break;
 	}
 
