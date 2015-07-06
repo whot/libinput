@@ -79,7 +79,11 @@ struct litest_device_interface {
 	void (*touch_move)(struct litest_device *d, unsigned int slot, double x, double y);
 	void (*touch_up)(struct litest_device *d, unsigned int slot);
 
-	int32_t (*get_axis_default)(struct litest_device *d, unsigned int code);
+	/**
+	 * Default value for the given EV_ABS axis.
+	 * @return 0 on success, nonzero otherwise
+	 */
+	int (*get_axis_default)(struct litest_device *d, unsigned int code, int32_t *value);
 
 	/**
 	 * Set of of events to execute on touch down, terminated by a .type
