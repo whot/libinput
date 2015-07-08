@@ -160,4 +160,8 @@ LIBINPUT_0.20.0 {
 	libinput_event_gesture_get_scale;
 	libinput_event_gesture_get_time;
 	libinput_event_get_gesture_event;
+	libinput_device_config_palm_has_dwt;
+	libinput_device_config_palm_get_dwt_enabled;
+	libinput_device_config_palm_get_default_dwt_enabled;
+	libinput_device_config_palm_set_dwt_enabled;
 } LIBINPUT_0.19.0;

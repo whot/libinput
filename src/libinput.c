@@ -2401,3 +2401,45 @@ libinput_device_config_scroll_get_default_button(struct libinput_device *device)
 
 	return device->config.scroll_method->get_default_button(device);
 }
+
+LIBINPUT_EXPORT int
+libinput_device_config_palm_has_dwt(struct libinput_device *device)
+{
+	if (device->config.palm)
+		return device->config.palm->has_dwt(device);
+	else
+		return 0;
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_palm_set_dwt_enabled(struct libinput_device *device,
+					    enum libinput_config_palm_dwt_state enable)
+{
+	if (enable != LIBINPUT_CONFIG_PALM_DWT_ENABLED &&
+	    enable != LIBINPUT_CONFIG_PALM_DWT_DISABLED)
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+
+	if (!libinput_device_config_palm_has_dwt(device))
+		return enable ? LIBINPUT_CONFIG_STATUS_UNSUPPORTED :
+				LIBINPUT_CONFIG_STATUS_SUCCESS;
+
+	return device->config.palm->set_dwt(device, enable);
+}
+
+LIBINPUT_EXPORT enum libinput_config_palm_dwt_state
+libinput_device_config_palm_get_dwt_enabled(struct libinput_device *device)
+{
+	if (!libinput_device_config_palm_has_dwt(device))
+		return LIBINPUT_CONFIG_PALM_DWT_DISABLED;
+
+	return device->config.palm->get_dwt(device);
+}
+
+LIBINPUT_EXPORT enum libinput_config_palm_dwt_state
+libinput_device_config_palm_get_default_dwt_enabled(struct libinput_device *device)
+{
+	if (!libinput_device_config_palm_has_dwt(device))
+		return LIBINPUT_CONFIG_PALM_DWT_DISABLED;
+
+	return device->config.palm->get_default_dwt(device);
+}

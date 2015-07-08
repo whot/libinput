@@ -53,6 +53,8 @@ enum options {
 	OPT_LEFT_HANDED_DISABLE,
 	OPT_MIDDLEBUTTON_ENABLE,
 	OPT_MIDDLEBUTTON_DISABLE,
+	OPT_DWT_ENABLE,
+	OPT_DWT_DISABLE,
 	OPT_CLICK_METHOD,
 	OPT_SCROLL_METHOD,
 	OPT_SCROLL_BUTTON,
@@ -87,6 +89,8 @@ tools_usage()
 	       "--disable-left-handed.... enable/disable left-handed button configuration\n"
 	       "--enable-middlebutton\n"
 	       "--disable-middlebutton.... enable/disable middle button emulation\n"
+	       "--enable-dwt\n"
+	       "--disable-dwt..... enable/disable disable-while-typing\n"
 	       "--set-click-method=[none|clickfinger|buttonareas] .... set the desired click method\n"
 	       "--set-scroll-method=[none|twofinger|edge|button] ... set the desired scroll method\n"
 	       "--set-scroll-button=BTN_MIDDLE ... set the button to the given button code\n"
@@ -121,6 +125,7 @@ tools_init_context(struct tools_context *context)
 	options->backend = BACKEND_UDEV;
 	options->seat = "seat0";
 	options->speed = 0.0;
+	options->dwt = -1;
 }
 
 int
@@ -147,6 +152,8 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 			{ "disable-left-handed", 0, 0, OPT_LEFT_HANDED_DISABLE },
 			{ "enable-middlebutton", 0, 0, OPT_MIDDLEBUTTON_ENABLE },
 			{ "disable-middlebutton", 0, 0, OPT_MIDDLEBUTTON_DISABLE },
+			{ "enable-dwt", 0, 0, OPT_DWT_ENABLE },
+			{ "disable-dwt", 0, 0, OPT_DWT_DISABLE },
 			{ "set-click-method", 1, 0, OPT_CLICK_METHOD },
 			{ "set-scroll-method", 1, 0, OPT_SCROLL_METHOD },
 			{ "set-scroll-button", 1, 0, OPT_SCROLL_BUTTON },
@@ -211,6 +218,12 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 				break;
 			case OPT_MIDDLEBUTTON_DISABLE:
 				options->middlebutton = 0;
+				break;
+			case OPT_DWT_ENABLE:
+				options->dwt = LIBINPUT_CONFIG_PALM_DWT_ENABLED;
+				break;
+			case OPT_DWT_DISABLE:
+				options->dwt = LIBINPUT_CONFIG_PALM_DWT_DISABLED;
 				break;
 			case OPT_CLICK_METHOD:
 				if (!optarg) {
@@ -418,6 +431,9 @@ tools_device_apply_config(struct libinput_device *device,
 	if (options->middlebutton != -1)
 		libinput_device_config_middle_emulation_set_enabled(device,
 								    options->middlebutton);
+
+	if (options->dwt != -1)
+		libinput_device_config_palm_set_dwt_enabled(device, options->dwt);
 
 	if (options->click_method != -1)
 		libinput_device_config_click_set_method(device, options->click_method);

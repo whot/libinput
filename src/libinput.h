@@ -3078,6 +3078,98 @@ libinput_device_config_scroll_get_button(struct libinput_device *device);
 uint32_t
 libinput_device_config_scroll_get_default_button(struct libinput_device *device);
 
+/**
+ * @ingroup config
+ *
+ * Possible states for the disable-while-typing palm-detection feature.
+ */
+enum libinput_config_palm_dwt_state {
+	LIBINPUT_CONFIG_PALM_DWT_DISABLED,
+	LIBINPUT_CONFIG_PALM_DWT_ENABLED,
+};
+
+/**
+ * @ingroup config
+ *
+ * Check if this device supports configurable disable-while-typing palm
+ * detection feature. This feature is usally available on built-in touchpads
+ * and disables the touchpad while typing. See @ref disable-while-typing for
+ * details.
+ *
+ * @param device The device to configure
+ * @return 0 if this device does not support disable-while-typing, or 1
+ * otherwise.
+ *
+ * @see libinput_device_config_palm_set_dwt_enabled
+ * @see libinput_device_config_palm_get_dwt_enabled
+ * @see libinput_device_config_palm_get_default_dwt_enabled
+ */
+int
+libinput_device_config_palm_has_dwt(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Enable or disable the disable-while-typing palm detection
+ * feature. When enabled, the device will be disabled while typing and for
+ * a short period after. See @ref disable-while-typing for details.
+ *
+ * @note Enabling or disabling disable-while-typing may not take effect
+ * immediately.
+ *
+ * @param device The device to configure
+ * @param enable @ref LIBINPUT_CONFIG_PALM_DWT_DISABLED to disable
+ * disable-while-typing, @ref LIBINPUT_CONFIG_PALM_DWT_ENABLED to enable
+ *
+ * @return A config status code. Disabling disable-while-typing on a
+ * device that does not support the feature always succeeds.
+ *
+ * @see libinput_device_config_palm_has_dwt
+ * @see libinput_device_config_palm_get_dwt_enabled
+ * @see libinput_device_config_palm_get_default_dwt_enabled
+ */
+enum libinput_config_status
+libinput_device_config_palm_set_dwt_enabled(struct libinput_device *device,
+					    enum libinput_config_palm_dwt_state enable);
+
+/**
+ * @ingroup config
+ *
+ * Check if the disable-while typing palm detection feature is currently
+ * enabled on this device. If the device does not support
+ * disable-while-typing, this function returns @ref
+ * LIBINPUT_CONFIG_PALM_DWT_DISABLED.
+ *
+ * @param device The device to configure
+ * @return @ref LIBINPUT_CONFIG_PALM_DWT_DISABLED if disabled, @ref
+ * LIBINPUT_CONFIG_PALM_DWT_ENABLED if enabled.
+ *
+ * @see libinput_device_config_palm_has_dwt
+ * @see libinput_device_config_palm_set_dwt_enabled
+ * @see libinput_device_config_palm_get_default_dwt_enabled
+ */
+enum libinput_config_palm_dwt_state
+libinput_device_config_palm_get_dwt_enabled(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Check if the disable-while typing palm detection feature is enabled on
+ * this device by default. If the device does not support
+ * disable-while-typing, this function returns @ref
+ * LIBINPUT_CONFIG_PALM_DWT_DISABLED.
+ *
+ * @param device The device to configure
+ * @return @ref LIBINPUT_CONFIG_PALM_DWT_DISABLED if disabled, @ref
+ * LIBINPUT_CONFIG_PALM_DWT_ENABLED if enabled.
+ *
+ * @see libinput_device_config_palm_has_dwt
+ * @see libinput_device_config_palm_set_dwt_enabled
+ * @see libinput_device_config_palm_get_dwt_enabled
+ */
+enum libinput_config_palm_dwt_state
+libinput_device_config_palm_get_default_dwt_enabled(struct libinput_device *device);
+
 #ifdef __cplusplus
 }
 #endif

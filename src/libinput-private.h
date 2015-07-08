@@ -196,6 +196,17 @@ struct libinput_device_config_middle_emulation {
 			 struct libinput_device *device);
 };
 
+struct libinput_device_config_palm {
+	int (*has_dwt)(struct libinput_device *device);
+	enum libinput_config_status (*set_dwt)(
+			 struct libinput_device *device,
+			 enum libinput_config_palm_dwt_state enable);
+	enum libinput_config_palm_dwt_state (*get_dwt)(
+			 struct libinput_device *device);
+	enum libinput_config_palm_dwt_state (*get_default_dwt)(
+			 struct libinput_device *device);
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap *tap;
 	struct libinput_device_config_calibration *calibration;
@@ -206,6 +217,7 @@ struct libinput_device_config {
 	struct libinput_device_config_scroll_method *scroll_method;
 	struct libinput_device_config_click_method *click_method;
 	struct libinput_device_config_middle_emulation *middle_emulation;
+	struct libinput_device_config_palm *palm;
 };
 
 struct libinput_device_group {

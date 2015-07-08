@@ -47,6 +47,7 @@ struct tools_options {
 	enum libinput_config_scroll_method scroll_method;
 	int scroll_button;
 	double speed;
+	int dwt;
 };
 
 struct tools_context {
