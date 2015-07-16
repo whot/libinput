@@ -71,6 +71,12 @@ libinput:name:SynPS/2 Synaptics TouchPad:dmi:*svnLENOVO:*:pvrThinkPadX230*
  LIBINPUT_MODEL_LENOVO_X230=1
 
 ##########################################
+# Synaptics
+##########################################
+libinput:touchpad:input:b0011v0002p0007*
+ LIBINPUT_MODEL_SYNAPTICS_SERIAL_TOUCHPAD=1
+
+##########################################
 # System76
 ##########################################
 
