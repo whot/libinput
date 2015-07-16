@@ -641,22 +641,19 @@ static enum libinput_config_click_method
 tp_click_get_default_method(struct tp_dispatch *tp)
 {
 	struct evdev_device *device = tp->device;
+	uint32_t clickfinger_models = EVDEV_MODEL_CHROMEBOOK |
+				      EVDEV_MODEL_SYSTEM76_BONOBO |
+				      EVDEV_MODEL_SYSTEM76_GALAGO |
+				      EVDEV_MODEL_SYSTEM76_KUDU |
+				      EVDEV_MODEL_CLEVO_W740SU;
 
 	if (!tp->buttons.is_clickpad)
 		return LIBINPUT_CONFIG_CLICK_METHOD_NONE;
 	else if (libevdev_get_id_vendor(tp->device->evdev) == VENDOR_ID_APPLE)
 		return LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
 
-	switch (device->model) {
-	case EVDEV_MODEL_CHROMEBOOK:
-	case EVDEV_MODEL_SYSTEM76_BONOBO:
-	case EVDEV_MODEL_SYSTEM76_GALAGO:
-	case EVDEV_MODEL_SYSTEM76_KUDU:
-	case EVDEV_MODEL_CLEVO_W740SU:
+	if (device->model_flags & clickfinger_models)
 		return LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
-	default:
-		break;
-	}
 
 	return LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
 }
@@ -688,7 +685,7 @@ tp_init_middlebutton_emulation(struct tp_dispatch *tp,
 	if (!libevdev_has_event_code(device->evdev, EV_KEY, BTN_MIDDLE)) {
 		enable_by_default = true;
 		want_config_option = false;
-	} else if (device->model == EVDEV_MODEL_ALPS_TOUCHPAD) {
+	} else if (device->model_flags & EVDEV_MODEL_ALPS_TOUCHPAD) {
 		enable_by_default = true;
 		want_config_option = true;
 	} else

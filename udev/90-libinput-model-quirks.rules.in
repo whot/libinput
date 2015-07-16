@@ -25,18 +25,12 @@ KERNELS=="*input*", \
   IMPORT{builtin}="hwdb 'libinput:name:$attr{name}:fwversion:$env{LIBINPUT_MODEL_FIRMWARE_VERSION}'"
 # End of touchpad firmware detection
 
-# Matches below are exclusive, if one matches we skip the rest
-# hwdb matches:
-# 
 # libinput:touchpad:<modalias>
 ENV{ID_INPUT_TOUCHPAD}=="1", \
-  IMPORT{builtin}="hwdb --subsystem=input --lookup-prefix=libinput:touchpad:", \
-  GOTO="libinput_model_quirks_end"
+  IMPORT{builtin}="hwdb --subsystem=input --lookup-prefix=libinput:touchpad:"
 
 # libinput:name:<name>:dmi:<dmi string>
 KERNELS=="input*", \
-  IMPORT{builtin}="hwdb 'libinput:name:$attr{name}:$attr{[dmi/id]modalias}'", \
-  GOTO="libinput_model_quirks_end"
-
+  IMPORT{builtin}="hwdb 'libinput:name:$attr{name}:$attr{[dmi/id]modalias}'"
 
 LABEL="libinput_model_quirks_end"

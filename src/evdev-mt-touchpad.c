@@ -1224,7 +1224,7 @@ evdev_tag_touchpad(struct evdev_device *device,
 	 */
 	bustype = libevdev_get_id_bustype(device->evdev);
 	if (bustype == BUS_USB) {
-		if (device->model == EVDEV_MODEL_APPLE_TOUCHPAD)
+		if (device->model_flags & EVDEV_MODEL_APPLE_TOUCHPAD)
 			 device->tags |= EVDEV_TAG_INTERNAL_TOUCHPAD;
 	} else if (bustype != BUS_BLUETOOTH)
 		device->tags |= EVDEV_TAG_INTERNAL_TOUCHPAD;
@@ -1350,14 +1350,10 @@ tp_init_accel(struct tp_dispatch *tp, double diagonal)
 	tp->accel.x_scale_coeff = (DEFAULT_MOUSE_DPI/25.4) / res_x;
 	tp->accel.y_scale_coeff = (DEFAULT_MOUSE_DPI/25.4) / res_y;
 
-	switch (tp->device->model) {
-	case EVDEV_MODEL_LENOVO_X230:
+	if (tp->device->model_flags & EVDEV_MODEL_LENOVO_X230)
 		profile = touchpad_lenovo_x230_accel_profile;
-		break;
-	default:
+	else
 		profile = touchpad_accel_profile_linear;
-		break;
-	}
 
 	if (evdev_device_init_pointer_acceleration(tp->device, profile) == -1)
 		return -1;
@@ -1460,7 +1456,7 @@ tp_init_palmdetect(struct tp_dispatch *tp,
 
 	/* Wacom doesn't have internal touchpads,
 	 * Apple touchpads are always big enough to warrant palm detection */
-	if (device->model == EVDEV_MODEL_WACOM_TOUCHPAD)
+	if (device->model_flags & EVDEV_MODEL_WACOM_TOUCHPAD)
 		return 0;
 
 	/* Enable palm detection on touchpads >= 70 mm. Anything smaller
