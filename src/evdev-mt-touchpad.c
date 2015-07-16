@@ -341,6 +341,40 @@ tp_process_absolute_st(struct tp_dispatch *tp,
 	}
 }
 
+static inline void
+tp_restore_synaptics_touches(struct tp_dispatch *tp,
+			     uint64_t time)
+{
+	unsigned int i;
+	unsigned int nfake_touches;
+
+	nfake_touches = tp_fake_finger_count(tp);
+	if (nfake_touches < 3)
+		return;
+
+	if (tp->nfingers_down >= nfake_touches ||
+	    tp->nfingers_down == tp->num_slots)
+		return;
+
+	/* Synaptics devices may end touch 2 on BTN_TOOL_TRIPLETAP
+	 * and start it again on the next frame with different coordinates
+	 * (#91352). We search the touches we have, if there is one that has
+	 * just ended despite us being on tripletap, we move it back to
+	 * update.
+	 */
+	for (i = 0; i < tp->num_slots; i++) {
+		struct tp_touch *t = tp_get_touch(tp, i);
+
+		if (t->state != TOUCH_END)
+			continue;
+
+		/* new touch, move it through begin to update immediately */
+		tp_new_touch(tp, t, time);
+		tp_begin_touch(tp, t, time);
+		t->state = TOUCH_UPDATE;
+	}
+}
+
 static void
 tp_process_fake_touches(struct tp_dispatch *tp,
 			uint64_t time)
@@ -352,6 +386,10 @@ tp_process_fake_touches(struct tp_dispatch *tp,
 	nfake_touches = tp_fake_finger_count(tp);
 	if (nfake_touches == FAKE_FINGER_OVERFLOW)
 		return;
+
+	if (tp->device->model_flags &
+	    EVDEV_MODEL_SYNAPTICS_SERIAL_TOUCHPAD)
+		tp_restore_synaptics_touches(tp, time);
 
 	start = tp->has_mt ? tp->num_slots : 0;
 	for (i = start; i < tp->ntouches; i++) {

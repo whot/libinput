@@ -4279,6 +4279,120 @@ START_TEST(touchpad_thumb_tap_hold_2ndfg_tap)
 }
 END_TEST
 
+START_TEST(touchpad_tool_tripletap_touch_count)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
+	struct libinput_event_pointer *ptrev;
+
+	/* Synaptics touchpads sometimes end one touch point while
+	 * simultaneously setting BTN_TOOL_TRIPLETAP.
+	 * https://bugs.freedesktop.org/show_bug.cgi?id=91352
+	 */
+	litest_drain_events(li);
+	enable_clickfinger(dev);
+
+	/* touch 1 down */
+	litest_event(dev, EV_ABS, ABS_MT_SLOT, 0);
+	litest_event(dev, EV_ABS, ABS_MT_TRACKING_ID, 1);
+	litest_event(dev, EV_ABS, ABS_MT_POSITION_X, 1200);
+	litest_event(dev, EV_ABS, ABS_MT_POSITION_Y, 3200);
+	litest_event(dev, EV_ABS, ABS_MT_PRESSURE, 78);
+	litest_event(dev, EV_ABS, ABS_X, 1200);
+	litest_event(dev, EV_ABS, ABS_Y, 3200);
+	litest_event(dev, EV_ABS, ABS_PRESSURE, 78);
+	litest_event(dev, EV_KEY, BTN_TOOL_FINGER, 1);
+	litest_event(dev, EV_KEY, BTN_TOUCH, 1);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	libinput_dispatch(li);
+	msleep(2);
+
+	/* touch 2 down */
+	litest_event(dev, EV_ABS, ABS_MT_SLOT, 1);
+	litest_event(dev, EV_ABS, ABS_MT_TRACKING_ID, 1);
+	litest_event(dev, EV_ABS, ABS_MT_POSITION_X, 2200);
+	litest_event(dev, EV_ABS, ABS_MT_POSITION_Y, 3200);
+	litest_event(dev, EV_ABS, ABS_MT_PRESSURE, 73);
+	litest_event(dev, EV_KEY, BTN_TOOL_FINGER, 0);
+	litest_event(dev, EV_KEY, BTN_TOOL_DOUBLETAP, 1);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	libinput_dispatch(li);
+	msleep(2);
+
+	/* touch 3 down, coordinate jump + ends slot 1 */
+	litest_event(dev, EV_ABS, ABS_MT_SLOT, 0);
+	litest_event(dev, EV_ABS, ABS_MT_POSITION_X, 4000);
+	litest_event(dev, EV_ABS, ABS_MT_POSITION_Y, 4000);
+	litest_event(dev, EV_ABS, ABS_MT_PRESSURE, 78);
+	litest_event(dev, EV_ABS, ABS_MT_SLOT, 1);
+	litest_event(dev, EV_ABS, ABS_MT_TRACKING_ID, -1);
+	litest_event(dev, EV_ABS, ABS_X, 4000);
+	litest_event(dev, EV_ABS, ABS_Y, 4000);
+	litest_event(dev, EV_ABS, ABS_PRESSURE, 78);
+	litest_event(dev, EV_KEY, BTN_TOOL_DOUBLETAP, 0);
+	litest_event(dev, EV_KEY, BTN_TOOL_TRIPLETAP, 1);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	libinput_dispatch(li);
+	msleep(2);
+
+	/* slot 2 reactivated:
+	 * Note, slot is activated close enough that we don't accidentally
+	 * trigger the clickfinger distance check, remains to be seen if
+	 * that is true for real-world interaction.
+	 */
+	litest_event(dev, EV_ABS, ABS_MT_SLOT, 0);
+	litest_event(dev, EV_ABS, ABS_MT_POSITION_X, 4000);
+	litest_event(dev, EV_ABS, ABS_MT_POSITION_Y, 4000);
+	litest_event(dev, EV_ABS, ABS_MT_PRESSURE, 78);
+	litest_event(dev, EV_ABS, ABS_MT_SLOT, 1);
+	litest_event(dev, EV_ABS, ABS_MT_TRACKING_ID, 3);
+	litest_event(dev, EV_ABS, ABS_MT_POSITION_X, 3500);
+	litest_event(dev, EV_ABS, ABS_MT_POSITION_Y, 3500);
+	litest_event(dev, EV_ABS, ABS_MT_PRESSURE, 73);
+	litest_event(dev, EV_ABS, ABS_X, 4000);
+	litest_event(dev, EV_ABS, ABS_Y, 4000);
+	litest_event(dev, EV_ABS, ABS_PRESSURE, 78);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	libinput_dispatch(li);
+	msleep(2);
+
+	/* now a click should trigger middle click */
+	litest_event(dev, EV_KEY, BTN_LEFT, 1);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	libinput_dispatch(li);
+	litest_event(dev, EV_KEY, BTN_LEFT, 0);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	libinput_dispatch(li);
+
+	litest_wait_for_event(li);
+	event = libinput_get_event(li);
+	ptrev = litest_is_button_event(event,
+				       BTN_MIDDLE,
+				       LIBINPUT_BUTTON_STATE_PRESSED);
+	libinput_event_destroy(event);
+	event = libinput_get_event(li);
+	ptrev = litest_is_button_event(event,
+				       BTN_MIDDLE,
+				       LIBINPUT_BUTTON_STATE_RELEASED);
+	/* silence gcc set-but-not-used warning, litest_is_button_event
+	 * checks what we care about */
+	event = libinput_event_pointer_get_base_event(ptrev);
+	libinput_event_destroy(event);
+
+	/* release everything */
+	litest_event(dev, EV_ABS, ABS_MT_SLOT, 0);
+	litest_event(dev, EV_ABS, ABS_MT_TRACKING_ID, -1);
+	litest_event(dev, EV_ABS, ABS_MT_SLOT, 0);
+	litest_event(dev, EV_ABS, ABS_MT_TRACKING_ID, -1);
+	litest_event(dev, EV_KEY, BTN_TOOL_FINGER, 0);
+	litest_event(dev, EV_KEY, BTN_TOOL_DOUBLETAP, 0);
+	litest_event(dev, EV_KEY, BTN_TOOL_TRIPLETAP, 0);
+	litest_event(dev, EV_KEY, BTN_TOUCH, 0);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+}
+END_TEST
+
 void
 litest_setup_tests(void)
 {
@@ -4413,4 +4527,6 @@ litest_setup_tests(void)
 	litest_add("touchpad:thumb", touchpad_thumb_tap_hold, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:thumb", touchpad_thumb_tap_hold_2ndfg, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
 	litest_add("touchpad:thumb", touchpad_thumb_tap_hold_2ndfg_tap, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
+
+	litest_add_for_device("touchpad:bugs", touchpad_tool_tripletap_touch_count, LITEST_SYNAPTICS_TOPBUTTONPAD);
 }
