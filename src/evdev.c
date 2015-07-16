@@ -1521,8 +1521,8 @@ evdev_read_dpi_prop(struct evdev_device *device)
 	return dpi;
 }
 
-static inline enum evdev_device_model
-evdev_read_model(struct evdev_device *device)
+static inline uint32_t
+evdev_read_model_flags(struct evdev_device *device)
 {
 	const struct model_map {
 		const char *property;
@@ -1540,15 +1540,16 @@ evdev_read_model(struct evdev_device *device)
 		{ NULL, EVDEV_MODEL_DEFAULT },
 	};
 	const struct model_map *m = model_map;
+	uint32_t model_flags = 0;
 
 	while (m->property) {
 		if (!!udev_device_get_property_value(device->udev_device,
 						     m->property))
-			break;
+			model_flags |= m->model;
 		m++;
 	}
 
-	return m->model;
+	return model_flags;
 }
 
 static inline int
@@ -2141,7 +2142,7 @@ evdev_device_create(struct libinput_seat *seat,
 	device->scroll.direction = 0;
 	device->scroll.wheel_click_angle =
 		evdev_read_wheel_click_prop(device);
-	device->model = evdev_read_model(device);
+	device->model_flags = evdev_read_model_flags(device);
 	device->dpi = evdev_read_dpi_prop(device);
 
 	/* at most 5 SYN_DROPPED log-messages per 30s */

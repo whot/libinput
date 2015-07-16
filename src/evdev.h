@@ -95,16 +95,16 @@ enum evdev_middlebutton_event {
 };
 
 enum evdev_device_model {
-	EVDEV_MODEL_DEFAULT,
-	EVDEV_MODEL_LENOVO_X230,
-	EVDEV_MODEL_CHROMEBOOK,
-	EVDEV_MODEL_SYSTEM76_BONOBO,
-	EVDEV_MODEL_SYSTEM76_GALAGO,
-	EVDEV_MODEL_SYSTEM76_KUDU,
-	EVDEV_MODEL_CLEVO_W740SU,
-	EVDEV_MODEL_APPLE_TOUCHPAD,
-	EVDEV_MODEL_WACOM_TOUCHPAD,
-	EVDEV_MODEL_ALPS_TOUCHPAD,
+	EVDEV_MODEL_DEFAULT = 0,
+	EVDEV_MODEL_LENOVO_X230 = (1 << 0),
+	EVDEV_MODEL_CHROMEBOOK = (1 << 1),
+	EVDEV_MODEL_SYSTEM76_BONOBO = (1 << 2),
+	EVDEV_MODEL_SYSTEM76_GALAGO = (1 << 3),
+	EVDEV_MODEL_SYSTEM76_KUDU = (1 << 4),
+	EVDEV_MODEL_CLEVO_W740SU = (1 << 5),
+	EVDEV_MODEL_APPLE_TOUCHPAD = (1 << 6),
+	EVDEV_MODEL_WACOM_TOUCHPAD = (1 << 7),
+	EVDEV_MODEL_ALPS_TOUCHPAD = (1 << 8),
 };
 
 struct mt_slot {
@@ -221,7 +221,7 @@ struct evdev_device {
 	int dpi; /* HW resolution */
 	struct ratelimit syn_drop_limit; /* ratelimit for SYN_DROPPED logging */
 
-	enum evdev_device_model model;
+	uint32_t model_flags;
 };
 
 #define EVDEV_UNHANDLED_DEVICE ((struct evdev_device *) 1)
