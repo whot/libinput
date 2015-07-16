@@ -1008,6 +1008,28 @@ START_TEST(device_udev_tag_apple)
 	udev_device_unref(d);
 }
 END_TEST
+
+START_TEST(device_udev_tag_synaptics_serial)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct udev_device *d;
+	const char *prop;
+
+	d = libinput_device_get_udev_device(device);
+	prop = udev_device_get_property_value(d,
+					      "LIBINPUT_MODEL_SYNAPTICS_SERIAL_TOUCHPAD");
+
+	if (libevdev_get_id_vendor(dev->evdev) == VENDOR_ID_SYNAPTICS_SERIAL &&
+	    libevdev_get_id_product(dev->evdev) == PRODUCT_ID_SYNAPTICS_SERIAL)
+		ck_assert_notnull(prop);
+	else
+		ck_assert(prop == NULL);
+
+	udev_device_unref(d);
+}
+END_TEST
+
 void
 litest_setup_tests(void)
 {
@@ -1054,4 +1076,5 @@ litest_setup_tests(void)
 	litest_add("device:udev tags", device_udev_tag_alps, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("device:udev tags", device_udev_tag_wacom, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("device:udev tags", device_udev_tag_apple, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("device:udev tags", device_udev_tag_synaptics_serial, LITEST_TOUCHPAD, LITEST_ANY);
 }
