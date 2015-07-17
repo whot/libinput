@@ -722,16 +722,58 @@ tp_unhover_touches(struct tp_dispatch *tp, uint64_t time)
 
 }
 
+static inline void
+tp_position_fake_touches(struct tp_dispatch *tp)
+{
+	struct tp_touch *t;
+	struct tp_touch *topmost = NULL;
+	unsigned int start, i;
+
+	if (tp_fake_finger_count(tp) <= tp->num_slots)
+		return;
+
+	/* We have at least one fake touch down. Find the top-most real
+	 * touch and copy its coordinates over to to all fake touches.
+	 * This is more reliable than just taking the first touch.
+	 */
+	for (i = 0; i < tp->num_slots; i++) {
+		t = tp_get_touch(tp, i);
+		if (t->state == TOUCH_END ||
+		    t->state == TOUCH_NONE)
+			continue;
+
+		if (topmost == NULL || t->point.y < topmost->point.y)
+			topmost = t;
+	}
+
+	if (!topmost) {
+		log_bug_libinput(tp_libinput_context(tp),
+				 "Unable to find topmost touch\n");
+		return;
+	}
+
+	start = tp->has_mt ? tp->num_slots : 1;
+	for (i = start; i < tp->ntouches; i++) {
+		t = tp_get_touch(tp, i);
+		if (t->state == TOUCH_NONE)
+			continue;
+
+		t->point = topmost->point;
+		if (!t->dirty)
+			t->dirty = topmost->dirty;
+	}
+}
+
 static void
 tp_process_state(struct tp_dispatch *tp, uint64_t time)
 {
 	struct tp_touch *t;
-	struct tp_touch *first = tp_get_touch(tp, 0);
 	unsigned int i;
 	bool restart_filter = false;
 
 	tp_process_fake_touches(tp, time);
 	tp_unhover_touches(tp, time);
+	tp_position_fake_touches(tp);
 
 	for (i = 0; i < tp->ntouches; i++) {
 		t = tp_get_touch(tp, i);
@@ -739,12 +781,6 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 		/* semi-mt finger postions may "jump" when nfingers changes */
 		if (tp->semi_mt && tp->nfingers_down != tp->old_nfingers_down)
 			tp_motion_history_reset(t);
-
-		if (i >= tp->num_slots && t->state != TOUCH_NONE) {
-			t->point = first->point;
-			if (!t->dirty)
-				t->dirty = first->dirty;
-		}
 
 		if (!t->dirty)
 			continue;
