@@ -863,13 +863,16 @@ tp_clickfinger_set_button(struct tp_dispatch *tp)
 			*third = NULL;
 	uint32_t close_touches = 0;
 
-	if (nfingers < 2 || nfingers > 3)
+	if (nfingers < 2)
 		goto out;
 
 	/* two or three fingers down on the touchpad. Check for distance
 	 * between the fingers. */
 	tp_for_each_touch(tp, t) {
 		if (t->state != TOUCH_BEGIN && t->state != TOUCH_UPDATE)
+			continue;
+
+		if (t->is_thumb)
 			continue;
 
 		if (!first)
