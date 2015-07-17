@@ -810,7 +810,8 @@ tp_check_clickfinger_distance(struct tp_dispatch *tp,
 	if (!t1 || !t2)
 		return 0;
 
-	if (t1->is_thumb || t2->is_thumb)
+	if (t1->thumb.state == THUMB_STATE_YES ||
+	    t2->thumb.state == THUMB_STATE_YES)
 		return 0;
 
 	x = abs(t1->point.x - t2->point.x);
@@ -872,7 +873,7 @@ tp_clickfinger_set_button(struct tp_dispatch *tp)
 		if (t->state != TOUCH_BEGIN && t->state != TOUCH_UPDATE)
 			continue;
 
-		if (t->is_thumb)
+		if (t->thumb.state == THUMB_STATE_YES)
 			continue;
 
 		if (!first)
