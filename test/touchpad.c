@@ -364,6 +364,7 @@ START_TEST(touchpad_4fg_clickfinger)
 {
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
 
 	if (libevdev_get_num_slots(dev->evdev) < 4)
 		return;
@@ -387,6 +388,18 @@ START_TEST(touchpad_4fg_clickfinger)
 
 	libinput_dispatch(li);
 
+	litest_wait_for_event(li);
+	event = libinput_get_event(li);
+	litest_is_button_event(event,
+			       BTN_MIDDLE,
+			       LIBINPUT_BUTTON_STATE_PRESSED);
+	libinput_event_destroy(event);
+	event = libinput_get_event(li);
+	litest_is_button_event(event,
+			       BTN_MIDDLE,
+			       LIBINPUT_BUTTON_STATE_RELEASED);
+	libinput_event_destroy(event);
+
 	litest_assert_empty_queue(li);
 }
 END_TEST
@@ -395,6 +408,7 @@ START_TEST(touchpad_4fg_clickfinger_btntool_2slots)
 {
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
 
 	if (libevdev_get_num_slots(dev->evdev) >= 3 ||
 	    !libevdev_has_event_code(dev->evdev, EV_KEY, BTN_TOOL_QUADTAP))
@@ -419,7 +433,17 @@ START_TEST(touchpad_4fg_clickfinger_btntool_2slots)
 	litest_touch_up(dev, 0);
 	litest_touch_up(dev, 1);
 
-	libinput_dispatch(li);
+	litest_wait_for_event(li);
+	event = libinput_get_event(li);
+	litest_is_button_event(event,
+			       BTN_MIDDLE,
+			       LIBINPUT_BUTTON_STATE_PRESSED);
+	libinput_event_destroy(event);
+	event = libinput_get_event(li);
+	litest_is_button_event(event,
+			       BTN_MIDDLE,
+			       LIBINPUT_BUTTON_STATE_RELEASED);
+	libinput_event_destroy(event);
 
 	litest_assert_empty_queue(li);
 }
@@ -429,6 +453,7 @@ START_TEST(touchpad_4fg_clickfinger_btntool_3slots)
 {
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
 
 	if (libevdev_get_num_slots(dev->evdev) >= 4 ||
 	    !libevdev_has_event_code(dev->evdev, EV_KEY, BTN_TOOL_TRIPLETAP))
@@ -456,6 +481,18 @@ START_TEST(touchpad_4fg_clickfinger_btntool_3slots)
 	litest_touch_up(dev, 2);
 
 	libinput_dispatch(li);
+
+	litest_wait_for_event(li);
+	event = libinput_get_event(li);
+	litest_is_button_event(event,
+			       BTN_MIDDLE,
+			       LIBINPUT_BUTTON_STATE_PRESSED);
+	libinput_event_destroy(event);
+	event = libinput_get_event(li);
+	litest_is_button_event(event,
+			       BTN_MIDDLE,
+			       LIBINPUT_BUTTON_STATE_RELEASED);
+	libinput_event_destroy(event);
 
 	litest_assert_empty_queue(li);
 }

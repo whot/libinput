@@ -872,6 +872,9 @@ tp_clickfinger_set_button(struct tp_dispatch *tp)
 		if (t->state != TOUCH_BEGIN && t->state != TOUCH_UPDATE)
 			continue;
 
+		if (t->is_thumb)
+			continue;
+
 		if (!first)
 			first = t;
 		else if (!second)
