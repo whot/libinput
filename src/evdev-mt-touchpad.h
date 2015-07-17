@@ -136,12 +136,17 @@ enum tp_gesture_2fg_state {
 	GESTURE_2FG_STATE_PINCH,
 };
 
+enum tp_thumb_state {
+	THUMB_STATE_NO,
+	THUMB_STATE_YES,
+	THUMB_STATE_MAYBE,
+};
+
 struct tp_touch {
 	struct tp_dispatch *tp;
 	enum touch_state state;
 	bool has_ended;				/* TRACKING_ID == -1 */
 	bool dirty;
-	bool is_thumb;
 	struct device_coords point;
 	uint64_t millis;
 	int distance;				/* distance == 0 means touch */
@@ -195,6 +200,11 @@ struct tp_touch {
 	struct {
 		struct device_coords initial;
 	} gesture;
+
+	struct {
+		enum tp_thumb_state state;
+		uint64_t first_touch_time;
+	} thumb;
 };
 
 struct tp_dispatch {
@@ -324,6 +334,8 @@ struct tp_dispatch {
 	struct {
 		bool detect_thumbs;
 		int threshold;
+		int upper_thumb_line;
+		int lower_thumb_line;
 	} thumb;
 };
 

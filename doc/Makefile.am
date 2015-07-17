@@ -39,6 +39,7 @@ diagram_files = \
 	$(srcdir)/svg/pinch-gestures.svg \
 	$(srcdir)/svg/swipe-gestures.svg \
 	$(srcdir)/svg/tap-n-drag.svg \
+	$(srcdir)/svg/thumb-detection.svg \
 	$(srcdir)/svg/top-software-buttons.svg \
 	$(srcdir)/svg/touchscreen-gestures.svg \
 	$(srcdir)/svg/twofinger-scrolling.svg

@@ -80,4 +80,32 @@ Notable behaviors of libinput's disable-while-typing feature:
 - Physical buttons work even while the touchpad is disabled. This includes
   software-emulated buttons.
 
+@section thumb-detection Thumb detection
+
+Many users rest their thumb on the touchpad while using the index finger to
+move the finger around. For clicks, often the thumb is used rather than the
+finger. The thumb should otherwise be ignored as a touch, i.e. it should not
+count towards @ref clickfinger and it should not cause a single-finger
+movement to trigger @ref twofinger_scrolling.
+
+libinput uses two triggers for thumb detection: pressure and
+location. A touch exceeding a pressure threshold is considered a thumb if it
+is within the thumb detection zone.
+
+@note "Pressure" on touchpads is synonymous with "contact area", a large
+touch surface area has a higher pressure and thus hints at a thumb or palm
+touching the surface.
+
+Pressure readings are unreliable at the far bottom of the touchpad as a
+thumb hanging mostly off the touchpad will have a small surface area.
+libinput has a definitive thumb zone where any touch is considered a resting
+thumb.
+
+@image html thumb-detection.svg
+
+The picture above shows the two detection areas. In the larger (light red)
+area, a touch is labelled as thumb when it exceeds a device-specific
+pressure threshold. In the lower (dark red) area, a touch is labelled as
+thumb if it remains in that area for a time without moving outside.
+
 */
