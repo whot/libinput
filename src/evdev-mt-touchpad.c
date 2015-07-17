@@ -1497,12 +1497,20 @@ tp_init_thumb(struct tp_dispatch *tp)
 {
 	struct evdev_device *device = tp->device;
 	const struct input_absinfo *abs;
+	double w = 0.0, h = 0.0;
 
 	abs = libevdev_get_abs_info(device->evdev, ABS_MT_PRESSURE);
 	if (!abs)
 		return 0;
 
 	if (abs->maximum - abs->minimum < 255)
+		return 0;
+
+	/* if the touchpad is less than 50mm high, skip thumb detection.
+	 * it's too small to meaningfully interact with a thumb on the
+	 * touchpad */
+	evdev_device_get_size(device, &w, &h);
+	if (h < 50)
 		return 0;
 
 	/* The touchpads we looked at so far have a clear thumb threshold of

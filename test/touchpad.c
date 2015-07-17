@@ -3904,7 +3904,15 @@ END_TEST
 static int
 has_thumb_detect(struct litest_device *dev)
 {
-	return libevdev_has_event_code(dev->evdev, EV_ABS, ABS_MT_PRESSURE);
+	double w, h;
+
+	if (!libevdev_has_event_code(dev->evdev, EV_ABS, ABS_MT_PRESSURE))
+		return 0;
+
+	if (libinput_device_get_size(dev->libinput_device, &w, &h) != 0)
+		return 0;
+
+	return h >= 50.0;
 }
 
 START_TEST(touchpad_thumb_begin_no_motion)
