@@ -46,8 +46,6 @@
  * The state machine only affects the soft button area code.
  */
 
-#define CASE_RETURN_STRING(a) case a: return #a;
-
 static inline const char*
 button_state_to_str(enum button_state state) {
 	switch(state) {
@@ -809,7 +807,8 @@ tp_check_clickfinger_distance(struct tp_dispatch *tp,
 	if (!t1 || !t2)
 		return 0;
 
-	if (t1->is_thumb || t2->is_thumb)
+	if (t1->thumb.state == THUMB_STATE_YES ||
+	    t2->thumb.state == THUMB_STATE_YES)
 		return 0;
 
 	x = abs(t1->point.x - t2->point.x);
@@ -862,13 +861,16 @@ tp_clickfinger_set_button(struct tp_dispatch *tp)
 			*third = NULL;
 	uint32_t close_touches = 0;
 
-	if (nfingers < 2 || nfingers > 3)
+	if (nfingers < 2)
 		goto out;
 
 	/* two or three fingers down on the touchpad. Check for distance
 	 * between the fingers. */
 	tp_for_each_touch(tp, t) {
 		if (t->state != TOUCH_BEGIN && t->state != TOUCH_UPDATE)
+			continue;
+
+		if (t->thumb.state == THUMB_STATE_YES)
 			continue;
 
 		if (!first)
