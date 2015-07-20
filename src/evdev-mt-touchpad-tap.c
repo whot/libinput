@@ -35,8 +35,6 @@
 
 #include "evdev-mt-touchpad.h"
 
-#define CASE_RETURN_STRING(a) case a: return #a
-
 #define DEFAULT_TAP_TIMEOUT_PERIOD 180
 #define DEFAULT_DRAG_TIMEOUT_PERIOD 300
 #define DEFAULT_TAP_MOVE_THRESHOLD TP_MM_TO_DPI_NORMALIZED(3)
@@ -98,7 +96,6 @@ tap_event_to_str(enum tap_event event)
 	}
 	return NULL;
 }
-#undef CASE_RETURN_STRING
 
 static void
 tp_tap_notify(struct tp_dispatch *tp,

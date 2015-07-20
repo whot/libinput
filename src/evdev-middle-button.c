@@ -43,8 +43,6 @@
  * as-is.
  */
 
-#define CASE_RETURN_STRING(a) case a: return #a;
-
 static inline const char*
 middlebutton_state_to_str(enum evdev_middlebutton_state state)
 {

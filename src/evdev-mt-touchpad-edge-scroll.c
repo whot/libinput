@@ -32,8 +32,6 @@
 
 #include "evdev-mt-touchpad.h"
 
-#define CASE_RETURN_STRING(a) case a: return #a
-
 /* Use a reasonably large threshold until locked into scrolling mode, to
    avoid accidentally locking in scrolling mode when trying to use the entire
    touchpad to move the pointer. The user can wait for the timeout to trigger

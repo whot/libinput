@@ -41,6 +41,8 @@
 /* The HW DPI rate we normalize to before calculating pointer acceleration */
 #define DEFAULT_MOUSE_DPI 1000
 
+#define CASE_RETURN_STRING(a) case a: return #a;
+
 void
 set_logging_enabled(int enabled);
 

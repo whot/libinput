@@ -46,8 +46,6 @@
  * The state machine only affects the soft button area code.
  */
 
-#define CASE_RETURN_STRING(a) case a: return #a;
-
 static inline const char*
 button_state_to_str(enum button_state state) {
 	switch(state) {
