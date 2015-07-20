@@ -760,6 +760,24 @@ tp_unhover_touches(struct tp_dispatch *tp, uint64_t time)
 
 }
 
+static inline bool
+tp_need_motion_history_reset(struct tp_dispatch *tp)
+{
+	/* semi-mt finger postions may "jump" when nfingers changes */
+	if (tp->semi_mt && tp->nfingers_down != tp->old_nfingers_down)
+		return true;
+
+	/* if we're transitioning between slots and fake touches in either
+	 * direction, we may get a coordinate jump
+	 */
+	if (tp->nfingers_down != tp->old_nfingers_down &&
+		 (tp->nfingers_down > tp->num_slots ||
+		 tp->old_nfingers_down > tp->num_slots))
+		return true;
+
+	return false;
+}
+
 static void
 tp_process_state(struct tp_dispatch *tp, uint64_t time)
 {
@@ -767,16 +785,23 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 	struct tp_touch *first = tp_get_touch(tp, 0);
 	unsigned int i;
 	bool restart_filter = false;
+	bool want_motion_reset;
 
 	tp_process_fake_touches(tp, time);
 	tp_unhover_touches(tp, time);
 
+	want_motion_reset = tp_need_motion_history_reset(tp);
+
 	for (i = 0; i < tp->ntouches; i++) {
 		t = tp_get_touch(tp, i);
 
-		/* semi-mt finger postions may "jump" when nfingers changes */
-		if (tp->semi_mt && tp->nfingers_down != tp->old_nfingers_down)
+		if (want_motion_reset) {
 			tp_motion_history_reset(t);
+			t->quirks.reset_motion_history = true;
+		} else if (t->quirks.reset_motion_history) {
+			tp_motion_history_reset(t);
+			t->quirks.reset_motion_history = false;
+		}
 
 		if (i >= tp->num_slots && t->state != TOUCH_NONE) {
 			t->point = first->point;

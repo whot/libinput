@@ -148,6 +148,15 @@ struct tp_touch {
 	int pressure;
 
 	struct {
+		/* A quirk mostly used on Synaptics touchpads. In a
+		   transition to/from fake touches > num_slots, the current
+		   event data is likely garbage and the subsequent event
+		   is likely too. This marker tells us to reset the motion
+		   history again -> this effectively swallows any motion */
+		bool reset_motion_history;
+	} quirks;
+
+	struct {
 		struct device_coords samples[TOUCHPAD_HISTORY_LENGTH];
 		unsigned int index;
 		unsigned int count;
