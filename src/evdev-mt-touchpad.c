@@ -1534,6 +1534,8 @@ tp_init_thumb(struct tp_dispatch *tp)
 	struct evdev_device *device = tp->device;
 	const struct input_absinfo *abs;
 	double w = 0.0, h = 0.0;
+	int xres, yres;
+	double threshold;
 
 	if (!tp->buttons.is_clickpad)
 		return 0;
@@ -1552,12 +1554,17 @@ tp_init_thumb(struct tp_dispatch *tp)
 	if (h < 50)
 		return 0;
 
-	/* The touchpads we looked at so far have a clear thumb threshold of
-	 * ~100, you don't reach that with a normal finger interaction.
+	/* Our reference touchpad is the T440s with 42x42 resolution.
+	 * Higher-res touchpads exhibit higher pressure for the same
+	 * interaction. On the T440s, the threshold value is 100, you don't
+	 * reach that with a normal finger interaction.
 	 * Note: "thumb" means massive touch that should not interact, not
 	 * "using the tip of my thumb for a pinch gestures".
 	 */
-	tp->thumb.threshold = 100;
+	xres = tp->device->abs.absinfo_x->resolution;
+	yres = tp->device->abs.absinfo_y->resolution;
+	threshold = 100.0 * hypot(xres, yres)/hypot(42, 42);
+	tp->thumb.threshold = max(100, threshold);
 	tp->thumb.detect_thumbs = true;
 
 	return 0;
