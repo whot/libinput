@@ -1499,6 +1499,9 @@ tp_init_thumb(struct tp_dispatch *tp)
 	const struct input_absinfo *abs;
 	double w = 0.0, h = 0.0;
 
+	if (!tp->buttons.is_clickpad)
+		return 0;
+
 	abs = libevdev_get_abs_info(device->evdev, ABS_MT_PRESSURE);
 	if (!abs)
 		return 0;

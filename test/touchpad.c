@@ -4411,14 +4411,14 @@ litest_setup_tests(void)
 	litest_add("touchpad:dwt", touchpad_dwt_edge_scroll, LITEST_TOUCHPAD, LITEST_CLICKPAD);
 	litest_add("touchpad:dwt", touchpad_dwt_edge_scroll_interrupt, LITEST_TOUCHPAD, LITEST_CLICKPAD);
 
-	litest_add("touchpad:thumb", touchpad_thumb_begin_no_motion, LITEST_TOUCHPAD, LITEST_ANY);
-	litest_add("touchpad:thumb", touchpad_thumb_update_no_motion, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("touchpad:thumb", touchpad_thumb_begin_no_motion, LITEST_CLICKPAD, LITEST_ANY);
+	litest_add("touchpad:thumb", touchpad_thumb_update_no_motion, LITEST_CLICKPAD, LITEST_ANY);
 	litest_add("touchpad:thumb", touchpad_thumb_clickfinger, LITEST_CLICKPAD, LITEST_ANY);
 	litest_add("touchpad:thumb", touchpad_thumb_btnarea, LITEST_CLICKPAD, LITEST_ANY);
-	litest_add("touchpad:thumb", touchpad_thumb_edgescroll, LITEST_TOUCHPAD, LITEST_ANY);
-	litest_add("touchpad:thumb", touchpad_thumb_tap_begin, LITEST_TOUCHPAD, LITEST_ANY);
-	litest_add("touchpad:thumb", touchpad_thumb_tap_touch, LITEST_TOUCHPAD, LITEST_ANY);
-	litest_add("touchpad:thumb", touchpad_thumb_tap_hold, LITEST_TOUCHPAD, LITEST_ANY);
-	litest_add("touchpad:thumb", touchpad_thumb_tap_hold_2ndfg, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
-	litest_add("touchpad:thumb", touchpad_thumb_tap_hold_2ndfg_tap, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
+	litest_add("touchpad:thumb", touchpad_thumb_edgescroll, LITEST_CLICKPAD, LITEST_ANY);
+	litest_add("touchpad:thumb", touchpad_thumb_tap_begin, LITEST_CLICKPAD, LITEST_ANY);
+	litest_add("touchpad:thumb", touchpad_thumb_tap_touch, LITEST_CLICKPAD, LITEST_ANY);
+	litest_add("touchpad:thumb", touchpad_thumb_tap_hold, LITEST_CLICKPAD, LITEST_ANY);
+	litest_add("touchpad:thumb", touchpad_thumb_tap_hold_2ndfg, LITEST_CLICKPAD, LITEST_SINGLE_TOUCH);
+	litest_add("touchpad:thumb", touchpad_thumb_tap_hold_2ndfg_tap, LITEST_CLICKPAD, LITEST_SINGLE_TOUCH);
 }
