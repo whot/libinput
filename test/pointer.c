@@ -197,7 +197,7 @@ START_TEST(pointer_motion_relative_min_decel)
 	ck_assert((evx == 0.0) == (dx == 0));
 	ck_assert((evy == 0.0) == (dy == 0));
 
-	len = vector_length(evx, evy);
+	len = hypot(evx, evy);
 	ck_assert(fabs(len) >= 0.3);
 
 	libinput_event_destroy(event);
@@ -251,7 +251,6 @@ START_TEST(pointer_absolute_initial_state)
 	struct libinput_event_pointer *p1, *p2;
 	int axis = _i; /* looped test */
 
-	dev = litest_current_device();
 	libinput1 = dev->libinput;
 	litest_touch_down(dev, 0, 40, 60);
 	litest_touch_up(dev, 0);

@@ -35,15 +35,6 @@
 
 #include "shared.h"
 
-static inline const char*
-bool_to_str(bool b)
-{
-	if (b)
-		return "yes";
-	else
-		return "no";
-}
-
 static const char *
 tap_default(struct libinput_device *device)
 {

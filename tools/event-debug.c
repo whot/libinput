@@ -328,8 +328,6 @@ print_gesture_event_with_coords(struct libinput_event *ev)
 	double dy = libinput_event_gesture_get_dy(t);
 	double dx_unaccel = libinput_event_gesture_get_dx_unaccelerated(t);
 	double dy_unaccel = libinput_event_gesture_get_dy_unaccelerated(t);
-	double scale = libinput_event_gesture_get_scale(t);
-	double angle = libinput_event_gesture_get_angle_delta(t);
 
 	print_event_time(libinput_event_gesture_get_time(t));
 
@@ -337,10 +335,15 @@ print_gesture_event_with_coords(struct libinput_event *ev)
 	       libinput_event_gesture_get_finger_count(t),
 	       dx, dy, dx_unaccel, dy_unaccel);
 
-	if (libinput_event_get_type(ev) == LIBINPUT_EVENT_GESTURE_PINCH_UPDATE)
+	if (libinput_event_get_type(ev) ==
+	    LIBINPUT_EVENT_GESTURE_PINCH_UPDATE) {
+		double scale = libinput_event_gesture_get_scale(t);
+		double angle = libinput_event_gesture_get_angle_delta(t);
+
 		printf(" %5.2f @ %5.2f\n", scale, angle);
-	else
+	} else {
 		printf("\n");
+	}
 }
 
 static int

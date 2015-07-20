@@ -214,13 +214,13 @@ litest_backtrace(void)
 		}
 
 		if (have_lineno) {
-			litest_log("%u: %s() (%s:%d)\n",
+			litest_log("%d: %s() (%s:%d)\n",
 				   i,
 				   procname,
 				   file,
 				   line);
 		} else  {
-			litest_log("%u: %s (%s%s+%#x) [%p]\n",
+			litest_log("%d: %s (%s%s+%#x) [%p]\n",
 				   i,
 				   filename,
 				   procname,

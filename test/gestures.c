@@ -223,8 +223,6 @@ START_TEST(gestures_pinch)
 
 	libinput_event_destroy(event);
 
-	dir_x = cardinals[cardinal][0];
-	dir_y = cardinals[cardinal][1];
 	while ((event = libinput_get_event(li)) != NULL) {
 		gevent = litest_is_gesture_event(event,
 						 LIBINPUT_EVENT_GESTURE_PINCH_UPDATE,
@@ -324,8 +322,6 @@ START_TEST(gestures_spread)
 
 	libinput_event_destroy(event);
 
-	dir_x = cardinals[cardinal][0];
-	dir_y = cardinals[cardinal][1];
 	while ((event = libinput_get_event(li)) != NULL) {
 		gevent = litest_is_gesture_event(event,
 						 LIBINPUT_EVENT_GESTURE_PINCH_UPDATE,

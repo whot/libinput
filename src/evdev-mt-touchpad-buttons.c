@@ -968,7 +968,6 @@ tp_post_clickpadbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 
 	current = tp->buttons.state;
 	old = tp->buttons.old_state;
-	button = 0;
 	is_top = 0;
 
 	if (!tp->buttons.click_pending && current == old)

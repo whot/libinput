@@ -30,10 +30,6 @@
 
 #include "evdev-mt-touchpad.h"
 
-/* Number found by trial-and error, seems to be 1200, divided by the
- * TP_MAGIC_SLOWDOWN in filter.c */
-#define DEFAULT_ACCEL_NUMERATOR 3000.0
-#define DEFAULT_HYSTERESIS_MARGIN_DENOMINATOR 700.0
 #define DEFAULT_TRACKPOINT_ACTIVITY_TIMEOUT 300 /* ms */
 #define DEFAULT_KEYBOARD_ACTIVITY_TIMEOUT_1 200 /* ms */
 #define DEFAULT_KEYBOARD_ACTIVITY_TIMEOUT_2 500 /* ms */
@@ -481,7 +477,7 @@ tp_unpin_finger(struct tp_dispatch *tp, struct tp_touch *t)
 	ydist *= tp->buttons.motion_dist.y_scale_coeff;
 
 	/* 3mm movement -> unpin */
-	if (vector_length(xdist, ydist) >= 3.0) {
+	if (hypot(xdist, ydist) >= 3.0) {
 		t->pinned.is_pinned = false;
 		return;
 	}
@@ -654,7 +650,7 @@ tp_thumb_detect(struct tp_dispatch *tp, struct tp_touch *t)
 		return;
 
 	/* Note: a thumb at the edge of the touchpad won't trigger the
-	 * threshold, the surface areas is usually too small.
+	 * threshold, the surface area is usually too small.
 	 */
 	if (t->pressure < tp->thumb.threshold)
 		return;

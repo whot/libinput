@@ -301,10 +301,4 @@ int parse_mouse_wheel_click_angle_property(const char *prop);
 double parse_trackpoint_accel_property(const char *prop);
 bool parse_dimension_property(const char *prop, size_t *width, size_t *height);
 
-static inline double
-vector_length(double x, double y)
-{
-	return sqrt(x * x + y * y);
-}
-
 #endif /* LIBINPUT_UTIL_H */
