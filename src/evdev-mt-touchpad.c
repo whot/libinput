@@ -737,7 +737,8 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 		t = tp_get_touch(tp, i);
 
 		/* semi-mt finger postions may "jump" when nfingers changes */
-		if (tp->semi_mt && tp->nfingers_down != tp->old_nfingers_down)
+		if ((tp->semi_mt || tp->nfingers_down > tp->num_slots) &&
+		    tp->nfingers_down != tp->old_nfingers_down)
 			tp_motion_history_reset(t);
 
 		if (i >= tp->num_slots && t->state != TOUCH_NONE) {
