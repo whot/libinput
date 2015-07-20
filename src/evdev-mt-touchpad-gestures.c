@@ -193,9 +193,10 @@ tp_gesture_get_direction(struct tp_dispatch *tp, struct tp_touch *touch)
 	if (tp->semi_mt)
 		move_threshold = TP_MM_TO_DPI_NORMALIZED(4);
 	else
-		move_threshold = TP_MM_TO_DPI_NORMALIZED(3);
+		move_threshold = TP_MM_TO_DPI_NORMALIZED(2);
 
 	delta = device_delta(touch->point, touch->gesture.initial);
+
 	normalized = tp_normalize_delta(tp, delta);
 
 	if (normalized_length(normalized) < move_threshold)

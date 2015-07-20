@@ -477,8 +477,8 @@ tp_unpin_finger(struct tp_dispatch *tp, struct tp_touch *t)
 	ydist = abs(t->point.y - t->pinned.center.y);
 	ydist *= tp->buttons.motion_dist.y_scale_coeff;
 
-	/* 3mm movement -> unpin */
-	if (hypot(xdist, ydist) >= 3.0) {
+	/* 1.5mm movement -> unpin */
+	if (hypot(xdist, ydist) >= 1.5) {
 		t->pinned.is_pinned = false;
 		return;
 	}
@@ -851,7 +851,8 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 		t = tp_get_touch(tp, i);
 
 		/* semi-mt finger postions may "jump" when nfingers changes */
-		if (tp->semi_mt && tp->nfingers_down != tp->old_nfingers_down)
+		if ((tp->semi_mt || tp->nfingers_down > tp->num_slots) &&
+		    tp->nfingers_down != tp->old_nfingers_down)
 			tp_motion_history_reset(t);
 
 		if (!t->dirty)
