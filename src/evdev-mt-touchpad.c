@@ -471,6 +471,7 @@ tp_unpin_finger(struct tp_dispatch *tp, struct tp_touch *t)
 	if (!t->pinned.is_pinned)
 		return;
 
+	/* fixme: use device_float here? */
 	xdist = abs(t->point.x - t->pinned.center.x);
 	xdist *= tp->buttons.motion_dist.x_scale_coeff;
 	ydist = abs(t->point.y - t->pinned.center.y);
@@ -479,6 +480,7 @@ tp_unpin_finger(struct tp_dispatch *tp, struct tp_touch *t)
 	/* 3mm movement -> unpin */
 	if (hypot(xdist, ydist) >= 3.0) {
 		t->pinned.is_pinned = false;
+		printf("::::::::::::: unpinned\n");
 		return;
 	}
 }
@@ -492,6 +494,7 @@ tp_pin_fingers(struct tp_dispatch *tp)
 		t->pinned.is_pinned = true;
 		t->pinned.center = t->point;
 	}
+	printf(":::: fingers pinned\n");
 }
 
 int
@@ -791,6 +794,10 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 	tp_unhover_touches(tp, time);
 
 	want_motion_reset = tp_need_motion_history_reset(tp);
+	if (want_motion_reset)
+		printf("resetting\n");
+
+	printf("nfingers down: %d\n", tp->nfingers_down);
 
 	for (i = 0; i < tp->ntouches; i++) {
 		t = tp_get_touch(tp, i);

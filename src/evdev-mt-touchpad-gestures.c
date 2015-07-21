@@ -78,6 +78,7 @@ tp_get_touches_delta(struct tp_dispatch *tp, bool average)
 static inline struct normalized_coords
 tp_get_combined_touches_delta(struct tp_dispatch *tp)
 {
+	printf("combining delta\n");
 	return tp_get_touches_delta(tp, false);
 }
 
@@ -443,15 +444,31 @@ tp_gesture_post_events(struct tp_dispatch *tp, uint64_t time)
 
 	/* When tap-and-dragging, or a clickpad is clicked force 1fg mode */
 	if (tp_tap_dragging(tp) || (tp->buttons.is_clickpad && tp->buttons.state)) {
+		printf("forcing to 1\n");
 		tp_gesture_cancel(tp, time);
 		tp->gesture.finger_count = 1;
 		tp->gesture.finger_count_pending = 0;
+
+		/* FIXME: this is only true for 2 fingers, we don't have a
+		 * 3-finger interaction method. So really we should subtract
+		 * a finger here and take min? this way click-and-scroll
+		 * still sort-of works.
+		 *
+		 * -> two-fingers with a click is a 1fg + movement
+		 * -> three-fingers with a click is a 2fg movement
+		 *
+		 * but the real problem here is still that the motion
+		 * history reset isn't enough, the touchpad must skip the
+		 * first event after the transition, not just the one of the
+		 * transition itself.
+		 */
 	}
 
 	/* Don't send events when we're unsure in which mode we are */
 	if (tp->gesture.finger_count_pending)
 		return;
 
+	printf("gesture finger count: %d\n", tp->gesture.finger_count);
 	switch (tp->gesture.finger_count) {
 	case 1:
 		tp_gesture_post_pointer_motion(tp, time);
@@ -555,6 +572,8 @@ tp_gesture_handle_state(struct tp_dispatch *tp, uint64_t time)
 		i++;
 	}
 
+	printf(":::: active touches: %d (%d)\n", active_touches, tp->gesture.finger_count);
+
 	if (active_touches != tp->gesture.finger_count) {
 		/* If all fingers are lifted immediately end the gesture */
 		if (active_touches == 0) {
@@ -565,6 +584,7 @@ tp_gesture_handle_state(struct tp_dispatch *tp, uint64_t time)
 		} else if (!tp->gesture.started) {
 			tp->gesture.finger_count = active_touches;
 			tp->gesture.finger_count_pending = 0;
+			printf("pending is now active_touches\n");
 		/* Else debounce finger changes */
 		} else if (active_touches != tp->gesture.finger_count_pending) {
 			tp->gesture.finger_count_pending = active_touches;
