@@ -902,9 +902,8 @@ out:
 	case 0:
 	case 1: button = BTN_LEFT; break;
 	case 2: button = BTN_RIGHT; break;
-	case 3: button = BTN_MIDDLE; break;
 	default:
-		button = 0;
+		button = BTN_MIDDLE; break;
 		break;
 	}
 
