@@ -204,6 +204,7 @@ struct tp_touch {
 	struct {
 		enum tp_thumb_state state;
 		uint64_t first_touch_time;
+		struct device_coords initial;
 	} thumb;
 };
 

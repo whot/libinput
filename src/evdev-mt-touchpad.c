@@ -636,6 +636,22 @@ tp_thumb_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 		goto out;
 	}
 
+	/* If the thumb moves by more than 7mm, it's not a resting thumb */
+	if (t->state == TOUCH_BEGIN)
+		t->thumb.initial = t->point;
+	else if (t->state == TOUCH_UPDATE) {
+		struct device_float_coords delta;
+		struct normalized_coords normalized;
+
+		delta = device_delta(t->point, t->thumb.initial);
+		normalized = tp_normalize_delta(tp, delta);
+		if (normalized_length(normalized) >
+			TP_MM_TO_DPI_NORMALIZED(7)) {
+			t->thumb.state = THUMB_STATE_NO;
+			goto out;
+		}
+	}
+
 	/* Note: a thumb at the edge of the touchpad won't trigger the
 	 * threshold, the surface area is usually too small. So we have a
 	 * two-stage detection: pressure and time within the area.
