@@ -367,14 +367,24 @@ tp_restore_synaptics_touches(struct tp_dispatch *tp,
 	 */
 	for (i = 0; i < tp->num_slots; i++) {
 		struct tp_touch *t = tp_get_touch(tp, i);
+		enum touch_state state = t->state;
 
-		if (t->state != TOUCH_END)
+		switch(state) {
+		case TOUCH_HOVERING:
+		case TOUCH_BEGIN:
+		case TOUCH_UPDATE:
 			continue;
+		/* new touch, move it through to begin immediately */
+		case TOUCH_NONE:
+		case TOUCH_END:
+			tp_new_touch(tp, t, time);
+			tp_begin_touch(tp, t, time);
+			break;
+		}
 
-		/* new touch, move it through begin to update immediately */
-		tp_new_touch(tp, t, time);
-		tp_begin_touch(tp, t, time);
-		t->state = TOUCH_UPDATE;
+		/* touch just ended ,we need need to restore it to update */
+		if (state == TOUCH_END)
+			t->state = TOUCH_UPDATE;
 	}
 }
 
