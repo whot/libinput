@@ -1753,19 +1753,29 @@ tp_init_thumb(struct tp_dispatch *tp)
 	if (!tp->buttons.is_clickpad)
 		return 0;
 
-	abs = libevdev_get_abs_info(device->evdev, ABS_MT_PRESSURE);
-	if (!abs)
-		return 0;
-
-	if (abs->maximum - abs->minimum < 255)
-		return 0;
-
 	/* if the touchpad is less than 50mm high, skip thumb detection.
 	 * it's too small to meaningfully interact with a thumb on the
 	 * touchpad */
 	evdev_device_get_size(device, &w, &h);
 	if (h < 50)
 		return 0;
+
+	tp->thumb.detect_thumbs = true;
+	tp->thumb.threshold = INT_MAX;
+
+	/* detect thumbs by pressure in the bottom 15mm, detect thumbs by
+	 * lingering in the bottom 8mm */
+	ymax = tp->device->abs.absinfo_y->maximum;
+	yres = tp->device->abs.absinfo_y->resolution;
+	tp->thumb.upper_thumb_line = ymax - yres * 15;
+	tp->thumb.lower_thumb_line = ymax - yres * 8;
+
+	abs = libevdev_get_abs_info(device->evdev, ABS_MT_PRESSURE);
+	if (!abs)
+		goto out;
+
+	if (abs->maximum - abs->minimum < 255)
+		goto out;
 
 	/* Our reference touchpad is the T440s with 42x42 resolution.
 	 * Higher-res touchpads exhibit higher pressure for the same
@@ -1778,17 +1788,11 @@ tp_init_thumb(struct tp_dispatch *tp)
 	yres = tp->device->abs.absinfo_y->resolution;
 	threshold = 100.0 * hypot(xres, yres)/hypot(42, 42);
 	tp->thumb.threshold = max(100, threshold);
-	tp->thumb.detect_thumbs = true;
 
-	/* detect thumbs by pressure in the bottom 15mm, detect thumbs by
-	 * lingering in the bottom 8mm */
-	ymax = tp->device->abs.absinfo_y->maximum;
-	yres = tp->device->abs.absinfo_y->resolution;
-	tp->thumb.upper_thumb_line = ymax - yres * 15;
-	tp->thumb.lower_thumb_line = ymax - yres * 8;
-
+out:
 	log_debug(tp_libinput_context(tp),
-		  "thumb: enabled thumb detection on '%s'\n",
+		  "thumb: enabled thumb detection%s on '%s'\n",
+		  tp->thumb.threshold != INT_MAX ? " (+pressure)" : "",
 		  device->devname);
 
 	return 0;
