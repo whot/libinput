@@ -348,43 +348,6 @@ accelerator_set_speed(struct motion_filter *filter,
 	return true;
 }
 
-struct motion_filter_interface accelerator_interface = {
-	accelerator_filter,
-	accelerator_restart,
-	accelerator_destroy,
-	accelerator_set_speed,
-};
-
-struct motion_filter *
-create_pointer_accelerator_filter(accel_profile_func_t profile,
-				  int dpi)
-{
-	struct pointer_accelerator *filter;
-
-	filter = zalloc(sizeof *filter);
-	if (filter == NULL)
-		return NULL;
-
-	filter->base.interface = &accelerator_interface;
-
-	filter->profile = profile;
-	filter->last_velocity = 0.0;
-	filter->last.x = 0;
-	filter->last.y = 0;
-
-	filter->trackers =
-		calloc(NUM_POINTER_TRACKERS, sizeof *filter->trackers);
-	filter->cur_tracker = 0;
-
-	filter->threshold = DEFAULT_THRESHOLD;
-	filter->accel = DEFAULT_ACCELERATION;
-	filter->incline = DEFAULT_INCLINE;
-
-	filter->dpi_factor = dpi/(double)DEFAULT_MOUSE_DPI;
-
-	return &filter->base;
-}
-
 /**
  * Custom acceleration function for mice < 1000dpi.
  * At slow motion, a single device unit causes a one-pixel movement.
@@ -500,4 +463,41 @@ touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
 	speed_out = min(max_accel, s2 > 1 ? s2 : s1);
 
 	return speed_out * TP_MAGIC_SLOWDOWN / TP_MAGIC_LOW_RES_FACTOR;
+}
+
+struct motion_filter_interface accelerator_interface = {
+	accelerator_filter,
+	accelerator_restart,
+	accelerator_destroy,
+	accelerator_set_speed,
+};
+
+struct motion_filter *
+create_pointer_accelerator_filter(accel_profile_func_t profile,
+				  int dpi)
+{
+	struct pointer_accelerator *filter;
+
+	filter = zalloc(sizeof *filter);
+	if (filter == NULL)
+		return NULL;
+
+	filter->base.interface = &accelerator_interface;
+
+	filter->profile = profile;
+	filter->last_velocity = 0.0;
+	filter->last.x = 0;
+	filter->last.y = 0;
+
+	filter->trackers =
+		calloc(NUM_POINTER_TRACKERS, sizeof *filter->trackers);
+	filter->cur_tracker = 0;
+
+	filter->threshold = DEFAULT_THRESHOLD;
+	filter->accel = DEFAULT_ACCELERATION;
+	filter->incline = DEFAULT_INCLINE;
+
+	filter->dpi_factor = dpi/(double)DEFAULT_MOUSE_DPI;
+
+	return &filter->base;
 }
