@@ -296,6 +296,27 @@ accelerator_filter(struct motion_filter *filter,
 		(struct pointer_accelerator *) filter;
 	double accel_value; /* unitless factor */
 	struct normalized_coords accelerated;
+
+	accel_value = calculate_acceleration_factor(accel,
+						    unaccelerated,
+						    data,
+						    time);
+
+	accelerated.x = accel_value * unaccelerated->x;
+	accelerated.y = accel_value * unaccelerated->y;
+
+	return accelerated;
+}
+
+static struct normalized_coords
+accelerator_filter_low_dpi(struct motion_filter *filter,
+			   const struct normalized_coords *unaccelerated,
+			   void *data, uint64_t time)
+{
+	struct pointer_accelerator *accel =
+		(struct pointer_accelerator *) filter;
+	double accel_value; /* unitless factor */
+	struct normalized_coords accelerated;
 	struct normalized_coords unnormalized;
 	double dpi_factor = accel->dpi_factor;
 
@@ -573,8 +594,6 @@ create_default_filter(int dpi)
 	if (filter == NULL)
 		return NULL;
 
-	filter->base.interface = &accelerator_interface;
-
 	filter->last_velocity = 0.0;
 
 	filter->trackers =
@@ -599,10 +618,18 @@ create_pointer_accelerator_filter_linear(int dpi)
 	if (!filter)
 		return NULL;
 
+	filter->base.interface = &accelerator_interface;
 	filter->profile = pointer_accel_profile_linear;
 
 	return &filter->base;
 }
+
+struct motion_filter_interface accelerator_interface_low_dpi = {
+	accelerator_filter_low_dpi,
+	accelerator_restart,
+	accelerator_destroy,
+	accelerator_set_speed,
+};
 
 struct motion_filter *
 create_pointer_accelerator_filter_linear_low_dpi(int dpi)
@@ -613,6 +640,7 @@ create_pointer_accelerator_filter_linear_low_dpi(int dpi)
 	if (!filter)
 		return NULL;
 
+	filter->base.interface = &accelerator_interface_low_dpi;
 	filter->profile = pointer_accel_profile_linear_low_dpi;
 
 	return &filter->base;
@@ -627,6 +655,7 @@ create_pointer_accelerator_filter_touchpad(int dpi)
 	if (!filter)
 		return NULL;
 
+	filter->base.interface = &accelerator_interface;
 	filter->profile = touchpad_accel_profile_linear;
 
 	return &filter->base;
@@ -641,6 +670,7 @@ create_pointer_accelerator_filter_lenovo_x230(int dpi)
 	if (!filter)
 		return NULL;
 
+	filter->base.interface = &accelerator_interface;
 	filter->profile = touchpad_lenovo_x230_accel_profile;
 
 	return &filter->base;
