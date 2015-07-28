@@ -337,6 +337,32 @@ accelerator_filter_low_dpi(struct motion_filter *filter,
 	return accelerated;
 }
 
+static struct normalized_coords
+accelerator_filter_x230(struct motion_filter *filter,
+			const struct normalized_coords *unaccelerated,
+			void *data, uint64_t time)
+{
+	struct pointer_accelerator *accel =
+		(struct pointer_accelerator *) filter;
+	double accel_factor; /* unitless factor */
+	struct normalized_coords accelerated;
+	double velocity; /* units/us */
+
+	feed_trackers(accel, unaccelerated, time);
+	velocity = calculate_velocity(accel, time);
+	accel_factor = calculate_acceleration(accel,
+					      data,
+					      velocity,
+					      accel->last_velocity,
+					      time);
+	accel->last_velocity = velocity;
+
+	accelerated.x = accel_factor * unaccelerated->x;
+	accelerated.y = accel_factor * unaccelerated->y;
+
+	return accelerated;
+}
+
 static void
 accelerator_restart(struct motion_filter *filter,
 		    void *data,
@@ -661,17 +687,39 @@ create_pointer_accelerator_filter_touchpad(int dpi)
 	return &filter->base;
 }
 
+struct motion_filter_interface accelerator_interface_x230 = {
+	accelerator_filter_x230,
+	accelerator_restart,
+	accelerator_destroy,
+	accelerator_set_speed,
+};
+
+/* The Lenovo x230 has a bad touchpad. This accel method has been
+ * trial-and-error'd, any changes to it will require re-testing everything.
+ * Don't touch this.
+ */
 struct motion_filter *
 create_pointer_accelerator_filter_lenovo_x230(int dpi)
 {
 	struct pointer_accelerator *filter;
 
-	filter = create_default_filter(dpi);
-	if (!filter)
+	filter = zalloc(sizeof *filter);
+	if (filter == NULL)
 		return NULL;
 
-	filter->base.interface = &accelerator_interface;
+	filter->base.interface = &accelerator_interface_x230;
 	filter->profile = touchpad_lenovo_x230_accel_profile;
+	filter->last_velocity = 0.0;
+
+	filter->trackers =
+		calloc(NUM_POINTER_TRACKERS, sizeof *filter->trackers);
+	filter->cur_tracker = 0;
+
+	filter->threshold = v_ms2us(0.4);
+	filter->accel = 2.0;
+	filter->incline = 1.1;
+
+	filter->dpi_factor = 1; /* unused for this accel method */
 
 	return &filter->base;
 }
