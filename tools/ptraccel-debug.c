@@ -272,8 +272,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	filter = create_pointer_accelerator_filter(pointer_accel_profile_linear,
-						   dpi);
+	filter = create_pointer_accelerator_filter_linear(dpi);
 	assert(filter != NULL);
 	filter_set_speed(filter, speed);
 

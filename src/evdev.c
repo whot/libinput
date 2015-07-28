@@ -1408,12 +1408,9 @@ evdev_accel_config_get_default_speed(struct libinput_device *device)
 
 int
 evdev_device_init_pointer_acceleration(struct evdev_device *device,
-				       accel_profile_func_t profile)
+				       struct motion_filter *filter)
 {
-	device->pointer.filter = create_pointer_accelerator_filter(profile,
-								   device->dpi);
-	if (!device->pointer.filter)
-		return -1;
+	device->pointer.filter = filter;
 
 	device->pointer.config.available = evdev_accel_config_available;
 	device->pointer.config.set_speed = evdev_accel_config_set_speed;
@@ -1862,14 +1859,17 @@ evdev_configure_mt_device(struct evdev_device *device)
 static inline int
 evdev_init_accel(struct evdev_device *device)
 {
-	accel_profile_func_t profile;
+	struct motion_filter *filter;
 
 	if (device->dpi < DEFAULT_MOUSE_DPI)
-		profile = pointer_accel_profile_linear_low_dpi;
+		filter = create_pointer_accelerator_filter_linear_low_dpi(device->dpi);
 	else
-		profile = pointer_accel_profile_linear;
+		filter = create_pointer_accelerator_filter_linear(device->dpi);
 
-	return evdev_device_init_pointer_acceleration(device, profile);
+	if (!filter)
+		return -1;
+
+	return evdev_device_init_pointer_acceleration(device, filter);
 }
 
 static int

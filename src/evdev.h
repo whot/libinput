@@ -280,7 +280,7 @@ evdev_device_create(struct libinput_seat *seat,
 
 int
 evdev_device_init_pointer_acceleration(struct evdev_device *device,
-				       accel_profile_func_t profile);
+				       struct motion_filter *filter);
 
 struct evdev_dispatch *
 evdev_touchpad_create(struct evdev_device *device);

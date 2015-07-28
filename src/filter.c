@@ -549,9 +549,8 @@ struct motion_filter_interface accelerator_interface = {
 	accelerator_set_speed,
 };
 
-struct motion_filter *
-create_pointer_accelerator_filter(accel_profile_func_t profile,
-				  int dpi)
+static struct pointer_accelerator *
+create_default_filter(int dpi)
 {
 	struct pointer_accelerator *filter;
 
@@ -561,7 +560,6 @@ create_pointer_accelerator_filter(accel_profile_func_t profile,
 
 	filter->base.interface = &accelerator_interface;
 
-	filter->profile = profile;
 	filter->last_velocity = 0.0;
 
 	filter->trackers =
@@ -573,6 +571,62 @@ create_pointer_accelerator_filter(accel_profile_func_t profile,
 	filter->incline = DEFAULT_INCLINE;
 
 	filter->dpi_factor = dpi/(double)DEFAULT_MOUSE_DPI;
+
+	return filter;
+}
+
+struct motion_filter *
+create_pointer_accelerator_filter_linear(int dpi)
+{
+	struct pointer_accelerator *filter;
+
+	filter = create_default_filter(dpi);
+	if (!filter)
+		return NULL;
+
+	filter->profile = pointer_accel_profile_linear;
+
+	return &filter->base;
+}
+
+struct motion_filter *
+create_pointer_accelerator_filter_linear_low_dpi(int dpi)
+{
+	struct pointer_accelerator *filter;
+
+	filter = create_default_filter(dpi);
+	if (!filter)
+		return NULL;
+
+	filter->profile = pointer_accel_profile_linear_low_dpi;
+
+	return &filter->base;
+}
+
+struct motion_filter *
+create_pointer_accelerator_filter_touchpad(int dpi)
+{
+	struct pointer_accelerator *filter;
+
+	filter = create_default_filter(dpi);
+	if (!filter)
+		return NULL;
+
+	filter->profile = touchpad_accel_profile_linear;
+
+	return &filter->base;
+}
+
+struct motion_filter *
+create_pointer_accelerator_filter_lenovo_x230(int dpi)
+{
+	struct pointer_accelerator *filter;
+
+	filter = create_default_filter(dpi);
+	if (!filter)
+		return NULL;
+
+	filter->profile = touchpad_lenovo_x230_accel_profile;
 
 	return &filter->base;
 }
