@@ -1787,6 +1787,10 @@ tp_init_thumb(struct tp_dispatch *tp)
 	tp->thumb.upper_thumb_line = ymax - yres * 15;
 	tp->thumb.lower_thumb_line = ymax - yres * 8;
 
+	log_debug(tp_libinput_context(tp),
+		  "thumb: enabled thumb detection on '%s'\n",
+		  device->devname);
+
 	return 0;
 }
 
