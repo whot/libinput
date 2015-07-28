@@ -71,6 +71,9 @@ create_pointer_accelerator_filter_touchpad(int dpi);
 struct motion_filter *
 create_pointer_accelerator_filter_lenovo_x230(int dpi);
 
+struct motion_filter *
+create_pointer_accelerator_filter_trackpoint(int dpi);
+
 /*
  * Pointer acceleration profiles.
  */

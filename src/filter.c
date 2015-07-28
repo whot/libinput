@@ -643,3 +643,25 @@ create_pointer_accelerator_filter_lenovo_x230(int dpi)
 
 	return &filter->base;
 }
+
+struct motion_filter_interface accelerator_interface_trackpoint = {
+	accelerator_filter,
+	accelerator_restart,
+	accelerator_destroy,
+	accelerator_set_speed,
+};
+
+struct motion_filter *
+create_pointer_accelerator_filter_trackpoint(int dpi)
+{
+	struct pointer_accelerator *filter;
+
+	filter = create_default_filter(dpi);
+	if (!filter)
+		return NULL;
+
+	filter->base.interface = &accelerator_interface_trackpoint;
+	filter->profile = pointer_accel_profile_linear;
+
+	return &filter->base;
+}
