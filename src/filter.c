@@ -253,6 +253,27 @@ calculate_acceleration(struct pointer_accelerator *accel,
 	return factor; /* unitless factor */
 }
 
+static inline double
+calculate_acceleration_factor(struct pointer_accelerator *accel,
+			      const struct normalized_coords *unaccelerated,
+			      void *data,
+			      uint64_t time)
+{
+	double velocity; /* units/ms */
+	double accel_factor;
+
+	feed_trackers(accel, unaccelerated, time);
+	velocity = calculate_velocity(accel, time);
+	accel_factor = calculate_acceleration(accel,
+					      data,
+					      velocity,
+					      accel->last_velocity,
+					      time);
+	accel->last_velocity = velocity;
+
+	return accel_factor;
+}
+
 static struct normalized_coords
 accelerator_filter(struct motion_filter *filter,
 		   const struct normalized_coords *unaccelerated,
@@ -260,7 +281,6 @@ accelerator_filter(struct motion_filter *filter,
 {
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
-	double velocity; /* units/ms */
 	double accel_value; /* unitless factor */
 	struct normalized_coords accelerated;
 	struct normalized_coords unnormalized;
@@ -272,18 +292,13 @@ accelerator_filter(struct motion_filter *filter,
 	unnormalized.x = unaccelerated->x * dpi_factor;
 	unnormalized.y = unaccelerated->y * dpi_factor;
 
-	feed_trackers(accel, &unnormalized, time);
-	velocity = calculate_velocity(accel, time);
-	accel_value = calculate_acceleration(accel,
-					     data,
-					     velocity,
-					     accel->last_velocity,
-					     time);
+	accel_value = calculate_acceleration_factor(accel,
+						    &unnormalized,
+						    data,
+						    time);
 
 	accelerated.x = accel_value * unnormalized.x;
 	accelerated.y = accel_value * unnormalized.y;
-
-	accel->last_velocity = velocity;
 
 	return accelerated;
 }
