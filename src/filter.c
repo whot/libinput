@@ -273,9 +273,6 @@ accelerator_filter(struct motion_filter *filter,
 	unnormalized.x = unaccelerated->x * dpi_factor;
 	unnormalized.y = unaccelerated->y * dpi_factor;
 
-	/* FIXME: before the trackpoint would just have the normal values
-	   here */
-
 	feed_trackers(accel, &unnormalized, time);
 	velocity = calculate_velocity(accel, time);
 	accel_value = calculate_acceleration(accel,
