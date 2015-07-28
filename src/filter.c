@@ -338,6 +338,36 @@ accelerator_filter_low_dpi(struct motion_filter *filter,
 }
 
 static struct normalized_coords
+accelerator_filter_trackpoint(struct motion_filter *filter,
+			      const struct normalized_coords *unaccelerated,
+			      void *data, uint64_t time)
+{
+	struct pointer_accelerator *accel =
+		(struct pointer_accelerator *) filter;
+	double accel_value; /* unitless factor */
+	struct normalized_coords accelerated;
+	struct normalized_coords unnormalized;
+	double dpi_factor = accel->dpi_factor;
+
+	/* trackpoints with a dpi factor have a const accel set, remove that
+	 * and restore device units. The accel profile takes const accel
+	 * into account */
+	dpi_factor = min(1.0, dpi_factor);
+	unnormalized.x = unaccelerated->x * dpi_factor;
+	unnormalized.y = unaccelerated->y * dpi_factor;
+
+	accel_value = calculate_acceleration_factor(accel,
+						    &unnormalized,
+						    data,
+						    time);
+
+	accelerated.x = accel_value * unnormalized.x;
+	accelerated.y = accel_value * unnormalized.y;
+
+	return accelerated;
+}
+
+static struct normalized_coords
 accelerator_filter_x230(struct motion_filter *filter,
 			const struct normalized_coords *unaccelerated,
 			void *data, uint64_t time)
@@ -604,6 +634,38 @@ touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
 	return factor * TP_MAGIC_SLOWDOWN / TP_MAGIC_LOW_RES_FACTOR;
 }
 
+double
+trackpoint_accel_profile(struct motion_filter *filter,
+				void *data,
+				double speed_in, /* 1000-dpi normalized */
+				uint64_t time)
+{
+	struct pointer_accelerator *accel_filter =
+		(struct pointer_accelerator *)filter;
+	double max_accel = accel_filter->accel; /* unitless factor */
+	double threshold = accel_filter->threshold; /* units/ms */
+	const double incline = accel_filter->incline;
+	double factor;
+	double dpi_factor = accel_filter->dpi_factor;
+
+	/* dpi_factor is always < 1.0, increase max_accel, reduce
+	   the threshold so it kicks in earlier */
+	max_accel /= dpi_factor;
+	threshold *= dpi_factor;
+
+	/* see pointer_accel_profile_linear for a long description */
+	if (v_us2ms(speed_in) < 0.07)
+		factor = 10 * v_us2ms(speed_in) + 0.3;
+	else if (speed_in < threshold)
+		factor = 1;
+	else
+		factor = incline * v_us2ms(speed_in - threshold) + 1;
+
+	factor = min(max_accel, factor);
+
+	return factor;
+}
+
 struct motion_filter_interface accelerator_interface = {
 	accelerator_filter,
 	accelerator_restart,
@@ -720,6 +782,31 @@ create_pointer_accelerator_filter_lenovo_x230(int dpi)
 	filter->incline = 1.1;
 
 	filter->dpi_factor = 1; /* unused for this accel method */
+
+	return &filter->base;
+}
+
+struct motion_filter_interface accelerator_interface_trackpoint = {
+	accelerator_filter_trackpoint,
+	accelerator_restart,
+	accelerator_destroy,
+	accelerator_set_speed,
+};
+
+struct motion_filter *
+create_pointer_accelerator_filter_trackpoint(int dpi)
+{
+	struct pointer_accelerator *filter;
+
+	filter = create_default_filter(dpi);
+	if (!filter)
+		return NULL;
+
+	filter->base.interface = &accelerator_interface_trackpoint;
+	filter->profile = trackpoint_accel_profile;
+	filter->threshold = DEFAULT_THRESHOLD;
+	filter->accel = DEFAULT_ACCELERATION;
+	filter->incline = DEFAULT_INCLINE;
 
 	return &filter->base;
 }

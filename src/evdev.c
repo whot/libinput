@@ -1861,7 +1861,9 @@ evdev_init_accel(struct evdev_device *device)
 {
 	struct motion_filter *filter;
 
-	if (device->dpi < DEFAULT_MOUSE_DPI)
+	if (device->tags & EVDEV_TAG_TRACKPOINT)
+		filter = create_pointer_accelerator_filter_trackpoint(device->dpi);
+	else if (device->dpi < DEFAULT_MOUSE_DPI)
 		filter = create_pointer_accelerator_filter_linear_low_dpi(device->dpi);
 	else
 		filter = create_pointer_accelerator_filter_linear(device->dpi);
