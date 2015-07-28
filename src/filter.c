@@ -117,7 +117,6 @@ struct pointer_accelerator {
 
 	double velocity;	/* units/us */
 	double last_velocity;	/* units/us */
-	struct normalized_coords last;
 
 	struct pointer_tracker *trackers;
 	int cur_tracker;
@@ -297,8 +296,6 @@ accelerator_filter(struct motion_filter *filter,
 	accelerated.x = accel_value * unnormalized.x;
 	accelerated.y = accel_value * unnormalized.y;
 
-	accel->last = unnormalized;
-
 	accel->last_velocity = velocity;
 
 	return accelerated;
@@ -386,8 +383,6 @@ create_pointer_accelerator_filter(accel_profile_func_t profile,
 
 	filter->profile = profile;
 	filter->last_velocity = 0.0;
-	filter->last.x = 0;
-	filter->last.y = 0;
 
 	filter->trackers =
 		calloc(NUM_POINTER_TRACKERS, sizeof *filter->trackers);
