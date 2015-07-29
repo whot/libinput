@@ -31,5 +31,6 @@
 
 - @subpage test-suite
 - @subpage tools
+- @subpage pointer-acceleration
 
 */

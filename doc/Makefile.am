@@ -18,6 +18,7 @@ header_files = \
 	$(srcdir)/normalization-of-relative-motion.dox \
 	$(srcdir)/palm-detection.dox \
 	$(srcdir)/page-hierarchy.dox \
+	$(srcdir)/pointer-acceleration.dox \
 	$(srcdir)/reporting-bugs.dox \
 	$(srcdir)/scrolling.dox \
 	$(srcdir)/seats.dox \
@@ -39,6 +40,10 @@ diagram_files = \
 	$(srcdir)/svg/edge-scrolling.svg \
 	$(srcdir)/svg/palm-detection.svg \
 	$(srcdir)/svg/pinch-gestures.svg \
+	$(srcdir)/svg/ptraccel-linear.svg \
+	$(srcdir)/svg/ptraccel-low-dpi.svg \
+	$(srcdir)/svg/ptraccel-touchpad.svg \
+	$(srcdir)/svg/ptraccel-trackpoint.svg \
 	$(srcdir)/svg/swipe-gestures.svg \
 	$(srcdir)/svg/tap-n-drag.svg \
 	$(srcdir)/svg/thumb-detection.svg \
