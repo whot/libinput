@@ -403,19 +403,19 @@ pointer_accel_profile_linear_low_dpi(struct motion_filter *filter,
 	struct pointer_accelerator *accel_filter =
 		(struct pointer_accelerator *)filter;
 
-	double s1, s2;
+	double f1, f2; /* unitless */
 	double max_accel = accel_filter->accel; /* unitless factor */
 	const double threshold = accel_filter->threshold; /* units/us */
 	const double incline = accel_filter->incline;
-	double factor;
+	double factor; /* unitless */
 	double dpi_factor = accel_filter->dpi_factor;
 
 	max_accel /= dpi_factor;
 
-	s1 = min(1, 0.3 + speed_in * 10000.0);
-	s2 = 1 + (speed_in * 1000.0 - threshold * dpi_factor * 1000.0) * incline;
+	f1 = min(1, 0.3 + speed_in * 10000.0);
+	f2 = 1 + (speed_in * 1000.0 - threshold * dpi_factor * 1000.0) * incline;
 
-	factor = min(max_accel, s2 > 1 ? s2 : s1);
+	factor = min(max_accel, f2 > 1 ? f2 : f1);
 
 	return factor;
 }
@@ -429,16 +429,16 @@ pointer_accel_profile_linear(struct motion_filter *filter,
 	struct pointer_accelerator *accel_filter =
 		(struct pointer_accelerator *)filter;
 
-	double s1, s2;
+	double f1, f2; /* unitless */
 	const double max_accel = accel_filter->accel; /* unitless factor */
 	const double threshold = accel_filter->threshold; /* units/us */
 	const double incline = accel_filter->incline;
-	double factor;
+	double factor; /* unitless */
 
-	s1 = min(1, 0.3 + speed_in * 10 * 1000.0);
-	s2 = 1 + (speed_in * 1000.0 - threshold * 1000.0) * incline;
+	f1 = min(1, 0.3 + speed_in * 10 * 1000.0);
+	f2 = 1 + (speed_in * 1000.0 - threshold * 1000.0) * incline;
 
-	factor =  min(max_accel, s2 > 1 ? s2 : s1);
+	factor = min(max_accel, f2 > 1 ? f2 : f1);
 
 	return factor;
 }
@@ -446,7 +446,7 @@ pointer_accel_profile_linear(struct motion_filter *filter,
 double
 touchpad_accel_profile_linear(struct motion_filter *filter,
                               void *data,
-                              double speed_in,
+                              double speed_in, /* units/us */
                               uint64_t time)
 {
 	/* Once normalized, touchpads see the same
@@ -454,14 +454,14 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	   subjectively wrong, we expect a touchpad to be a lot
 	   slower than a mouse. Apply a magic factor here and proceed
 	   as normal.  */
-	const double TP_MAGIC_SLOWDOWN = 0.4;
-	double speed_out;
+	const double TP_MAGIC_SLOWDOWN = 0.4; /* unitless */
+	double factor; /* unitless */
 
 	speed_in *= TP_MAGIC_SLOWDOWN;
 
-	speed_out = pointer_accel_profile_linear(filter, data, speed_in, time);
+	factor = pointer_accel_profile_linear(filter, data, speed_in, time);
 
-	return speed_out * TP_MAGIC_SLOWDOWN;
+	return factor * TP_MAGIC_SLOWDOWN;
 }
 
 double
@@ -471,7 +471,7 @@ touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
 				      uint64_t time)
 {
 	/* Keep the magic factor from touchpad_accel_profile_linear.  */
-	const double TP_MAGIC_SLOWDOWN = 0.4;
+	const double TP_MAGIC_SLOWDOWN = 0.4; /* unitless */
 
 	/* Those touchpads presents an actual lower resolution that what is
 	 * advertised. We see some jumps from the cursor due to the big steps
@@ -479,12 +479,12 @@ touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
 	 * Apply a factor to minimize those jumps at low speed, and try
 	 * keeping the same feeling as regular touchpads at high speed.
 	 * It still feels slower but it is usable at least */
-	const double TP_MAGIC_LOW_RES_FACTOR = 4.0;
-	double speed_out;
+	const double TP_MAGIC_LOW_RES_FACTOR = 4.0; /* unitless */
+	double factor; /* unitless */
 	struct pointer_accelerator *accel_filter =
 		(struct pointer_accelerator *)filter;
 
-	double s1, s2;
+	double f1, f2; /* unitless */
 	const double max_accel = accel_filter->accel *
 				  TP_MAGIC_LOW_RES_FACTOR; /* unitless factor */
 	const double threshold = accel_filter->threshold /
@@ -493,10 +493,10 @@ touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
 
 	speed_in *= TP_MAGIC_SLOWDOWN / TP_MAGIC_LOW_RES_FACTOR;
 
-	s1 = min(1, speed_in * 5 * 1000.0);
-	s2 = 1 + (speed_in  * 1000.0 - threshold * 1000.0) * incline;
+	f1 = min(1, speed_in * 5 * 1000.0);
+	f2 = 1 + (speed_in  * 1000.0 - threshold * 1000.0) * incline;
 
-	speed_out = min(max_accel, s2 > 1 ? s2 : s1);
+	factor = min(max_accel, f2 > 1 ? f2 : f1);
 
-	return speed_out * TP_MAGIC_SLOWDOWN / TP_MAGIC_LOW_RES_FACTOR;
+	return factor * TP_MAGIC_SLOWDOWN / TP_MAGIC_LOW_RES_FACTOR;
 }
