@@ -62,15 +62,15 @@ filter_destroy(struct motion_filter *filter)
 
 bool
 filter_set_speed(struct motion_filter *filter,
-		 double speed)
+		 double speed_ranged)
 {
-	return filter->interface->set_speed(filter, speed);
+	return filter->interface->set_speed(filter, speed_ranged);
 }
 
 double
 filter_get_speed(struct motion_filter *filter)
 {
-	return filter->speed;
+	return filter->speed_ranged;
 }
 
 /*
@@ -325,25 +325,25 @@ accelerator_destroy(struct motion_filter *filter)
 
 static bool
 accelerator_set_speed(struct motion_filter *filter,
-		      double speed)
+		      double speed_ranged)
 {
 	struct pointer_accelerator *accel_filter =
 		(struct pointer_accelerator *)filter;
 
-	assert(speed >= -1.0 && speed <= 1.0);
+	assert(speed_ranged >= -1.0 && speed_ranged <= 1.0);
 
 	/* delay when accel kicks in */
-	accel_filter->threshold = DEFAULT_THRESHOLD - speed / 4000.0;
+	accel_filter->threshold = DEFAULT_THRESHOLD - speed_ranged / 4000.0;
 	if (accel_filter->threshold < MINIMUM_THRESHOLD)
 		accel_filter->threshold = MINIMUM_THRESHOLD;
 
 	/* adjust max accel factor */
-	accel_filter->accel = DEFAULT_ACCELERATION + speed * 1.5;
+	accel_filter->accel = DEFAULT_ACCELERATION + speed_ranged * 1.5;
 
 	/* higher speed -> faster to reach max */
-	accel_filter->incline = DEFAULT_INCLINE + speed * 0.75;
+	accel_filter->incline = DEFAULT_INCLINE + speed_ranged * 0.75;
 
-	filter->speed = speed;
+	filter->speed_ranged = speed_ranged;
 	return true;
 }
 
