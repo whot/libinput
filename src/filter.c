@@ -96,7 +96,6 @@ struct pointer_tracker {
 	int dir;
 };
 
-struct pointer_accelerator;
 struct pointer_accelerator {
 	struct motion_filter base;
 
