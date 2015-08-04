@@ -77,8 +77,8 @@ filter_get_speed(struct motion_filter *filter)
  * Default parameters for pointer acceleration profiles.
  */
 
-#define DEFAULT_THRESHOLD 0.4			/* in units/ms */
-#define MINIMUM_THRESHOLD 0.2			/* in units/ms */
+#define DEFAULT_THRESHOLD 0.0004		/* in units/us */
+#define MINIMUM_THRESHOLD 0.0002		/* in units/us */
 #define DEFAULT_ACCELERATION 2.0		/* unitless factor */
 #define DEFAULT_INCLINE 1.1			/* unitless factor */
 
@@ -86,7 +86,7 @@ filter_get_speed(struct motion_filter *filter)
  * Pointer acceleration filter constants
  */
 
-#define MAX_VELOCITY_DIFF	1 /* units/ms */
+#define MAX_VELOCITY_DIFF	0.001 /* units/us */
 #define MOTION_TIMEOUT		ms2us(1000)
 #define NUM_POINTER_TRACKERS	16
 
@@ -102,14 +102,14 @@ struct pointer_accelerator {
 
 	accel_profile_func_t profile;
 
-	double velocity;	/* units/ms */
-	double last_velocity;	/* units/ms */
+	double velocity;	/* units/us */
+	double last_velocity;	/* units/us */
 	struct normalized_coords last;
 
 	struct pointer_tracker *trackers;
 	int cur_tracker;
 
-	double threshold;	/* units/ms */
+	double threshold;	/* units/us */
 	double accel;		/* unitless factor */
 	double incline;		/* incline of the function */
 
@@ -151,7 +151,7 @@ static double
 calculate_tracker_velocity(struct pointer_tracker *tracker, uint64_t time)
 {
 	double tdelta = time - tracker->time + 1;
-	return normalized_length(tracker->delta) / tdelta * 1000.0; /* units/ms */
+	return normalized_length(tracker->delta) / tdelta; /* units/us */
 }
 
 static inline double
@@ -221,7 +221,7 @@ calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
 		}
 	}
 
-	return result; /* units/ms */
+	return result; /* units/us */
 }
 
 static double
@@ -257,11 +257,11 @@ calculate_acceleration(struct pointer_accelerator *accel,
 static struct normalized_coords
 accelerator_filter(struct motion_filter *filter,
 		   const struct normalized_coords *unaccelerated,
-		   void *data, uint64_t time /* in us */)
+		   void *data, uint64_t time)
 {
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
-	double velocity; /* units/ms */
+	double velocity; /* units/us */
 	double accel_value; /* unitless factor */
 	struct normalized_coords accelerated;
 	struct normalized_coords unnormalized;
@@ -334,7 +334,7 @@ accelerator_set_speed(struct motion_filter *filter,
 	assert(speed >= -1.0 && speed <= 1.0);
 
 	/* delay when accel kicks in */
-	accel_filter->threshold = DEFAULT_THRESHOLD - speed / 4.0;
+	accel_filter->threshold = DEFAULT_THRESHOLD - speed / 4000.0;
 	if (accel_filter->threshold < MINIMUM_THRESHOLD)
 		accel_filter->threshold = MINIMUM_THRESHOLD;
 
@@ -398,23 +398,23 @@ create_pointer_accelerator_filter(accel_profile_func_t profile,
 double
 pointer_accel_profile_linear_low_dpi(struct motion_filter *filter,
 				     void *data,
-				     double speed_in, /* in device units (units/ms) */
-				     uint64_t time /* in us */)
+				     double speed_in, /* in device units (units/us) */
+				     uint64_t time)
 {
 	struct pointer_accelerator *accel_filter =
 		(struct pointer_accelerator *)filter;
 
 	double s1, s2;
 	double max_accel = accel_filter->accel; /* unitless factor */
-	const double threshold = accel_filter->threshold; /* units/ms */
+	const double threshold = accel_filter->threshold; /* units/us */
 	const double incline = accel_filter->incline;
 	double factor;
 	double dpi_factor = accel_filter->dpi_factor;
 
 	max_accel /= dpi_factor;
 
-	s1 = min(1, 0.3 + speed_in * 10.0);
-	s2 = 1 + (speed_in - threshold * dpi_factor) * incline;
+	s1 = min(1, 0.3 + speed_in * 10000.0);
+	s2 = 1 + (speed_in * 1000.0 - threshold * dpi_factor * 1000.0) * incline;
 
 	factor = min(max_accel, s2 > 1 ? s2 : s1);
 
@@ -425,19 +425,19 @@ double
 pointer_accel_profile_linear(struct motion_filter *filter,
 			     void *data,
 			     double speed_in, /* 1000-dpi normalized */
-			     uint64_t time /* in us */)
+			     uint64_t time)
 {
 	struct pointer_accelerator *accel_filter =
 		(struct pointer_accelerator *)filter;
 
 	double s1, s2;
 	const double max_accel = accel_filter->accel; /* unitless factor */
-	const double threshold = accel_filter->threshold; /* units/ms */
+	const double threshold = accel_filter->threshold; /* units/us */
 	const double incline = accel_filter->incline;
 	double factor;
 
-	s1 = min(1, 0.3 + speed_in * 10);
-	s2 = 1 + (speed_in - threshold) * incline;
+	s1 = min(1, 0.3 + speed_in * 10 * 1000.0);
+	s2 = 1 + (speed_in * 1000.0 - threshold * 1000.0) * incline;
 
 	factor =  min(max_accel, s2 > 1 ? s2 : s1);
 
@@ -446,9 +446,9 @@ pointer_accel_profile_linear(struct motion_filter *filter,
 
 double
 touchpad_accel_profile_linear(struct motion_filter *filter,
-			      void *data,
-			      double speed_in,
-			      uint64_t time /* in us */)
+                              void *data,
+                              double speed_in,
+                              uint64_t time)
 {
 	/* Once normalized, touchpads see the same
 	   acceleration as mice. that is technically correct but
@@ -469,7 +469,7 @@ double
 touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
 				      void *data,
 				      double speed_in,
-				      uint64_t time /* in us */)
+				      uint64_t time)
 {
 	/* Keep the magic factor from touchpad_accel_profile_linear.  */
 	const double TP_MAGIC_SLOWDOWN = 0.4;
@@ -489,13 +489,13 @@ touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
 	const double max_accel = accel_filter->accel *
 				  TP_MAGIC_LOW_RES_FACTOR; /* unitless factor */
 	const double threshold = accel_filter->threshold /
-				  TP_MAGIC_LOW_RES_FACTOR; /* units/ms */
+				  TP_MAGIC_LOW_RES_FACTOR; /* units/us */
 	const double incline = accel_filter->incline * TP_MAGIC_LOW_RES_FACTOR;
 
 	speed_in *= TP_MAGIC_SLOWDOWN / TP_MAGIC_LOW_RES_FACTOR;
 
-	s1 = min(1, speed_in * 5);
-	s2 = 1 + (speed_in - threshold) * incline;
+	s1 = min(1, speed_in * 5 * 1000.0);
+	s2 = 1 + (speed_in  * 1000.0 - threshold * 1000.0) * incline;
 
 	speed_out = min(max_accel, s2 > 1 ? s2 : s1);
 
