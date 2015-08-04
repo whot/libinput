@@ -36,6 +36,20 @@
 #include "libinput-util.h"
 #include "filter-private.h"
 
+/* Convert speed/velocity from units/us to units/ms */
+static inline double
+v_us2ms(double units_per_us)
+{
+	return units_per_us * 1000.0;
+}
+
+/* Convert speed/velocity from units/ms to units/us */
+static inline double
+v_ms2us(double units_per_ms)
+{
+	return units_per_ms/1000.0;
+}
+
 struct normalized_coords
 filter_dispatch(struct motion_filter *filter,
 		const struct normalized_coords *unaccelerated,
@@ -77,8 +91,8 @@ filter_get_speed(struct motion_filter *filter)
  * Default parameters for pointer acceleration profiles.
  */
 
-#define DEFAULT_THRESHOLD 0.0004		/* in units/us */
-#define MINIMUM_THRESHOLD 0.0002		/* in units/us */
+#define DEFAULT_THRESHOLD v_ms2us(0.4)		/* in units/us */
+#define MINIMUM_THRESHOLD v_ms2us(0.2)		/* in units/us */
 #define DEFAULT_ACCELERATION 2.0		/* unitless factor */
 #define DEFAULT_INCLINE 1.1			/* unitless factor */
 
@@ -86,7 +100,7 @@ filter_get_speed(struct motion_filter *filter)
  * Pointer acceleration filter constants
  */
 
-#define MAX_VELOCITY_DIFF	0.001 /* units/us */
+#define MAX_VELOCITY_DIFF	v_ms2us(1) /* units/us */
 #define MOTION_TIMEOUT		ms2us(1000)
 #define NUM_POINTER_TRACKERS	16
 
@@ -332,8 +346,12 @@ accelerator_set_speed(struct motion_filter *filter,
 
 	assert(speed_ranged >= -1.0 && speed_ranged <= 1.0);
 
+	/* Note: the numbers below are nothing but trial-and-error magic,
+	   don't read more into them other than "they mostly worked ok" */
+
 	/* delay when accel kicks in */
-	accel_filter->threshold = DEFAULT_THRESHOLD - speed_ranged / 4000.0;
+	accel_filter->threshold = DEFAULT_THRESHOLD -
+					v_ms2us(speed_ranged / 4.0);
 	if (accel_filter->threshold < MINIMUM_THRESHOLD)
 		accel_filter->threshold = MINIMUM_THRESHOLD;
 
@@ -412,8 +430,8 @@ pointer_accel_profile_linear_low_dpi(struct motion_filter *filter,
 
 	max_accel /= dpi_factor;
 
-	f1 = min(1, 0.3 + speed_in * 10000.0);
-	f2 = 1 + (speed_in * 1000.0 - threshold * dpi_factor * 1000.0) * incline;
+	f1 = min(1, 0.3 + v_us2ms(speed_in) * 10.0);
+	f2 = 1 + (v_us2ms(speed_in) - v_us2ms(threshold) * dpi_factor) * incline;
 
 	factor = min(max_accel, f2 > 1 ? f2 : f1);
 
@@ -435,8 +453,8 @@ pointer_accel_profile_linear(struct motion_filter *filter,
 	const double incline = accel_filter->incline;
 	double factor; /* unitless */
 
-	f1 = min(1, 0.3 + speed_in * 10 * 1000.0);
-	f2 = 1 + (speed_in * 1000.0 - threshold * 1000.0) * incline;
+	f1 = min(1, 0.3 + v_us2ms(speed_in) * 10);
+	f2 = 1 + (v_us2ms(speed_in) - v_us2ms(threshold)) * incline;
 
 	factor = min(max_accel, f2 > 1 ? f2 : f1);
 
@@ -493,8 +511,8 @@ touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
 
 	speed_in *= TP_MAGIC_SLOWDOWN / TP_MAGIC_LOW_RES_FACTOR;
 
-	f1 = min(1, speed_in * 5 * 1000.0);
-	f2 = 1 + (speed_in  * 1000.0 - threshold * 1000.0) * incline;
+	f1 = min(1, v_us2ms(speed_in) * 5);
+	f2 = 1 + (v_us2ms(speed_in) - v_us2ms(threshold)) * incline;
 
 	factor = min(max_accel, f2 > 1 ? f2 : f1);
 
