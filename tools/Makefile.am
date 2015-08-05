@@ -39,3 +39,5 @@ event_gui_LDADD = ../src/libinput.la libshared.la $(CAIRO_LIBS) $(GTK_LIBS) $(LI
 event_gui_CFLAGS = $(CAIRO_CFLAGS) $(GTK_CFLAGS) $(LIBUDEV_CFLAGS)
 event_gui_LDFLAGS = -no-install
 endif
+
+EXTRA_DIST = make-ptraccel-graphs.sh
