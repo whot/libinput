@@ -74,12 +74,17 @@ filter_set_speed(struct motion_filter *filter,
 double
 filter_get_speed(struct motion_filter *filter);
 
+enum libinput_config_accel_profile
+filter_get_type(struct motion_filter *filter);
+
 typedef double (*accel_profile_func_t)(struct motion_filter *filter,
 				       void *data,
 				       double velocity,
 				       uint64_t time);
 
 /* Pointer acceleration types */
+struct motion_filter *
+create_pointer_accelerator_filter_flat(int dpi);
 
 struct motion_filter *
 create_pointer_accelerator_filter_linear(int dpi);

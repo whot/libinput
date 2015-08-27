@@ -2212,7 +2212,6 @@ libinput_device_config_accel_set_speed(struct libinput_device *device,
 
 	return device->config.accel->set_speed(device, speed);
 }
-
 LIBINPUT_EXPORT double
 libinput_device_config_accel_get_speed(struct libinput_device *device)
 {
@@ -2229,6 +2228,52 @@ libinput_device_config_accel_get_default_speed(struct libinput_device *device)
 		return 0;
 
 	return device->config.accel->get_default_speed(device);
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_device_config_accel_get_profiles(struct libinput_device *device)
+{
+	if (!libinput_device_config_accel_is_available(device))
+		return 0;
+
+	return device->config.accel->get_profiles(device);
+}
+
+LIBINPUT_EXPORT enum libinput_config_accel_profile
+libinput_device_config_accel_get_profile(struct libinput_device *device)
+{
+	if (!libinput_device_config_accel_is_available(device))
+		return LIBINPUT_CONFIG_ACCEL_PROFILE_NONE;
+
+	return device->config.accel->get_profile(device);
+}
+
+LIBINPUT_EXPORT enum libinput_config_accel_profile
+libinput_device_config_accel_get_default_profile(struct libinput_device *device)
+{
+	if (!libinput_device_config_accel_is_available(device))
+		return LIBINPUT_CONFIG_ACCEL_PROFILE_NONE;
+
+	return device->config.accel->get_profile(device);
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_accel_set_profile(struct libinput_device *device,
+					 enum libinput_config_accel_profile profile)
+{
+	switch (profile) {
+	case LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT:
+	case LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE:
+		break;
+	default:
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+	}
+
+	if (!libinput_device_config_accel_is_available(device) ||
+	    (libinput_device_config_accel_get_profiles(device) & profile) == 0)
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+
+	return device->config.accel->set_profile(device, profile);
 }
 
 LIBINPUT_EXPORT int

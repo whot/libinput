@@ -9,6 +9,16 @@ This page explains the high-level concepts used in the code. It aims to
 provide an overview for developers and is not necessarily useful for
 users.
 
+@section ptraccel-profiles Pointer acceleration profiles
+
+The profile decides the general method of pointer acceleration.
+libinput currently supports two profiles: "adaptive" and "flat". The aptive
+profile is the default profile for all devices and takes the current speed
+of the device into account when deciding on acceleration. The flat profile
+is simply a constant factor applied to all device deltas, regardless of the
+speed of motion (see @ref ptraccel-profile-flat). Most of this document
+describes the adaptive pointer acceleration.
+
 @section ptraccel-velocity Velocity calculation
 
 The device's speed of movement is measured across multiple input events
@@ -106,5 +116,12 @@ constant deceleration factor taking the place of the DPI settings.
 The image above shows the trackpoint acceleration profile in comparison to the
 @ref ptraccel-linear. The constant acceleration factor, usually applied by
 udev, shapes the acceleration profile.
+
+@section ptraccel-profile-flat The flat pointer acceleration profile
+
+In a flat profile, the acceleration factor is constant regardless of the
+velocity of the pointer and each delta (dx, dy) results in an accelerated delta
+(dx * factor, dy * factor). This provides 1:1 movement between the device
+and the pointer on-screen.
 
 */

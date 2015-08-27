@@ -59,6 +59,7 @@ enum options {
 	OPT_SCROLL_METHOD,
 	OPT_SCROLL_BUTTON,
 	OPT_SPEED,
+	OPT_PROFILE,
 };
 
 static void
@@ -94,6 +95,7 @@ tools_usage()
 	       "--set-click-method=[none|clickfinger|buttonareas] .... set the desired click method\n"
 	       "--set-scroll-method=[none|twofinger|edge|button] ... set the desired scroll method\n"
 	       "--set-scroll-button=BTN_MIDDLE ... set the button to the given button code\n"
+	       "--set-profile=[adaptive|flat].... set pointer acceleration profile\n"
 	       "--set-speed=<value>.... set pointer acceleration speed\n"
 	       "\n"
 	       "These options apply to all applicable devices, if a feature\n"
@@ -126,6 +128,7 @@ tools_init_context(struct tools_context *context)
 	options->backend = BACKEND_UDEV;
 	options->seat = "seat0";
 	options->speed = 0.0;
+	options->profile = LIBINPUT_CONFIG_ACCEL_PROFILE_NONE;
 }
 
 int
@@ -157,6 +160,7 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 			{ "set-click-method", 1, 0, OPT_CLICK_METHOD },
 			{ "set-scroll-method", 1, 0, OPT_SCROLL_METHOD },
 			{ "set-scroll-button", 1, 0, OPT_SCROLL_BUTTON },
+			{ "set-profile", 1, 0, OPT_PROFILE },
 			{ "speed", 1, 0, OPT_SPEED },
 			{ 0, 0, 0, 0}
 		};
@@ -287,6 +291,20 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 				return 1;
 			}
 			options->speed = atof(optarg);
+			break;
+		case OPT_PROFILE:
+			if (!optarg) {
+				tools_usage();
+				return 1;
+			}
+			if (streq(optarg, "adaptive")) {
+				options->profile = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
+			} else if (streq(optarg, "flat")) {
+				options->profile = LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT;
+			} else {
+				tools_usage();
+				return 1;
+			}
 			break;
 		default:
 			tools_usage();
@@ -445,7 +463,11 @@ tools_device_apply_config(struct libinput_device *device,
 		libinput_device_config_scroll_set_button(device,
 							 options->scroll_button);
 
-	if (libinput_device_config_accel_is_available(device))
+	if (libinput_device_config_accel_is_available(device)) {
 		libinput_device_config_accel_set_speed(device,
 						       options->speed);
+		if (options->profile != LIBINPUT_CONFIG_ACCEL_PROFILE_NONE)
+			libinput_device_config_accel_set_profile(device,
+								 options->profile);
+	}
 }

@@ -148,6 +148,12 @@ struct libinput_device_config_accel {
 						 double speed);
 	double (*get_speed)(struct libinput_device *device);
 	double (*get_default_speed)(struct libinput_device *device);
+
+	uint32_t (*get_profiles)(struct libinput_device *device);
+	enum libinput_config_status (*set_profile)(struct libinput_device *device,
+						   enum libinput_config_accel_profile);
+	enum libinput_config_accel_profile (*get_profile)(struct libinput_device *device);
+	enum libinput_config_accel_profile (*get_default_profile)(struct libinput_device *device);
 };
 
 struct libinput_device_config_natural_scroll {

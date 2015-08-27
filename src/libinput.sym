@@ -172,3 +172,10 @@ LIBINPUT_0.21.0 {
 	libinput_event_pointer_get_time_usec;
 	libinput_event_touch_get_time_usec;
 } LIBINPUT_0.20.0;
+
+LIBINPUT_1.1 {
+	libinput_device_config_accel_get_profile;
+	libinput_device_config_accel_get_profiles;
+	libinput_device_config_accel_get_default_profile;
+	libinput_device_config_accel_set_profile;
+} LIBINPUT_0.21.0;

@@ -2529,6 +2529,80 @@ libinput_device_config_accel_get_speed(struct libinput_device *device);
 double
 libinput_device_config_accel_get_default_speed(struct libinput_device *device);
 
+enum libinput_config_accel_profile {
+	/**
+	 * Placeholder for devices that don't have a configurable pointer
+	 * acceleration profile.
+	 */
+	LIBINPUT_CONFIG_ACCEL_PROFILE_NONE = 0,
+	/**
+	 * A flat acceleration profile. Pointer motion is accelerated by a
+	 * constant (device-specific) factor, depending on the current
+	 * speed.
+	 *
+	 * @see libinput_device_config_accel_set_speed
+	 */
+	LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT = (1 << 0),
+
+	/**
+	 * An adaptive acceleration profile. Pointer acceleration depends
+	 * on the input speed. This is the default profile for most devices.
+	 */
+	LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE = (1 << 1),
+};
+
+/**
+ * @ingroup config
+ *
+ * Returns a bitmask of the configurable acceleration modes available on
+ * this device.
+ *
+ * @param device The device to configure
+ *
+ * @return A bitmask of all configurable modes availble on this device.
+ */
+uint32_t
+libinput_device_config_accel_get_profiles(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Set the pointer acceleration profile of this pointer device to the given
+ * mode.
+ *
+ * @param device The device to configure
+ * @param mode The mode to set the device to.
+ *
+ * @return A config status code
+ */
+enum libinput_config_status
+libinput_device_config_accel_set_profile(struct libinput_device *device,
+					 enum libinput_config_accel_profile mode);
+
+/**
+ * @ingroup config
+ *
+ * Get the current pointer acceleration profile for this pointer device.
+ *
+ * @param device The device to configure
+ *
+ * @return The currently configured pointer acceleration profile.
+ */
+enum libinput_config_accel_profile
+libinput_device_config_accel_get_profile(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Return the default pointer acceleration profile for this pointer device.
+ *
+ * @param device The device to configure
+ *
+ * @return The default acceleration profile for this device.
+ */
+enum libinput_config_accel_profile
+libinput_device_config_accel_get_default_profile(struct libinput_device *device);
+
 /**
  * @ingroup config
  *

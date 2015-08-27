@@ -29,6 +29,7 @@
 #include "filter.h"
 
 struct motion_filter_interface {
+	enum libinput_config_accel_profile type;
 	struct normalized_coords (*filter)(
 			   struct motion_filter *filter,
 			   const struct normalized_coords *unaccelerated,

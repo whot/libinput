@@ -76,13 +76,14 @@ void
 filter_restart(struct motion_filter *filter,
 	       void *data, uint64_t time)
 {
-	filter->interface->restart(filter, data, time);
+	if (filter->interface->restart)
+		filter->interface->restart(filter, data, time);
 }
 
 void
 filter_destroy(struct motion_filter *filter)
 {
-	if (!filter)
+	if (!filter || !filter->interface->destroy)
 		return;
 
 	filter->interface->destroy(filter);
@@ -99,6 +100,12 @@ double
 filter_get_speed(struct motion_filter *filter)
 {
 	return filter->speed_adjustment;
+}
+
+enum libinput_config_accel_profile
+filter_get_type(struct motion_filter *filter)
+{
+	return filter->interface->type;
 }
 
 /*
@@ -147,6 +154,12 @@ struct pointer_accelerator {
 	double incline;		/* incline of the function */
 
 	double dpi_factor;
+};
+
+struct pointer_accelerator_flat {
+	struct motion_filter base;
+
+	double factor;
 };
 
 static void
@@ -714,6 +727,7 @@ trackpoint_accel_profile(struct motion_filter *filter,
 }
 
 struct motion_filter_interface accelerator_interface = {
+	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
 	.filter = accelerator_filter,
 	.filter_constant = accelerator_filter_noop,
 	.restart = accelerator_restart,
@@ -761,6 +775,7 @@ create_pointer_accelerator_filter_linear(int dpi)
 }
 
 struct motion_filter_interface accelerator_interface_low_dpi = {
+	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
 	.filter = accelerator_filter_low_dpi,
 	.filter_constant = accelerator_filter_noop,
 	.restart = accelerator_restart,
@@ -784,6 +799,7 @@ create_pointer_accelerator_filter_linear_low_dpi(int dpi)
 }
 
 struct motion_filter_interface accelerator_interface_touchpad = {
+	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
 	.filter = accelerator_filter,
 	.filter_constant = touchpad_constant_filter,
 	.restart = accelerator_restart,
@@ -807,6 +823,7 @@ create_pointer_accelerator_filter_touchpad(int dpi)
 }
 
 struct motion_filter_interface accelerator_interface_x230 = {
+	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
 	.filter = accelerator_filter_x230,
 	.filter_constant = accelerator_filter_constant_x230,
 	.restart = accelerator_restart,
@@ -845,6 +862,7 @@ create_pointer_accelerator_filter_lenovo_x230(int dpi)
 }
 
 struct motion_filter_interface accelerator_interface_trackpoint = {
+	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
 	.filter = accelerator_filter_trackpoint,
 	.filter_constant = accelerator_filter_noop,
 	.restart = accelerator_restart,
@@ -866,6 +884,73 @@ create_pointer_accelerator_filter_trackpoint(int dpi)
 	filter->threshold = DEFAULT_THRESHOLD;
 	filter->accel = DEFAULT_ACCELERATION;
 	filter->incline = DEFAULT_INCLINE;
+
+	return &filter->base;
+}
+
+static struct normalized_coords
+accelerator_filter_flat(struct motion_filter *filter,
+			const struct normalized_coords *unaccelerated,
+			void *data, uint64_t time)
+{
+	struct pointer_accelerator_flat *accel_filter =
+		(struct pointer_accelerator_flat *)filter;
+	double factor; /* unitless factor */
+	struct normalized_coords accelerated;
+
+	factor = accel_filter->factor;
+
+	accelerated.x = factor * unaccelerated->x;
+	accelerated.y = factor * unaccelerated->y;
+
+	return accelerated;
+}
+
+static bool
+accelerator_set_speed_flat(struct motion_filter *filter,
+			   double speed_adjustment)
+{
+	struct pointer_accelerator_flat *accel_filter =
+		(struct pointer_accelerator_flat *)filter;
+	double factor;
+
+	assert(speed_adjustment >= -1.0 && speed_adjustment <= 1.0);
+
+	/* For slowing things down, we use a fraction, i.e. -0.3 is 70% of
+	 * the default speed.
+	 * For speeding things up, map up to 300% speed, i.e. 0 maps to
+	 * 100% speed, 0.5 to 200% and 1 maps to 300%.
+	 */
+	if (speed_adjustment < 0)
+		factor = 1 + speed_adjustment;
+	else
+		factor = 1 + speed_adjustment * 2;
+
+	accel_filter->factor = factor;
+	filter->speed_adjustment = speed_adjustment;
+
+	return true;
+}
+
+struct motion_filter_interface accelerator_interface_flat = {
+	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT,
+	.filter = accelerator_filter_flat,
+	.filter_constant = accelerator_filter_noop,
+	.restart = NULL,
+	.destroy = NULL,
+	.set_speed = accelerator_set_speed_flat,
+};
+
+struct motion_filter *
+create_pointer_accelerator_filter_flat(int dpi)
+{
+	struct pointer_accelerator_flat *filter;
+
+	filter = zalloc(sizeof *filter);
+	if (filter == NULL)
+		return NULL;
+
+	filter->base.interface = &accelerator_interface_flat;
 
 	return &filter->base;
 }

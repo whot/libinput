@@ -1385,6 +1385,27 @@ evdev_device_dispatch(void *data)
 	}
 }
 
+static inline int
+evdev_init_accel(struct evdev_device *device,
+		 enum libinput_config_accel_profile which)
+{
+	struct motion_filter *filter;
+
+	if (which == LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT)
+		filter = create_pointer_accelerator_filter_flat(device->dpi);
+	else if (device->tags & EVDEV_TAG_TRACKPOINT)
+		filter = create_pointer_accelerator_filter_trackpoint(device->dpi);
+	else if (device->dpi < DEFAULT_MOUSE_DPI)
+		filter = create_pointer_accelerator_filter_linear_low_dpi(device->dpi);
+	else
+		filter = create_pointer_accelerator_filter_linear(device->dpi);
+
+	if (!filter)
+		return -1;
+
+	return evdev_device_init_pointer_acceleration(device, filter);
+}
+
 static int
 evdev_accel_config_available(struct libinput_device *device)
 {
@@ -1418,20 +1439,83 @@ evdev_accel_config_get_default_speed(struct libinput_device *device)
 	return 0.0;
 }
 
+static uint32_t
+evdev_accel_config_get_profiles(struct libinput_device *libinput_device)
+{
+	struct evdev_device *device = (struct evdev_device*)libinput_device;
+
+	if (!device->pointer.filter)
+		return LIBINPUT_CONFIG_ACCEL_PROFILE_NONE;
+
+	return LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE |
+		LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT;
+}
+
+static enum libinput_config_status
+evdev_accel_config_set_profile(struct libinput_device *libinput_device,
+			       enum libinput_config_accel_profile profile)
+{
+	struct evdev_device *device = (struct evdev_device*)libinput_device;
+	struct motion_filter *filter;
+	double speed;
+
+	filter = device->pointer.filter;
+	if (filter_get_type(filter) == profile)
+		return LIBINPUT_CONFIG_STATUS_SUCCESS;
+
+	speed = filter_get_speed(filter);
+	device->pointer.filter = NULL;
+
+	if (evdev_init_accel(device, profile) == 0) {
+		evdev_accel_config_set_speed(libinput_device, speed);
+		filter_destroy(filter);
+	} else {
+		device->pointer.filter = filter;
+	}
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static enum libinput_config_accel_profile
+evdev_accel_config_get_profile(struct libinput_device *libinput_device)
+{
+	struct evdev_device *device = (struct evdev_device*)libinput_device;
+
+	return filter_get_type(device->pointer.filter);
+}
+
+static enum libinput_config_accel_profile
+evdev_accel_config_get_default_profile(struct libinput_device *libinput_device)
+{
+	struct evdev_device *device = (struct evdev_device*)libinput_device;
+
+	if (!device->pointer.filter)
+		return LIBINPUT_CONFIG_ACCEL_PROFILE_NONE;
+
+	/* No device has a flat profile as default */
+	return LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
+}
+
 int
 evdev_device_init_pointer_acceleration(struct evdev_device *device,
 				       struct motion_filter *filter)
 {
 	device->pointer.filter = filter;
 
-	device->pointer.config.available = evdev_accel_config_available;
-	device->pointer.config.set_speed = evdev_accel_config_set_speed;
-	device->pointer.config.get_speed = evdev_accel_config_get_speed;
-	device->pointer.config.get_default_speed = evdev_accel_config_get_default_speed;
-	device->base.config.accel = &device->pointer.config;
+	if (device->base.config.accel == NULL) {
+		device->pointer.config.available = evdev_accel_config_available;
+		device->pointer.config.set_speed = evdev_accel_config_set_speed;
+		device->pointer.config.get_speed = evdev_accel_config_get_speed;
+		device->pointer.config.get_default_speed = evdev_accel_config_get_default_speed;
+		device->pointer.config.get_profiles = evdev_accel_config_get_profiles;
+		device->pointer.config.set_profile = evdev_accel_config_set_profile;
+		device->pointer.config.get_profile = evdev_accel_config_get_profile;
+		device->pointer.config.get_default_profile = evdev_accel_config_get_default_profile;
+		device->base.config.accel = &device->pointer.config;
 
-	evdev_accel_config_set_speed(&device->base,
-		     evdev_accel_config_get_default_speed(&device->base));
+		evdev_accel_config_set_speed(&device->base,
+			     evdev_accel_config_get_default_speed(&device->base));
+	}
 
 	return 0;
 }
@@ -1868,24 +1952,6 @@ evdev_configure_mt_device(struct evdev_device *device)
 	return 0;
 }
 
-static inline int
-evdev_init_accel(struct evdev_device *device)
-{
-	struct motion_filter *filter;
-
-	if (device->tags & EVDEV_TAG_TRACKPOINT)
-		filter = create_pointer_accelerator_filter_trackpoint(device->dpi);
-	else if (device->dpi < DEFAULT_MOUSE_DPI)
-		filter = create_pointer_accelerator_filter_linear_low_dpi(device->dpi);
-	else
-		filter = create_pointer_accelerator_filter_linear(device->dpi);
-
-	if (!filter)
-		return -1;
-
-	return evdev_device_init_pointer_acceleration(device, filter);
-}
-
 static int
 evdev_configure_device(struct evdev_device *device)
 {
@@ -1988,7 +2054,7 @@ evdev_configure_device(struct evdev_device *device)
 
 		if (libevdev_has_event_code(evdev, EV_REL, REL_X) &&
 		    libevdev_has_event_code(evdev, EV_REL, REL_Y) &&
-		    evdev_init_accel(device) == -1)
+		    evdev_init_accel(device, LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE) == -1)
 			return -1;
 
 		device->seat_caps |= EVDEV_DEVICE_POINTER;

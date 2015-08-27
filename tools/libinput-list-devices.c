@@ -172,6 +172,35 @@ click_defaults(struct libinput_device *device)
 	return str;
 }
 
+static char*
+accel_profiles(struct libinput_device *device)
+{
+	uint32_t profiles;
+	char *str;
+	enum libinput_config_accel_profile profile;
+
+	if (!libinput_device_config_accel_is_available(device)) {
+		xasprintf(&str, "n/a");
+		return str;
+	}
+
+	profiles = libinput_device_config_accel_get_profiles(device);
+	if (profiles == LIBINPUT_CONFIG_ACCEL_PROFILE_NONE) {
+		xasprintf(&str, "none");
+		return str;
+	}
+
+	profile = libinput_device_config_accel_get_default_profile(device);
+	xasprintf(&str,
+		  "%s%s%s%s",
+		  (profile == LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT) ? "*" : "",
+		  (profiles & LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT) ? "flat" : "",
+		  (profile == LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE) ? "*" : "",
+		  (profiles & LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE) ? "adaptive" : "");
+
+	return str;
+}
+
 static const char *
 dwt_default(struct libinput_device *device)
 {
@@ -248,6 +277,10 @@ print_device_notify(struct libinput_event *ev)
 	free(str);
 
 	printf("Disable-w-typing: %s\n", dwt_default(dev));
+
+	str = accel_profiles(dev);
+	printf("Accel profiles:   %s\n", str);
+	free(str);
 
 	printf("\n");
 }
