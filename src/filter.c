@@ -160,6 +160,7 @@ struct pointer_accelerator_flat {
 	struct motion_filter base;
 
 	double factor;
+	double dpi_factor;
 };
 
 static void
@@ -897,11 +898,16 @@ accelerator_filter_flat(struct motion_filter *filter,
 		(struct pointer_accelerator_flat *)filter;
 	double factor; /* unitless factor */
 	struct normalized_coords accelerated;
+	struct normalized_coords unnormalized;
 
+	/* You want flat acceleration, you get flat acceleration for the
+	 * device */
+	unnormalized.x = unaccelerated->x * accel_filter->dpi_factor;
+	unnormalized.y = unaccelerated->y * accel_filter->dpi_factor;
 	factor = accel_filter->factor;
 
-	accelerated.x = factor * unaccelerated->x;
-	accelerated.y = factor * unaccelerated->y;
+	accelerated.x = factor * unnormalized.x;
+	accelerated.y = factor * unnormalized.y;
 
 	return accelerated;
 }
@@ -951,6 +957,7 @@ create_pointer_accelerator_filter_flat(int dpi)
 		return NULL;
 
 	filter->base.interface = &accelerator_interface_flat;
+	filter->dpi_factor = dpi/(double)DEFAULT_MOUSE_DPI;
 
 	return &filter->base;
 }
