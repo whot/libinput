@@ -1,0 +1,13 @@
+/**
+@page switches Switches
+
+libinput supports a couple of switches. Unlike button events that come in
+press and release pairs, switches are usually toggled once and left at the
+setting for an extended period of time.
+
+Only some switches are handled by libinput, see @ref libinput_switch for a
+list of supported switches. Switch events are exposed to the caller, but
+libinput may handle some switch events internally and enable or disable
+specific features based on a switch state.
+
+*/

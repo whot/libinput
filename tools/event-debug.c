@@ -133,6 +133,9 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_TABLET_PAD_STRIP:
 		type = "TABLET_PAD_STRIP";
 		break;
+	case LIBINPUT_EVENT_SWITCH_TOGGLE:
+		type = "TABLET_SWITCH_TOGGLE";
+		break;
 	}
 
 	prefix = (last_device != dev) ? '-' : ' ';
@@ -194,6 +197,9 @@ print_device_notify(struct libinput_event *ev)
 	if (libinput_device_has_capability(dev,
 					   LIBINPUT_DEVICE_CAP_TABLET_PAD))
 		printf("P");
+	if (libinput_device_has_capability(dev,
+					   LIBINPUT_DEVICE_CAP_SWITCH))
+		printf("S");
 
 	if (libinput_device_get_size(dev, &w, &h) == 0)
 		printf("\tsize %.2f/%.2fmm", w, h);
@@ -689,6 +695,29 @@ print_tablet_pad_strip_event(struct libinput_event *ev)
 	       mode);
 }
 
+static void
+print_switch_event(struct libinput_event *ev)
+{
+	struct libinput_event_switch *sw = libinput_event_get_switch_event(ev);
+	enum libinput_switch_state state;
+	const char *which;
+
+	print_event_time(libinput_event_switch_get_time(sw));
+
+	switch (libinput_event_switch_get_switch(sw)) {
+	case LIBINPUT_SWITCH_LID:
+		which = "lid";
+		break;
+	case LIBINPUT_SWITCH_TABLET_MODE:
+		which = "tablet-mode";
+		break;
+	}
+
+	state = libinput_event_switch_get_switch_state(sw);
+
+	printf("switch %s state %d\n", which, state);
+}
+
 static int
 handle_and_print_events(struct libinput *li)
 {
@@ -776,6 +805,9 @@ handle_and_print_events(struct libinput *li)
 			break;
 		case LIBINPUT_EVENT_TABLET_PAD_STRIP:
 			print_tablet_pad_strip_event(ev);
+			break;
+		case LIBINPUT_EVENT_SWITCH_TOGGLE:
+			print_switch_event(ev);
 			break;
 		}
 
