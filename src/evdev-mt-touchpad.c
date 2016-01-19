@@ -1472,6 +1472,9 @@ static struct evdev_dispatch_interface tp_interface = {
 	tp_interface_device_removed, /* device_suspended, treat as remove */
 	tp_interface_device_added,   /* device_resumed, treat as add */
 	NULL,                        /* post_added */
+	NULL,                        /* buttonset_to_phys */
+	NULL,                        /* buttonset_get_num_axes */
+	NULL,                        /* buttonset_get_axis_type */
 };
 
 static void

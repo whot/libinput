@@ -168,18 +168,6 @@ struct libinput_event_tablet_tool {
 	enum libinput_tablet_tool_tip_state tip_state;
 };
 
-struct libinput_buttonset_axis {
-	enum libinput_buttonset_axis_type type;
-	enum libinput_buttonset_axis_source source;
-	union {
-		double mm;
-		double normalized;
-		double delta;
-		double degrees;
-		double position;
-	} value;
-};
-
 struct libinput_event_buttonset {
 	struct libinput_event base;
 	uint32_t button;
@@ -1628,6 +1616,9 @@ libinput_event_buttonset_get_x_transformed(struct libinput_event_buttonset *even
 					   unsigned int axis,
 					   uint32_t width)
 {
+	struct evdev_device *device =
+		(struct evdev_device *) event->base.device;
+
 	require_event_type(libinput_event_get_context(&event->base),
 			   event->base.type,
 			   0.0,
@@ -1637,7 +1628,9 @@ libinput_event_buttonset_get_x_transformed(struct libinput_event_buttonset *even
 				    LIBINPUT_BUTTONSET_AXIS_X,
 				    0.0);
 
-	return event->axes[axis].value.mm; /* FIXME */
+	return evdev_device_transform_x_mm(device,
+					   event->axes[axis].value.mm,
+					   width);
 }
 
 LIBINPUT_EXPORT double
@@ -1660,6 +1653,9 @@ libinput_event_buttonset_get_y_transformed(struct libinput_event_buttonset *even
 					   unsigned int axis,
 					   uint32_t height)
 {
+	struct evdev_device *device =
+		(struct evdev_device *) event->base.device;
+
 	require_event_type(libinput_event_get_context(&event->base),
 			   event->base.type,
 			   0.0,
@@ -1669,7 +1665,9 @@ libinput_event_buttonset_get_y_transformed(struct libinput_event_buttonset *even
 				    LIBINPUT_BUTTONSET_AXIS_Y,
 				    0.0);
 
-	return event->axes[axis].value.mm; /* FIXME */
+	return evdev_device_transform_y_mm(device,
+					   event->axes[axis].value.mm,
+					   height);
 }
 
 LIBINPUT_EXPORT double
@@ -2717,6 +2715,75 @@ tablet_notify_button(struct libinput_device *device,
 			  &button_event->base);
 }
 
+void
+buttonset_notify_axis(struct libinput_device *device,
+		      uint32_t time,
+		      unsigned char *changed_axes,
+		      struct libinput_buttonset_axis *axes,
+		      size_t naxes)
+{
+	struct libinput_event_buttonset *axis_event;
+
+	if (naxes > ARRAY_LENGTH(axis_event->axes)) {
+		log_bug_libinput(device->seat->libinput,
+				 "%s: Invalid axis number %zd\n",
+				 __func__,
+				 naxes);
+		naxes = ARRAY_LENGTH(axis_event->axes);
+	}
+
+	axis_event = zalloc(sizeof *axis_event);
+	if (!axis_event)
+		return;
+
+	*axis_event = (struct libinput_event_buttonset) {
+		.time = time,
+	};
+
+	memcpy(axis_event->changed_axes,
+	       changed_axes,
+	       sizeof(axis_event->changed_axes));
+	memcpy(axis_event->axes, axes, sizeof(axis_event->axes));
+
+	post_device_event(device,
+			  time,
+			  LIBINPUT_EVENT_BUTTONSET_AXIS,
+			  &axis_event->base);
+}
+
+void
+buttonset_notify_button(struct libinput_device *device,
+			uint32_t time,
+			struct libinput_buttonset_axis *axes,
+			size_t naxes,
+			int32_t button,
+			enum libinput_button_state state)
+{
+	struct libinput_event_buttonset *button_event;
+	int32_t seat_button_count;
+
+	button_event = zalloc(sizeof *button_event);
+	if (!button_event)
+		return;
+
+	seat_button_count = update_seat_button_count(device->seat,
+						     button,
+						     state);
+
+	*button_event = (struct libinput_event_buttonset) {
+		.time = time,
+		.button = button,
+		.state = state,
+		.seat_button_count = seat_button_count,
+	};
+	memcpy(button_event->axes, axes, sizeof(button_event->axes));
+
+	post_device_event(device,
+			  time,
+			  LIBINPUT_EVENT_BUTTONSET_BUTTON,
+			  &button_event->base);
+}
+
 static void
 gesture_notify(struct libinput_device *device,
 	       uint64_t time,
@@ -3060,20 +3127,24 @@ libinput_device_keyboard_has_key(struct libinput_device *device, uint32_t code)
 LIBINPUT_EXPORT int
 libinput_device_buttonset_has_button(struct libinput_device *device, uint32_t code)
 {
-	return 0; /* FIXME */
+	return evdev_device_buttonset_has_button((struct evdev_device *)device,
+						 code);
 }
 
 LIBINPUT_EXPORT enum libinput_buttonset_axis_type
 libinput_device_buttonset_get_axis_type(struct libinput_device *device,
 					unsigned int axis)
 {
-	return 0; /* FIXME */
+	return evdev_device_buttonset_get_axis_type(
+					    (struct evdev_device *)device,
+					    axis);
 }
 
 LIBINPUT_EXPORT unsigned int
 libinput_device_buttonset_get_num_axes(struct libinput_device *device)
 {
-	return 0; /* FIXME */
+	return evdev_device_buttonset_get_num_axes(
+					   (struct evdev_device *)device);
 }
 
 LIBINPUT_EXPORT struct libinput_event *

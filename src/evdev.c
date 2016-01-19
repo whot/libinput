@@ -258,6 +258,26 @@ evdev_device_transform_y(struct evdev_device *device,
 	return scale_axis(device->abs.absinfo_y, y, height);
 }
 
+double
+evdev_device_transform_x_mm(struct evdev_device *device,
+			    double mm,
+			    uint32_t width)
+{
+	mm *= device->abs.absinfo_x->resolution;
+
+	return evdev_device_transform_x(device, mm, width);
+}
+
+double
+evdev_device_transform_y_mm(struct evdev_device *device,
+			    double mm,
+			    uint32_t height)
+{
+	mm *= device->abs.absinfo_y->resolution;
+
+	return evdev_device_transform_y(device, mm, height);
+}
+
 static inline void
 normalize_delta(struct evdev_device *device,
 		const struct device_coords *delta,
@@ -976,6 +996,9 @@ struct evdev_dispatch_interface fallback_interface = {
 	NULL, /* device_suspended */
 	NULL, /* device_resumed */
 	NULL, /* post_added */
+	NULL, /* buttonset_to_phys */
+	NULL, /* buttonset_get_num_axes */
+	NULL, /* buttonset_get_axis_type */
 };
 
 static uint32_t
@@ -2044,14 +2067,6 @@ evdev_configure_device(struct evdev_device *device)
 		return -1;
 	}
 
-	/* libwacom assigns tablet _and_ tablet_pad to the pad devices */
-	if (udev_tags & EVDEV_UDEV_TAG_BUTTONSET) {
-		log_info(libinput,
-			 "input device '%s', %s is a buttonset, ignoring\n",
-			 device->devname, devnode);
-		return -1;
-	}
-
 	if (evdev_reject_device(device) == -1) {
 		log_info(libinput,
 			 "input device '%s', %s was rejected.\n",
@@ -2081,13 +2096,23 @@ evdev_configure_device(struct evdev_device *device)
 		}
 	}
 
-	/* libwacom assigns touchpad (or touchscreen) _and_ tablet to the
-	   tablet touch bits, so make sure we don't initialize the tablet
-	   interface for the touch device */
 	tablet_tags = EVDEV_UDEV_TAG_TABLET |
 		      EVDEV_UDEV_TAG_TOUCHPAD |
 		      EVDEV_UDEV_TAG_TOUCHSCREEN;
-	if ((udev_tags & tablet_tags) == EVDEV_UDEV_TAG_TABLET) {
+
+	/* libwacom assigns tablet _and_ tablet_pad to the pad devices */
+	if (udev_tags & EVDEV_UDEV_TAG_BUTTONSET) {
+		device->dispatch = evdev_buttonset_create(device);
+		device->seat_caps |= EVDEV_DEVICE_BUTTONSET;
+		log_info(libinput,
+			 "input device '%s', %s is a buttonset\n",
+			 device->devname, devnode);
+		return device->dispatch == NULL ? -1 : 0;
+
+	/* libwacom assigns touchpad _and_ tablet to the tablet touch bits,
+	   so make sure we don't initialize the tablet interface for the
+	   touch device */
+	} else if ((udev_tags & tablet_tags) == EVDEV_UDEV_TAG_TABLET) {
 		device->dispatch = evdev_tablet_create(device);
 		device->seat_caps |= EVDEV_DEVICE_TABLET;
 		log_info(libinput,
@@ -2516,6 +2541,8 @@ evdev_device_has_capability(struct evdev_device *device,
 		return !!(device->seat_caps & EVDEV_DEVICE_GESTURE);
 	case LIBINPUT_DEVICE_CAP_TABLET_TOOL:
 		return !!(device->seat_caps & EVDEV_DEVICE_TABLET);
+	case LIBINPUT_DEVICE_CAP_BUTTONSET:
+		return !!(device->seat_caps & EVDEV_DEVICE_BUTTONSET);
 	default:
 		return 0;
 	}
@@ -2557,6 +2584,39 @@ evdev_device_keyboard_has_key(struct evdev_device *device, uint32_t code)
 		return -1;
 
 	return libevdev_has_event_code(device->evdev, EV_KEY, code);
+}
+
+int
+evdev_device_buttonset_has_button(struct evdev_device *device,
+				  uint32_t code)
+{
+	if (!(device->seat_caps & EVDEV_DEVICE_BUTTONSET))
+		return -1;
+
+	return libevdev_has_event_code(device->evdev, EV_KEY, code);
+}
+
+unsigned int
+evdev_device_buttonset_get_num_axes(struct evdev_device *device)
+{
+	struct evdev_dispatch *dispatch = device->dispatch;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_BUTTONSET))
+		return 0;
+
+	return dispatch->interface->buttonset_get_num_axes(device);
+}
+
+enum libinput_buttonset_axis_type
+evdev_device_buttonset_get_axis_type(struct evdev_device *device,
+				     unsigned int axis)
+{
+	struct evdev_dispatch *dispatch = device->dispatch;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_BUTTONSET))
+		return 0;
+
+	return dispatch->interface->buttonset_get_axis_type(device, axis);
 }
 
 static inline bool

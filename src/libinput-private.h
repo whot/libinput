@@ -313,6 +313,20 @@ struct libinput_tablet_tool {
 	bool has_pressure_offset;
 };
 
+struct libinput_buttonset_axis {
+	enum libinput_buttonset_axis_type type;
+	enum libinput_buttonset_axis_source source;
+	union {
+		double mm;
+		double normalized;
+		double delta;
+		double degrees;
+		double position;
+
+		double any;
+	} value;
+};
+
 struct libinput_event {
 	enum libinput_event_type type;
 	struct libinput_device *device;
@@ -545,6 +559,21 @@ tablet_notify_button(struct libinput_device *device,
 		     const struct tablet_axes *axes,
 		     int32_t button,
 		     enum libinput_button_state state);
+
+void
+buttonset_notify_axis(struct libinput_device *device,
+		      uint32_t time,
+		      unsigned char *changed_axes,
+		      struct libinput_buttonset_axis *axes,
+		      size_t naxes);
+
+void
+buttonset_notify_button(struct libinput_device *device,
+			uint32_t time,
+			struct libinput_buttonset_axis *axes,
+			size_t naxes,
+			int32_t button,
+			enum libinput_button_state state);
 
 static inline uint64_t
 libinput_now(struct libinput *libinput)
