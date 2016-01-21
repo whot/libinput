@@ -539,6 +539,24 @@ tablet_notify_button(struct libinput_device *device,
 		     int32_t button,
 		     enum libinput_button_state state);
 
+void
+tablet_pad_notify_button(struct libinput_device *device,
+			 uint64_t time,
+			 int32_t button,
+			 enum libinput_button_state state);
+void
+tablet_pad_notify_ring(struct libinput_device *device,
+		       uint64_t time,
+		       unsigned int number,
+		       double value,
+		       enum libinput_tablet_pad_ring_axis_source source);
+void
+tablet_pad_notify_strip(struct libinput_device *device,
+			uint64_t time,
+			unsigned int number,
+			double value,
+			enum libinput_tablet_pad_strip_axis_source source);
+
 static inline uint64_t
 libinput_now(struct libinput *libinput)
 {

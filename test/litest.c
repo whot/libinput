@@ -1945,6 +1945,15 @@ litest_event_type_str(struct libinput_event *event)
 	case LIBINPUT_EVENT_TABLET_TOOL_BUTTON:
 		str = "TABLET TOOL BUTTON";
 		break;
+	case LIBINPUT_EVENT_TABLET_PAD_BUTTON:
+		str = "TABLET PAD BUTTON";
+		break;
+	case LIBINPUT_EVENT_TABLET_PAD_RING:
+		str = "TABLET PAD RING";
+		break;
+	case LIBINPUT_EVENT_TABLET_PAD_STRIP:
+		str = "TABLET PAD STRIP";
+		break;
 	}
 	return str;
 }

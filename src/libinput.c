@@ -138,6 +138,24 @@ struct libinput_event_tablet_tool {
 	enum libinput_tablet_tool_tip_state tip_state;
 };
 
+struct libinput_event_tablet_pad {
+	struct libinput_event base;
+	uint32_t button;
+	enum libinput_button_state state;
+	uint32_t seat_button_count;
+	uint64_t time;
+	struct {
+		enum libinput_tablet_pad_ring_axis_source source;
+		double position;
+		int number;
+	} ring;
+	struct {
+		enum libinput_tablet_pad_strip_axis_source source;
+		double position;
+		int number;
+	} strip;
+};
+
 static void
 libinput_default_log_func(struct libinput *libinput,
 			  enum libinput_log_priority priority,
@@ -316,6 +334,19 @@ libinput_event_get_tablet_tool_event(struct libinput_event *event)
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON);
 
 	return (struct libinput_event_tablet_tool *) event;
+}
+
+LIBINPUT_EXPORT struct libinput_event_tablet_pad *
+libinput_event_get_tablet_pad_event(struct libinput_event *event)
+{
+	require_event_type(libinput_event_get_context(event),
+			   event->type,
+			   NULL,
+			   LIBINPUT_EVENT_TABLET_PAD_RING,
+			   LIBINPUT_EVENT_TABLET_PAD_STRIP,
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+
+	return (struct libinput_event_tablet_pad *) event;
 }
 
 LIBINPUT_EXPORT struct libinput_event_device_notify *
@@ -1953,6 +1984,9 @@ device_has_cap(struct libinput_device *device,
 	case LIBINPUT_DEVICE_CAP_TABLET_TOOL:
 		capability = "CAP_TABLET_TOOL";
 		break;
+	case LIBINPUT_DEVICE_CAP_TABLET_PAD:
+		capability = "CAP_TABLET_PAD";
+		break;
 	}
 
 	log_bug_libinput(device->seat->libinput,
@@ -2340,6 +2374,88 @@ tablet_notify_button(struct libinput_device *device,
 			  &button_event->base);
 }
 
+void
+tablet_pad_notify_button(struct libinput_device *device,
+			 uint64_t time,
+			 int32_t button,
+			 enum libinput_button_state state)
+{
+	struct libinput_event_tablet_pad *button_event;
+	int32_t seat_button_count;
+
+	button_event = zalloc(sizeof *button_event);
+	if (!button_event)
+		return;
+
+	seat_button_count = update_seat_button_count(device->seat,
+						     button,
+						     state);
+
+	*button_event = (struct libinput_event_tablet_pad) {
+		.time = time,
+		.button = button,
+		.state = state,
+		.seat_button_count = seat_button_count,
+	};
+
+	post_device_event(device,
+			  time,
+			  LIBINPUT_EVENT_TABLET_PAD_BUTTON,
+			  &button_event->base);
+}
+
+void
+tablet_pad_notify_ring(struct libinput_device *device,
+		       uint64_t time,
+		       unsigned int number,
+		       double value,
+		       enum libinput_tablet_pad_ring_axis_source source)
+{
+	struct libinput_event_tablet_pad *ring_event;
+
+	ring_event = zalloc(sizeof *ring_event);
+	if (!ring_event)
+		return;
+
+	*ring_event = (struct libinput_event_tablet_pad) {
+		.time = time,
+		.ring.number = number,
+		.ring.position = value,
+		.ring.source = source,
+	};
+
+	post_device_event(device,
+			  time,
+			  LIBINPUT_EVENT_TABLET_PAD_RING,
+			  &ring_event->base);
+}
+
+void
+tablet_pad_notify_strip(struct libinput_device *device,
+			uint64_t time,
+			unsigned int number,
+			double value,
+			enum libinput_tablet_pad_strip_axis_source source)
+{
+	struct libinput_event_tablet_pad *strip_event;
+
+	strip_event = zalloc(sizeof *strip_event);
+	if (!strip_event)
+		return;
+
+	*strip_event = (struct libinput_event_tablet_pad) {
+		.time = time,
+		.strip.number = number,
+		.strip.position = value,
+		.strip.source = source,
+	};
+
+	post_device_event(device,
+			  time,
+			  LIBINPUT_EVENT_TABLET_PAD_STRIP,
+			  &strip_event->base);
+}
+
 static void
 gesture_notify(struct libinput_device *device,
 	       uint64_t time,
@@ -2445,6 +2561,9 @@ event_type_to_str(enum libinput_event_type type)
 	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_TOOL_TIP);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_TOOL_BUTTON);
+	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_PAD_RING);
+	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_PAD_STRIP);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_SWIPE_END);
@@ -2676,6 +2795,25 @@ libinput_device_keyboard_has_key(struct libinput_device *device, uint32_t code)
 	return evdev_device_has_key((struct evdev_device *)device, code);
 }
 
+LIBINPUT_EXPORT int
+libinput_device_tablet_pad_has_button(struct libinput_device *device,
+				      uint32_t code)
+{
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_tablet_pad_get_num_rings(struct libinput_device *device)
+{
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_device_tablet_pad_get_num_strips(struct libinput_device *device)
+{
+	return 0;
+}
+
 LIBINPUT_EXPORT struct libinput_event *
 libinput_event_device_notify_get_base_event(struct libinput_event_device_notify *event)
 {
@@ -2744,6 +2882,144 @@ libinput_event_tablet_tool_get_base_event(struct libinput_event_tablet_tool *eve
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON);
+
+	return &event->base;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_tablet_pad_get_ring_position(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_TABLET_PAD_RING);
+
+	return event->ring.position;
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_event_tablet_pad_get_ring_number(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_TABLET_PAD_RING);
+
+	return event->ring.number;
+}
+
+LIBINPUT_EXPORT enum libinput_tablet_pad_ring_axis_source
+libinput_event_tablet_pad_get_ring_source(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_TABLET_PAD_RING);
+
+	return event->ring.source;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_tablet_pad_get_strip_position(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_TABLET_PAD_STRIP);
+
+	return event->strip.position;
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_event_tablet_pad_get_strip_number(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_TABLET_PAD_STRIP);
+
+	return event->strip.number;
+}
+
+LIBINPUT_EXPORT enum libinput_tablet_pad_strip_axis_source
+libinput_event_tablet_pad_get_strip_source(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_TABLET_PAD_STRIP);
+
+	return event->strip.source;
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_event_tablet_pad_get_button(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+
+	return event->button;
+}
+
+LIBINPUT_EXPORT enum libinput_button_state
+libinput_event_tablet_pad_get_button_state(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+
+	return event->state;
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_event_tablet_pad_get_seat_button_count(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+
+	return event->seat_button_count;
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_event_tablet_pad_get_time(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_PAD_RING,
+			   LIBINPUT_EVENT_TABLET_PAD_STRIP,
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+
+	return us2ms(event->time);
+}
+
+LIBINPUT_EXPORT uint64_t
+libinput_event_tablet_pad_get_time_usec(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_PAD_RING,
+			   LIBINPUT_EVENT_TABLET_PAD_STRIP,
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+
+	return event->time;
+}
+
+LIBINPUT_EXPORT struct libinput_event *
+libinput_event_tablet_pad_get_base_event(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   NULL,
+			   LIBINPUT_EVENT_TABLET_PAD_RING,
+			   LIBINPUT_EVENT_TABLET_PAD_STRIP,
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
 
 	return &event->base;
 }

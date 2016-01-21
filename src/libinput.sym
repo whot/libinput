@@ -234,3 +234,23 @@ LIBINPUT_1.2 {
 	libinput_tablet_tool_set_user_data;
 	libinput_tablet_tool_unref;
 } LIBINPUT_1.1;
+
+TABLET_PAD {
+	libinput_device_tablet_pad_has_button;
+	libinput_device_tablet_pad_get_num_rings;
+	libinput_device_tablet_pad_get_num_strips;
+	libinput_event_get_tablet_pad_event;
+	libinput_event_tablet_pad_get_base_event;
+	libinput_event_tablet_pad_get_ring_position;
+	libinput_event_tablet_pad_get_ring_number;
+	libinput_event_tablet_pad_get_ring_source;
+	libinput_event_tablet_pad_get_strip_position;
+	libinput_event_tablet_pad_get_strip_number;
+	libinput_event_tablet_pad_get_strip_source;
+	libinput_event_tablet_pad_get_button;
+	libinput_event_tablet_pad_get_button_state;
+	libinput_event_tablet_pad_get_seat_button_count;
+	libinput_event_tablet_pad_get_time;
+	libinput_event_tablet_pad_get_time_usec;
+
+} LIBINPUT_1.2;
