@@ -2237,9 +2237,14 @@ libinput_event_buttonset_axis_has_changed(struct libinput_event_buttonset *event
 /**
  * @ingroup event_buttonset
  *
- * Get the x coordinate in mm for the given axis from the left edge of the
- * device in its current logical rotation. The axis must be of type
- * @ref LIBINPUT_BUTTONSET_AXIS_X.
+ * Get the x coordinate in mm. The definition of x follows the HID Usage
+ * Tables, the x coordinate is defined as "linear translation
+ * in the X direction. Report values should increase as the control’s
+ * position is moved from left to right."
+ * http://www.usb.org/developers/hidpage/Hut1_12v2.pdf
+ *
+ * The axis must be of type @ref LIBINPUT_BUTTONSET_AXIS_X.
+ *
  *
  * @param event The event
  * @param axis An index for an axis of type @ref LIBINPUT_BUTTONSET_AXIS_X
@@ -2270,9 +2275,13 @@ libinput_event_buttonset_get_x_transformed(struct libinput_event_buttonset *even
 /**
  * @ingroup event_buttonset
  *
- * Get the y coordinate in mm for the given axis from the top edge of the
- * device in its current logical rotation. The axis must be of type
- * @ref LIBINPUT_BUTTONSET_AXIS_Y.
+ * Get the y coordinate in mm. The definition of y follows the HID Usage
+ * Tables, the y coordinate is defined as "linear translation
+ * in the Y direction. Report values should increase as the control’s
+ * position is moved from far to near."
+ * http://www.usb.org/developers/hidpage/Hut1_12v2.pdf
+ *
+ * The axis must be of type @ref LIBINPUT_BUTTONSET_AXIS_Y.
  *
  * @param event The event
  * @param axis An index for an axis of type @ref LIBINPUT_BUTTONSET_AXIS_Y
@@ -2303,9 +2312,13 @@ libinput_event_buttonset_get_y_transformed(struct libinput_event_buttonset *even
 /**
  * @ingroup event_buttonset
  *
- * Get the z coordinate in mm for the given axis from the top edge of the
- * device in its current logical rotation. The axis must be of type
- * @ref LIBINPUT_BUTTONSET_AXIS_Z.
+ * Get the z coordinate in mm. The definition of z follows the HID Usage
+ * Tables, the z coordinate is defined as "linear translation
+ * in the Z direction. Report values should increase as the control’s
+ * position is moved from high to low."
+ * http://www.usb.org/developers/hidpage/Hut1_12v2.pdf
+ *
+ * The axis must be of type @ref LIBINPUT_BUTTONSET_AXIS_Z.
  *
  * @param event The event
  * @param axis An index for an axis of type @ref LIBINPUT_BUTTONSET_AXIS_Z
@@ -2321,6 +2334,11 @@ libinput_event_buttonset_get_z(struct libinput_event_buttonset *event,
  *
  * Get the delta coordinates for a relative x axis of type
  * @ref LIBINPUT_BUTTONSET_AXIS_REL_X.
+ *
+ * The definition of x follows the HID Usage Tables, the x coordinate is
+ * defined as "linear translation in the X direction. Report values should
+ * increase as the control’s position is moved from left to right."
+ * http://www.usb.org/developers/hidpage/Hut1_12v2.pdf
  *
  * The interpretation of a delta is device-specific. Buttonset devices are
  * not usually supposed to control the cursor position, a caller should not
@@ -2343,6 +2361,11 @@ libinput_event_buttonset_get_dx(struct libinput_event_buttonset *event,
  * Get the delta coordinates for a relative x axis of type
  * @ref LIBINPUT_BUTTONSET_AXIS_REL_Y.
  *
+ * The definition of y follows the HID Usage Tables, the y coordinate is
+ * defined as "linear translation in the Y direction. Report values should
+ * increase as the control’s position is moved from near to far."
+ * http://www.usb.org/developers/hidpage/Hut1_12v2.pdf
+ *
  * The interpretation of a delta is device-specific. Buttonset devices are
  * not usually supposed to control the cursor position, a caller should not
  * assume that delta coordinates are directly applicable to pointer
@@ -2364,6 +2387,11 @@ libinput_event_buttonset_get_dy(struct libinput_event_buttonset *event,
  * Get the delta coordinates for a relative x axis of type
  * @ref LIBINPUT_BUTTONSET_AXIS_REL_Z.
  *
+ * The definition of z follows the HID Usage Tables, the z coordinate is
+ * defined as "linear translation in the Z direction. Report values should
+ * increase as the control’s position is moved from high to low."
+ * http://www.usb.org/developers/hidpage/Hut1_12v2.pdf
+ *
  * @param event The event
  * @param axis An index for an axis of type @ref
  * LIBINPUT_BUTTONSET_AXIS_REL_Z
@@ -2381,6 +2409,11 @@ libinput_event_buttonset_get_dz(struct libinput_event_buttonset *event,
  * in the current logical orientation for an axis of type @ref
  * LIBINPUT_BUTTONSET_AXIS_ROTATION_X.
  *
+ * The definition of x rotation follows the HID Usage Tables, x rotation
+ * is defined as "rotation about the X axis. Angular position report values
+ * follow the righthand rule."
+ * http://www.usb.org/developers/hidpage/Hut1_12v2.pdf
+ *
  * @param event The event
  * @param axis An index for an axis of type @ref
  * LIBINPUT_BUTTONSET_AXIS_ROTATION_X
@@ -2397,6 +2430,11 @@ libinput_event_buttonset_get_rotation_x(struct libinput_event_buttonset *event,
  * in the current logical orientation for an axis of type @ref
  * LIBINPUT_BUTTONSET_AXIS_ROTATION_Y.
  *
+ * The definition of y rotation follows the HID Usage Tables, the y rotation
+ * is defined as "rotation about the Y axis. Angular position report values
+ * follow the righthand rule."
+ * http://www.usb.org/developers/hidpage/Hut1_12v2.pdf
+ *
  * @param event The event
  * @param axis An index for an axis of type @ref
  * LIBINPUT_BUTTONSET_AXIS_ROTATION_Y
@@ -2412,6 +2450,11 @@ libinput_event_buttonset_get_rotation_y(struct libinput_event_buttonset *event,
  * Get the rotational position in degrees off the logical neutral position
  * in the current logical orientation for an axis of type @ref
  * LIBINPUT_BUTTONSET_AXIS_ROTATION_Z.
+ *
+ * The definition of z rotation follows the HID Usage Tables, z rotation
+ * is defined as "rotation about the Z axis. Angular position report values
+ * follow the righthand rule."
+ * http://www.usb.org/developers/hidpage/Hut1_12v2.pdf
  *
  * @param event The event
  * @param axis An index for an axis of type @ref
