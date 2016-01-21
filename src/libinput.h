@@ -154,13 +154,17 @@ enum libinput_buttonset_axis_type {
 	LIBINPUT_BUTTONSET_AXIS_ROTATION_Y,
 	LIBINPUT_BUTTONSET_AXIS_ROTATION_Z,
 	/**
-	 * A ring-like axis with absolute axis values, e.g. the ring on the
-	 * Wacom Intuos4.
+	 * A capacitative touch ring axis with absolute axis values, e.g.
+	 * the ring on the Wacom Intuos4.
+	 *
+	 * This axis does not describe a rotary encoder like a dial.
 	 */
 	LIBINPUT_BUTTONSET_AXIS_RING,
 	/**
-	 * A strip-like axis with absolute axis values, e.g. the strip on
-	 * the Wacom Intuos3.
+	 * A capacitative touch strip axis with absolute axis values, e.g.
+	 * the strip on the Wacom Intuos3.
+	 *
+	 * This axis does not describe a slider-like device.
 	 */
 	LIBINPUT_BUTTONSET_AXIS_STRIP,
 };
