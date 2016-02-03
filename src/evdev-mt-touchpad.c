@@ -1196,6 +1196,15 @@ tp_keyboard_timeout(uint64_t now, void *data)
 {
 	struct tp_dispatch *tp = data;
 
+	if (long_any_bit_set(tp->dwt.key_mask,
+			     ARRAY_LENGTH(tp->dwt.key_mask))) {
+		libinput_timer_set(&tp->dwt.keyboard_timer,
+				   now + DEFAULT_KEYBOARD_ACTIVITY_TIMEOUT_2);
+		tp->dwt.keyboard_last_press_time = now;
+		log_debug(tp_libinput_context(tp), "palm: keyboard timeout refresh\n");
+		return;
+	}
+
 	tp_tap_resume(tp, now);
 
 	tp->dwt.keyboard_active = false;
@@ -1240,6 +1249,7 @@ tp_keyboard_event(uint64_t time, struct libinput_event *event, void *data)
 	struct tp_dispatch *tp = data;
 	struct libinput_event_keyboard *kbdev;
 	unsigned int timeout;
+	unsigned int key;
 
 	if (!tp->dwt.dwt_enabled)
 		return;
@@ -1248,15 +1258,18 @@ tp_keyboard_event(uint64_t time, struct libinput_event *event, void *data)
 		return;
 
 	kbdev = libinput_event_get_keyboard_event(event);
+	key = libinput_event_keyboard_get_key(kbdev);
 
 	/* Only trigger the timer on key down. */
 	if (libinput_event_keyboard_get_key_state(kbdev) !=
-	    LIBINPUT_KEY_STATE_PRESSED)
+	    LIBINPUT_KEY_STATE_PRESSED) {
+		long_clear_bit(tp->dwt.key_mask, key);
 		return;
+	}
 
 	/* modifier keys don't trigger disable-while-typing so things like
 	 * ctrl+zoom or ctrl+click are possible */
-	if (tp_key_ignore_for_dwt(libinput_event_keyboard_get_key(kbdev)))
+	if (tp_key_ignore_for_dwt(key))
 		return;
 
 	if (!tp->dwt.keyboard_active) {
@@ -1270,6 +1283,7 @@ tp_keyboard_event(uint64_t time, struct libinput_event *event, void *data)
 	}
 
 	tp->dwt.keyboard_last_press_time = time;
+	long_set_bit(tp->dwt.key_mask, key);
 	libinput_timer_set(&tp->dwt.keyboard_timer,
 			   time + timeout);
 }

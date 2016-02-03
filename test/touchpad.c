@@ -2438,6 +2438,145 @@ START_TEST(touchpad_dwt_key_hold)
 }
 END_TEST
 
+START_TEST(touchpad_dwt_key_hold_timeout)
+{
+	struct litest_device *touchpad = litest_current_device();
+	struct litest_device *keyboard;
+	struct libinput *li = touchpad->libinput;
+
+	if (!has_disable_while_typing(touchpad))
+		return;
+
+	keyboard = dwt_init_paired_keyboard(li, touchpad);
+	litest_disable_tap(touchpad->libinput_device);
+	litest_drain_events(li);
+
+	litest_keyboard_key(keyboard, KEY_A, true);
+	libinput_dispatch(li);
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_KEYBOARD_KEY);
+	litest_timeout_dwt_long();
+	libinput_dispatch(li);
+	litest_touch_down(touchpad, 0, 50, 50);
+	litest_touch_move_to(touchpad, 0, 50, 50, 70, 50, 5, 1);
+	litest_touch_up(touchpad, 0);
+
+	litest_assert_empty_queue(li);
+
+	litest_keyboard_key(keyboard, KEY_A, false);
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_KEYBOARD_KEY);
+	/* key is up, but still within timeout */
+	litest_touch_down(touchpad, 0, 50, 50);
+	litest_touch_move_to(touchpad, 0, 50, 50, 70, 50, 5, 1);
+	litest_touch_up(touchpad, 0);
+	litest_assert_empty_queue(li);
+
+	/* expire timeout */
+	litest_timeout_dwt_long();
+	libinput_dispatch(li);
+	litest_touch_down(touchpad, 0, 50, 50);
+	litest_touch_move_to(touchpad, 0, 50, 50, 70, 50, 5, 1);
+	litest_touch_up(touchpad, 0);
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_POINTER_MOTION);
+
+	litest_delete_device(keyboard);
+}
+END_TEST
+
+START_TEST(touchpad_dwt_key_hold_timeout_existing_touch_cornercase)
+{
+	struct litest_device *touchpad = litest_current_device();
+	struct litest_device *keyboard;
+	struct libinput *li = touchpad->libinput;
+
+	if (!has_disable_while_typing(touchpad))
+		return;
+
+	/* Note: this tests for the current behavior of a cornercase, and
+	 * the behaviour is essentially a bug. If this test fails it may be
+	 * because the buggy behavior was fixed.
+	 */
+
+	keyboard = dwt_init_paired_keyboard(li, touchpad);
+	litest_disable_tap(touchpad->libinput_device);
+	litest_drain_events(li);
+
+	litest_keyboard_key(keyboard, KEY_A, true);
+	libinput_dispatch(li);
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_KEYBOARD_KEY);
+	litest_timeout_dwt_long();
+	libinput_dispatch(li);
+
+	/* Touch starting after re-issuing the dwt timeout */
+	litest_touch_down(touchpad, 0, 50, 50);
+	litest_touch_move_to(touchpad, 0, 50, 50, 70, 50, 5, 1);
+
+	litest_assert_empty_queue(li);
+
+	litest_keyboard_key(keyboard, KEY_A, false);
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_KEYBOARD_KEY);
+	/* key is up, but still within timeout */
+	litest_touch_move_to(touchpad, 0, 70, 50, 50, 50, 5, 1);
+	litest_assert_empty_queue(li);
+
+	/* Expire dwt timeout. Because the touch started after re-issuing
+	 * the last timeout, it looks like the touch started after the last
+	 * key press. Such touches are enabled for pointer motion by
+	 * libinput when dwt expires.
+	 * This is buggy behavior and not what a user would typically
+	 * expect. But it's hard to trigger in real life too.
+	 */
+	litest_timeout_dwt_long();
+	litest_touch_move_to(touchpad, 0, 50, 50, 70, 50, 5, 1);
+	litest_touch_up(touchpad, 0);
+	/* If the below check for motion event fails because no events are
+	 * in the pipe, the buggy behavior was fixed and this test case
+	 * can be removed */
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_POINTER_MOTION);
+
+	litest_delete_device(keyboard);
+}
+END_TEST
+
+START_TEST(touchpad_dwt_key_hold_timeout_existing_touch)
+{
+	struct litest_device *touchpad = litest_current_device();
+	struct litest_device *keyboard;
+	struct libinput *li = touchpad->libinput;
+
+	if (!has_disable_while_typing(touchpad))
+		return;
+
+	keyboard = dwt_init_paired_keyboard(li, touchpad);
+	litest_disable_tap(touchpad->libinput_device);
+	litest_drain_events(li);
+
+	litest_keyboard_key(keyboard, KEY_A, true);
+	libinput_dispatch(li);
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_KEYBOARD_KEY);
+	litest_touch_down(touchpad, 0, 50, 50);
+	litest_touch_move_to(touchpad, 0, 50, 50, 70, 50, 5, 1);
+	libinput_dispatch(li);
+	litest_timeout_dwt_long();
+	libinput_dispatch(li);
+
+	litest_assert_empty_queue(li);
+
+	litest_keyboard_key(keyboard, KEY_A, false);
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_KEYBOARD_KEY);
+	/* key is up, but still within timeout */
+	litest_touch_move_to(touchpad, 0, 70, 50, 50, 50, 5, 1);
+	litest_assert_empty_queue(li);
+
+	/* expire timeout, but touch started before release */
+	litest_timeout_dwt_long();
+	litest_touch_move_to(touchpad, 0, 50, 50, 70, 50, 5, 1);
+	litest_touch_up(touchpad, 0);
+	litest_assert_empty_queue(li);
+
+	litest_delete_device(keyboard);
+}
+END_TEST
+
 START_TEST(touchpad_dwt_type)
 {
 	struct litest_device *touchpad = litest_current_device();
@@ -3669,6 +3808,9 @@ litest_setup_tests(void)
 	litest_add("touchpad:dwt", touchpad_dwt_enable_touch, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:dwt", touchpad_dwt_touch_hold, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:dwt", touchpad_dwt_key_hold, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("touchpad:dwt", touchpad_dwt_key_hold_timeout, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("touchpad:dwt", touchpad_dwt_key_hold_timeout_existing_touch, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("touchpad:dwt", touchpad_dwt_key_hold_timeout_existing_touch_cornercase, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:dwt", touchpad_dwt_type, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:dwt", touchpad_dwt_type_short_timeout, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:dwt", touchpad_dwt_tap, LITEST_TOUCHPAD, LITEST_ANY);

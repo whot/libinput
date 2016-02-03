@@ -25,6 +25,7 @@
 #ifndef LIBINPUT_UTIL_H
 #define LIBINPUT_UTIL_H
 
+#include <assert.h>
 #include <unistd.h>
 #include <math.h>
 #include <stdarg.h>
@@ -169,6 +170,19 @@ long_set_bit_state(unsigned long *array, int bit, int state)
 		long_set_bit(array, bit);
 	else
 		long_clear_bit(array, bit);
+}
+
+static inline int
+long_any_bit_set(unsigned long *array, size_t size)
+{
+	unsigned long i;
+
+	assert(size > 0);
+
+	for (i = 0; i < size; i++)
+		if (array[i] != 0)
+			return 1;
+	return 0;
 }
 
 struct matrix {
