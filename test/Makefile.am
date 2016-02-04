@@ -71,6 +71,7 @@ run_tests = \
 	test-tablet \
 	test-device \
 	test-gestures \
+	test-gestures-pinch \
 	test-pointer \
 	test-touch \
 	test-trackpoint \
@@ -148,6 +149,10 @@ test_device_LDFLAGS = -no-install
 test_gestures_SOURCES = gestures.c
 test_gestures_LDADD = $(TEST_LIBS)
 test_gestures_LDFLAGS = -no-install
+
+test_gestures_pinch_SOURCES = gestures-pinch.c
+test_gestures_pinch_LDADD = $(TEST_LIBS)
+test_gestures_pinch_LDFLAGS = -no-install
 
 test_litest_selftest_SOURCES = litest-selftest.c litest.c litest-int.h litest.h
 test_litest_selftest_CFLAGS = -DLITEST_DISABLE_BACKTRACE_LOGGING -DLITEST_NO_MAIN $(liblitest_la_CFLAGS)
