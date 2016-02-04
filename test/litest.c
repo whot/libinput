@@ -376,6 +376,8 @@ extern struct litest_test_device litest_anker_mouse_kbd_device;
 extern struct litest_test_device litest_waltop_tablet_device;
 extern struct litest_test_device litest_huion_tablet_device;
 extern struct litest_test_device litest_cyborg_rat_device;
+extern struct litest_test_device litest_yubikey_device;
+extern struct litest_test_device litest_synaptics_i2c_device;
 
 struct litest_test_device* devices[] = {
 	&litest_synaptics_clickpad_device,
@@ -418,6 +420,8 @@ struct litest_test_device* devices[] = {
 	&litest_waltop_tablet_device,
 	&litest_huion_tablet_device,
 	&litest_cyborg_rat_device,
+	&litest_yubikey_device,
+	&litest_synaptics_i2c_device,
 	NULL,
 };
 

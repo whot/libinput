@@ -38,6 +38,7 @@ liblitest_la_SOURCES = \
 	litest-device-qemu-usb-tablet.c \
 	litest-device-synaptics.c \
 	litest-device-synaptics-hover.c \
+	litest-device-synaptics-i2c.c \
 	litest-device-synaptics-st.c \
 	litest-device-synaptics-t440.c \
 	litest-device-synaptics-x1-carbon-3rd.c \
@@ -53,6 +54,7 @@ liblitest_la_SOURCES = \
 	litest-device-wheel-only.c \
 	litest-device-xen-virtual-pointer.c \
 	litest-device-vmware-virtual-usb-mouse.c \
+	litest-device-yubikey.c \
 	litest.c
 liblitest_la_LIBADD = $(top_builddir)/src/libinput-util.la
 liblitest_la_CFLAGS = $(AM_CFLAGS) \

@@ -193,6 +193,8 @@ enum litest_device_type {
 	LITEST_WALTOP = -39,
 	LITEST_HUION_TABLET = -40,
 	LITEST_CYBORG_RAT = -41,
+	LITEST_YUBIKEY = -42,
+	LITEST_SYNAPTICS_I2C = -43,
 };
 
 enum litest_device_feature {

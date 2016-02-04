@@ -1336,6 +1336,38 @@ tp_want_dwt(struct evdev_device *touchpad,
 }
 
 static void
+tp_dwt_pair_keyboard(struct evdev_device *touchpad,
+		     struct evdev_device *keyboard)
+{
+	struct tp_dispatch *tp = (struct tp_dispatch*)touchpad->dispatch;
+	unsigned int bus_kbd = libevdev_get_id_bustype(keyboard->evdev);
+
+	if (!tp_want_dwt(touchpad, keyboard))
+		return;
+
+	/* If we already have a keyboard paired, override it if the new one
+	 * is a serio device. Otherwise keep the current one */
+	if (tp->dwt.keyboard) {
+		if (bus_kbd != BUS_I8042)
+			return;
+
+		memset(tp->dwt.key_mask, 0, sizeof(tp->dwt.key_mask));
+		libinput_device_remove_event_listener(&tp->dwt.keyboard_listener);
+	}
+
+	libinput_device_add_event_listener(&keyboard->base,
+				&tp->dwt.keyboard_listener,
+				tp_keyboard_event, tp);
+	tp->dwt.keyboard = keyboard;
+	tp->dwt.keyboard_active = false;
+
+	log_debug(touchpad->base.seat->libinput,
+		  "palm: dwt activated with %s<->%s\n",
+		  touchpad->devname,
+		  keyboard->devname);
+}
+
+static void
 tp_interface_device_added(struct evdev_device *device,
 			  struct evdev_device *added_device)
 {
@@ -1359,20 +1391,8 @@ tp_interface_device_added(struct evdev_device *device,
 						tp_trackpoint_event, tp);
 	}
 
-	if (added_device->tags & EVDEV_TAG_KEYBOARD &&
-	    tp->dwt.keyboard == NULL &&
-	    tp_want_dwt(device, added_device)) {
-		log_debug(tp_libinput_context(tp),
-			  "palm: dwt activated with %s<->%s\n",
-			  device->devname,
-			  added_device->devname);
-
-		libinput_device_add_event_listener(&added_device->base,
-					&tp->dwt.keyboard_listener,
-					tp_keyboard_event, tp);
-		tp->dwt.keyboard = added_device;
-		tp->dwt.keyboard_active = false;
-	}
+	if (added_device->tags & EVDEV_TAG_KEYBOARD)
+	    tp_dwt_pair_keyboard(device, added_device);
 
 	if (tp->sendevents.current_mode !=
 	    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE)
