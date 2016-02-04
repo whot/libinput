@@ -863,9 +863,16 @@ START_TEST(fd_no_event_leak)
 }
 END_TEST
 
+START_TEST(test_limit)
+{
+
+}
+END_TEST
+
 void
 litest_setup_tests(void)
 {
+#if 0
 	litest_add_no_device("events:conversion", event_conversion_device_notify);
 	litest_add_for_device("events:conversion", event_conversion_pointer, LITEST_MOUSE);
 	litest_add_for_device("events:conversion", event_conversion_pointer, LITEST_MOUSE);
@@ -888,4 +895,16 @@ litest_setup_tests(void)
 	litest_add_no_device("misc:time", time_conversion);
 
 	litest_add_no_device("misc:fd", fd_no_event_leak);
+#endif
+
+	/* run me with
+
+	   sudo CK_FORK=no ./test/test-misc
+
+	*/
+
+	struct range cardinals = { 0, 1016 };
+
+	litest_add_ranged_for_device("test:limit", test_limit,
+				     LITEST_KEYBOARD, &cardinals);
 }
