@@ -2799,19 +2799,20 @@ LIBINPUT_EXPORT int
 libinput_device_tablet_pad_has_button(struct libinput_device *device,
 				      uint32_t code)
 {
-	return 0;
+	return evdev_device_tablet_pad_has_button((struct evdev_device *)device,
+						  code);
 }
 
 LIBINPUT_EXPORT int
 libinput_device_tablet_pad_get_num_rings(struct libinput_device *device)
 {
-	return 0;
+	return evdev_device_tablet_pad_get_num_rings((struct evdev_device *)device);
 }
 
 LIBINPUT_EXPORT int
 libinput_device_tablet_pad_get_num_strips(struct libinput_device *device)
 {
-	return 0;
+	return evdev_device_tablet_pad_get_num_strips((struct evdev_device *)device);
 }
 
 LIBINPUT_EXPORT struct libinput_event *

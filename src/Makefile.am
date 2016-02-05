@@ -20,6 +20,7 @@ libinput_la_SOURCES =			\
 	evdev-mt-touchpad-gestures.c	\
 	evdev-tablet.c			\
 	evdev-tablet.h			\
+	evdev-tablet-pad.c		\
 	filter.c			\
 	filter.h			\
 	filter-private.h		\
