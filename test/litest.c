@@ -378,6 +378,8 @@ extern struct litest_test_device litest_huion_tablet_device;
 extern struct litest_test_device litest_cyborg_rat_device;
 extern struct litest_test_device litest_yubikey_device;
 extern struct litest_test_device litest_synaptics_i2c_device;
+extern struct litest_test_device litest_wacom_intuos3_pad_device;
+extern struct litest_test_device litest_wacom_intuos5_pad_device;
 
 struct litest_test_device* devices[] = {
 	&litest_synaptics_clickpad_device,
@@ -422,6 +424,8 @@ struct litest_test_device* devices[] = {
 	&litest_cyborg_rat_device,
 	&litest_yubikey_device,
 	&litest_synaptics_i2c_device,
+	&litest_wacom_intuos3_pad_device,
+	&litest_wacom_intuos5_pad_device,
 	NULL,
 };
 
@@ -1791,6 +1795,15 @@ litest_scale_axis(const struct litest_device *d,
 	return (abs->maximum - abs->minimum) * val/100.0 + abs->minimum;
 }
 
+static inline int
+litest_scale_range(int min, int max, double val)
+{
+	litest_assert_int_ge((int)val, 0);
+	litest_assert_int_le((int)val, 100);
+
+	return (max - min) * val/100.0 + min;
+}
+
 int
 litest_scale(const struct litest_device *d, unsigned int axis, double val)
 {
@@ -1801,9 +1814,111 @@ litest_scale(const struct litest_device *d, unsigned int axis, double val)
 	if (axis <= ABS_Y) {
 		min = d->interface->min[axis];
 		max = d->interface->max[axis];
-		return (max - min) * val/100.0 + min;
+
+		return litest_scale_range(min, max, val);
 	} else {
 		return litest_scale_axis(d, axis, val);
+	}
+}
+
+static inline int
+auto_assign_pad_value(struct litest_device *dev,
+		      struct input_event *ev,
+		      double value)
+{
+	const struct input_absinfo *abs;
+
+	if (ev->value != LITEST_AUTO_ASSIGN ||
+	    ev->type != EV_ABS)
+		return value;
+
+	abs = libevdev_get_abs_info(dev->evdev, ev->code);
+	litest_assert_notnull(abs);
+
+	if (ev->type == ABS_RX) {
+		double min = abs->minimum != 0 ? log2(abs->minimum) : 0,
+		       max = abs->maximum != 0 ? log2(abs->maximum) : 0;
+
+		value = litest_scale_range(min, max, value);
+		return pow(2, value);
+	} else {
+		return litest_scale_range(abs->minimum, abs->maximum, value);
+	}
+}
+
+void
+litest_tablet_pad_ring_start(struct litest_device *d, double value)
+{
+	struct input_event *ev;
+
+	ev = d->interface->pad_ring_start_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		value = auto_assign_pad_value(d, ev, value);
+		litest_event(d, ev->type, ev->code, value);
+		ev++;
+	}
+}
+
+void
+litest_tablet_pad_ring_change(struct litest_device *d, double value)
+{
+	struct input_event *ev;
+
+	ev = d->interface->pad_ring_change_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		value = auto_assign_pad_value(d, ev, value);
+		litest_event(d, ev->type, ev->code, value);
+		ev++;
+	}
+}
+
+void
+litest_tablet_pad_ring_end(struct litest_device *d)
+{
+	struct input_event *ev;
+
+	ev = d->interface->pad_ring_end_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		litest_event(d, ev->type, ev->code, ev->value);
+		ev++;
+	}
+}
+
+void
+litest_tablet_pad_strip_start(struct litest_device *d, double value)
+{
+	struct input_event *ev;
+
+	ev = d->interface->pad_strip_start_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		value = auto_assign_pad_value(d, ev, value);
+		litest_event(d, ev->type, ev->code, value);
+		ev++;
+	}
+}
+
+void
+litest_tablet_pad_strip_change(struct litest_device *d, double value)
+{
+	struct input_event *ev;
+
+	ev = d->interface->pad_strip_change_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		value = auto_assign_pad_value(d, ev, value);
+		litest_event(d, ev->type, ev->code, value);
+		ev++;
+	}
+}
+
+void
+litest_tablet_pad_strip_end(struct litest_device *d)
+{
+	struct input_event *ev;
+
+	ev = d->interface->pad_strip_end_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		litest_event(d, ev->type, ev->code, ev->value);
+		ev++;
 	}
 }
 
@@ -2443,6 +2558,78 @@ void litest_assert_tablet_proximity_event(struct libinput *li,
 	litest_assert_int_eq(libinput_event_tablet_tool_get_proximity_state(tev),
 			     state);
 	libinput_event_destroy(event);
+}
+
+struct libinput_event_tablet_pad *
+litest_is_tablet_pad_button_event(struct libinput_event *event,
+				  unsigned int button,
+				  enum libinput_button_state state)
+{
+	struct libinput_event_tablet_pad *p;
+	enum libinput_event_type type = LIBINPUT_EVENT_TABLET_PAD_BUTTON;
+
+	litest_assert(event != NULL);
+	litest_assert_int_eq(libinput_event_get_type(event), type);
+
+	p = libinput_event_get_tablet_pad_event(event);
+	litest_assert(p != NULL);
+
+	return p;
+}
+
+struct libinput_event_tablet_pad *
+litest_is_tablet_ring_event(struct libinput_event *event,
+			    unsigned int number,
+			    enum libinput_tablet_pad_ring_axis_source source)
+{
+	struct libinput_event_tablet_pad *p;
+	enum libinput_event_type type = LIBINPUT_EVENT_TABLET_PAD_RING;
+
+	litest_assert(event != NULL);
+	litest_assert_int_eq(libinput_event_get_type(event), type);
+	p = libinput_event_get_tablet_pad_event(event);
+
+	litest_assert_int_eq(libinput_event_tablet_pad_get_ring_number(p),
+			     number);
+	litest_assert_int_eq(libinput_event_tablet_pad_get_ring_position(p),
+			     source);
+
+	return p;
+}
+
+struct libinput_event_tablet_pad *
+litest_is_tablet_strip_event(struct libinput_event *event,
+			     unsigned int number,
+			     enum libinput_tablet_pad_strip_axis_source source)
+{
+	struct libinput_event_tablet_pad *p;
+	enum libinput_event_type type = LIBINPUT_EVENT_TABLET_PAD_STRIP;
+
+	litest_assert(event != NULL);
+	litest_assert_int_eq(libinput_event_get_type(event), type);
+	p = libinput_event_get_tablet_pad_event(event);
+
+	litest_assert_int_eq(libinput_event_tablet_pad_get_strip_number(p),
+			     number);
+	litest_assert_int_eq(libinput_event_tablet_pad_get_strip_position(p),
+			     source);
+
+	return p;
+}
+
+void
+litest_assert_tablet_pad_button_event(struct libinput *li,
+				      unsigned int button,
+				      enum libinput_button_state state)
+{
+	struct libinput_event *event;
+	struct libinput_event_tablet_pad *pev;
+
+	litest_wait_for_event(li);
+	event = libinput_get_event(li);
+
+	pev = litest_is_tablet_pad_button_event(event, button, state);
+	libinput_event_destroy(libinput_event_tablet_pad_get_base_event(pev));
 }
 
 void

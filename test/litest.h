@@ -195,6 +195,8 @@ enum litest_device_type {
 	LITEST_CYBORG_RAT = -41,
 	LITEST_YUBIKEY = -42,
 	LITEST_SYNAPTICS_I2C = -43,
+	LITEST_WACOM_INTUOS3_PAD = -44,
+	LITEST_WACOM_INTUOS5_PAD = -45,
 };
 
 enum litest_device_feature {
@@ -221,6 +223,9 @@ enum litest_device_feature {
 	LITEST_DISTANCE = 1 << 18,
 	LITEST_TOOL_SERIAL = 1 << 19,
 	LITEST_TILT = 1 << 20,
+	LITEST_TABLET_PAD = 1 << 21,
+	LITEST_RING = 1 << 22,
+	LITEST_STRIP = 1 << 23,
 };
 
 struct litest_device {
@@ -432,6 +437,24 @@ litest_tablet_motion(struct litest_device *d,
 		     struct axis_replacement *axes);
 
 void
+litest_tablet_pad_ring_start(struct litest_device *d, double value);
+
+void
+litest_tablet_pad_ring_change(struct litest_device *d, double value);
+
+void
+litest_tablet_pad_ring_end(struct litest_device *d);
+
+void
+litest_tablet_pad_strip_start(struct litest_device *d, double value);
+
+void
+litest_tablet_pad_strip_change(struct litest_device *d, double value);
+
+void
+litest_tablet_pad_strip_end(struct litest_device *d);
+
+void
 litest_hover_start(struct litest_device *d,
 		   unsigned int slot,
 		   double x,
@@ -517,6 +540,19 @@ struct libinput_event_tablet_tool *
 litest_is_tablet_event(struct libinput_event *event,
 		       enum libinput_event_type type);
 
+struct libinput_event_tablet_pad * litest_is_tablet_pad_button_event(
+		       struct libinput_event *event,
+		       unsigned int button,
+		       enum libinput_button_state state);
+struct libinput_event_tablet_pad *
+litest_is_tablet_ring_event(struct libinput_event *event,
+			    unsigned int number,
+			    enum libinput_tablet_pad_ring_axis_source source);
+struct libinput_event_tablet_pad *
+litest_is_tablet_strip_event(struct libinput_event *event,
+			     unsigned int number,
+			     enum libinput_tablet_pad_strip_axis_source source);
+
 void
 litest_assert_button_event(struct libinput *li,
 			   unsigned int button,
@@ -540,6 +576,9 @@ void
 litest_assert_tablet_proximity_event(struct libinput *li,
 				     enum libinput_tablet_tool_proximity_state state);
 
+void litest_assert_tablet_pad_button_event(struct libinput *li,
+					   unsigned int button,
+					   enum libinput_button_state state);
 struct libevdev_uinput *
 litest_create_uinput_device(const char *name,
 			    struct input_id *id,

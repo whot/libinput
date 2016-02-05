@@ -105,6 +105,22 @@ struct litest_device_interface {
 	struct input_event *tablet_proximity_out_events;
 	struct input_event *tablet_motion_events;
 
+	/**
+	 * Pad events, LITEST_AUTO_ASSIGN is allowed on event values
+	 * for ABS_WHEEL
+	 */
+	struct input_event *pad_ring_start_events;
+	struct input_event *pad_ring_change_events;
+	struct input_event *pad_ring_end_events;
+
+	/**
+	 * Pad events, LITEST_AUTO_ASSIGN is allowed on event values
+	 * for ABS_RX
+	 */
+	struct input_event *pad_strip_start_events;
+	struct input_event *pad_strip_change_events;
+	struct input_event *pad_strip_end_events;
+
 	int min[2]; /* x/y axis minimum */
 	int max[2]; /* x/y axis maximum */
 };
