@@ -134,6 +134,7 @@ START_TEST(event_conversion_device_notify)
 			ck_assert(libinput_event_get_touch_event(event) == NULL);
 			ck_assert(libinput_event_get_gesture_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
+			ck_assert(libinput_event_get_buttonset_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 
@@ -190,6 +191,7 @@ START_TEST(event_conversion_pointer)
 			ck_assert(libinput_event_get_touch_event(event) == NULL);
 			ck_assert(libinput_event_get_gesture_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
+			ck_assert(libinput_event_get_buttonset_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 		libinput_event_destroy(event);
@@ -240,6 +242,7 @@ START_TEST(event_conversion_pointer_abs)
 			ck_assert(libinput_event_get_touch_event(event) == NULL);
 			ck_assert(libinput_event_get_gesture_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
+			ck_assert(libinput_event_get_buttonset_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 		libinput_event_destroy(event);
@@ -283,6 +286,7 @@ START_TEST(event_conversion_key)
 			ck_assert(libinput_event_get_touch_event(event) == NULL);
 			ck_assert(libinput_event_get_gesture_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
+			ck_assert(libinput_event_get_buttonset_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 		libinput_event_destroy(event);
@@ -333,6 +337,7 @@ START_TEST(event_conversion_touch)
 			ck_assert(libinput_event_get_keyboard_event(event) == NULL);
 			ck_assert(libinput_event_get_gesture_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
+			ck_assert(libinput_event_get_buttonset_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 		libinput_event_destroy(event);
@@ -427,6 +432,49 @@ START_TEST(event_conversion_tablet)
 			ck_assert(libinput_event_get_pointer_event(event) == NULL);
 			ck_assert(libinput_event_get_keyboard_event(event) == NULL);
 			ck_assert(libinput_event_get_touch_event(event) == NULL);
+			ck_assert(libinput_event_get_buttonset_event(event) == NULL);
+			litest_restore_log_handler(li);
+		}
+		libinput_event_destroy(event);
+	}
+
+	ck_assert_int_gt(events, 0);
+}
+END_TEST
+
+START_TEST(event_conversion_buttonset)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
+	int events = 0;
+
+	/* FIXME: add axes once we have them */
+	litest_button_click(dev, BTN_0, true);
+	litest_button_click(dev, BTN_1, false);
+
+	libinput_dispatch(li);
+
+	while ((event = libinput_get_event(li))) {
+		enum libinput_event_type type;
+		type = libinput_event_get_type(event);
+
+		if (type >= LIBINPUT_EVENT_BUTTONSET_AXIS &&
+		    type <= LIBINPUT_EVENT_BUTTONSET_BUTTON) {
+			struct libinput_event_buttonset *bs;
+			struct libinput_event *base;
+			bs = libinput_event_get_buttonset_event(event);
+			base = libinput_event_buttonset_get_base_event(bs);
+			ck_assert(event == base);
+
+			events++;
+
+			litest_disable_log_handler(li);
+			ck_assert(libinput_event_get_device_notify_event(event) == NULL);
+			ck_assert(libinput_event_get_pointer_event(event) == NULL);
+			ck_assert(libinput_event_get_keyboard_event(event) == NULL);
+			ck_assert(libinput_event_get_touch_event(event) == NULL);
+			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 		libinput_event_destroy(event);
@@ -895,6 +943,7 @@ litest_setup_tests(void)
 	litest_add_for_device("events:conversion", event_conversion_touch, LITEST_WACOM_TOUCH);
 	litest_add_for_device("events:conversion", event_conversion_gesture, LITEST_BCM5974);
 	litest_add_for_device("events:conversion", event_conversion_tablet, LITEST_WACOM_CINTIQ);
+	litest_add_for_device("events:conversion", event_conversion_buttonset, LITEST_WACOM_INTUOS5_PAD);
 	litest_add_no_device("bitfield_helpers", bitfield_helpers);
 
 	litest_add_no_device("context:refcount", context_ref_counting);

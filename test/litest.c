@@ -379,6 +379,8 @@ extern struct litest_test_device litest_cyborg_rat_device;
 extern struct litest_test_device litest_yubikey_device;
 extern struct litest_test_device litest_synaptics_i2c_device;
 extern struct litest_test_device litest_wacom_cintiq_24hd_device;
+extern struct litest_test_device litest_wacom_intuos5_pad_device;
+extern struct litest_test_device litest_wacom_intuos3_pad_device;
 
 struct litest_test_device* devices[] = {
 	&litest_synaptics_clickpad_device,
@@ -424,6 +426,8 @@ struct litest_test_device* devices[] = {
 	&litest_yubikey_device,
 	&litest_synaptics_i2c_device,
 	&litest_wacom_cintiq_24hd_device,
+	&litest_wacom_intuos5_pad_device,
+	&litest_wacom_intuos3_pad_device,
 	NULL,
 };
 
@@ -1793,6 +1797,15 @@ litest_scale_axis(const struct litest_device *d,
 	return (abs->maximum - abs->minimum) * val/100.0 + abs->minimum;
 }
 
+static inline int
+litest_scale_range(int min, int max, double val)
+{
+	litest_assert_int_ge((int)val, 0);
+	litest_assert_int_le((int)val, 100);
+
+	return (max - min) * val/100.0 + min;
+}
+
 int
 litest_scale(const struct litest_device *d, unsigned int axis, double val)
 {
@@ -1803,9 +1816,111 @@ litest_scale(const struct litest_device *d, unsigned int axis, double val)
 	if (axis <= ABS_Y) {
 		min = d->interface->min[axis];
 		max = d->interface->max[axis];
-		return (max - min) * val/100.0 + min;
+
+		return litest_scale_range(min, max, val);
 	} else {
 		return litest_scale_axis(d, axis, val);
+	}
+}
+
+static inline int
+auto_assign_buttonset_value(struct litest_device *dev,
+				  struct input_event *ev,
+				  double value)
+{
+	const struct input_absinfo *abs;
+
+	if (ev->value != LITEST_AUTO_ASSIGN ||
+	    ev->type != EV_ABS)
+		return value;
+
+	abs = libevdev_get_abs_info(dev->evdev, ev->code);
+	litest_assert_notnull(abs);
+
+	if (ev->type == ABS_RX) {
+		double min = abs->minimum != 0 ? log2(abs->minimum) : 0,
+		       max = abs->maximum != 0 ? log2(abs->maximum) : 0;
+
+		value = litest_scale_range(min, max, value);
+		return pow(2, value);
+	} else {
+		return litest_scale_range(abs->minimum, abs->maximum, value);
+	}
+}
+
+void
+litest_buttonset_ring_start(struct litest_device *d, double value)
+{
+	struct input_event *ev;
+
+	ev = d->interface->buttonset_ring_start_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		value = auto_assign_buttonset_value(d, ev, value);
+		litest_event(d, ev->type, ev->code, value);
+		ev++;
+	}
+}
+
+void
+litest_buttonset_ring_change(struct litest_device *d, double value)
+{
+	struct input_event *ev;
+
+	ev = d->interface->buttonset_ring_change_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		value = auto_assign_buttonset_value(d, ev, value);
+		litest_event(d, ev->type, ev->code, value);
+		ev++;
+	}
+}
+
+void
+litest_buttonset_ring_end(struct litest_device *d)
+{
+	struct input_event *ev;
+
+	ev = d->interface->buttonset_ring_end_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		litest_event(d, ev->type, ev->code, ev->value);
+		ev++;
+	}
+}
+
+void
+litest_buttonset_strip_start(struct litest_device *d, double value)
+{
+	struct input_event *ev;
+
+	ev = d->interface->buttonset_strip_start_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		value = auto_assign_buttonset_value(d, ev, value);
+		litest_event(d, ev->type, ev->code, value);
+		ev++;
+	}
+}
+
+void
+litest_buttonset_strip_change(struct litest_device *d, double value)
+{
+	struct input_event *ev;
+
+	ev = d->interface->buttonset_strip_change_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		value = auto_assign_buttonset_value(d, ev, value);
+		litest_event(d, ev->type, ev->code, value);
+		ev++;
+	}
+}
+
+void
+litest_buttonset_strip_end(struct litest_device *d)
+{
+	struct input_event *ev;
+
+	ev = d->interface->buttonset_strip_end_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		litest_event(d, ev->type, ev->code, ev->value);
+		ev++;
 	}
 }
 
@@ -2308,6 +2423,42 @@ litest_is_motion_event(struct libinput_event *event)
 		      ux != 0.0 || uy != 0.0);
 
 	return ptrev;
+}
+
+struct libinput_event_buttonset * litest_is_buttonset_button_event(
+		       struct libinput_event *event,
+		       unsigned int button,
+		       enum libinput_button_state state)
+{
+	struct libinput_event_buttonset *bs;
+	enum libinput_event_type type = LIBINPUT_EVENT_BUTTONSET_BUTTON;
+
+	litest_assert(event != NULL);
+	litest_assert_int_eq(libinput_event_get_type(event), type);
+	bs = libinput_event_get_buttonset_event(event);
+
+	litest_assert_int_eq(libinput_event_buttonset_get_button(bs),
+			     button);
+	litest_assert_int_eq(libinput_event_buttonset_get_button_state(bs),
+			     state);
+
+	return bs;
+}
+
+struct libinput_event_buttonset * litest_is_buttonset_axis_event(
+		       struct libinput_event *event,
+		       unsigned int axis)
+{
+	struct libinput_event_buttonset *bs;
+	enum libinput_event_type type = LIBINPUT_EVENT_BUTTONSET_AXIS;
+
+	litest_assert(event != NULL);
+	litest_assert_int_eq(libinput_event_get_type(event), type);
+	bs = libinput_event_get_buttonset_event(event);
+
+	litest_assert(libinput_event_buttonset_axis_has_changed(bs, axis));
+
+	return bs;
 }
 
 void

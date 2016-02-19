@@ -48,6 +48,8 @@ liblitest_la_SOURCES = \
 	litest-device-wacom-cintiq-tablet.c \
 	litest-device-wacom-cintiq-24hd.c \
 	litest-device-wacom-intuos-tablet.c \
+	litest-device-wacom-intuos5-pad.c \
+	litest-device-wacom-intuos3-pad.c \
 	litest-device-wacom-isdv4-tablet.c \
 	litest-device-wacom-touch.c \
 	litest-device-wacom-intuos-finger.c \
@@ -68,6 +70,7 @@ liblitest_la_CFLAGS += $(LIBUNWIND_CFLAGS)
 endif
 
 run_tests = \
+	test-buttonset \
 	test-touchpad \
 	test-touchpad-tap \
 	test-touchpad-buttons \
@@ -152,6 +155,10 @@ test_device_LDFLAGS = -no-install
 test_gestures_SOURCES = gestures.c
 test_gestures_LDADD = $(TEST_LIBS)
 test_gestures_LDFLAGS = -no-install
+
+test_buttonset_SOURCES = buttonset.c
+test_buttonset_LDADD = $(TEST_LIBS)
+test_buttonset_LDFLAGS = -no-install
 
 test_litest_selftest_SOURCES = litest-selftest.c litest.c litest-int.h litest.h
 test_litest_selftest_CFLAGS = -DLITEST_DISABLE_BACKTRACE_LOGGING -DLITEST_NO_MAIN $(liblitest_la_CFLAGS)

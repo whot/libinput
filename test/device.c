@@ -1116,6 +1116,28 @@ START_TEST(device_udev_tag_wacom_tablet)
 					      "ID_INPUT_TABLET");
 
 	ck_assert_notnull(prop);
+
+	prop = udev_device_get_property_value(d,
+					      "ID_INPUT_TABLET_PAD");
+
+	ck_assert(prop == NULL);
+	udev_device_unref(d);
+}
+END_TEST
+
+START_TEST(device_udev_tag_wacom_pad)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct udev_device *d;
+	const char *prop;
+
+	d = libinput_device_get_udev_device(device);
+	prop = udev_device_get_property_value(d,
+					      "ID_INPUT_TABLET_PAD");
+
+	ck_assert_msg(prop != NULL,
+		      "Tablet Pad tagging requires custom libwacom uinput rules");
 	udev_device_unref(d);
 }
 END_TEST
@@ -1381,6 +1403,7 @@ litest_setup_tests(void)
 	litest_add("device:udev tags", device_udev_tag_apple, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("device:udev tags", device_udev_tag_synaptics_serial, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("device:udev tags", device_udev_tag_wacom_tablet, LITEST_TABLET, LITEST_ANY);
+	litest_add("device:udev tags", device_udev_tag_wacom_pad, LITEST_BUTTONSET, LITEST_ANY);
 
 	litest_add_no_device("device:invalid rel events", device_nonpointer_rel);
 	litest_add_no_device("device:invalid rel events", device_touchpad_rel);

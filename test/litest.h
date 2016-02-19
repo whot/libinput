@@ -196,6 +196,8 @@ enum litest_device_type {
 	LITEST_YUBIKEY = -42,
 	LITEST_SYNAPTICS_I2C = -43,
 	LITEST_WACOM_CINTIQ_24HD = -44,
+	LITEST_WACOM_INTUOS5_PAD = -45,
+	LITEST_WACOM_INTUOS3_PAD = -46,
 };
 
 enum litest_device_feature {
@@ -222,6 +224,7 @@ enum litest_device_feature {
 	LITEST_DISTANCE = 1 << 18,
 	LITEST_TOOL_SERIAL = 1 << 19,
 	LITEST_TILT = 1 << 20,
+	LITEST_BUTTONSET = 1 << 21,
 };
 
 struct litest_device {
@@ -441,6 +444,20 @@ litest_hover_start(struct litest_device *d,
 void
 litest_hover_end(struct litest_device *d, unsigned int slot);
 
+void
+litest_buttonset_ring_start(struct litest_device *d, double value);
+void
+litest_buttonset_ring_change(struct litest_device *d, double value);
+void
+litest_buttonset_ring_end(struct litest_device *d);
+
+void
+litest_buttonset_strip_start(struct litest_device *d, double value);
+void
+litest_buttonset_strip_change(struct litest_device *d, double value);
+void
+litest_buttonset_strip_end(struct litest_device *d);
+
 void litest_hover_move(struct litest_device *d,
 		       unsigned int slot,
 		       double x,
@@ -517,6 +534,14 @@ litest_is_gesture_event(struct libinput_event *event,
 struct libinput_event_tablet_tool *
 litest_is_tablet_event(struct libinput_event *event,
 		       enum libinput_event_type type);
+
+struct libinput_event_buttonset *
+litest_is_buttonset_button_event(struct libinput_event *event,
+				 unsigned int button,
+				 enum libinput_button_state state);
+struct libinput_event_buttonset *
+litest_is_buttonset_axis_event(struct libinput_event *event,
+			       unsigned int axis);
 
 void
 litest_assert_button_event(struct libinput *li,
