@@ -130,6 +130,9 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_TABLET_PAD_STRIP:
 		type = "TABLET_PAD_STRIP";
 		break;
+	case LIBINPUT_EVENT_TABLET_PAD_LED:
+		type = "TABLET_PAD_LED";
+		break;
 	}
 
 	printf("%-7s	%-16s ", libinput_device_get_sysname(dev), type);
@@ -660,6 +663,24 @@ print_tablet_pad_strip_event(struct libinput_event *ev)
 	       source);
 }
 
+static void
+print_tablet_pad_led_event(struct libinput_event *ev)
+{
+	struct libinput_event_tablet_pad *p = libinput_event_get_tablet_pad_event(ev);
+	struct libinput_tablet_pad_led *led;
+	double brightness;
+
+	print_event_time(libinput_event_tablet_pad_get_time(p));
+
+	led = libinput_event_tablet_pad_get_led(p);
+	brightness = libinput_event_tablet_pad_get_led_brightness(p);
+
+	printf("led %d (group %d) brightness %.2f\n",
+	       libinput_tablet_pad_led_get_index(led),
+	       libinput_tablet_pad_led_get_group(led),
+	       brightness);
+}
+
 static int
 handle_and_print_events(struct libinput *li)
 {
@@ -747,6 +768,9 @@ handle_and_print_events(struct libinput *li)
 			break;
 		case LIBINPUT_EVENT_TABLET_PAD_STRIP:
 			print_tablet_pad_strip_event(ev);
+			break;
+		case LIBINPUT_EVENT_TABLET_PAD_LED:
+			print_tablet_pad_led_event(ev);
 			break;
 		}
 

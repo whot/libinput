@@ -184,6 +184,18 @@ struct libinput_tablet_tool;
 
 /**
  * @ingroup device
+ * @struct libinput_tablet_pad_led
+ *
+ * An object representing an LED available on a device with the @ref
+ * LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
+ *
+ * This struct is refcounted, use libinput_tablet_pad_led_ref() and
+ * libinput_tablet_pad_led_unref().
+ */
+struct libinput_tablet_pad_led;
+
+/**
+ * @ingroup device
  *
  * Available tool types for a device with the @ref
  * LIBINPUT_DEVICE_CAP_TABLET_TOOL capability. The tool type defines the default
@@ -394,6 +406,11 @@ enum libinput_event_type {
 	 * LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
 	 */
 	LIBINPUT_EVENT_TABLET_PAD_STRIP,
+	/**
+	 * An LED state change on a device with the @ref
+	 * LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
+	 */
+	LIBINPUT_EVENT_TABLET_PAD_LED,
 
 	LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN = 800,
 	LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE,
@@ -2372,6 +2389,42 @@ libinput_event_tablet_pad_get_button_state(struct libinput_event_tablet_pad *eve
 /**
  * @ingroup event_tablet
  *
+ * Return the LED that triggered this event.
+ *
+ * The returned LED is not refcounted and may become invalid after
+ * the next call to libinput. Use libinput_tablet_pad_led_ref() and
+ * libinput_tablet_pad_led_unref() to continue using the handle outside of
+ * the immediate scope.
+ *
+ * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_TABLET_PAD_LED. For other events, this function
+ * returns NULL.
+ *
+ * @param event The libinput tablet pad event
+ * @return the LED triggering this event
+ */
+struct libinput_tablet_pad_led *
+libinput_event_tablet_pad_get_led(struct libinput_event_tablet_pad *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the LED brightness as of this event. This value is valid at the
+ * time of the event and may not reflect the current brightness value of the
+ * LED. Use libinput_tablet_pad_led_get_brightness() to get the current
+ * brightness of the LED.
+ *
+ * @param event The libinput tablet pad event
+ * @return the LED brightness at the time of the event
+ *
+ * @see libinput_tablet_pad_led_get_brightness
+ */
+double
+libinput_event_tablet_pad_get_led_brightness(struct libinput_event_tablet_pad *event);
+
+/**
+ * @ingroup event_tablet
+ *
  * @param event The libinput tablet pad event
  * @return The event time for this event
  */
@@ -3262,6 +3315,230 @@ libinput_device_tablet_pad_get_num_rings(struct libinput_device *device);
  */
 int
 libinput_device_tablet_pad_get_num_strips(struct libinput_device *device);
+
+/**
+ * @ingroup device
+ *
+ * Return the number of LEDs a device with the @ref
+ * LIBINPUT_DEVICE_CAP_TABLET_PAD capability provides.
+ *
+ * @param device A current input device
+ * @return The number of LEDs or 0 if the device has no LEDs.
+ *
+ * @see libinput_device_tablet_pad_get_led
+ */
+int
+libinput_device_tablet_pad_get_num_leds(struct libinput_device *device);
+
+/**
+ * @ingroup device
+ *
+ * Return the object representing the LED at the given index. The index is
+ * not representative of the LEDs position on the tablet, use
+ * libinput_tablet_pad_led_get_index() to get the specific LED's index.
+ *
+ * This struct is refcounted, use libinput_tablet_pad_led_ref() and
+ * libinput_tablet_pad_led_unref().
+ *
+ * @param device A current input device with the @ref
+ * LIBINPUT_DEVICE_CAP_TABLET_PAD capability
+ * @param index The LED index, must be less than the the number of LEDs on
+ * the device
+ * @return The LED at the given index or NULL if the index is out of range
+ *
+ * @see libinput_device_tablet_pad_get_num_leds
+ */
+struct libinput_tablet_pad_led *
+libinput_device_tablet_pad_get_led(struct libinput_device *device,
+				   unsigned int index);
+
+/**
+ * @ingroup device
+ *
+ * Increment the reference count of the pad LED by one. A pad LED is
+ * destroyed whenever the reference count reaches 0. See
+ * libinput_tablet_pad_led_unref().
+ *
+ * @param led The led to increment the ref count of
+ * @return The passed led
+ *
+ * @see libinput_tablet_pad_led_unref
+ */
+struct libinput_tablet_pad_led *
+libinput_tablet_pad_led_ref(struct libinput_tablet_pad_led *led);
+
+/**
+ * @ingroup device
+ *
+ * Decrement the reference count of the pad LED by one. When the reference
+ * count of pad LED reaches 0, the memory allocated for pad LED will be freed.
+ *
+ * @param led The led to decrement the ref count of
+ * @return NULL if the led was destroyed otherwise the passed led
+ *
+ * @see libinput_tablet_pad_led_ref
+ */
+struct libinput_tablet_pad_led *
+libinput_tablet_pad_led_unref(struct libinput_tablet_pad_led *led);
+
+/**
+ * @ingroup device
+ *
+ * Return the user data associated with a pad LED object. libinput does
+ * not manage, look at, or modify this data. The caller must ensure the
+ * data is valid.
+ *
+ * @param led The pad led
+ * @return The user data associated with the pad LED object
+ */
+void *
+libinput_tablet_pad_led_get_user_data(struct libinput_tablet_pad_led *led);
+
+/**
+ * @ingroup device
+ *
+ * Set the user data associated with a pad LED object, if any.
+ *
+ * @param led The pad led
+ * @param user_data The user data to associate with the pad LED object
+ */
+void
+libinput_tablet_pad_led_set_user_data(struct libinput_tablet_pad_led *led,
+				      void *user_data);
+
+/**
+ * @ingroup device
+ *
+ * Capabilities for LEDs on devices with the @ref
+ * LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
+ */
+enum libinput_tablet_pad_led_capability {
+	/**
+	 * The LED can be software-controlled. If this capability is
+	 * missing, the LED is triggered externally and a caller should
+	 * handle the @ref LIBINPUT_EVENT_TABLET_PAD_LED event to be
+	 * notified of LED changes, if any.
+	 */
+	LIBINPUT_TABLET_PAD_LED_CAP_WRITABLE = 1,
+	/**
+	 * The LED has adjustible brightness. If this capability is missing,
+	 * any nonzero brightness maps to "on".
+	 *
+	 * @see libinput_tablet_pad_led_set_brightness
+	 */
+	LIBINPUT_TABLET_PAD_LED_CAP_BRIGHTNESS,
+	/**
+	 * The LED can be independently controlled. If this capability is
+	 * missing, setting an LED to nonzero brightness turns off all other
+	 * LEDs in the same LED group.
+	 *
+	 * @see libinput_device_tablet_pad_led_get_group
+	 */
+	LIBINPUT_TABLET_PAD_LED_CAP_INDIVIDUAL,
+	/**
+	 * The LED can be turned off. If this capability is missing, it is
+	 * not possible to set an LED to zero brightness, an LED can only be
+	 * switched off by turning another LED of the same LED group on.
+	 *
+	 * @see libinput_device_tablet_pad_led_get_group
+	 */
+	LIBINPUT_TABLET_PAD_ALLOW_OFF,
+};
+
+/**
+ * @ingroup device
+ *
+ * Check if a tablet pad LED has the given capability.
+ *
+ * @param led A tablet pad LED
+ * @param capability The capability to check for
+ *
+ * @retval 1 The LED has this capability
+ * @retval 0 The LED does not have this capability
+ */
+int
+libinput_tablet_pad_led_has_capability(struct libinput_tablet_pad_led *led,
+				       enum libinput_tablet_pad_led_capability capability);
+
+/**
+ * @ingroup device
+ *
+ * Set the LED brightness to the given value. The brightness value must be
+ * between 0.0 (off) and 1.0 (maximum brightness) or an error occurs.
+ *
+ * If the LEDs do not have the @ref LIBINPUT_TABLET_PAD_LED_CAP_BRIGHTNESS
+ * capability, any non-zero brightness is interpreted as "on".
+ *
+ * If the LED does not have the @ref LIBINPUT_TABLET_PAD_LED_CAP_INDIVIDUAL
+ * capability, setting a non-zero brightness LED turns off all other LEDs in
+ * its LED group. No event is sent for the other LEDs in this LED group.
+ *
+ * If the LED does not have the @ref LIBINPUT_TABLET_PAD_ALLOW_OFF
+ * capability, a brightness value of 0 causes an error.
+ *
+ * @param led A tablet pad LED
+ * @param brightness The brightness value in the range [0.0, 1.0]
+ *
+ * @return 0 on success or a negative errno on failure
+ * @retval -EINVAL The value is outside the allowed range. This error occurs
+ * when the @ref LIBINPUT_TABLET_PAD_ALLOW_OFF capability is missing and
+ * brightness is 0.0
+ *
+ * @see libinput_tablet_pad_led_has_capability
+ */
+int
+libinput_tablet_pad_led_set_brightness(struct libinput_tablet_pad_led *led,
+				       double brightness);
+
+/**
+ * @ingroup device
+ *
+ * Get the LED brightness. The returned value is between 0.0 (off) and 1.0
+ * (maximum brightness).
+ *
+ * If the LEDs do not have the @ref LIBINPUT_TABLET_PAD_LED_CAP_BRIGHTNESS
+ * capability, this function returns 0.0 for "off" or 1.0 for "on".
+ *
+ * @param led A tablet pad LED
+ *
+ * @return The brightness value in the range [0.0, 1.0]
+ *
+ * @see libinput_tablet_pad_led_has_capability
+ * @see libinput_tablet_pad_led_set_brightness
+ */
+double
+libinput_tablet_pad_led_get_brightness(struct libinput_tablet_pad_led *led);
+
+/**
+ * @ingroup device
+ *
+ * Return the LED group the given LED belongs to. On some tablets, e.g. the
+ * Wacom Cintiq 24HD, the LEDs are grouped into multiple sets and can be
+ * controlled separately. Specifically, one LED can be active per group.
+ *
+ * For devices with a single LED group, this function always returns 0.
+ * For devices without LEDs, this function always returns 0.
+ *
+ * @param led A tablet pad LED
+ * @return A numeric LED group or 0 if no LEDs are present
+ */
+unsigned int
+libinput_tablet_pad_led_get_group(struct libinput_tablet_pad_led *led);
+
+/**
+ * @ingroup device
+ *
+ * Return the LED index within its group, starting at 0. This index is
+ * can be used to order LEDs sequentially within the group in the tablet's
+ * natural order.
+ *
+ * For devices without LEDs, this function always returns 0.
+ *
+ * @param led A tablet pad LED
+ * @return The LED's index within its group
+ */
+unsigned int
+libinput_tablet_pad_led_get_index(struct libinput_tablet_pad_led *led);
 
 /**
  * @ingroup device

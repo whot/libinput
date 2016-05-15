@@ -258,4 +258,15 @@ LIBINPUT_1.4 {
 	libinput_device_config_rotation_get_default_angle;
 	libinput_device_config_rotation_is_available;
 	libinput_device_config_rotation_set_angle;
+	libinput_device_tablet_pad_get_num_leds;
+	libinput_device_tablet_pad_get_led;
+	libinput_event_tablet_pad_get_led;
+	libinput_event_tablet_pad_get_led_brightness;
+	libinput_tablet_pad_led_get_brightness;
+	libinput_tablet_pad_led_get_group;
+	libinput_tablet_pad_led_get_index;
+	libinput_tablet_pad_led_has_capability;
+	libinput_tablet_pad_led_set_brightness;
+	libinput_tablet_pad_led_ref;
+	libinput_tablet_pad_led_unref;
 } LIBINPUT_1.3;

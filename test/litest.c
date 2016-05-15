@@ -2097,6 +2097,9 @@ litest_event_type_str(struct libinput_event *event)
 	case LIBINPUT_EVENT_TABLET_PAD_STRIP:
 		str = "TABLET PAD STRIP";
 		break;
+	case LIBINPUT_EVENT_TABLET_PAD_LED:
+		str = "TABLET PAD LED";
+		break;
 	}
 	return str;
 }

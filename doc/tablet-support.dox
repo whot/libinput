@@ -276,4 +276,24 @@ symmetric and thus do not support left-handed mode. libinput requires
 libwacom to determine if a tablet is capable of being switched to
 left-handed mode.
 
+@section tablet-pad-leds Tablet pad LED support
+
+Many tablets provide a number of LEDs, usually distributed around the touch
+ring. A common use of these LEDs is as indicators for "modes", groups of
+button/ring/strip functionality that can be switched by pressing a specific
+button (the "mode switch" button). As modes are highly context-dependent
+they must be implemented by the caller, libinput does not provide any
+mode-like functionality. Instead, libinput exposes the LEDs to the caller.
+
+LEDs on tablet pads come in groups and usually only one LED can be switched on
+per group. Turning on one LED will turn all other LEDs off in the same
+group. Furthermore, unless the @ref LIBINPUT_TABLET_PAD_ALLOW_OFF capability
+is present an LED cannot be switched off. Instead, a caller must turn
+another LED on.
+
+libinput exposes the LED groups with the libinput_tablet_pad_led_get_group()
+function, callers are encouraged to use external data sources (e.g.
+libwacom) to get information about the number of groups and their physical
+location on the tablet pad.
+
 */
