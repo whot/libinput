@@ -230,6 +230,20 @@ print_device_notify(struct libinput_event *ev)
 			printf(" dwt-off)");
 	}
 
+	if (libinput_device_has_capability(dev,
+					   LIBINPUT_DEVICE_CAP_TABLET_PAD)) {
+		int nbuttons, nstrips, nrings;
+
+		nbuttons = libinput_device_tablet_pad_get_num_buttons(dev);
+		nstrips = libinput_device_tablet_pad_get_num_strips(dev);
+		nrings = libinput_device_tablet_pad_get_num_rings(dev);
+
+		printf(" buttons:%d strips:%d rings:%d",
+		       nbuttons,
+		       nstrips,
+		       nrings);
+	}
+
 	printf("\n");
 
 }
