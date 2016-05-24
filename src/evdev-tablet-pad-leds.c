@@ -96,6 +96,9 @@ pad_led_set_brightness(struct libinput_tablet_pad_led *libinput_led,
 	write(led->group->led_luminance_fd, buf, strlen(buf));
 	fsync(led->group->led_luminance_fd);
 
+	/* FIXME: for the EKR we should listen to the button event and
+	 * read from sysfs whenever we get one */
+
 	return 0;
 }
 
@@ -180,6 +183,7 @@ pad_get_led_group(struct pad_dispatch *pad,
 	group->led_status_fd = -1;
 	group->led_luminance_fd = -1;
 
+	/* FIXME: EKR LEDs are write-only and in wacom_remote/ */
 	rc = xasprintf(&group->led_status_path,
 		       "%s/status_led%d_select",
 		       syspath,
