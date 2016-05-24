@@ -64,6 +64,13 @@ struct pad_dispatch {
 		struct libinput_device_config_send_events config;
 		enum libinput_config_send_events_mode current_mode;
 	} sendevents;
+
+	struct list led_list;
 };
+
+void
+pad_init_leds(struct pad_dispatch *pad, struct evdev_device *device);
+void
+pad_destroy_leds(struct pad_dispatch *pad);
 
 #endif

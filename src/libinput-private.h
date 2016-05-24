@@ -329,6 +329,20 @@ struct libinput_tablet_tool {
 	bool has_pressure_offset;
 };
 
+struct libinput_tablet_pad_led {
+	struct list link;
+	int refcount;
+	void *user_data;
+
+	unsigned int capabilities;
+	double brightness;
+	unsigned int group;
+	unsigned int index;
+
+	int (*set_brightness)(struct libinput_tablet_pad_led *led,
+			      double brightness);
+};
+
 struct libinput_event {
 	enum libinput_event_type type;
 	struct libinput_device *device;

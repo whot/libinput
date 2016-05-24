@@ -23,6 +23,7 @@
 
 #define _GNU_SOURCE
 #include <errno.h>
+#include <assert.h>
 #include <inttypes.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -236,15 +237,32 @@ print_device_notify(struct libinput_event *ev)
 	if (libinput_device_has_capability(dev,
 					   LIBINPUT_DEVICE_CAP_TABLET_PAD)) {
 		int nbuttons, nstrips, nrings;
+		int nleds;
+		int group_leds[2] = {0}; /* more than two groups? nah... */
 
 		nbuttons = libinput_device_tablet_pad_get_num_buttons(dev);
 		nstrips = libinput_device_tablet_pad_get_num_strips(dev);
 		nrings = libinput_device_tablet_pad_get_num_rings(dev);
+		nleds = libinput_device_tablet_pad_get_num_leds(dev);
 
 		printf(" buttons:%d strips:%d rings:%d",
 		       nbuttons,
 		       nstrips,
 		       nrings);
+
+		while (nleds-- > 0) {
+			struct libinput_tablet_pad_led *led;
+			int group;
+
+			led = libinput_device_tablet_pad_get_led(dev, nleds);
+			group = libinput_tablet_pad_led_get_group(led);
+			assert(group < 2);
+			group_leds[group]++;
+		}
+
+		printf(" leds:%d", group_leds[0]);
+		if (group_leds[1])
+			printf(":%d", group_leds[1]);
 	}
 
 	printf("\n");

@@ -153,6 +153,10 @@ struct libinput_event_tablet_pad {
 		double position;
 		int number;
 	} strip;
+	struct {
+		struct libinput_tablet_pad_led *led;
+		double brightness;
+	} led;
 };
 
 static void
@@ -1664,6 +1668,13 @@ libinput_event_tablet_tool_destroy(struct libinput_event_tablet_tool *event)
 	libinput_tablet_tool_unref(event->tool);
 }
 
+static void
+libinput_event_tablet_pad_destroy(struct libinput_event_tablet_pad *event)
+{
+	if (event->led.led)
+		libinput_tablet_pad_led_unref(event->led.led);
+}
+
 LIBINPUT_EXPORT void
 libinput_event_destroy(struct libinput_event *event)
 {
@@ -1677,6 +1688,13 @@ libinput_event_destroy(struct libinput_event *event)
 	case LIBINPUT_EVENT_TABLET_TOOL_BUTTON:
 		libinput_event_tablet_tool_destroy(
 		   libinput_event_get_tablet_tool_event(event));
+		break;
+	case LIBINPUT_EVENT_TABLET_PAD_BUTTON:
+	case LIBINPUT_EVENT_TABLET_PAD_STRIP:
+	case LIBINPUT_EVENT_TABLET_PAD_RING:
+	case LIBINPUT_EVENT_TABLET_PAD_LED:
+		libinput_event_tablet_pad_destroy(
+		   libinput_event_get_tablet_pad_event(event));
 		break;
 	default:
 		break;
@@ -2828,6 +2846,85 @@ libinput_device_tablet_pad_get_num_strips(struct libinput_device *device)
 	return evdev_device_tablet_pad_get_num_strips((struct evdev_device *)device);
 }
 
+LIBINPUT_EXPORT int
+libinput_device_tablet_pad_get_num_leds(struct libinput_device *device)
+{
+	return evdev_device_tablet_pad_get_num_leds((struct evdev_device *)device);
+}
+
+LIBINPUT_EXPORT struct libinput_tablet_pad_led *
+libinput_device_tablet_pad_get_led(struct libinput_device *device,
+				   unsigned int index)
+{
+	return evdev_device_tablet_pad_get_led((struct evdev_device *)device, index);
+}
+
+LIBINPUT_EXPORT int
+libinput_tablet_pad_led_has_capability(struct libinput_tablet_pad_led *led,
+				       enum libinput_tablet_pad_led_capability capability)
+{
+	return !!(led->capabilities & capability);
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_tablet_pad_led_get_group(struct libinput_tablet_pad_led *led)
+{
+	return led->group;
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_tablet_pad_led_get_index(struct libinput_tablet_pad_led *led)
+{
+	return led->index;
+}
+
+LIBINPUT_EXPORT double
+libinput_tablet_pad_led_get_brightness(struct libinput_tablet_pad_led *led)
+{
+	return led->brightness;
+}
+
+LIBINPUT_EXPORT int
+libinput_tablet_pad_led_set_brightness(struct libinput_tablet_pad_led *led,
+				       double brightness)
+{
+	return led->set_brightness(led, brightness);
+}
+
+LIBINPUT_EXPORT struct libinput_tablet_pad_led *
+libinput_tablet_pad_led_ref(struct libinput_tablet_pad_led *pad_led)
+{
+	pad_led->refcount++;
+	return pad_led;
+}
+
+LIBINPUT_EXPORT struct libinput_tablet_pad_led *
+libinput_tablet_pad_led_unref(struct libinput_tablet_pad_led *pad_led)
+{
+	assert(pad_led->refcount > 0);
+
+	pad_led->refcount--;
+	if (pad_led->refcount > 0)
+		return pad_led;
+
+	list_remove(&pad_led->link);
+	free(pad_led);
+	return NULL;
+}
+
+LIBINPUT_EXPORT void
+libinput_tablet_pad_led_set_user_data(struct libinput_tablet_pad_led *pad_led,
+				   void *user_data)
+{
+	pad_led->user_data = user_data;
+}
+
+LIBINPUT_EXPORT void *
+libinput_tablet_pad_led_get_user_data(struct libinput_tablet_pad_led *pad_led)
+{
+	return pad_led->user_data;
+}
+
 LIBINPUT_EXPORT struct libinput_event *
 libinput_event_device_notify_get_base_event(struct libinput_event_device_notify *event)
 {
@@ -2986,6 +3083,28 @@ libinput_event_tablet_pad_get_button_state(struct libinput_event_tablet_pad *eve
 			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
 
 	return event->state;
+}
+
+LIBINPUT_EXPORT struct libinput_tablet_pad_led *
+libinput_event_tablet_pad_get_led(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   NULL,
+			   LIBINPUT_EVENT_TABLET_PAD_LED);
+
+	return event->led.led;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_tablet_pad_get_led_brightness(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_TABLET_PAD_LED);
+
+	return event->led.brightness;
 }
 
 LIBINPUT_EXPORT uint32_t

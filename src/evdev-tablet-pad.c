@@ -433,6 +433,7 @@ pad_destroy(struct evdev_dispatch *dispatch)
 {
 	struct pad_dispatch *pad = (struct pad_dispatch*)dispatch;
 
+	pad_destroy_leds(pad);
 	free(pad);
 }
 
@@ -496,6 +497,7 @@ pad_init(struct pad_dispatch *pad, struct evdev_device *device)
 
 	pad_init_buttons(pad, device);
 	pad_init_left_handed(device);
+	pad_init_leds(pad, device);
 
 	return 0;
 }
@@ -617,4 +619,40 @@ evdev_device_tablet_pad_get_num_strips(struct evdev_device *device)
 	}
 
 	return nstrips;
+}
+
+int
+evdev_device_tablet_pad_get_num_leds(struct evdev_device *device)
+{
+	struct pad_dispatch *pad = (struct pad_dispatch*)device->dispatch;
+	struct libinput_tablet_pad_led *led;
+	int count = 0;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_TABLET_PAD))
+		return 0;
+
+	list_for_each(led, &pad->led_list, link)
+		count++;
+
+	return count;
+}
+
+struct libinput_tablet_pad_led *
+evdev_device_tablet_pad_get_led(struct evdev_device *device,
+				unsigned int index)
+{
+	struct pad_dispatch *pad = (struct pad_dispatch*)device->dispatch;
+	struct libinput_tablet_pad_led *led;
+	unsigned int count = 0;
+
+	if (index >= (unsigned int)evdev_device_tablet_pad_get_num_leds(device))
+		return NULL;
+
+	list_for_each(led, &pad->led_list, link) {
+		if (count == index)
+			break;
+		count++;
+	}
+
+	return led;
 }
