@@ -2012,9 +2012,9 @@ START_TEST(tool_ref)
 	ck_assert_notnull(tool);
 	ck_assert(tool == libinput_tablet_tool_ref(tool));
 	ck_assert(tool == libinput_tablet_tool_unref(tool));
-	ck_assert(libinput_tablet_tool_unref(tool) == NULL);
-
 	libinput_event_destroy(event);
+
+	ck_assert(libinput_tablet_tool_unref(tool) == NULL);
 }
 END_TEST
 
