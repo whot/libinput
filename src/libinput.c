@@ -1658,11 +1658,29 @@ libinput_unref(struct libinput *libinput)
 	return NULL;
 }
 
+static void
+libinput_event_tablet_tool_destroy(struct libinput_event_tablet_tool *event)
+{
+	libinput_tablet_tool_unref(event->tool);
+}
+
 LIBINPUT_EXPORT void
 libinput_event_destroy(struct libinput_event *event)
 {
 	if (event == NULL)
 		return;
+
+	switch(event->type) {
+	case LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY:
+	case LIBINPUT_EVENT_TABLET_TOOL_AXIS:
+	case LIBINPUT_EVENT_TABLET_TOOL_TIP:
+	case LIBINPUT_EVENT_TABLET_TOOL_BUTTON:
+		libinput_event_tablet_tool_destroy(
+		   libinput_event_get_tablet_tool_event(event));
+		break;
+	default:
+		break;
+	}
 
 	if (event->device)
 		libinput_device_unref(event->device);
@@ -2261,7 +2279,7 @@ tablet_notify_axis(struct libinput_device *device,
 
 	*axis_event = (struct libinput_event_tablet_tool) {
 		.time = time,
-		.tool = tool,
+		.tool = libinput_tablet_tool_ref(tool),
 		.proximity_state = LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_IN,
 		.tip_state = tip_state,
 		.axes = *axes,
@@ -2293,7 +2311,7 @@ tablet_notify_proximity(struct libinput_device *device,
 
 	*proximity_event = (struct libinput_event_tablet_tool) {
 		.time = time,
-		.tool = tool,
+		.tool = libinput_tablet_tool_ref(tool),
 		.tip_state = LIBINPUT_TABLET_TOOL_TIP_UP,
 		.proximity_state = proximity_state,
 		.axes = *axes,
@@ -2324,7 +2342,7 @@ tablet_notify_tip(struct libinput_device *device,
 
 	*tip_event = (struct libinput_event_tablet_tool) {
 		.time = time,
-		.tool = tool,
+		.tool = libinput_tablet_tool_ref(tool),
 		.tip_state = tip_state,
 		.proximity_state = LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_IN,
 		.axes = *axes,
@@ -2361,7 +2379,7 @@ tablet_notify_button(struct libinput_device *device,
 
 	*button_event = (struct libinput_event_tablet_tool) {
 		.time = time,
-		.tool = tool,
+		.tool = libinput_tablet_tool_ref(tool),
 		.button = button,
 		.state = state,
 		.seat_button_count = seat_button_count,
