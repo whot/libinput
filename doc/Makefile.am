@@ -49,7 +49,9 @@ diagram_files = \
 	$(srcdir)/svg/software-buttons.svg \
 	$(srcdir)/svg/swipe-gestures.svg \
 	$(srcdir)/svg/tablet-axes.svg \
+	$(srcdir)/svg/tablet-cintiq24hd-modes.svg \
 	$(srcdir)/svg/tablet-interfaces.svg \
+	$(srcdir)/svg/tablet-intuos-modes.svg \
 	$(srcdir)/svg/tablet-left-handed.svg \
 	$(srcdir)/svg/tablet-out-of-bounds.svg \
 	$(srcdir)/svg/tablet.svg \
