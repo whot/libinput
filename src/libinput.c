@@ -347,7 +347,8 @@ libinput_event_get_tablet_pad_event(struct libinput_event *event)
 			   NULL,
 			   LIBINPUT_EVENT_TABLET_PAD_RING,
 			   LIBINPUT_EVENT_TABLET_PAD_STRIP,
-			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON,
+			   LIBINPUT_EVENT_TABLET_PAD_LED);
 
 	return (struct libinput_event_tablet_pad *) event;
 }
@@ -2488,6 +2489,30 @@ tablet_pad_notify_strip(struct libinput_device *device,
 			  &strip_event->base);
 }
 
+void
+tablet_pad_notify_led(struct libinput_device *device,
+		      uint64_t time,
+		      struct libinput_tablet_pad_led *led,
+		      double brightness)
+{
+	struct libinput_event_tablet_pad *led_event;
+
+	led_event = zalloc(sizeof *led_event);
+	if (!led_event)
+		return;
+
+	*led_event = (struct libinput_event_tablet_pad) {
+		.time = time,
+		.led.led = libinput_tablet_pad_led_ref(led),
+		.led.brightness = brightness,
+	};
+
+	post_device_event(device,
+			  time,
+			  LIBINPUT_EVENT_TABLET_PAD_LED,
+			  &led_event->base);
+}
+
 static void
 gesture_notify(struct libinput_device *device,
 	       uint64_t time,
@@ -3118,7 +3143,8 @@ libinput_event_tablet_pad_get_time(struct libinput_event_tablet_pad *event)
 			   0,
 			   LIBINPUT_EVENT_TABLET_PAD_RING,
 			   LIBINPUT_EVENT_TABLET_PAD_STRIP,
-			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON,
+			   LIBINPUT_EVENT_TABLET_PAD_LED);
 
 	return us2ms(event->time);
 }
@@ -3131,7 +3157,8 @@ libinput_event_tablet_pad_get_time_usec(struct libinput_event_tablet_pad *event)
 			   0,
 			   LIBINPUT_EVENT_TABLET_PAD_RING,
 			   LIBINPUT_EVENT_TABLET_PAD_STRIP,
-			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON,
+			   LIBINPUT_EVENT_TABLET_PAD_LED);
 
 	return event->time;
 }
@@ -3144,7 +3171,8 @@ libinput_event_tablet_pad_get_base_event(struct libinput_event_tablet_pad *event
 			   NULL,
 			   LIBINPUT_EVENT_TABLET_PAD_RING,
 			   LIBINPUT_EVENT_TABLET_PAD_STRIP,
-			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON,
+			   LIBINPUT_EVENT_TABLET_PAD_LED);
 
 	return &event->base;
 }
