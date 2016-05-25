@@ -274,8 +274,7 @@ pad_get_led_group(struct pad_dispatch *pad,
 	group->led_luminance_fd = open_restricted(libinput,
 						  group->led_luminance_path,
 						  O_RDWR);
-	if (group->led_status_fd == -1 ||
-	    group->led_luminance_fd == -1)
+	if (group->led_status_fd < 0 || group->led_luminance_fd < 0)
 		goto error;
 
 	/* if O_RDWR fails we could try to open with O_RDONLY and make the
