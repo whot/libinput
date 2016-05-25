@@ -22,9 +22,11 @@
 
 #include "config.h"
 
+#include <dirent.h>
 #include <limits.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "evdev-tablet-pad.h"
 
@@ -150,6 +152,74 @@ pad_led_get_sysfs_base_path(struct evdev_device *device)
 	return NULL;
 }
 
+static char *
+pad_led_get_ekr_sysfs_mode_file(struct evdev_device *device)
+{
+	struct udev_device *udev_device = device->udev_device,
+			   *hid_device;
+	const char *hid_sysfs_path;
+	char path[PATH_MAX];
+	char *mode_path;
+	DIR *dirp;
+	struct dirent *dp;
+	int serial = 0;
+	int rc;
+
+	hid_device = udev_device_get_parent_with_subsystem_devtype(udev_device,
+								   "hid",
+								   NULL);
+	if (!hid_device)
+		return NULL;
+
+	hid_sysfs_path = udev_device_get_syspath(hid_device);
+
+	rc = snprintf(path, sizeof(path), "%s/wacom_remote/", hid_sysfs_path);
+	if (rc == -1)
+		return NULL;
+
+	dirp = opendir(hid_sysfs_path);
+	if (!dirp)
+		return NULL;
+
+	while ((dp = readdir(dirp)) != NULL) {
+		if (dp->d_name[0] == '.')
+			continue;
+
+		/* There should only be one entry per remote, the remote's
+		 * serial in decimal notation.
+		 */
+		if (safe_atoi(dp->d_name, &serial))
+			break;;
+	}
+	closedir(dirp);
+
+	if (serial == 0)
+		return NULL;
+
+	rc = xasprintf(&mode_path,
+		       "%s/wacom_remote/%d/remote_mode",
+		       hid_sysfs_path,
+		       serial);
+	if (rc == -1)
+		return NULL;
+
+	rc = access(mode_path, R_OK);
+	if (rc == 0)
+		return mode_path;
+
+	/* In theory we could return read-only LEDs here but let's make life
+	 * simple and just return NULL and pretend we don't have LEDs. We
+	 * can't change them anyway.
+	 */
+	if (errno != ENOENT)
+		log_error(device->base.seat->libinput,
+			  "Unable to access EKR LED syspath %s (%s)\n",
+			  mode_path,
+			  strerror(errno));
+	free(mode_path);
+	return NULL;
+}
+
 static void
 pad_led_destroy(struct pad_led *led)
 {
@@ -226,36 +296,123 @@ error:
 	return NULL;
 }
 
-static void
+static struct pad_led *
 pad_init_one_led(struct pad_dispatch *pad,
 		 unsigned int group,
-		 int idx,
-		 const char *syspath)
+		 int idx)
 {
 	struct pad_led *led;
 
 	led = zalloc(sizeof *led);
 	if (!led)
-		return;
+		return NULL;
 
 	led->base.refcount = 1;
 	led->base.group = group;
-	led->group = pad_get_led_group(pad, group, syspath);
-	if (!led->group)
-		goto error;
-
-	led->base.capabilities = LIBINPUT_TABLET_PAD_LED_CAP_WRITABLE;
-	/* FIXME: need to get the brightness ranges from libwacom? */
-	led->base.capabilities |= LIBINPUT_TABLET_PAD_LED_CAP_BRIGHTNESS;
-	led->base.set_brightness = pad_led_set_brightness;
 	led->base.index = idx;
 
 	list_insert(&pad->led_list, &led->base.link);
 
+	return led;
+}
+
+static void
+pad_init_ekr_leds(struct pad_dispatch *pad,
+		  struct evdev_device *device)
+{
+	char *syspath = NULL;
+	const int nleds = 3; /* The EKR has 3 read-only LEDs */
+	int i;
+
+	syspath = pad_led_get_ekr_sysfs_mode_file(device);
+	if (!syspath)
+		return;
+
+	for (i = 0; i < nleds; i++) {
+		struct pad_led *led = pad_init_one_led(pad, 0, i);
+		if (!led)
+			return;
+
+		led->base.set_brightness = NULL;
+	}
+}
+
+static void
+pad_init_one_normal_led(struct pad_dispatch *pad,
+			unsigned int group,
+			int idx,
+			const char *syspath)
+{
+	struct pad_led *led;
+
+	led = pad_init_one_led(pad, group, idx);
+	if (!led)
+		return;
+
+	led->group = pad_get_led_group(pad, group, syspath);
+	if (!led->group)
+		goto error;
+
+	led->base.set_brightness = pad_led_set_brightness;
+	led->base.capabilities = LIBINPUT_TABLET_PAD_LED_CAP_WRITABLE;
+	/* FIXME: need to get the brightness ranges from libwacom? */
+	led->base.capabilities |= LIBINPUT_TABLET_PAD_LED_CAP_BRIGHTNESS;
+
 	return;
 
 error:
-	free(led);
+	pad_led_destroy(led);
+}
+
+static void
+pad_init_normal_leds(struct pad_dispatch *pad,
+		     struct evdev_device *device,
+		     WacomDevice *wacom)
+{
+	struct libinput *libinput = device->base.seat->libinput;
+	const WacomStatusLEDs *leds;
+	char *syspath = NULL;
+	int nleds, nmodes;
+	int i;
+
+	syspath = pad_led_get_sysfs_base_path(device);
+	if (!syspath)
+		return;
+
+	leds = libwacom_get_status_leds(wacom, &nleds);
+	for (i = 0; i < nleds; i++) {
+		switch(leds[i]) {
+		case WACOM_STATUS_LED_UNAVAILABLE:
+			log_bug_libinput(libinput,
+					 "Invalid led type %d\n",
+					 leds[i]);
+			goto out;
+		case WACOM_STATUS_LED_RING:
+			nmodes = libwacom_get_ring_num_modes(wacom);
+			/* ring is always group 0 */
+			while (nmodes--)
+				pad_init_one_normal_led(pad,
+							0,
+							nmodes,
+							syspath);
+			break;
+		case WACOM_STATUS_LED_RING2:
+			nmodes = libwacom_get_ring2_num_modes(wacom);
+			/* ring2 is always group 1 */
+			while (nmodes--)
+				pad_init_one_normal_led(pad,
+							1,
+							nmodes,
+							syspath);
+			break;
+		/* FIXME: handle touchstrip LEDs? */
+		default:
+			break;
+		}
+	}
+
+out:
+	free(syspath);
 }
 
 static void
@@ -265,10 +422,6 @@ pad_init_leds_from_libwacom(struct pad_dispatch *pad,
 	struct libinput *libinput = device->base.seat->libinput;
 	WacomDeviceDatabase *db = NULL;
 	WacomDevice *wacom = NULL;
-	const WacomStatusLEDs *leds;
-	char *syspath = NULL;
-	int nleds, nmodes;
-	int i;
 
 	db = libwacom_database_new();
 	if (!db) {
@@ -284,38 +437,12 @@ pad_init_leds_from_libwacom(struct pad_dispatch *pad,
 	if (!wacom)
 		goto out;
 
-	syspath = pad_led_get_sysfs_base_path(device);
-	if (!syspath)
-		goto out;
+	if (libwacom_get_class(wacom) == WCLASS_REMOTE) {
+		pad_init_ekr_leds(pad, device);
+	} else
+		pad_init_normal_leds(pad, device, wacom);
 
-	leds = libwacom_get_status_leds(wacom, &nleds);
-	for (i = 0; i < nleds; i++) {
-		switch(leds[i]) {
-		case WACOM_STATUS_LED_UNAVAILABLE:
-			log_bug_libinput(libinput,
-					 "Invalid led type %d\n",
-					 leds[i]);
-			goto out;
-		case WACOM_STATUS_LED_RING:
-			nmodes = libwacom_get_ring_num_modes(wacom);
-			/* ring is always group 0 */
-			while (nmodes--)
-				pad_init_one_led(pad, 0, nmodes, syspath);
-			break;
-		case WACOM_STATUS_LED_RING2:
-			nmodes = libwacom_get_ring2_num_modes(wacom);
-			/* ring2 is always group 1 */
-			while (nmodes--)
-				pad_init_one_led(pad, 1, nmodes, syspath);
-			break;
-		/* FIXME: handle touchstrip LEDs? */
-		default:
-			break;
-		}
-	}
 out:
-	if (syspath)
-		free(syspath);
 	if (wacom)
 		libwacom_destroy(wacom);
 	if (db)
