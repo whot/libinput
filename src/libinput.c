@@ -2888,6 +2888,9 @@ LIBINPUT_EXPORT int
 libinput_tablet_pad_led_set_brightness(struct libinput_tablet_pad_led *led,
 				       double brightness)
 {
+	if ((led->capabilities & LIBINPUT_TABLET_PAD_LED_CAP_WRITABLE) == 0)
+		return -EINVAL;
+
 	return led->set_brightness(led, brightness);
 }
 
