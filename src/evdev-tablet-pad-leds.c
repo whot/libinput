@@ -356,8 +356,6 @@ pad_init_ekr_leds(struct pad_dispatch *pad,
 	struct pad_led_group *group;
 
 	syspath = pad_led_get_ekr_sysfs_mode_file(device);
-	/* FIXME: obviously */
-	syspath = strdup("/home/whot/tmp/today/wacom_remote/1234/remote_mode");
 	if (!syspath)
 		return;
 
