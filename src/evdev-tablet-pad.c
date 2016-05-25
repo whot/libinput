@@ -338,6 +338,32 @@ pad_notify_buttons(struct pad_dispatch *pad,
 }
 
 static void
+pad_notify_leds(struct pad_dispatch *pad,
+		struct evdev_device *device,
+		uint64_t time)
+{
+	struct libinput_tablet_pad_led *led;
+
+	list_for_each(led, &pad->led_list, link) {
+		double brightness = led->brightness;
+
+		/* We don't care about writable LEDs and expect the client
+		 * to set them. Read-only LEDs update through external
+		 * sources so we need to actually check them.
+		 */
+		if (led->capabilities & LIBINPUT_TABLET_PAD_LED_CAP_WRITABLE)
+			continue;
+
+		led->update_brightness(led);
+		if (led->brightness != brightness)
+			tablet_pad_notify_led(&device->base,
+					      time,
+					      led,
+					      led->brightness);
+	}
+}
+
+static void
 pad_change_to_left_handed(struct evdev_device *device)
 {
 	struct pad_dispatch *pad = (struct pad_dispatch*)device->dispatch;
@@ -376,6 +402,7 @@ pad_flush(struct pad_dispatch *pad,
 				   device,
 				   time,
 				   LIBINPUT_BUTTON_STATE_PRESSED);
+		pad_notify_leds(pad, device, time);
 		pad_unset_status(pad, PAD_BUTTONS_PRESSED);
 	}
 

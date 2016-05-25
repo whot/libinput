@@ -42,6 +42,9 @@ struct pad_led_group {
 	char *led_luminance_path;
 	int led_status_fd;
 	int led_luminance_fd;
+
+	char *remote_mode_path;
+	int remote_mode_fd;
 };
 
 struct pad_led {
@@ -70,9 +73,11 @@ pad_led_group_unref(struct pad_led_group *group)
 
 	close_restricted(group->libinput, group->led_status_fd);
 	close_restricted(group->libinput, group->led_luminance_fd);
+	close_restricted(group->libinput, group->remote_mode_fd);
 
 	free(group->led_status_path);
 	free(group->led_luminance_path);
+	free(group->remote_mode_path);
 	free(group);
 	return NULL;
 }
@@ -98,8 +103,35 @@ pad_led_set_brightness(struct libinput_tablet_pad_led *libinput_led,
 	write(led->group->led_luminance_fd, buf, strlen(buf));
 	fsync(led->group->led_luminance_fd);
 
-	/* FIXME: for the EKR we should listen to the button event and
-	 * read from sysfs whenever we get one */
+	return 0;
+}
+
+static int
+pad_led_update_brightness(struct libinput_tablet_pad_led *libinput_led)
+{
+	struct pad_led *led = (struct pad_led*)libinput_led;
+	char buf[4] = {0};
+	int index;
+	int rc;
+	int fd = led->group->remote_mode_fd;
+
+	rc = lseek(fd, 0, SEEK_SET);
+	if (rc == -1)
+		return -errno;
+
+	rc = read(fd, &buf, sizeof(buf) - 1);
+	if (rc == -1)
+		return -errno;
+	if (rc == 0)
+		return -EINVAL;
+
+	rc = sscanf(buf, "%d", &index);
+	if (rc == -1)
+		return -errno;
+	if (rc != 1)
+		return -EINVAL;
+
+	led->base.brightness = (led->base.index == (unsigned int)index) ? 1.0 : 0;
 
 	return 0;
 }
@@ -253,7 +285,6 @@ pad_get_led_group(struct pad_dispatch *pad,
 	group->led_status_fd = -1;
 	group->led_luminance_fd = -1;
 
-	/* FIXME: EKR LEDs are write-only and in wacom_remote/ */
 	rc = xasprintf(&group->led_status_path,
 		       "%s/status_led%d_select",
 		       syspath,
@@ -268,6 +299,7 @@ pad_get_led_group(struct pad_dispatch *pad,
 	if (rc == -1)
 		goto error;
 
+	group->remote_mode_fd = -1;
 	group->led_status_fd = open_restricted(libinput,
 					       group->led_status_path,
 					       O_RDWR);
@@ -310,8 +342,6 @@ pad_init_one_led(struct pad_dispatch *pad,
 	led->base.group = group;
 	led->base.index = idx;
 
-	list_insert(&pad->led_list, &led->base.link);
-
 	return led;
 }
 
@@ -319,21 +349,53 @@ static void
 pad_init_ekr_leds(struct pad_dispatch *pad,
 		  struct evdev_device *device)
 {
+	struct libinput *libinput = device->base.seat->libinput;
 	char *syspath = NULL;
 	const int nleds = 3; /* The EKR has 3 read-only LEDs */
 	int i;
+	struct pad_led_group *group;
 
 	syspath = pad_led_get_ekr_sysfs_mode_file(device);
+	/* FIXME: obviously */
+	syspath = strdup("/home/whot/tmp/today/wacom_remote/1234/remote_mode");
 	if (!syspath)
 		return;
+
+	group = zalloc(sizeof *group);
+	if (!group)
+		goto error;
+
+	group->refcount = 1;
+	group->libinput = libinput;
+	group->group = 0;
+	group->led_status_fd = -1;
+	group->led_luminance_fd = -1;
+
+	group->remote_mode_path = syspath;
+	group->remote_mode_fd = open_restricted(libinput, syspath, O_RDONLY);
+	if (group->remote_mode_fd < 0)
+		goto error;
 
 	for (i = 0; i < nleds; i++) {
 		struct pad_led *led = pad_init_one_led(pad, 0, i);
 		if (!led)
-			return;
+			goto error;
 
 		led->base.set_brightness = NULL;
+		led->base.update_brightness = pad_led_update_brightness;
+		led->group = pad_led_group_ref(group);
+		list_insert(&pad->led_list, &led->base.link);
 	}
+
+	pad_led_group_unref(group);
+
+	return;
+error:
+	pad_destroy_leds(pad);
+	pad_led_group_unref(group);
+	free(syspath);
+
+	/* FIXME: error logging */
 }
 
 static void
@@ -356,6 +418,8 @@ pad_init_one_normal_led(struct pad_dispatch *pad,
 	led->base.capabilities = LIBINPUT_TABLET_PAD_LED_CAP_WRITABLE;
 	/* FIXME: need to get the brightness ranges from libwacom? */
 	led->base.capabilities |= LIBINPUT_TABLET_PAD_LED_CAP_BRIGHTNESS;
+
+	list_insert(&pad->led_list, &led->base.link);
 
 	return;
 
@@ -436,9 +500,9 @@ pad_init_leds_from_libwacom(struct pad_dispatch *pad,
 	if (!wacom)
 		goto out;
 
-	if (libwacom_get_class(wacom) == WCLASS_REMOTE) {
+	if (libwacom_get_class(wacom) == WCLASS_REMOTE)
 		pad_init_ekr_leds(pad, device);
-	} else
+	else
 		pad_init_normal_leds(pad, device, wacom);
 
 out:

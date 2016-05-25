@@ -409,6 +409,13 @@ enum libinput_event_type {
 	/**
 	 * An LED state change on a device with the @ref
 	 * LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
+	 *
+	 * This event is sent for all LEDs that changed state. For LEDs
+	 * within the same group that can not be controlled individually, at
+	 * least two events are generated: one of the currently-on LED
+	 * changing to a brightness of 0 and one of the newly-on LED
+	 * changing to a non-zero brightness. The order of these events is
+	 * not guaranteed.
 	 */
 	LIBINPUT_EVENT_TABLET_PAD_LED,
 

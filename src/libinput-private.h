@@ -341,6 +341,7 @@ struct libinput_tablet_pad_led {
 
 	int (*set_brightness)(struct libinput_tablet_pad_led *led,
 			      double brightness);
+	int (*update_brightness)(struct libinput_tablet_pad_led *led);
 };
 
 struct libinput_event {
@@ -593,6 +594,11 @@ tablet_pad_notify_strip(struct libinput_device *device,
 			unsigned int number,
 			double value,
 			enum libinput_tablet_pad_strip_axis_source source);
+void
+tablet_pad_notify_led(struct libinput_device *device,
+		      uint64_t time,
+		      struct libinput_tablet_pad_led *led,
+		      double brightness);
 
 static inline uint64_t
 libinput_now(struct libinput *libinput)
