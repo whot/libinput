@@ -605,13 +605,16 @@ print_tablet_pad_button_event(struct libinput_event *ev)
 {
 	struct libinput_event_tablet_pad *p = libinput_event_get_tablet_pad_event(ev);
 	enum libinput_button_state state;
+	unsigned int mode;
 
 	print_event_time(libinput_event_tablet_pad_get_time(p));
 
 	state = libinput_event_tablet_pad_get_button_state(p);
-	printf("%3d %s\n",
+	mode = libinput_event_tablet_pad_get_mode(p);
+	printf("%3d %s (mode %d)\n",
 	       libinput_event_tablet_pad_get_button_number(p),
-	       state == LIBINPUT_BUTTON_STATE_PRESSED ? "pressed" : "released");
+	       state == LIBINPUT_BUTTON_STATE_PRESSED ? "pressed" : "released",
+	       mode);
 }
 
 static void
@@ -619,6 +622,7 @@ print_tablet_pad_ring_event(struct libinput_event *ev)
 {
 	struct libinput_event_tablet_pad *p = libinput_event_get_tablet_pad_event(ev);
 	const char *source = "<invalid>";
+	unsigned int mode;
 
 	print_event_time(libinput_event_tablet_pad_get_time(p));
 
@@ -631,10 +635,12 @@ print_tablet_pad_ring_event(struct libinput_event *ev)
 		break;
 	}
 
-	printf("ring %d position %.2f (source %s)\n",
+	mode = libinput_event_tablet_pad_get_mode(p);
+	printf("ring %d position %.2f (source %s) (mode %d)\n",
 	       libinput_event_tablet_pad_get_ring_number(p),
 	       libinput_event_tablet_pad_get_ring_position(p),
-	       source);
+	       source,
+	       mode);
 }
 
 static void
@@ -642,6 +648,7 @@ print_tablet_pad_strip_event(struct libinput_event *ev)
 {
 	struct libinput_event_tablet_pad *p = libinput_event_get_tablet_pad_event(ev);
 	const char *source = "<invalid>";
+	unsigned int mode;
 
 	print_event_time(libinput_event_tablet_pad_get_time(p));
 
@@ -654,10 +661,12 @@ print_tablet_pad_strip_event(struct libinput_event *ev)
 		break;
 	}
 
-	printf("strip %d position %.2f (source %s)\n",
+	mode = libinput_event_tablet_pad_get_mode(p);
+	printf("strip %d position %.2f (source %s) (mode %d)\n",
 	       libinput_event_tablet_pad_get_strip_number(p),
 	       libinput_event_tablet_pad_get_strip_position(p),
-	       source);
+	       source,
+	       mode);
 }
 
 static int

@@ -140,6 +140,7 @@ struct libinput_event_tablet_tool {
 
 struct libinput_event_tablet_pad {
 	struct libinput_event base;
+	unsigned int mode;
 	uint64_t time;
 	struct {
 		uint32_t button;
@@ -2987,6 +2988,19 @@ libinput_event_tablet_pad_get_button_state(struct libinput_event_tablet_pad *eve
 			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
 
 	return event->button.state;
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_event_tablet_pad_get_mode(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_PAD_RING,
+			   LIBINPUT_EVENT_TABLET_PAD_STRIP,
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+
+	return event->mode;
 }
 
 LIBINPUT_EXPORT uint32_t

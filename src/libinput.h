@@ -2372,6 +2372,27 @@ libinput_event_tablet_pad_get_button_state(struct libinput_event_tablet_pad *eve
 /**
  * @ingroup event_tablet
  *
+ * Returns the current mode this button, ring, or strip is considered in.
+ * The mode is a virtual grouping of functionality, usually based on some
+ * visual feedback like LEDs on the pad. See @ref tablet-pad-modes for
+ * details. Mode indices start at 0, a device that does not support modes
+ * always returns 0.
+ *
+ * Mode switching is controlled by libinput and more than one mode may exist
+ * on the tablet. This function returns the mode the button, ring or strip
+ * of this event is logically grouped in. If the button is the mode toggle
+ * button and the button event caused a new mode to be toggled, the mode
+ * returned is the new mode the button is in.
+ *
+ * @param event The libinput tablet pad event
+ * @return the current 0-indexed mode of this button, ring or strip
+ */
+unsigned int
+libinput_event_tablet_pad_get_mode(struct libinput_event_tablet_pad *event);
+
+/**
+ * @ingroup event_tablet
+ *
  * @param event The libinput tablet pad event
  * @return The event time for this event
  */

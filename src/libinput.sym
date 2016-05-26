@@ -258,4 +258,5 @@ LIBINPUT_1.4 {
 	libinput_device_config_rotation_get_default_angle;
 	libinput_device_config_rotation_is_available;
 	libinput_device_config_rotation_set_angle;
+	libinput_event_tablet_pad_get_mode;
 } LIBINPUT_1.3;
