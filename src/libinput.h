@@ -3287,6 +3287,66 @@ libinput_device_tablet_pad_get_num_strips(struct libinput_device *device);
 /**
  * @ingroup device
  *
+ * Return the 0-indexed mode for the given button index. The button index
+ * must be less than the number returned by
+ * libinput_device_tablet_pad_get_num_buttons(). See @ref tablet-pad-modes
+ * for details on modes.
+ *
+ * This function returns 0 for an invalid button index or if the device does
+ * not have the @ref LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
+ *
+ * @param device A current input device with the @ref
+ * LIBINPUT_DEVICE_CAP_TABLET_PAD capability
+ * @param button The button index
+ * @return The mode the button is in
+ */
+unsigned int
+libinput_device_tablet_pad_get_button_mode(struct libinput_device *device,
+					   unsigned int button);
+
+/**
+ * @ingroup device
+ *
+ * Return the 0-indexed mode for the given ring index. The ring index must
+ * be less than the number returned by
+ * libinput_device_tablet_pad_get_num_rings(). See @ref tablet-pad-modes for
+ * details on modes.
+ *
+ * This function returns 0 for an invalid ring index or if the device does
+ * not have the @ref LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
+ *
+ * @param device A current input device with the @ref
+ * LIBINPUT_DEVICE_CAP_TABLET_PAD capability
+ * @param ring The ring index
+ * @return The 0-indexed mode the given ring is in.
+ */
+unsigned int
+libinput_device_tablet_pad_get_ring_mode(struct libinput_device *device,
+					 unsigned int ring);
+
+/**
+ * @ingroup device
+ *
+ * Return the 0-indexed mode for the given strip index. The strip index must
+ * be less than the number returned by
+ * libinput_device_tablet_pad_get_num_strips(). See @ref tablet-pad-modes
+ * for details on modes.
+ *
+ * This function returns 0 for an invalid strip index or if the device does
+ * not have the @ref LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
+ *
+ * @param device A current input device with the @ref
+ * LIBINPUT_DEVICE_CAP_TABLET_PAD capability
+ * @param strip The strip index
+ * @return The 0-indexed mode the given strip is in.
+ */
+unsigned int
+libinput_device_tablet_pad_get_strip_mode(struct libinput_device *device,
+					  unsigned int strip);
+
+/**
+ * @ingroup device
+ *
  * Increase the refcount of the device group. A device group will be freed
  * whenever the refcount reaches 0. This may happen during
  * libinput_dispatch() if all devices of this group were removed from the

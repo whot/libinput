@@ -259,4 +259,7 @@ LIBINPUT_1.4 {
 	libinput_device_config_rotation_is_available;
 	libinput_device_config_rotation_set_angle;
 	libinput_event_tablet_pad_get_mode;
+	libinput_device_tablet_pad_get_button_mode;
+	libinput_device_tablet_pad_get_ring_mode;
+	libinput_device_tablet_pad_get_strip_mode;
 } LIBINPUT_1.3;
