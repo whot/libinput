@@ -240,8 +240,7 @@ tablet.
 
 Some buttons may have expected default behaviors. For example, on Wacom
 Intuos Pro series tablets, the button inside the touch ring is expected to
-switch between a mode switch. Mode switching is a feature implemented in the
-caller and libinput does not provide specific handling. Callers should use
+switch between modes, see @ref tablet-pad-modes. Callers should use
 external sources like libwacom to identify which buttons have semantic
 behaviors.
 
@@ -275,5 +274,61 @@ Left-handed mode is only available on some tablets, some tablets are
 symmetric and thus do not support left-handed mode. libinput requires
 libwacom to determine if a tablet is capable of being switched to
 left-handed mode.
+
+@section tablet-pad-modes Tablet pad modes
+
+Tablet pad modes are virtual groupings of button, ring and strip
+functionality. A caller may assign different functionalities depending on
+the mode the tablet is in. For example, in mode 0 the touch ring may emulate
+scrolling, in mode 1 the touch ring may emulate zooming, etc. libinput
+handles the modes and mode switching but does not assign specific
+functionality to buttons, rings or strips based on the mode. It is up to the
+caller to decide whether the mode only applies to buttons, rings and strips
+or only to rings and strips (this is the case with the Wacom OS X and
+Windows driver).
+
+The availability of modes on a touchpad usually depends on visual feedback
+such as LEDs around the touch ring. If no visual feedback is available, only
+one mode may be available.
+
+Mode switching is controlled by libinput and usually toggled by one or
+more buttons on the device. For example, on the Wacom Intuos 4, 5, and
+Pro series tablets the mode button is the button centered in the touch
+ring and toggles the modes sequentially. On the Wacom Cintiq 24HD the
+three buttons next to each touch ring allow for directly changing the
+mode to the desired setting.
+
+Multiple modes may exist on the tablet, libinput uses the term "mode group"
+for such groupings of buttons that share a mode and mode toggle. For
+example, the Wacom Cintiq 24HD has two separate mode groups, one for the
+left set of buttons, strips, and touch rings and one for the right set.
+libinput handles the mode groups independently and returns the mode for each
+button as appropriate. The mode group is static for the lifetime of the
+device.
+
+@image html tablet-intuos-modes.svg "Modes on an Intuos Pro-like tablet"
+
+In the image above, the Intuos Pro-like tablet provides 4 LEDs to indicate
+the currently active modes. The button inside the touch ring cycles through
+the modes in a clockwise fashion. The upper-right LED indicates that the
+currently active mode is 1, based on 0-indexed mode numbering.
+libinput_event_tablet_pad_get_mode() would thus return 1 for all button and
+ring events on this tablet. When the center button is pressed, the mode
+switches to mode 2, the LED changes to the bottom-right and
+libinput_event_tablet_pad_get_mode() returns 2 for the center button event
+and all subsequent events.
+
+@image html tablet-cintiq24hd-modes.svg "Modes on an Cintiq 24HD-like tablet"
+
+In the image above, the Cintiq 24HD-like tablet provides 3 LEDs on each side
+of the tablet to indicate the currently active mode for that group of
+buttons and the respective ring. The buttons next to the touch ring select
+the mode directly. The two LEDs indicate that the mode for the left set of
+buttons is currently 0, the mode for the right set of buttons is currently
+1, based on 0-indexed mode numbering. libinput_event_tablet_pad_get_mode()
+would thus return 0 for all button and ring events on the left and 1 for all
+button and ring events on the right. When one of the three mode toggle
+buttons on the right is pressed, the right mode switches to that button's
+mode but the left mode remains unchanged.
 
 */

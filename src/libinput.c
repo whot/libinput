@@ -140,6 +140,8 @@ struct libinput_event_tablet_tool {
 
 struct libinput_event_tablet_pad {
 	struct libinput_event base;
+	unsigned int mode;
+	struct libinput_tablet_pad_mode_group *mode_group;
 	uint64_t time;
 	struct {
 		uint32_t number;
@@ -2580,6 +2582,7 @@ event_type_to_str(enum libinput_event_type type)
 	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_PAD_BUTTON);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_PAD_RING);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_PAD_STRIP);
+	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_PAD_MODE);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_SWIPE_END);
@@ -2829,6 +2832,104 @@ libinput_device_tablet_pad_get_num_strips(struct libinput_device *device)
 	return evdev_device_tablet_pad_get_num_strips((struct evdev_device *)device);
 }
 
+LIBINPUT_EXPORT int
+libinput_device_tablet_pad_get_num_mode_groups(struct libinput_device *device)
+{
+	return 0;
+}
+
+LIBINPUT_EXPORT struct libinput_tablet_pad_mode_group*
+libinput_device_tablet_pad_get_mode_group(struct libinput_device *device,
+					  unsigned int index)
+{
+	return NULL;
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_tablet_pad_mode_group_get_num_modes(
+				     struct libinput_tablet_pad_mode_group *group)
+{
+	return 1;
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_tablet_pad_mode_group_get_mode(struct libinput_tablet_pad_mode_group *group)
+{
+	return 0;
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_tablet_pad_mode_group_get_index(struct libinput_tablet_pad_mode_group *group)
+{
+	return 0;
+}
+
+LIBINPUT_EXPORT int
+libinput_tablet_pad_mode_group_has_button(struct libinput_tablet_pad_mode_group *group,
+					  unsigned int button)
+{
+	return 1;
+}
+
+LIBINPUT_EXPORT int
+libinput_tablet_pad_mode_group_has_ring(struct libinput_tablet_pad_mode_group *group,
+					unsigned int ring)
+{
+	return 1;
+}
+
+LIBINPUT_EXPORT int
+libinput_tablet_pad_mode_group_has_strip(struct libinput_tablet_pad_mode_group *group,
+					 unsigned int strip)
+{
+	return 1;
+}
+
+LIBINPUT_EXPORT int
+libinput_tablet_pad_mode_group_button_is_toggle(struct libinput_tablet_pad_mode_group *group,
+						unsigned int button)
+{
+	return 0;
+}
+
+LIBINPUT_EXPORT struct libinput_tablet_pad_mode_group *
+libinput_tablet_pad_mode_group_ref(
+			struct libinput_tablet_pad_mode_group *group)
+{
+	group->refcount++;
+	return group;
+}
+
+LIBINPUT_EXPORT struct libinput_tablet_pad_mode_group *
+libinput_tablet_pad_mode_group_unref(
+			struct libinput_tablet_pad_mode_group *group)
+{
+	assert(group->refcount > 0);
+
+	group->refcount--;
+	if (group->refcount > 0)
+		return group;
+
+	list_remove(&group->link);
+	free(group);
+	return NULL;
+}
+
+LIBINPUT_EXPORT void
+libinput_tablet_pad_mode_group_set_user_data(
+			struct libinput_tablet_pad_mode_group *group,
+			void *user_data)
+{
+	group->user_data = user_data;
+}
+
+LIBINPUT_EXPORT void *
+libinput_tablet_pad_mode_group_get_user_data(
+			struct libinput_tablet_pad_mode_group *group)
+{
+	return group->user_data;
+}
+
 LIBINPUT_EXPORT struct libinput_event *
 libinput_event_device_notify_get_base_event(struct libinput_event_device_notify *event)
 {
@@ -2987,6 +3088,32 @@ libinput_event_tablet_pad_get_button_state(struct libinput_event_tablet_pad *eve
 			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
 
 	return event->button.state;
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_event_tablet_pad_get_mode(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_PAD_RING,
+			   LIBINPUT_EVENT_TABLET_PAD_STRIP,
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+
+	return event->mode;
+}
+
+LIBINPUT_EXPORT struct libinput_tablet_pad_mode_group *
+libinput_event_tablet_pad_get_mode_group(struct libinput_event_tablet_pad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   NULL,
+			   LIBINPUT_EVENT_TABLET_PAD_RING,
+			   LIBINPUT_EVENT_TABLET_PAD_STRIP,
+			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
+
+	return event->mode_group;
 }
 
 LIBINPUT_EXPORT uint32_t

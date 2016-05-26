@@ -130,6 +130,9 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_TABLET_PAD_STRIP:
 		type = "TABLET_PAD_STRIP";
 		break;
+	case LIBINPUT_EVENT_TABLET_PAD_MODE:
+		type = "TABLET_PAD_MODE";
+		break;
 	}
 
 	printf("%-7s	%-16s ", libinput_device_get_sysname(dev), type);
@@ -232,16 +235,18 @@ print_device_notify(struct libinput_event *ev)
 
 	if (libinput_device_has_capability(dev,
 					   LIBINPUT_DEVICE_CAP_TABLET_PAD)) {
-		int nbuttons, nstrips, nrings;
+		int nbuttons, nstrips, nrings, ngroups;
 
 		nbuttons = libinput_device_tablet_pad_get_num_buttons(dev);
 		nstrips = libinput_device_tablet_pad_get_num_strips(dev);
 		nrings = libinput_device_tablet_pad_get_num_rings(dev);
+		ngroups = libinput_device_tablet_pad_get_num_mode_groups(dev);
 
-		printf(" buttons:%d strips:%d rings:%d",
+		printf(" buttons:%d strips:%d rings:%d mode groups:%d",
 		       nbuttons,
 		       nstrips,
-		       nrings);
+		       nrings,
+		       ngroups);
 	}
 
 	printf("\n");
@@ -604,14 +609,25 @@ static void
 print_tablet_pad_button_event(struct libinput_event *ev)
 {
 	struct libinput_event_tablet_pad *p = libinput_event_get_tablet_pad_event(ev);
+	struct libinput_tablet_pad_mode_group *group;
 	enum libinput_button_state state;
+	unsigned int button, mode;
 
 	print_event_time(libinput_event_tablet_pad_get_time(p));
 
+	button = libinput_event_tablet_pad_get_button_number(p),
 	state = libinput_event_tablet_pad_get_button_state(p);
-	printf("%3d %s\n",
-	       libinput_event_tablet_pad_get_button_number(p),
-	       state == LIBINPUT_BUTTON_STATE_PRESSED ? "pressed" : "released");
+	mode = libinput_event_tablet_pad_get_mode(p);
+	printf("%3d %s (mode %d)",
+	       button,
+	       state == LIBINPUT_BUTTON_STATE_PRESSED ? "pressed" : "released",
+	       mode);
+
+	group = libinput_event_tablet_pad_get_mode_group(p);
+	if (libinput_tablet_pad_mode_group_button_is_toggle(group, button))
+		printf(" <mode toggle>");
+
+	printf("\n");
 }
 
 static void
@@ -619,6 +635,7 @@ print_tablet_pad_ring_event(struct libinput_event *ev)
 {
 	struct libinput_event_tablet_pad *p = libinput_event_get_tablet_pad_event(ev);
 	const char *source = "<invalid>";
+	unsigned int mode;
 
 	print_event_time(libinput_event_tablet_pad_get_time(p));
 
@@ -631,10 +648,12 @@ print_tablet_pad_ring_event(struct libinput_event *ev)
 		break;
 	}
 
-	printf("ring %d position %.2f (source %s)\n",
+	mode = libinput_event_tablet_pad_get_mode(p);
+	printf("ring %d position %.2f (source %s) (mode %d)\n",
 	       libinput_event_tablet_pad_get_ring_number(p),
 	       libinput_event_tablet_pad_get_ring_position(p),
-	       source);
+	       source,
+	       mode);
 }
 
 static void
@@ -642,6 +661,7 @@ print_tablet_pad_strip_event(struct libinput_event *ev)
 {
 	struct libinput_event_tablet_pad *p = libinput_event_get_tablet_pad_event(ev);
 	const char *source = "<invalid>";
+	unsigned int mode;
 
 	print_event_time(libinput_event_tablet_pad_get_time(p));
 
@@ -654,10 +674,28 @@ print_tablet_pad_strip_event(struct libinput_event *ev)
 		break;
 	}
 
-	printf("strip %d position %.2f (source %s)\n",
+	mode = libinput_event_tablet_pad_get_mode(p);
+	printf("strip %d position %.2f (source %s) (mode %d)\n",
 	       libinput_event_tablet_pad_get_strip_number(p),
 	       libinput_event_tablet_pad_get_strip_position(p),
-	       source);
+	       source,
+	       mode);
+}
+
+static void
+print_tablet_pad_mode_event(struct libinput_event *ev)
+{
+	struct libinput_event_tablet_pad *p = libinput_event_get_tablet_pad_event(ev);
+	struct libinput_tablet_pad_mode_group *group;
+	unsigned int mode;
+
+	print_event_time(libinput_event_tablet_pad_get_time(p));
+
+	group = libinput_event_tablet_pad_get_mode_group(p);
+	mode = libinput_event_tablet_pad_get_mode(p);
+	printf("group %d mode %d\n",
+	       libinput_tablet_pad_mode_group_get_index(group),
+	       mode);
 }
 
 static int
@@ -747,6 +785,9 @@ handle_and_print_events(struct libinput *li)
 			break;
 		case LIBINPUT_EVENT_TABLET_PAD_STRIP:
 			print_tablet_pad_strip_event(ev);
+			break;
+		case LIBINPUT_EVENT_TABLET_PAD_MODE:
+			print_tablet_pad_mode_event(ev);
 			break;
 		}
 
