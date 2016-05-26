@@ -140,9 +140,11 @@ struct libinput_event_tablet_tool {
 
 struct libinput_event_tablet_pad {
 	struct libinput_event base;
-	uint32_t button;
-	enum libinput_button_state state;
 	uint64_t time;
+	struct {
+		uint32_t button;
+		enum libinput_button_state state;
+	} button;
 	struct {
 		enum libinput_tablet_pad_ring_axis_source source;
 		double position;
@@ -2408,8 +2410,8 @@ tablet_pad_notify_button(struct libinput_device *device,
 
 	*button_event = (struct libinput_event_tablet_pad) {
 		.time = time,
-		.button = button,
-		.state = state,
+		.button.button = button,
+		.button.state = state,
 	};
 
 	post_device_event(device,
@@ -2973,7 +2975,7 @@ libinput_event_tablet_pad_get_button_number(struct libinput_event_tablet_pad *ev
 			   0,
 			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
 
-	return event->button;
+	return event->button.button;
 }
 
 LIBINPUT_EXPORT enum libinput_button_state
@@ -2984,7 +2986,7 @@ libinput_event_tablet_pad_get_button_state(struct libinput_event_tablet_pad *eve
 			   LIBINPUT_BUTTON_STATE_RELEASED,
 			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
 
-	return event->state;
+	return event->button.state;
 }
 
 LIBINPUT_EXPORT uint32_t
