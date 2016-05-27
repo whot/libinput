@@ -268,10 +268,10 @@ print_device_notify(struct libinput_event *ev)
 		printf("pointer ");
 	if (libinput_device_has_capability(dev,
 					   LIBINPUT_DEVICE_CAP_TOUCH))
-		printf("touch");
+		printf("touch ");
 	if (libinput_device_has_capability(dev,
 					   LIBINPUT_DEVICE_CAP_TABLET_TOOL))
-		printf("tablet");
+		printf("tablet ");
 	printf("\n");
 
 	printf("Tap-to-click:     %s\n", tap_default(dev));
