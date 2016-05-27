@@ -246,6 +246,152 @@ enum libinput_tablet_tool_tip_state {
 	LIBINPUT_TABLET_TOOL_TIP_DOWN = 1,
 };
 
+/* FIXME: just to keep the decl below together for now */
+struct libinput_event_tablet_pad;
+struct libinput_device;
+
+/**
+ * @ingroup device
+ *
+ * A mode on a tablet pad is a virtual grouping of functionality, usually
+ * based on some visual feedback like LEDs on the pad. The set of buttons,
+ * rings and strips that share the same mode are a "mode group". Whenever
+ * the mode changes, all buttons, rings and strips within this mode group
+ * are affected. See @ref tablet-pad-modes for detail.
+ *
+ * Most tablets only have a single mode group, some tablets provide multiple
+ * mode groups through independent banks of LEDs (e.g. the Wacom Cintiq
+ * 24HD).
+ *
+ * This struct is refcounted, use libinput_tablet_pad_mode_group_ref() and
+ * libinput_tablet_pad_mode_group_unref().
+ */
+struct libinput_tablet_pad_mode_group;
+
+/**
+ * @return the number of mode groups available on this device
+ */
+int
+libinput_device_tablet_pad_get_num_mode_groups(struct libinput_device *device);
+
+/**
+ * @return the mode group with the given index
+ */
+struct libinput_tablet_pad_mode_group*
+libinput_device_tablet_pad_get_mode_group(struct libinput_device *device,
+					  unsigned int index);
+
+/**
+ * @return the mode group this event belongs to
+ */
+struct libinput_tablet_pad_mode_group*
+libinput_event_tablet_pad_get_mode_group(struct libinput_event_tablet_pad *event);
+
+/**
+ * The returned number is the same index as passed to
+ * libinput_device_tablet_pad_get_mode_group()
+ *
+ * @return the numeric index this mode group represents, starting at 0
+ */
+unsigned int
+libinput_tablet_pad_mode_group_get_index(struct libinput_tablet_pad_mode_group *group);
+/**
+ * @return the numeric index of the current mode in this group, starting at * 0
+ */
+unsigned int
+libinput_tablet_pad_mode_group_get_mode(struct libinput_tablet_pad_mode_group *group);
+
+/**
+ * @return the number of modes available in this mode group
+ */
+unsigned int
+libinput_tablet_pad_mode_group_get_num_modes(struct libinput_tablet_pad_mode_group *group);
+
+/**
+ * @return true if the given button index is part of this mode group or
+ * false otherwise
+ */
+int
+libinput_tablet_pad_mode_group_has_button(struct libinput_tablet_pad_mode_group *group,
+					  unsigned int button);
+
+/**
+ * @return true if the given ring index is part of this mode group or
+ * false otherwise
+ */
+int
+libinput_tablet_pad_mode_group_has_ring(struct libinput_tablet_pad_mode_group *group,
+					  unsigned int ring);
+
+/**
+ * @return true if the given strip index is part of this mode group or
+ * false otherwise
+ */
+int
+libinput_tablet_pad_mode_group_has_strip(struct libinput_tablet_pad_mode_group *group,
+					  unsigned int strip);
+
+/**
+ * @retval true if the button is a mode toggle button for this group, or
+ * false otherwise
+ */
+int
+libinput_tablet_pad_mode_group_button_is_toggle(struct libinput_tablet_pad_mode_group *group,
+						unsigned int button);
+
+enum libinput_tablet_pad_mode_group_targets {
+	/* 0...n are reserved for actual modes */
+	LIBINPUT_TABLET_PAD_MODE_GROUP_TARGET_PREVIOUS = 0xFF00,
+	LIBINPUT_TABLET_PAD_MODE_GROUP_TARGET_NEXT = 0xFF01,
+};
+
+/**
+ * @retval the mode selected when this mode toggle button is
+ * pressed, starting at index 0
+ * @retval LIBINPUT_TABLET_PAD_MODE_GROUP_TARGET_PREVIOUS  Upon pressing
+ * this button, the previous mode is selected
+ * @retval LIBINPUT_TABLET_PAD_MODE_GROUP_TARGET_NEXT  Upon pressing this button, the next mode is selected
+ */
+unsigned int
+libinput_tablet_pad_mode_group_button_get_toggle_target(struct libinput_tablet_pad_mode_group *group,
+							unsigned int button);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Returns the mode the mode group of this event is in as result of this
+ * event. See @ref tablet-pad-modes for details. Mode indices start at 0, a
+ * device that does not support modes always returns 0.
+ *
+ * Mode switching is controlled by libinput and more than one mode may exist
+ * on the tablet. This function returns the mode the button, ring or strip
+ * of this event is logically grouped in. If the button is the mode toggle
+ * button and the button event caused a new mode to be toggled, the mode
+ * returned is the new mode the button is in.
+ *
+ * @param event The libinput tablet pad event
+ * @return the current 0-indexed mode of this button, ring or strip
+ */
+unsigned int
+libinput_event_tablet_pad_get_mode(struct libinput_event_tablet_pad *event);
+
+struct libinput_tablet_tool *
+libinput_tablet_pad_mode_group_ref(
+			struct libinput_tablet_pad_mode_group *pad_mode_group);
+
+struct libinput_tablet_tool *
+libinput_tablet_pad_mode_group_unref(
+			struct libinput_tablet_pad_mode_group *pad_mode_group);
+
+void
+libinput_tablet_pad_mode_group_set_user_data(
+			struct libinput_tablet_pad_mode_group *pad_mode_group,
+			void *user_data);
+
+void *
+libinput_tablet_pad_mode_group_get_user_data(
+			struct libinput_tablet_pad_mode_group *pad_mode_group);
+
 /**
  * @ingroup base
  *
