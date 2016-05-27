@@ -2401,7 +2401,8 @@ void
 tablet_pad_notify_button(struct libinput_device *device,
 			 uint64_t time,
 			 int32_t button,
-			 enum libinput_button_state state)
+			 enum libinput_button_state state,
+			 unsigned int mode)
 {
 	struct libinput_event_tablet_pad *button_event;
 
@@ -2413,6 +2414,7 @@ tablet_pad_notify_button(struct libinput_device *device,
 		.time = time,
 		.button.button = button,
 		.button.state = state,
+		.mode = mode,
 	};
 
 	post_device_event(device,
@@ -2426,7 +2428,8 @@ tablet_pad_notify_ring(struct libinput_device *device,
 		       uint64_t time,
 		       unsigned int number,
 		       double value,
-		       enum libinput_tablet_pad_ring_axis_source source)
+		       enum libinput_tablet_pad_ring_axis_source source,
+		       unsigned int mode)
 {
 	struct libinput_event_tablet_pad *ring_event;
 
@@ -2439,6 +2442,7 @@ tablet_pad_notify_ring(struct libinput_device *device,
 		.ring.number = number,
 		.ring.position = value,
 		.ring.source = source,
+		.mode = mode,
 	};
 
 	post_device_event(device,
@@ -2452,7 +2456,8 @@ tablet_pad_notify_strip(struct libinput_device *device,
 			uint64_t time,
 			unsigned int number,
 			double value,
-			enum libinput_tablet_pad_strip_axis_source source)
+			enum libinput_tablet_pad_strip_axis_source source,
+			unsigned int mode)
 {
 	struct libinput_event_tablet_pad *strip_event;
 
@@ -2465,6 +2470,7 @@ tablet_pad_notify_strip(struct libinput_device *device,
 		.strip.number = number,
 		.strip.position = value,
 		.strip.source = source,
+		.mode = mode,
 	};
 
 	post_device_event(device,
@@ -2834,21 +2840,24 @@ LIBINPUT_EXPORT unsigned int
 libinput_device_tablet_pad_get_button_mode(struct libinput_device *device,
 					   unsigned int button)
 {
-	return 0;
+	return evdev_device_tablet_pad_get_button_mode((struct evdev_device *)device,
+						       button);
 }
 
 LIBINPUT_EXPORT unsigned int
 libinput_device_tablet_pad_get_ring_mode(struct libinput_device *device,
 					 unsigned int ring)
 {
-	return 0;
+	return evdev_device_tablet_pad_get_ring_mode((struct evdev_device *)device,
+						     ring);
 }
 
 LIBINPUT_EXPORT unsigned int
 libinput_device_tablet_pad_get_strip_mode(struct libinput_device *device,
 					  unsigned int strip)
 {
-	return 0;
+	return evdev_device_tablet_pad_get_strip_mode((struct evdev_device *)device,
+						      strip);
 }
 
 LIBINPUT_EXPORT struct libinput_event *

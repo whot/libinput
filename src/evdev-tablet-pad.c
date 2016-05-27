@@ -217,6 +217,7 @@ pad_check_notify_axes(struct pad_dispatch *pad,
 	struct libinput_device *base = &device->base;
 	double value;
 	bool send_finger_up = false;
+	unsigned int mode;
 
 	/* Suppress the reset to 0 on finger up. See the
 	   comment in pad_process_absolute */
@@ -229,11 +230,13 @@ pad_check_notify_axes(struct pad_dispatch *pad,
 		if (send_finger_up)
 			value = -1.0;
 
+		mode = pad_ring_update_mode(pad, 0);
 		tablet_pad_notify_ring(base,
 				       time,
 				       0,
 				       value,
-				       LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER);
+				       LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER,
+				       mode);
 	}
 
 	if (pad->changed_axes & PAD_AXIS_RING2) {
@@ -241,11 +244,13 @@ pad_check_notify_axes(struct pad_dispatch *pad,
 		if (send_finger_up)
 			value = -1.0;
 
+		mode = pad_ring_update_mode(pad, 1);
 		tablet_pad_notify_ring(base,
 				       time,
 				       1,
 				       value,
-				       LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER);
+				       LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER,
+				       mode);
 	}
 
 	if (pad->changed_axes & PAD_AXIS_STRIP1) {
@@ -253,11 +258,13 @@ pad_check_notify_axes(struct pad_dispatch *pad,
 		if (send_finger_up)
 			value = -1.0;
 
+		mode = pad_strip_update_mode(pad, 0);
 		tablet_pad_notify_strip(base,
 					time,
 					0,
 					value,
-					LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER);
+					LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER,
+					mode);
 	}
 
 	if (pad->changed_axes & PAD_AXIS_STRIP2) {
@@ -265,11 +272,13 @@ pad_check_notify_axes(struct pad_dispatch *pad,
 		if (send_finger_up)
 			value = -1.0;
 
+		mode = pad_strip_update_mode(pad, 1);
 		tablet_pad_notify_strip(base,
 					time,
 					1,
 					value,
-					LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER);
+					LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER,
+					mode);
 	}
 
 	pad->changed_axes = PAD_AXIS_NONE;
@@ -298,6 +307,7 @@ pad_notify_button_mask(struct pad_dispatch *pad,
 	struct libinput_device *base = &device->base;
 	int32_t code;
 	unsigned int i;
+	unsigned int mode;
 
 	for (i = 0; i < sizeof(buttons->bits); i++) {
 		unsigned char buttons_slice = buttons->bits[i];
@@ -315,8 +325,10 @@ pad_notify_button_mask(struct pad_dispatch *pad,
 				continue;
 
 			map = pad->button_map[code - 1];
-			if (map != -1)
-				tablet_pad_notify_button(base, time, map, state);
+			if (map != -1) {
+				mode = pad_button_update_mode(pad, map, state);
+				tablet_pad_notify_button(base, time, map, state, mode);
+			}
 		}
 	}
 }
@@ -437,6 +449,7 @@ pad_destroy(struct evdev_dispatch *dispatch)
 {
 	struct pad_dispatch *pad = (struct pad_dispatch*)dispatch;
 
+	pad_destroy_leds(pad);
 	free(pad);
 }
 
@@ -500,6 +513,7 @@ pad_init(struct pad_dispatch *pad, struct evdev_device *device)
 
 	pad_init_buttons(pad, device);
 	pad_init_left_handed(device);
+	pad_init_leds(pad, device);
 
 	return 0;
 }

@@ -64,6 +64,27 @@ struct pad_dispatch {
 		struct libinput_device_config_send_events config;
 		enum libinput_config_send_events_mode current_mode;
 	} sendevents;
+
+	struct {
+		struct list led_list;
+		struct list mode_button_list;
+		struct list mode_ring_list;
+		struct list mode_strip_list;
+	} leds;
 };
 
+void
+pad_init_leds(struct pad_dispatch *pad, struct evdev_device *device);
+void
+pad_destroy_leds(struct pad_dispatch *pad);
+unsigned int
+pad_button_update_mode(struct pad_dispatch *pad,
+		       unsigned int pressed_button,
+		       enum libinput_button_state state);
+unsigned int
+pad_ring_update_mode(struct pad_dispatch *pad,
+		     unsigned int ring_idx);
+unsigned int
+pad_strip_update_mode(struct pad_dispatch *pad,
+		      unsigned int strip_idx);
 #endif
