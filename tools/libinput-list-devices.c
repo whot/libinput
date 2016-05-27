@@ -229,7 +229,7 @@ static void
 print_pad_info(struct libinput_device *device)
 {
 	int nbuttons, nrings, nstrips;
-	unsigned int mode;
+	unsigned int mode, group;
 	int i;
 
 	nbuttons = libinput_device_tablet_pad_get_num_buttons(device);
@@ -242,7 +242,8 @@ print_pad_info(struct libinput_device *device)
 		printf(", modes: ");
 		for (i = 0; i < nrings; i++) {
 			mode = libinput_device_tablet_pad_get_ring_mode(device, i);
-			printf("%d ", mode);
+			group = libinput_device_tablet_pad_get_ring_mode_group(device, i);
+			printf("%d:%d ", group, mode);
 		}
 	}
 	printf("\n");
@@ -251,7 +252,8 @@ print_pad_info(struct libinput_device *device)
 		printf(", modes: ");
 		for (i = 0; i < nstrips; i++) {
 			mode = libinput_device_tablet_pad_get_strip_mode(device, i);
-			printf("%d ", mode);
+			group = libinput_device_tablet_pad_get_strip_mode_group(device, i);
+			printf("%d:%d ", group, mode);
 		}
 	}
 	printf("\n");
@@ -260,7 +262,8 @@ print_pad_info(struct libinput_device *device)
 		printf(", modes: ");
 		for (i = 0; i < nbuttons; i++) {
 			mode = libinput_device_tablet_pad_get_button_mode(device, i);
-			printf("%d ", mode);
+			group = libinput_device_tablet_pad_get_button_mode_group(device, i);
+			printf("%d:%d ", group, mode);
 		}
 	}
 	printf("\n");
