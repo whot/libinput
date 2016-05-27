@@ -3,10 +3,6 @@ EXTRA_DIST = \
 	     touchpad-tap-state-machine.svg \
 	     touchpad-softbutton-state-machine.svg
 
-if BUILD_DOCS
-
-noinst_DATA = html/index.html
-
 header_files = \
 	$(top_srcdir)/src/libinput.h \
 	$(top_srcdir)/README.txt \
@@ -68,6 +64,10 @@ style_files = \
 	      style/customdoxygen.css \
 	      style/bootstrap.css
 
+if BUILD_DOCS
+
+noinst_DATA = html/index.html
+
 html/index.html: libinput.doxygen $(header_files) $(diagram_files) $(style_files)
 	$(AM_V_GEN)(cat $<; \
           echo "INPUT = $(header_files)"; \
@@ -78,11 +78,12 @@ clean-local:
 
 doc_src= $(shell find html -type f -printf "html/%P\n" 2>/dev/null)
 EXTRA_DIST += $(builddir)/html/index.html \
-	      $(doc_src) \
-	      $(diagram_files) \
+	      $(doc_src)
+endif
+
+EXTRA_DIST += $(diagram_files) \
 	      $(header_files) \
 	      $(style_files)
-endif
 
 # make sure doc was built before running dist
 dist-hook:
