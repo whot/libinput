@@ -648,3 +648,72 @@ evdev_device_tablet_pad_get_strip_mode(struct evdev_device *device,
 
 	return mode;
 }
+
+unsigned int
+evdev_device_tablet_pad_get_button_mode_group(struct evdev_device *device,
+					      unsigned int button_idx)
+{
+	struct pad_dispatch *pad = (struct pad_dispatch*)device->dispatch;
+	struct pad_mode_button *button;
+	unsigned int group = 0;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_TABLET_PAD))
+		return 0;
+
+#if HAVE_LIBWACOM
+	list_for_each(button, &pad->leds.mode_button_list, link) {
+		if (button->button_index != button_idx)
+			continue;
+
+		group = button->group->group;
+	}
+#endif
+
+	return group;
+}
+
+unsigned int
+evdev_device_tablet_pad_get_ring_mode_group(struct evdev_device *device,
+					    unsigned int ring_idx)
+{
+	struct pad_dispatch *pad = (struct pad_dispatch*)device->dispatch;
+	struct pad_mode_button *button;
+	unsigned int group = 0;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_TABLET_PAD))
+		return 0;
+
+#if HAVE_LIBWACOM
+	list_for_each(button, &pad->leds.mode_ring_list, link) {
+		if (button->button_index != ring_idx)
+			continue;
+
+		group = button->group->group;
+	}
+#endif
+
+	return group;
+}
+
+unsigned int
+evdev_device_tablet_pad_get_strip_mode_group(struct evdev_device *device,
+					     unsigned int strip_idx)
+{
+	struct pad_dispatch *pad = (struct pad_dispatch*)device->dispatch;
+	struct pad_mode_button *button;
+	unsigned int group = 0;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_TABLET_PAD))
+		return 0;
+
+#if HAVE_LIBWACOM
+	list_for_each(button, &pad->leds.mode_strip_list, link) {
+		if (button->button_index != strip_idx)
+			continue;
+
+		group = button->group->group;
+	}
+#endif
+
+	return group;
+}
