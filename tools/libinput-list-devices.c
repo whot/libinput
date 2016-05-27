@@ -226,6 +226,21 @@ dwt_default(struct libinput_device *device)
 }
 
 static void
+print_pad_info(struct libinput_device *device)
+{
+	int nbuttons, nrings, nstrips;
+
+	nbuttons = libinput_device_tablet_pad_get_num_buttons(device);
+	nrings = libinput_device_tablet_pad_get_num_rings(device);
+	nstrips = libinput_device_tablet_pad_get_num_strips(device);
+
+	printf("Pad:\n");
+	printf("	Rings: %d\n", nrings);
+	printf("	Strips: %d\n", nstrips);
+	printf("	Buttons: %d\n", nbuttons);
+}
+
+static void
 print_device_notify(struct libinput_event *ev)
 {
 	struct libinput_device *dev = libinput_event_get_device(ev);
@@ -300,6 +315,10 @@ print_device_notify(struct libinput_event *ev)
 	str = accel_profiles(dev);
 	printf("Accel profiles:   %s\n", str);
 	free(str);
+
+	if (libinput_device_has_capability(dev,
+					   LIBINPUT_DEVICE_CAP_TABLET_PAD))
+		print_pad_info(dev);
 
 	printf("\n");
 }
