@@ -85,6 +85,16 @@ EXTRA_DIST += $(diagram_files) \
 	      $(header_files) \
 	      $(style_files)
 
+local_svg = $(shell find $(srcdir)/svg -type f -printf "$(srcdir)/svg/%P\n" 2>/dev/null)
+local_dotfiles = $(shell find $(srcdir)/dot -type f -printf "$(srcdir)/dot/%P\n" 2>/dev/null)
+
+check:
+	@files=`echo $(local_svg) $(local_dotfiles) $(diagram_files) | tr ' ' '\n' | sort | uniq -u` && \
+		test -z "$$files" || (\
+		echo "SVG/dotfiles files present but missing from the Makefile.am:" && \
+		echo "$$files" && \
+		test)
+
 # make sure doc was built before running dist
 dist-hook:
 	@test -f $(distdir)/html/index.html || (\
