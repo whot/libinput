@@ -272,6 +272,9 @@ print_device_notify(struct libinput_event *ev)
 	if (libinput_device_has_capability(dev,
 					   LIBINPUT_DEVICE_CAP_TABLET_TOOL))
 		printf("tablet ");
+	if (libinput_device_has_capability(dev,
+					   LIBINPUT_DEVICE_CAP_TABLET_PAD))
+		printf("tablet-pad");
 	printf("\n");
 
 	printf("Tap-to-click:     %s\n", tap_default(dev));
