@@ -3307,6 +3307,28 @@ libinput_device_tablet_pad_get_button_mode(struct libinput_device *device,
 /**
  * @ingroup device
  *
+ * Return the 0-indexed mode group for the given button index. The button
+ * index must be less than the number returned by
+ * libinput_device_tablet_pad_get_num_buttons(). See @ref tablet-pad-modes
+ * for details on modes.
+ *
+ * The mode group is static for the lifetime of the device.
+ *
+ * This function returns 0 for an invalid button index or if the device does
+ * not have the @ref LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
+ *
+ * @param device A current input device with the @ref
+ * LIBINPUT_DEVICE_CAP_TABLET_PAD capability
+ * @param button The button index
+ * @return The mode group the button belongs to
+ */
+unsigned int
+libinput_device_tablet_pad_get_button_mode_group(struct libinput_device *device,
+						 unsigned int button);
+
+/**
+ * @ingroup device
+ *
  * Return the 0-indexed mode for the given ring index. The ring index must
  * be less than the number returned by
  * libinput_device_tablet_pad_get_num_rings(). See @ref tablet-pad-modes for
@@ -3327,6 +3349,28 @@ libinput_device_tablet_pad_get_ring_mode(struct libinput_device *device,
 /**
  * @ingroup device
  *
+ * Return the 0-indexed mode group for the given ring index. The button
+ * index must be less than the number returned by
+ * libinput_device_tablet_pad_get_num_rings(). See @ref tablet-pad-modes
+ * for details on modes.
+ *
+ * The mode group is static for the lifetime of the device.
+ *
+ * This function returns 0 for an invalid ring index or if the device does
+ * not have the @ref LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
+ *
+ * @param device A current input device with the @ref
+ * LIBINPUT_DEVICE_CAP_TABLET_PAD capability
+ * @param ring The button index
+ * @return The mode group the ring belongs to
+ */
+unsigned int
+libinput_device_tablet_pad_get_ring_mode_group(struct libinput_device *device,
+					       unsigned int ring);
+
+/**
+ * @ingroup device
+ *
  * Return the 0-indexed mode for the given strip index. The strip index must
  * be less than the number returned by
  * libinput_device_tablet_pad_get_num_strips(). See @ref tablet-pad-modes
@@ -3343,6 +3387,28 @@ libinput_device_tablet_pad_get_ring_mode(struct libinput_device *device,
 unsigned int
 libinput_device_tablet_pad_get_strip_mode(struct libinput_device *device,
 					  unsigned int strip);
+
+/**
+ * @ingroup device
+ *
+ * Return the 0-indexed mode group for the given strip index. The button
+ * index must be less than the number returned by
+ * libinput_device_tablet_pad_get_num_strips(). See @ref tablet-pad-modes
+ * for details on modes.
+ *
+ * The mode group is static for the lifetime of the device.
+ *
+ * This function returns 0 for an invalid strip index or if the device does
+ * not have the @ref LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
+ *
+ * @param device A current input device with the @ref
+ * LIBINPUT_DEVICE_CAP_TABLET_PAD capability
+ * @param strip The button index
+ * @return The mode group the strip belongs to
+ */
+unsigned int
+libinput_device_tablet_pad_get_strip_mode_group(struct libinput_device *device,
+					       unsigned int strip);
 
 /**
  * @ingroup device

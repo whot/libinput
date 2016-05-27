@@ -2860,6 +2860,27 @@ libinput_device_tablet_pad_get_strip_mode(struct libinput_device *device,
 						      strip);
 }
 
+LIBINPUT_EXPORT unsigned int
+libinput_device_tablet_pad_get_button_mode_group(struct libinput_device *device,
+						 unsigned int button)
+{
+	return 0;
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_device_tablet_pad_get_ring_mode_group(struct libinput_device *device,
+					       unsigned int ring)
+{
+	return 0;
+}
+
+LIBINPUT_EXPORT unsigned int
+libinput_device_tablet_pad_get_strip_mode_group(struct libinput_device *device,
+						unsigned int strip)
+{
+	return 0;
+}
+
 LIBINPUT_EXPORT struct libinput_event *
 libinput_event_device_notify_get_base_event(struct libinput_event_device_notify *event)
 {
