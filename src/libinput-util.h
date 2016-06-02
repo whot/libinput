@@ -87,6 +87,7 @@ int list_empty(const struct list *list);
 	     pos = tmp,							\
 	     tmp = container_of(pos->member.next, tmp, member))
 
+#define NBITS(b) (b * 8)
 #define LONG_BITS (sizeof(long) * 8)
 #define NLONGS(x) (((x) + LONG_BITS - 1) / LONG_BITS)
 #define ARRAY_LENGTH(a) (sizeof (a) / sizeof (a)[0])

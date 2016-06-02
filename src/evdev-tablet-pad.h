@@ -64,6 +64,10 @@ struct pad_dispatch {
 		struct libinput_device_config_send_events config;
 		enum libinput_config_send_events_mode current_mode;
 	} sendevents;
+
+	struct {
+		struct list mode_group_list;
+	} modes;
 };
 
 static inline struct libinput *
@@ -72,4 +76,12 @@ pad_libinput_context(const struct pad_dispatch *pad)
 	return evdev_libinput_context(pad->device);
 }
 
+int
+pad_init_leds(struct pad_dispatch *pad, struct evdev_device *device);
+void
+pad_destroy_leds(struct pad_dispatch *pad);
+void
+pad_button_update_mode(struct libinput_tablet_pad_mode_group *g,
+		       unsigned int pressed_button,
+		       enum libinput_button_state state);
 #endif

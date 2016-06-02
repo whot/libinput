@@ -209,12 +209,45 @@ pad_handle_strip(struct pad_dispatch *pad,
 	return pos;
 }
 
+static inline struct libinput_tablet_pad_mode_group *
+pad_ring_get_mode_group(struct pad_dispatch *pad,
+			unsigned int ring)
+{
+	struct libinput_tablet_pad_mode_group *group;
+
+	list_for_each(group, &pad->modes.mode_group_list, link) {
+		if (libinput_tablet_pad_mode_group_has_ring(group, ring))
+			return group;
+	}
+
+	assert(!"Unable to find ring mode group");
+
+	return NULL;
+}
+
+static inline struct libinput_tablet_pad_mode_group *
+pad_strip_get_mode_group(struct pad_dispatch *pad,
+			unsigned int strip)
+{
+	struct libinput_tablet_pad_mode_group *group;
+
+	list_for_each(group, &pad->modes.mode_group_list, link) {
+		if (libinput_tablet_pad_mode_group_has_strip(group, strip))
+			return group;
+	}
+
+	assert(!"Unable to find strip mode group");
+
+	return NULL;
+}
+
 static void
 pad_check_notify_axes(struct pad_dispatch *pad,
 		      struct evdev_device *device,
 		      uint64_t time)
 {
 	struct libinput_device *base = &device->base;
+	struct libinput_tablet_pad_mode_group *group;
 	double value;
 	bool send_finger_up = false;
 
@@ -229,11 +262,13 @@ pad_check_notify_axes(struct pad_dispatch *pad,
 		if (send_finger_up)
 			value = -1.0;
 
+		group = pad_ring_get_mode_group(pad, 0);
 		tablet_pad_notify_ring(base,
 				       time,
 				       0,
 				       value,
-				       LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER);
+				       LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER,
+				       group);
 	}
 
 	if (pad->changed_axes & PAD_AXIS_RING2) {
@@ -241,11 +276,13 @@ pad_check_notify_axes(struct pad_dispatch *pad,
 		if (send_finger_up)
 			value = -1.0;
 
+		group = pad_ring_get_mode_group(pad, 1);
 		tablet_pad_notify_ring(base,
 				       time,
 				       1,
 				       value,
-				       LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER);
+				       LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER,
+				       group);
 	}
 
 	if (pad->changed_axes & PAD_AXIS_STRIP1) {
@@ -253,11 +290,13 @@ pad_check_notify_axes(struct pad_dispatch *pad,
 		if (send_finger_up)
 			value = -1.0;
 
+		group = pad_strip_get_mode_group(pad, 0);
 		tablet_pad_notify_strip(base,
 					time,
 					0,
 					value,
-					LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER);
+					LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER,
+					group);
 	}
 
 	if (pad->changed_axes & PAD_AXIS_STRIP2) {
@@ -265,11 +304,13 @@ pad_check_notify_axes(struct pad_dispatch *pad,
 		if (send_finger_up)
 			value = -1.0;
 
+		group = pad_strip_get_mode_group(pad, 1);
 		tablet_pad_notify_strip(base,
 					time,
 					1,
 					value,
-					LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER);
+					LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER,
+					group);
 	}
 
 	pad->changed_axes = PAD_AXIS_NONE;
@@ -288,6 +329,22 @@ pad_process_key(struct pad_dispatch *pad,
 	pad_button_set_down(pad, button, is_press);
 }
 
+static inline struct libinput_tablet_pad_mode_group *
+pad_button_get_mode_group(struct pad_dispatch *pad,
+			  unsigned int button)
+{
+	struct libinput_tablet_pad_mode_group *group;
+
+	list_for_each(group, &pad->modes.mode_group_list, link) {
+		if (libinput_tablet_pad_mode_group_has_button(group, button))
+			return group;
+	}
+
+	assert(!"Unable to find button mode group\n");
+
+	return NULL;
+}
+
 static void
 pad_notify_button_mask(struct pad_dispatch *pad,
 		       struct evdev_device *device,
@@ -296,6 +353,7 @@ pad_notify_button_mask(struct pad_dispatch *pad,
 		       enum libinput_button_state state)
 {
 	struct libinput_device *base = &device->base;
+	struct libinput_tablet_pad_mode_group *group;
 	int32_t code;
 	unsigned int i;
 
@@ -315,8 +373,11 @@ pad_notify_button_mask(struct pad_dispatch *pad,
 				continue;
 
 			map = pad->button_map[code - 1];
-			if (map != -1)
-				tablet_pad_notify_button(base, time, map, state);
+			if (map != -1) {
+				group = pad_button_get_mode_group(pad, map);
+				pad_button_update_mode(group, map, state);
+				tablet_pad_notify_button(base, time, map, state, group);
+			}
 		}
 	}
 }
@@ -437,6 +498,7 @@ pad_destroy(struct evdev_dispatch *dispatch)
 {
 	struct pad_dispatch *pad = (struct pad_dispatch*)dispatch;
 
+	pad_destroy_leds(pad);
 	free(pad);
 }
 
@@ -500,6 +562,8 @@ pad_init(struct pad_dispatch *pad, struct evdev_device *device)
 
 	pad_init_buttons(pad, device);
 	pad_init_left_handed(device);
+	if (pad_init_leds(pad, device) != 0)
+		return 1;
 
 	return 0;
 }
