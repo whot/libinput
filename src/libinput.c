@@ -1668,6 +1668,12 @@ libinput_event_tablet_tool_destroy(struct libinput_event_tablet_tool *event)
 	libinput_tablet_tool_unref(event->tool);
 }
 
+static void
+libinput_event_tablet_pad_destroy(struct libinput_event_tablet_pad *event)
+{
+	libinput_tablet_pad_mode_group_unref(event->mode_group);
+}
+
 LIBINPUT_EXPORT void
 libinput_event_destroy(struct libinput_event *event)
 {
@@ -1681,6 +1687,13 @@ libinput_event_destroy(struct libinput_event *event)
 	case LIBINPUT_EVENT_TABLET_TOOL_BUTTON:
 		libinput_event_tablet_tool_destroy(
 		   libinput_event_get_tablet_tool_event(event));
+		break;
+	case LIBINPUT_EVENT_TABLET_PAD_RING:
+	case LIBINPUT_EVENT_TABLET_PAD_STRIP:
+	case LIBINPUT_EVENT_TABLET_PAD_BUTTON:
+	case LIBINPUT_EVENT_TABLET_PAD_MODE:
+		libinput_event_tablet_pad_destroy(
+		   libinput_event_get_tablet_pad_event(event));
 		break;
 	default:
 		break;
@@ -2402,18 +2415,24 @@ void
 tablet_pad_notify_button(struct libinput_device *device,
 			 uint64_t time,
 			 int32_t button,
-			 enum libinput_button_state state)
+			 enum libinput_button_state state,
+			 struct libinput_tablet_pad_mode_group *group)
 {
 	struct libinput_event_tablet_pad *button_event;
+	unsigned int mode;
 
 	button_event = zalloc(sizeof *button_event);
 	if (!button_event)
 		return;
 
+	mode = libinput_tablet_pad_mode_group_get_mode(group);
+
 	*button_event = (struct libinput_event_tablet_pad) {
 		.time = time,
 		.button.number = button,
 		.button.state = state,
+		.mode_group = libinput_tablet_pad_mode_group_ref(group),
+		.mode = mode,
 	};
 
 	post_device_event(device,
@@ -2427,19 +2446,25 @@ tablet_pad_notify_ring(struct libinput_device *device,
 		       uint64_t time,
 		       unsigned int number,
 		       double value,
-		       enum libinput_tablet_pad_ring_axis_source source)
+		       enum libinput_tablet_pad_ring_axis_source source,
+		       struct libinput_tablet_pad_mode_group *group)
 {
 	struct libinput_event_tablet_pad *ring_event;
+	unsigned int mode;
 
 	ring_event = zalloc(sizeof *ring_event);
 	if (!ring_event)
 		return;
+
+	mode = libinput_tablet_pad_mode_group_get_mode(group);
 
 	*ring_event = (struct libinput_event_tablet_pad) {
 		.time = time,
 		.ring.number = number,
 		.ring.position = value,
 		.ring.source = source,
+		.mode_group = libinput_tablet_pad_mode_group_ref(group),
+		.mode = mode,
 	};
 
 	post_device_event(device,
@@ -2453,19 +2478,25 @@ tablet_pad_notify_strip(struct libinput_device *device,
 			uint64_t time,
 			unsigned int number,
 			double value,
-			enum libinput_tablet_pad_strip_axis_source source)
+			enum libinput_tablet_pad_strip_axis_source source,
+			struct libinput_tablet_pad_mode_group *group)
 {
 	struct libinput_event_tablet_pad *strip_event;
+	unsigned int mode;
 
 	strip_event = zalloc(sizeof *strip_event);
 	if (!strip_event)
 		return;
+
+	mode = libinput_tablet_pad_mode_group_get_mode(group);
 
 	*strip_event = (struct libinput_event_tablet_pad) {
 		.time = time,
 		.strip.number = number,
 		.strip.position = value,
 		.strip.source = source,
+		.mode_group = libinput_tablet_pad_mode_group_ref(group),
+		.mode = mode,
 	};
 
 	post_device_event(device,
@@ -2835,61 +2866,78 @@ libinput_device_tablet_pad_get_num_strips(struct libinput_device *device)
 LIBINPUT_EXPORT int
 libinput_device_tablet_pad_get_num_mode_groups(struct libinput_device *device)
 {
-	return 0;
+	return evdev_device_tablet_pad_get_num_mode_groups((struct evdev_device *)device);
 }
 
 LIBINPUT_EXPORT struct libinput_tablet_pad_mode_group*
 libinput_device_tablet_pad_get_mode_group(struct libinput_device *device,
 					  unsigned int index)
 {
-	return NULL;
+	return evdev_device_tablet_pad_get_mode_group((struct evdev_device *)device,
+						      index);
 }
 
 LIBINPUT_EXPORT unsigned int
 libinput_tablet_pad_mode_group_get_num_modes(
 				     struct libinput_tablet_pad_mode_group *group)
 {
-	return 1;
+	return group->num_modes;
 }
 
 LIBINPUT_EXPORT unsigned int
 libinput_tablet_pad_mode_group_get_mode(struct libinput_tablet_pad_mode_group *group)
 {
-	return 0;
+	return group->current_mode;
 }
 
 LIBINPUT_EXPORT unsigned int
 libinput_tablet_pad_mode_group_get_index(struct libinput_tablet_pad_mode_group *group)
 {
-	return 0;
+	return group->index;
 }
 
 LIBINPUT_EXPORT int
 libinput_tablet_pad_mode_group_has_button(struct libinput_tablet_pad_mode_group *group,
 					  unsigned int button)
 {
-	return 1;
+	if ((int)button >=
+	    libinput_device_tablet_pad_get_num_buttons(group->device))
+		return 0;
+
+	return !!(group->button_mask & (1 << button));
 }
 
 LIBINPUT_EXPORT int
 libinput_tablet_pad_mode_group_has_ring(struct libinput_tablet_pad_mode_group *group,
 					unsigned int ring)
 {
-	return 1;
+	if ((int)ring >=
+	    libinput_device_tablet_pad_get_num_rings(group->device))
+		return 0;
+
+	return !!(group->ring_mask & (1 << ring));
 }
 
 LIBINPUT_EXPORT int
 libinput_tablet_pad_mode_group_has_strip(struct libinput_tablet_pad_mode_group *group,
 					 unsigned int strip)
 {
-	return 1;
+	if ((int)strip >=
+	    libinput_device_tablet_pad_get_num_strips(group->device))
+		return 0;
+
+	return !!(group->strip_mask & (1 << strip));
 }
 
 LIBINPUT_EXPORT int
 libinput_tablet_pad_mode_group_button_is_toggle(struct libinput_tablet_pad_mode_group *group,
 						unsigned int button)
 {
-	return 0;
+	if ((int)button >=
+	    libinput_device_tablet_pad_get_num_buttons(group->device))
+		return 0;
+
+	return !!(group->toggle_button_mask & (1 << button));
 }
 
 LIBINPUT_EXPORT struct libinput_tablet_pad_mode_group *
@@ -2911,7 +2959,7 @@ libinput_tablet_pad_mode_group_unref(
 		return group;
 
 	list_remove(&group->link);
-	free(group);
+	group->destroy(group);
 	return NULL;
 }
 

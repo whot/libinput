@@ -392,6 +392,22 @@ evdev_device_tablet_pad_get_num_rings(struct evdev_device *device);
 int
 evdev_device_tablet_pad_get_num_strips(struct evdev_device *device);
 
+int
+evdev_device_tablet_pad_get_num_mode_groups(struct evdev_device *device);
+
+struct libinput_tablet_pad_mode_group *
+evdev_device_tablet_pad_get_mode_group(struct evdev_device *device,
+				       unsigned int index);
+
+unsigned int
+evdev_device_tablet_pad_mode_group_get_button_target(
+				     struct libinput_tablet_pad_mode_group *g,
+				     unsigned int button_index);
+
+struct libinput_tablet_pad_led *
+evdev_device_tablet_pad_get_led(struct evdev_device *device,
+				unsigned int led);
+
 double
 evdev_device_transform_x(struct evdev_device *device,
 			 double x,
