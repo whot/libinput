@@ -50,6 +50,7 @@ liblitest_la_SOURCES = \
 	litest-device-wacom-bamboo-tablet.c \
 	litest-device-wacom-cintiq-tablet.c \
 	litest-device-wacom-cintiq-24hd.c \
+	litest-device-wacom-cintiq-24hdt-pad.c \
 	litest-device-wacom-ekr.c \
 	litest-device-wacom-intuos-tablet.c \
 	litest-device-wacom-intuos3-pad.c \

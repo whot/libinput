@@ -202,6 +202,7 @@ enum litest_device_type {
 	LITEST_KEYBOARD_ALL_CODES,
 	LITEST_MAGICMOUSE,
 	LITEST_WACOM_EKR,
+	LITEST_WACOM_CINTIQ_24HDT_PAD,
 };
 
 enum litest_device_feature {
