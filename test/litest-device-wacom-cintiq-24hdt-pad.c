@@ -31,9 +31,8 @@
 
 #include "litest.h"
 #include "litest-int.h"
-#include "libinput-util.h"
 
-#define SYSFS_LED_BASE "/tmp/wacom-ekr-leds"
+#define SYSFS_LED_BASE "/tmp/wacom-cintiq24hdt-leds"
 
 static inline void
 init_sysfs(void)
@@ -45,66 +44,54 @@ init_sysfs(void)
 	rc = mkdir(SYSFS_LED_BASE, 0755);
 	if (rc != 0 && errno != EEXIST)
 		litest_assert_int_eq(rc, 0);
-	rc = mkdir(SYSFS_LED_BASE "/wacom_remote", 0755);
-	if (rc != 0 && errno != EEXIST)
-		litest_assert_int_eq(rc, 0);
-	rc = mkdir(SYSFS_LED_BASE "/wacom_remote/123456", 0755);
+	rc = mkdir(SYSFS_LED_BASE "/wacom_led", 0755);
 	if (rc != 0 && errno != EEXIST)
 		litest_assert_int_eq(rc, 0);
 
-	fd = creat(SYSFS_LED_BASE "/wacom_remote/123456/remote_mode", O_WRONLY);
+	fd = creat(SYSFS_LED_BASE "/wacom_led/status_led0_select", O_WRONLY);
+	litest_assert_int_ge(fd, 0);
+	rc = write(fd, buf, sizeof(buf));
+	ck_assert_int_eq(rc, sizeof(buf));
+	close(fd);
+
+	fd = creat(SYSFS_LED_BASE "/wacom_led/status_led1_select", O_WRONLY);
+	litest_assert_int_ge(fd, 0);
+	rc = write(fd, buf, sizeof(buf));
+	ck_assert_int_eq(rc, sizeof(buf));
+	close(fd);
+
+	fd = creat(SYSFS_LED_BASE "/wacom_led/status0_luminance", O_WRONLY);
+	litest_assert_int_ge(fd, 0);
+	rc = write(fd, buf, sizeof(buf));
+	ck_assert_int_eq(rc, sizeof(buf));
+	close(fd);
+
+	fd = creat(SYSFS_LED_BASE "/wacom_led/status1_luminance", O_WRONLY);
 	litest_assert_int_ge(fd, 0);
 	rc = write(fd, buf, sizeof(buf));
 	ck_assert_int_eq(rc, sizeof(buf));
 	close(fd);
 }
 
-static int
-toggle_mode(struct litest_device *d)
-{
-	int fd, rc;
-	char buf[3] = {0}; /* content: 2\n */
-	int mode;
-
-	fd = open(SYSFS_LED_BASE "/wacom_remote/123456/remote_mode", O_RDWR);
-	litest_assert_int_ge(fd, 0);
-	rc = read(fd, buf, sizeof(buf) - 1);
-	litest_assert_int_ne(rc, -1);
-
-	mode = buf[0] - '0';
-	litest_assert_int_le(mode, 2);
-	litest_assert_int_ge(mode, 0);
-
-	mode = (mode + 1) % 3; /* EKR has 3 modes */
-	buf[0] = '0' + mode;
-
-	rc = lseek(fd, 0, SEEK_SET);
-	litest_assert_int_ne(rc, -1);
-	rc = write(fd, buf, sizeof(buf));
-	litest_assert_int_ne(rc, -1);
-	close(fd);
-
-	return 0;
-}
-
-static void
-litest_wacom_ekr_setup(void)
+static void litest_wacom_cintiq_pad_setup(void)
 {
 	struct litest_device *d;
 
 	init_sysfs();
 
-	d = litest_create_device(LITEST_WACOM_EKR);
+	d = litest_create_device(LITEST_WACOM_CINTIQ_24HDT_PAD);
 
 	litest_set_current_device(d);
 }
 
 static void
-litest_wacom_ekr_teardown(void)
+litest_wacom_cintiq_pad_teardown(void)
 {
-	unlink(SYSFS_LED_BASE "/wacom_remote/123456/remote_mode");
-	rmdir(SYSFS_LED_BASE "/wacom_remote/123456");
-	rmdir(SYSFS_LED_BASE "/wacom_remote");
+	unlink(SYSFS_LED_BASE "wacom_led/status_led0_select");
+	unlink(SYSFS_LED_BASE "wacom_led/status_led1_select");
+	unlink(SYSFS_LED_BASE "wacom_led/status0_luminance");
+	unlink(SYSFS_LED_BASE "wacom_led/status1_luminance");
+	rmdir(SYSFS_LED_BASE "wacom_led");
 	rmdir(SYSFS_LED_BASE);
 
 	litest_generic_device_teardown();
@@ -144,14 +131,13 @@ static struct litest_device_interface interface = {
 	.pad_ring_start_events = ring_start,
 	.pad_ring_change_events = ring_change,
 	.pad_ring_end_events = ring_end,
-
-	.toggle_mode = toggle_mode,
 };
 
 static struct input_absinfo absinfo[] = {
 	{ ABS_X, 0, 1, 0, 0, 0 },
 	{ ABS_Y, 0, 1, 0, 0, 0 },
 	{ ABS_WHEEL, 0, 71, 0, 0, 0 },
+	{ ABS_THROTTLE, 0, 71, 0, 0, 0 },
 	{ ABS_MISC, 0, 0, 0, 0, 0 },
 	{ .value = -1 },
 };
@@ -159,14 +145,17 @@ static struct input_absinfo absinfo[] = {
 static struct input_id input_id = {
 	.bustype = 0x3,
 	.vendor = 0x56a,
-	.product = 0x331,
+	.product = 0xf8,
+	.version = 0x110,
 };
 
 static int events[] = {
+	EV_KEY, KEY_PROG1,
+	EV_KEY, KEY_PROG2,
+	EV_KEY, KEY_PROG3,
 	EV_KEY, BTN_0,
 	EV_KEY, BTN_1,
 	EV_KEY, BTN_2,
-	EV_KEY, BTN_3,
 	EV_KEY, BTN_3,
 	EV_KEY, BTN_4,
 	EV_KEY, BTN_5,
@@ -174,8 +163,6 @@ static int events[] = {
 	EV_KEY, BTN_7,
 	EV_KEY, BTN_8,
 	EV_KEY, BTN_9,
-	EV_KEY, BTN_BASE,
-	EV_KEY, BTN_BASE2,
 	EV_KEY, BTN_SOUTH,
 	EV_KEY, BTN_EAST,
 	EV_KEY, BTN_C,
@@ -190,21 +177,21 @@ static const char udev_rule[] =
 "ACTION==\"remove\", GOTO=\"pad_end\"\n"
 "KERNEL!=\"event*\", GOTO=\"pad_end\"\n"
 "\n"
-"ATTRS{name}==\"litest Wacom Express Key Remote Pad*\",\\\n"
-"    ENV{ID_INPUT_TABLET_PAD}=\"1\",\\\n"
+"ATTRS{name}==\"litest Wacom Cintiq 24 HD touch Pad*\",\\\n"
+"    ENV{ID_INPUT_TABLET_PAD}=\"1\",\n"
 "    ENV{LIBINPUT_TEST_TABLET_PAD_SYSFS_PATH}=\"" SYSFS_LED_BASE "\"\n"
 "\n"
 "LABEL=\"pad_end\"";
 
-struct litest_test_device litest_wacom_ekr_device = {
-	.type = LITEST_WACOM_EKR,
+struct litest_test_device litest_wacom_cintiq_24hdt_pad_device = {
+	.type = LITEST_WACOM_CINTIQ_24HDT_PAD,
 	.features = LITEST_TABLET_PAD | LITEST_RING | LITEST_MODES,
-	.shortname = "wacom-ekr",
-	.setup = litest_wacom_ekr_setup,
-	.teardown = litest_wacom_ekr_teardown,
+	.shortname = "wacom-cintiq-24hdt-pad",
+	.setup = litest_wacom_cintiq_pad_setup,
+	.teardown = litest_wacom_cintiq_pad_teardown,
 	.interface = &interface,
 
-	.name = "Wacom Express Key Remote Pad",
+	.name = "Wacom Cintiq 24 HD touch Pad",
 	.id = &input_id,
 	.events = events,
 	.absinfo = absinfo,

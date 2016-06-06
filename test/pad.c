@@ -407,6 +407,475 @@ START_TEST(pad_left_handed_ring)
 }
 END_TEST
 
+START_TEST(pad_mode_groups)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput_tablet_pad_mode_group *group;
+	int ngroups;
+	int i;
+
+	ngroups = libinput_device_tablet_pad_get_num_mode_groups(device);
+	ck_assert_int_ge(ngroups, 1);
+#if !HAVE_LIBWACOM
+	ck_assert_int_eq(ngroups, 1);
+#endif
+
+	for (i = 0; i < ngroups; i++) {
+		group = libinput_device_tablet_pad_get_mode_group(device, i);
+		ck_assert_notnull(group);
+		ck_assert_int_eq(libinput_tablet_pad_mode_group_get_index(group),
+				 i);
+	}
+
+	group = libinput_device_tablet_pad_get_mode_group(device, ngroups);
+	ck_assert(group == NULL);
+	group = libinput_device_tablet_pad_get_mode_group(device, ngroups + 1);
+	ck_assert(group == NULL);
+}
+END_TEST
+
+START_TEST(pad_mode_groups_userdata)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput_tablet_pad_mode_group *group;
+	int rc;
+	void *userdata = &rc;
+
+	group = libinput_device_tablet_pad_get_mode_group(device, 0);
+	ck_assert(libinput_tablet_pad_mode_group_get_user_data(group) ==
+		  NULL);
+	libinput_tablet_pad_mode_group_set_user_data(group, userdata);
+	ck_assert(libinput_tablet_pad_mode_group_get_user_data(group) ==
+		  &rc);
+
+	libinput_tablet_pad_mode_group_set_user_data(group, NULL);
+	ck_assert(libinput_tablet_pad_mode_group_get_user_data(group) ==
+		  NULL);
+}
+END_TEST
+
+START_TEST(pad_mode_groups_ref)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput_tablet_pad_mode_group *group, *g;
+
+	group = libinput_device_tablet_pad_get_mode_group(device, 0);
+	g = libinput_tablet_pad_mode_group_ref(group);
+	ck_assert_ptr_eq(g, group);
+
+	/* We don't expect this to be freed. Any leaks should be caught by
+	 * valgrind. */
+	g = libinput_tablet_pad_mode_group_unref(group);
+	ck_assert_ptr_eq(g, group);
+}
+END_TEST
+
+START_TEST(pad_mode_group_mode)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput_tablet_pad_mode_group *group;
+	int ngroups;
+	unsigned int nmodes, mode;
+
+	ngroups = libinput_device_tablet_pad_get_num_mode_groups(device);
+	ck_assert_int_ge(ngroups, 1);
+
+	group = libinput_device_tablet_pad_get_mode_group(device, 0);
+
+	nmodes = libinput_tablet_pad_mode_group_get_num_modes(group);
+	ck_assert_int_ge(nmodes, 1);
+#if !HAVE_LIBWACOM
+	ck_assert_int_eq(nmodes, 1);
+#endif
+
+	mode = libinput_tablet_pad_mode_group_get_mode(group);
+	ck_assert_int_lt(mode, nmodes);
+}
+END_TEST
+
+START_TEST(pad_mode_group_has)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput_tablet_pad_mode_group *group;
+	int ngroups, nbuttons, nrings, nstrips;
+	int i, b, r, s;
+
+	ngroups = libinput_device_tablet_pad_get_num_mode_groups(device);
+	ck_assert_int_ge(ngroups, 1);
+
+	nbuttons = libinput_device_tablet_pad_get_num_buttons(device);
+	nrings = libinput_device_tablet_pad_get_num_rings(device);
+	nstrips = libinput_device_tablet_pad_get_num_strips(device);
+
+	for (b = 0; b < nbuttons; b++) {
+		bool found = false;
+		for (i = 0; i < ngroups; i++) {
+			group = libinput_device_tablet_pad_get_mode_group(device,
+									  i);
+			if (libinput_tablet_pad_mode_group_has_button(group,
+								      b)) {
+				ck_assert(!found);
+				found = true;
+			}
+		}
+		ck_assert(found);
+	}
+
+	for (s = 0; s < nstrips; s++) {
+		bool found = false;
+		for (i = 0; i < ngroups; i++) {
+			group = libinput_device_tablet_pad_get_mode_group(device,
+									  i);
+			if (libinput_tablet_pad_mode_group_has_strip(group,
+								     s)) {
+				ck_assert(!found);
+				found = true;
+			}
+		}
+		ck_assert(found);
+	}
+
+	for (r = 0; r < nrings; r++) {
+		bool found = false;
+		for (i = 0; i < ngroups; i++) {
+			group = libinput_device_tablet_pad_get_mode_group(device,
+									  i);
+			if (libinput_tablet_pad_mode_group_has_ring(group,
+								    r)) {
+				ck_assert(!found);
+				found = true;
+			}
+		}
+		ck_assert(found);
+	}
+}
+END_TEST
+
+START_TEST(pad_mode_group_has_invalid)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput_tablet_pad_mode_group* group;
+	int ngroups, nbuttons, nrings, nstrips;
+	int i;
+	int rc;
+
+	ngroups = libinput_device_tablet_pad_get_num_mode_groups(device);
+	ck_assert_int_ge(ngroups, 1);
+
+	nbuttons = libinput_device_tablet_pad_get_num_buttons(device);
+	nrings = libinput_device_tablet_pad_get_num_rings(device);
+	nstrips = libinput_device_tablet_pad_get_num_strips(device);
+
+	for (i = 0; i < ngroups; i++) {
+		group = libinput_device_tablet_pad_get_mode_group(device, i);
+		rc = libinput_tablet_pad_mode_group_has_button(group,
+							       nbuttons);
+		ck_assert_int_eq(rc, 0);
+		rc = libinput_tablet_pad_mode_group_has_button(group,
+							       nbuttons + 1);
+		ck_assert_int_eq(rc, 0);
+		rc = libinput_tablet_pad_mode_group_has_button(group,
+							       0x1000000);
+		ck_assert_int_eq(rc, 0);
+	}
+
+	for (i = 0; i < ngroups; i++) {
+		group = libinput_device_tablet_pad_get_mode_group(device, i);
+		rc = libinput_tablet_pad_mode_group_has_strip(group,
+							      nstrips);
+		ck_assert_int_eq(rc, 0);
+		rc = libinput_tablet_pad_mode_group_has_strip(group,
+							       nstrips + 1);
+		ck_assert_int_eq(rc, 0);
+		rc = libinput_tablet_pad_mode_group_has_strip(group,
+							       0x1000000);
+		ck_assert_int_eq(rc, 0);
+	}
+
+	for (i = 0; i < ngroups; i++) {
+		group = libinput_device_tablet_pad_get_mode_group(device, i);
+		rc = libinput_tablet_pad_mode_group_has_ring(group,
+							     nrings);
+		ck_assert_int_eq(rc, 0);
+		rc = libinput_tablet_pad_mode_group_has_ring(group,
+							     nrings + 1);
+		ck_assert_int_eq(rc, 0);
+		rc = libinput_tablet_pad_mode_group_has_ring(group,
+							     0x1000000);
+		ck_assert_int_eq(rc, 0);
+	}
+}
+END_TEST
+
+START_TEST(pad_mode_group_has_toggle)
+{
+#if HAVE_LIBWACOM
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput_tablet_pad_mode_group* group;
+	int ngroups, nbuttons;
+	int i, b;
+
+	ngroups = libinput_device_tablet_pad_get_num_mode_groups(device);
+	ck_assert_int_ge(ngroups, 1);
+
+	/* Expect each group to have at least one toggle button */
+	nbuttons = libinput_device_tablet_pad_get_num_buttons(device);
+	for (i = 0; i < ngroups; i++) {
+		bool found = false;
+
+		group = libinput_device_tablet_pad_get_mode_group(device, i);
+		for (b = 0; b < nbuttons; b++) {
+			if (libinput_tablet_pad_mode_group_button_is_toggle(
+								    group,
+								    b))
+				found = true;
+		}
+
+		ck_assert(found);
+	}
+#endif
+}
+END_TEST
+
+START_TEST(pad_mode_group_has_no_toggle)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput_tablet_pad_mode_group* group;
+	int ngroups, nbuttons;
+	int i, b;
+
+	ngroups = libinput_device_tablet_pad_get_num_mode_groups(device);
+	ck_assert_int_ge(ngroups, 1);
+
+	/* Button must not be toggle buttons */
+	nbuttons = libinput_device_tablet_pad_get_num_buttons(device);
+	for (i = 0; i < ngroups; i++) {
+		group = libinput_device_tablet_pad_get_mode_group(device, i);
+		for (b = 0; b < nbuttons; b++) {
+			ck_assert(!libinput_tablet_pad_mode_group_button_is_toggle(
+								    group,
+								    b));
+		}
+	}
+}
+END_TEST
+
+START_TEST(pad_mode_intuos5)
+{
+#if HAVE_LIBWACOM
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput_tablet_pad_mode_group* group;
+	int ngroups, nmodes;
+	unsigned int mode;
+	int b = 0;
+
+	ngroups = libinput_device_tablet_pad_get_num_mode_groups(device);
+	ck_assert_int_eq(ngroups, 1);
+
+	group = libinput_device_tablet_pad_get_mode_group(device, 0);
+
+	nmodes = libinput_tablet_pad_mode_group_get_num_modes(group);
+	ck_assert_int_eq(nmodes, 4);
+
+	mode = libinput_tablet_pad_mode_group_get_mode(group);
+	ck_assert_int_ge(mode, 2); /* default in the litest device */
+
+	ck_assert(libinput_tablet_pad_mode_group_button_is_toggle(group, 0));
+	while (++b < libinput_device_tablet_pad_get_num_buttons(device))
+		ck_assert(!libinput_tablet_pad_mode_group_button_is_toggle(group, b));
+#endif
+}
+END_TEST
+
+static inline struct libinput_tablet_pad_mode_group *
+pad_get_btn0_toggle_group(struct libinput_device *device)
+{
+	struct libinput_tablet_pad_mode_group* group;
+	int ngroups;
+
+	ngroups = libinput_device_tablet_pad_get_num_mode_groups(device);
+	/* select the second group if we have 1 so we have BTN_0 as the
+	 * toggle button of that group */
+	group = libinput_device_tablet_pad_get_mode_group(device,
+							  ngroups - 1);
+	litest_assert(libinput_tablet_pad_mode_group_button_is_toggle(group, 0));
+
+	return group;
+}
+
+START_TEST(pad_mode_btn0_toggle)
+{
+#if HAVE_LIBWACOM
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput *li = dev->libinput;
+	struct libinput_tablet_pad_mode_group* group;
+	int nmodes, i;
+	unsigned int mode, expected;
+
+	group = pad_get_btn0_toggle_group(device);
+
+	nmodes = libinput_tablet_pad_mode_group_get_num_modes(group);
+	mode = libinput_tablet_pad_mode_group_get_mode(group);
+
+	for (i = 0; i < 10; i++) {
+		expected = (mode + 1) % nmodes;
+		litest_pad_toggle_mode(dev);
+		litest_event(dev, EV_KEY, BTN_0, 1);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+		libinput_dispatch(li);
+		mode = libinput_tablet_pad_mode_group_get_mode(group);
+		ck_assert_int_eq(mode, expected);
+
+		litest_event(dev, EV_KEY, BTN_0, 0);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+		libinput_dispatch(li);
+		mode = libinput_tablet_pad_mode_group_get_mode(group);
+		ck_assert_int_eq(mode, expected);
+	}
+#endif
+}
+END_TEST
+
+START_TEST(pad_mode_btn0_toggle_events)
+{
+#if HAVE_LIBWACOM
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput *li = dev->libinput;
+	struct libinput_tablet_pad_mode_group* group;
+	int nmodes, i;
+	unsigned int mode, expected;
+	struct libinput_event *ev;
+	struct libinput_event_tablet_pad *tev;
+
+	group = pad_get_btn0_toggle_group(device);
+
+	nmodes = libinput_tablet_pad_mode_group_get_num_modes(group);
+	mode = libinput_tablet_pad_mode_group_get_mode(group);
+
+	litest_drain_events(li);
+
+	for (i = 0; i < 10; i++) {
+		expected = (mode + 1) % nmodes;
+		litest_pad_toggle_mode(dev);
+		litest_event(dev, EV_KEY, BTN_0, 1);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+		libinput_dispatch(li);
+
+		ev = libinput_get_event(li);
+		tev = litest_is_pad_button_event(ev,
+						 0,
+						 LIBINPUT_BUTTON_STATE_PRESSED);
+		ck_assert_ptr_eq(group,
+				 libinput_event_tablet_pad_get_mode_group(tev));
+		mode = libinput_event_tablet_pad_get_mode(tev);
+		ck_assert_int_eq(mode, expected);
+		libinput_event_destroy(ev);
+
+		litest_event(dev, EV_KEY, BTN_0, 0);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+		libinput_dispatch(li);
+
+		ev = libinput_get_event(li);
+		tev = litest_is_pad_button_event(ev,
+						 0,
+						 LIBINPUT_BUTTON_STATE_PRESSED);
+		ck_assert_ptr_eq(group,
+				 libinput_event_tablet_pad_get_mode_group(tev));
+		mode = libinput_event_tablet_pad_get_mode(tev);
+		ck_assert_int_eq(mode, expected);
+		libinput_event_destroy(ev);
+	}
+#endif
+}
+END_TEST
+
+START_TEST(pad_mode_ekr)
+{
+#if HAVE_LIBWACOM
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput_tablet_pad_mode_group* group;
+	int ngroups, nmodes;
+	unsigned int mode;
+	int b = 0;
+
+	ngroups = libinput_device_tablet_pad_get_num_mode_groups(device);
+	ck_assert_int_eq(ngroups, 1);
+
+	group = libinput_device_tablet_pad_get_mode_group(device, 0);
+
+	nmodes = libinput_tablet_pad_mode_group_get_num_modes(group);
+	ck_assert_int_eq(nmodes, 3);
+
+	mode = libinput_tablet_pad_mode_group_get_mode(group);
+	ck_assert_int_ge(mode, 2); /* default in the litest device */
+
+	ck_assert(libinput_tablet_pad_mode_group_button_is_toggle(group, 0));
+	while (++b < libinput_device_tablet_pad_get_num_buttons(device))
+		ck_assert(!libinput_tablet_pad_mode_group_button_is_toggle(group, b));
+
+#endif
+}
+END_TEST
+
+START_TEST(pad_mode_24hdt)
+{
+#if HAVE_LIBWACOM
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct libinput_tablet_pad_mode_group* group;
+	int ngroups, nmodes;
+	unsigned int mode;
+	int b = 0;
+
+	ngroups = libinput_device_tablet_pad_get_num_mode_groups(device);
+	ck_assert_int_eq(ngroups, 2);
+
+	group = libinput_device_tablet_pad_get_mode_group(device, 0);
+	nmodes = libinput_tablet_pad_mode_group_get_num_modes(group);
+	ck_assert_int_eq(nmodes, 3);
+
+	ck_assert(libinput_tablet_pad_mode_group_button_is_toggle(group, 8));
+	ck_assert(libinput_tablet_pad_mode_group_button_is_toggle(group, 9));
+	ck_assert(libinput_tablet_pad_mode_group_button_is_toggle(group, 10));
+
+	b = 0;
+	while (++b < 8)
+		ck_assert(!libinput_tablet_pad_mode_group_button_is_toggle(group, b));
+	b = 10;
+	while (++b < libinput_device_tablet_pad_get_num_buttons(device))
+		ck_assert(!libinput_tablet_pad_mode_group_button_is_toggle(group, b));
+
+	group = libinput_device_tablet_pad_get_mode_group(device, 1);
+	nmodes = libinput_tablet_pad_mode_group_get_num_modes(group);
+	ck_assert_int_eq(nmodes, 3);
+
+	mode = libinput_tablet_pad_mode_group_get_mode(group);
+	ck_assert_int_ge(mode, 2); /* default in the litest device */
+
+	ck_assert(libinput_tablet_pad_mode_group_button_is_toggle(group, 0));
+	ck_assert(libinput_tablet_pad_mode_group_button_is_toggle(group, 1));
+	ck_assert(libinput_tablet_pad_mode_group_button_is_toggle(group, 2));
+
+	b = 2;
+	while (++b < libinput_device_tablet_pad_get_num_buttons(device))
+		ck_assert(!libinput_tablet_pad_mode_group_button_is_toggle(group, b));
+
+#endif
+}
+END_TEST
+
 void
 litest_setup_tests(void)
 {
@@ -428,4 +897,18 @@ litest_setup_tests(void)
 	litest_add_for_device("pad:left_handed", pad_no_left_handed, LITEST_WACOM_INTUOS3_PAD);
 	litest_add_for_device("pad:left_handed", pad_left_handed_ring, LITEST_WACOM_INTUOS5_PAD);
 	/* None of the current strip tablets are left-handed */
+
+	litest_add("pad:modes", pad_mode_groups, LITEST_TABLET_PAD, LITEST_ANY);
+	litest_add("pad:modes", pad_mode_groups_userdata, LITEST_TABLET_PAD, LITEST_ANY);
+	litest_add("pad:modes", pad_mode_groups_ref, LITEST_TABLET_PAD, LITEST_ANY);
+	litest_add("pad:modes", pad_mode_group_mode, LITEST_TABLET_PAD, LITEST_ANY);
+	litest_add("pad:modes", pad_mode_group_has, LITEST_TABLET_PAD, LITEST_ANY);
+	litest_add("pad:modes", pad_mode_group_has_invalid, LITEST_TABLET_PAD, LITEST_ANY);
+	litest_add("pad:modes", pad_mode_group_has_toggle, LITEST_TABLET_PAD|LITEST_MODES, LITEST_ANY);
+	litest_add("pad:modes", pad_mode_group_has_no_toggle, LITEST_TABLET_PAD, LITEST_MODES);
+	litest_add_for_device("pad:modes", pad_mode_intuos5, LITEST_WACOM_INTUOS5_PAD);
+	litest_add_for_device("pad:modes", pad_mode_ekr, LITEST_WACOM_EKR);
+	litest_add_for_device("pad:modes", pad_mode_24hdt, LITEST_WACOM_CINTIQ_24HDT_PAD);
+	litest_add("pad:modes", pad_mode_btn0_toggle, LITEST_TABLET_PAD|LITEST_MODES, LITEST_ANY);
+	litest_add("pad:modes", pad_mode_btn0_toggle_events, LITEST_TABLET_PAD|LITEST_MODES, LITEST_ANY);
 }

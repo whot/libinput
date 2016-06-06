@@ -160,7 +160,7 @@ static const char udev_rule[] =
 
 struct litest_test_device litest_wacom_intuos5_pad_device = {
 	.type = LITEST_WACOM_INTUOS5_PAD,
-	.features = LITEST_TABLET_PAD | LITEST_RING,
+	.features = LITEST_TABLET_PAD | LITEST_RING | LITEST_MODES,
 	.shortname = "wacom-pad",
 	.setup = litest_wacom_intuos5_pad_setup,
 	.teardown = litest_wacom_intuos5_pad_teardown,

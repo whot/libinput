@@ -202,6 +202,7 @@ enum litest_device_type {
 	LITEST_KEYBOARD_ALL_CODES,
 	LITEST_MAGICMOUSE,
 	LITEST_WACOM_EKR,
+	LITEST_WACOM_CINTIQ_24HDT_PAD,
 };
 
 enum litest_device_feature {
@@ -232,6 +233,7 @@ enum litest_device_feature {
 	LITEST_RING = 1 << 22,
 	LITEST_STRIP = 1 << 23,
 	LITEST_TRACKBALL = 1 << 24,
+	LITEST_MODES = 1 << 25,
 };
 
 struct litest_device {
