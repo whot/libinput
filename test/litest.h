@@ -201,6 +201,7 @@ enum litest_device_type {
 	LITEST_WACOM_INTUOS5_PAD,
 	LITEST_KEYBOARD_ALL_CODES,
 	LITEST_MAGICMOUSE,
+	LITEST_WACOM_EKR,
 };
 
 enum litest_device_feature {
