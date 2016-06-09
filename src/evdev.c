@@ -1806,6 +1806,7 @@ evdev_read_model_flags(struct evdev_device *device)
 		MODEL(LENOVO_T450_TOUCHPAD),
 		MODEL(TRACKBALL),
 		MODEL(APPLE_MAGICMOUSE),
+		MODEL(WACOM_EKR),
 		{ NULL, EVDEV_MODEL_DEFAULT },
 #undef MODEL
 	};

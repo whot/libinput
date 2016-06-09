@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <dirent.h>
 #include <limits.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -38,8 +39,10 @@
 struct pad_led_group {
 	struct libinput_tablet_pad_mode_group base;
 
-	/* /sys/devices/<hid device>/wacom_led/status_led0_select */
+	/* /sys/devices/<hid device>/wacom_led/status_led0_select or
+	  /sys/devices/<hid device>/wacom_remote/<id>/remote_mode on the EKR */
 	int led_status_fd;
+	bool self_updating;
 
 	struct list toggle_button_list;
 };
@@ -102,6 +105,15 @@ pad_led_group_set_mode(struct pad_led_group *group,
 {
 	char buf[4] = {0};
 	int rc;
+
+	/* EKR toggles the mode automatically so we just read the new mode
+	 * from the fd */
+	if (group->self_updating) {
+		rc = pad_led_group_get_mode(group);
+		if (rc >= 0)
+			group->base.current_mode = rc;
+		return;
+	}
 
 	rc = snprintf(buf, sizeof(buf), "%d", mode);
 	if (rc == -1)
@@ -260,6 +272,65 @@ pad_led_get_sysfs_base_path(struct evdev_device *device,
 	return rc != -1;
 }
 
+static bool
+pad_led_get_sysfs_ekr_path(struct evdev_device *device,
+			   char *path_out,
+			   size_t path_out_sz)
+{
+	const char *hid_sysfs_path;
+	char path[PATH_MAX];
+	int rc;
+	DIR *dirp;
+	struct dirent *dp;
+	int serial = 0;
+
+	hid_sysfs_path = pad_get_hid_sysfs_base_path(device);
+	if (hid_sysfs_path == NULL)
+		return false;
+
+	rc = snprintf(path, sizeof(path), "%s/wacom_remote", hid_sysfs_path);
+	if (rc == -1)
+		return false;
+
+	dirp = opendir(path);
+	if (!dirp)
+		return false;
+
+	while ((dp = readdir(dirp)) != NULL) {
+		if (dp->d_name[0] == '.')
+			continue;
+
+		/* There should be one entry: the remote's serial
+		 * in decimal notation. If multiple remotes have been paired
+		 * with the device we have more serials here. We always
+		 * return the first we find, multiple remotes is not
+		 * supported yet.
+		 */
+		if (safe_atoi(dp->d_name, &serial))
+			break;
+	}
+	closedir(dirp);
+
+	if (serial == 0)
+		return false;
+
+	rc = snprintf(path_out,
+		      path_out_sz,
+		      "%s/wacom_remote/%d/remote_mode",
+		      hid_sysfs_path,
+		      serial);
+	if (rc == -1)
+		return false;
+
+	rc = access(path, R_OK);
+	if (rc == -1)
+		log_error(device->base.seat->libinput,
+			  "Unable to access EKR LED syspath %s (%s)\n",
+			  path_out,
+			  strerror(errno));
+	return rc != -1;
+}
+
 #if HAVE_LIBWACOM
 static int
 pad_init_led_groups(struct pad_dispatch *pad,
@@ -320,6 +391,51 @@ pad_init_led_groups(struct pad_dispatch *pad,
 	}
 
 	return 0;
+}
+
+static int
+pad_init_ekr_group(struct pad_dispatch *pad,
+		   struct evdev_device *device,
+		   WacomDevice *wacom)
+{
+	struct libinput *libinput = device->base.seat->libinput;
+	struct pad_led_group *group;
+	char syspath[PATH_MAX];
+	int rc = 1;
+	int fd;
+
+	if (!pad_led_get_sysfs_ekr_path(device, syspath, sizeof(syspath)))
+		return 1;
+
+	/* EKR has 3 LEDs, hardwired to the toggle button */
+	group = pad_group_new_basic(pad, 0, 3);
+	if (!group)
+		return 1;
+
+	fd = open_restricted(libinput, syspath, O_RDONLY);
+	if (fd < 0) {
+		errno = -fd;
+		goto error;
+	}
+	group->led_status_fd = fd;
+	group->self_updating = true;
+
+	rc = pad_led_group_get_mode(group);
+	if (rc < 0) {
+		errno = -rc;
+		goto error;
+	}
+
+	group->base.current_mode = rc;
+
+	list_insert(&pad->modes.mode_group_list, &group->base.link);
+
+	return 0;
+error:
+	log_error(libinput, "Unable to init EKR LED group: %s\n", strerror(errno));
+
+	free(group);
+	return 1;
 }
 #endif
 
@@ -406,6 +522,13 @@ pad_init_mode_rings(struct pad_dispatch *pad, WacomDevice *wacom)
 	const WacomStatusLEDs *leds;
 	int i, nleds;
 
+	/* the LED of the EKR is hardwired so libwacom doesn't export it */
+	if (pad->device->model_flags & EVDEV_MODEL_WACOM_EKR) {
+		group = pad_get_mode_group(pad, 0);
+		group->ring_mask |= 0x1;
+		return;
+	}
+
 	leds = libwacom_get_status_leds(wacom, &nleds);
 	if (nleds == 0)
 		return;
@@ -476,7 +599,12 @@ pad_init_leds_from_libwacom(struct pad_dispatch *pad,
 	if (!wacom)
 		goto out;
 
-	if (pad_init_led_groups(pad, device, wacom) != 0)
+	if (libwacom_get_class(wacom) == WCLASS_REMOTE)
+		rc = pad_init_ekr_group(pad, device, wacom);
+	else
+		rc = pad_init_led_groups(pad, device, wacom);
+
+	if (rc != 0)
 		goto out;
 
 	if ((rc = pad_init_mode_buttons(pad, wacom)) != 0)
@@ -485,7 +613,6 @@ pad_init_leds_from_libwacom(struct pad_dispatch *pad,
 	pad_init_mode_rings(pad, wacom);
 	pad_init_mode_strips(pad, wacom);
 
-	rc = 0;
 out:
 	if (wacom)
 		libwacom_destroy(wacom);

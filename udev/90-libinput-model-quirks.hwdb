@@ -144,6 +144,9 @@ libinput:name:SynPS/2 Synaptics TouchPad:dmi:*svnSystem76*pvrkudp1*
 libinput:touchpad:input:b0003v056Ap*
  LIBINPUT_MODEL_WACOM_TOUCHPAD=1
 
+libinput:name:*Wacom Express Key Remote Pad:dmi:*
+ LIBINPUT_MODEL_WACOM_EKR=1
+
 ##########################################
 # Anything that has trackball in the name
 ##########################################
