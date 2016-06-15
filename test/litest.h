@@ -461,6 +461,9 @@ void
 litest_pad_strip_end(struct litest_device *d);
 
 void
+litest_pad_toggle_mode(struct litest_device *d);
+
+void
 litest_hover_start(struct litest_device *d,
 		   unsigned int slot,
 		   double x,

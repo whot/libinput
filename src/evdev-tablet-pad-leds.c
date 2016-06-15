@@ -231,6 +231,14 @@ pad_get_hid_sysfs_base_path(struct evdev_device *device)
 {
 	struct udev_device *udev_device = device->udev_device,
 			   *hid_device;
+	const char *test_path;
+
+	/* For testing purposes only allow for a base path set through a
+	 * udev rule. We still expect the normal directory hierarchy inside */
+	test_path = udev_device_get_property_value(udev_device,
+				   "LIBINPUT_TEST_TABLET_PAD_SYSFS_PATH");
+	if (test_path)
+		return test_path;
 
 	hid_device = udev_device_get_parent_with_subsystem_devtype(udev_device,
 								   "hid",

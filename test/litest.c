@@ -1939,6 +1939,13 @@ litest_pad_strip_end(struct litest_device *d)
 }
 
 void
+litest_pad_toggle_mode(struct litest_device *d)
+{
+	if (d->interface->toggle_mode)
+		d->interface->toggle_mode(d);
+}
+
+void
 litest_wait_for_event(struct libinput *li)
 {
 	return litest_wait_for_event_of_type(li, -1);

@@ -111,6 +111,10 @@ libinput reserves the property prefixes <b>LIBINPUT_MODEL_</b> and
 <b>LIBINPUT_ATTR_*</b> for model-specific configuration. <b>These prefixes
 are reserved as private API, do not use.</b>
 
+libinput reserves the property prefixes <b>LIBINPUT_TEST_</b>
+for settings only used during libinput's test suite. <b>This prefix
+is reserved as private API, do not use.</b>
+
 The effect of these properties may be to enable or disable certain
 features on a specific device or set of devices, to change configuration
 defaults or any other reason. The effects of setting these properties, the

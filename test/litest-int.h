@@ -86,6 +86,11 @@ struct litest_device_interface {
 	int (*get_axis_default)(struct litest_device *d, unsigned int code, int32_t *value);
 
 	/**
+	 * Switch to the next mode
+	 */
+	int (*toggle_mode)(struct litest_device *d);
+
+	/**
 	 * Set of of events to execute on touch down, terminated by a .type
 	 * and .code value of -1. If the event value is LITEST_AUTO_ASSIGN,
 	 * it will be automatically assigned by the framework (valid for x,

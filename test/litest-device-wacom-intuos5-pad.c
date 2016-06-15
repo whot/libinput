@@ -24,14 +24,64 @@
 #include "config.h"
 #endif
 
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+
 #include "litest.h"
 #include "litest-int.h"
+
+#define SYSFS_LED_BASE "/tmp/wacom-intuos5-leds"
+
+static inline void
+init_sysfs(void)
+{
+	int fd;
+	int rc;
+	char buf[] = "2\n";
+
+	rc = mkdir(SYSFS_LED_BASE, 0755);
+	if (rc != 0 && errno != EEXIST)
+		litest_assert_int_eq(rc, 0);
+	rc = mkdir(SYSFS_LED_BASE "/wacom_led", 0755);
+	if (rc != 0 && errno != EEXIST)
+		litest_assert_int_eq(rc, 0);
+
+	fd = creat(SYSFS_LED_BASE "/wacom_led/status_led0_select", O_WRONLY);
+	litest_assert_int_ge(fd, 0);
+	rc = write(fd, buf, sizeof(buf));
+	ck_assert_int_eq(rc, sizeof(buf));
+	close(fd);
+
+	fd = creat(SYSFS_LED_BASE "/wacom_led/status0_luminance", O_WRONLY);
+	litest_assert_int_ge(fd, 0);
+	rc = write(fd, buf, sizeof(buf));
+	ck_assert_int_eq(rc, sizeof(buf));
+	close(fd);
+}
 
 static void
 litest_wacom_intuos5_pad_setup(void)
 {
-	struct litest_device *d = litest_create_device(LITEST_WACOM_INTUOS5_PAD);
+	struct litest_device *d;
+
+	init_sysfs();
+
+	d = litest_create_device(LITEST_WACOM_INTUOS5_PAD);
+
 	litest_set_current_device(d);
+}
+
+static void
+litest_wacom_intuos5_pad_teardown(void)
+{
+	unlink(SYSFS_LED_BASE "wacom_led/status_led0_select");
+	unlink(SYSFS_LED_BASE "wacom_led/status0_luminance");
+	rmdir(SYSFS_LED_BASE "wacom_led");
+	rmdir(SYSFS_LED_BASE);
+
+	litest_generic_device_teardown();
 }
 
 static struct input_event down[] = {
@@ -103,7 +153,8 @@ static const char udev_rule[] =
 "KERNEL!=\"event*\", GOTO=\"pad_end\"\n"
 "\n"
 "ATTRS{name}==\"litest Wacom Intuos5 touch M Pad*\",\\\n"
-"    ENV{ID_INPUT_TABLET_PAD}=\"1\"\n"
+"    ENV{ID_INPUT_TABLET_PAD}=\"1\",\\\n"
+"    ENV{LIBINPUT_TEST_TABLET_PAD_SYSFS_PATH}=\"" SYSFS_LED_BASE "\"\n"
 "\n"
 "LABEL=\"pad_end\"";
 
@@ -112,6 +163,7 @@ struct litest_test_device litest_wacom_intuos5_pad_device = {
 	.features = LITEST_TABLET_PAD | LITEST_RING,
 	.shortname = "wacom-pad",
 	.setup = litest_wacom_intuos5_pad_setup,
+	.teardown = litest_wacom_intuos5_pad_teardown,
 	.interface = &interface,
 
 	.name = "Wacom Intuos5 touch M Pad",

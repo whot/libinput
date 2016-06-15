@@ -24,14 +24,90 @@
 #include "config.h"
 #endif
 
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+
 #include "litest.h"
 #include "litest-int.h"
+#include "libinput-util.h"
+
+#define SYSFS_LED_BASE "/tmp/wacom-ekr-leds"
+
+static inline void
+init_sysfs(void)
+{
+	int fd;
+	int rc;
+	char buf[] = "2\n";
+
+	rc = mkdir(SYSFS_LED_BASE, 0755);
+	if (rc != 0 && errno != EEXIST)
+		litest_assert_int_eq(rc, 0);
+	rc = mkdir(SYSFS_LED_BASE "/wacom_remote", 0755);
+	if (rc != 0 && errno != EEXIST)
+		litest_assert_int_eq(rc, 0);
+	rc = mkdir(SYSFS_LED_BASE "/wacom_remote/123456", 0755);
+	if (rc != 0 && errno != EEXIST)
+		litest_assert_int_eq(rc, 0);
+
+	fd = creat(SYSFS_LED_BASE "/wacom_remote/123456/remote_mode", O_WRONLY);
+	litest_assert_int_ge(fd, 0);
+	rc = write(fd, buf, sizeof(buf));
+	ck_assert_int_eq(rc, sizeof(buf));
+	close(fd);
+}
+
+static int
+toggle_mode(struct litest_device *d)
+{
+	int fd, rc;
+	char buf[3] = {0}; /* content: 2\n */
+	int mode;
+
+	fd = open(SYSFS_LED_BASE "/wacom_remote/123456/remote_mode", O_RDWR);
+	litest_assert_int_ge(fd, 0);
+	rc = read(fd, buf, sizeof(buf) - 1);
+	litest_assert_int_ne(rc, -1);
+
+	mode = buf[0] - '0';
+	litest_assert_int_le(mode, 2);
+	litest_assert_int_ge(mode, 0);
+
+	mode = (mode + 1) % 3; /* EKR has 3 modes */
+	buf[0] = '0' + mode;
+
+	rc = lseek(fd, 0, SEEK_SET);
+	litest_assert_int_ne(rc, -1);
+	rc = write(fd, buf, sizeof(buf));
+	litest_assert_int_ne(rc, -1);
+	close(fd);
+
+	return 0;
+}
 
 static void
 litest_wacom_ekr_setup(void)
 {
-	struct litest_device *d = litest_create_device(LITEST_WACOM_EKR);
+	struct litest_device *d;
+
+	init_sysfs();
+
+	d = litest_create_device(LITEST_WACOM_EKR);
+
 	litest_set_current_device(d);
+}
+
+static void
+litest_wacom_ekr_teardown(void)
+{
+	unlink(SYSFS_LED_BASE "/wacom_remote/123456/remote_mode");
+	rmdir(SYSFS_LED_BASE "/wacom_remote/123456");
+	rmdir(SYSFS_LED_BASE "/wacom_remote");
+	rmdir(SYSFS_LED_BASE);
+
+	litest_generic_device_teardown();
 }
 
 static struct input_event down[] = {
@@ -68,6 +144,8 @@ static struct litest_device_interface interface = {
 	.pad_ring_start_events = ring_start,
 	.pad_ring_change_events = ring_change,
 	.pad_ring_end_events = ring_end,
+
+	.toggle_mode = toggle_mode,
 };
 
 static struct input_absinfo absinfo[] = {
@@ -113,7 +191,8 @@ static const char udev_rule[] =
 "KERNEL!=\"event*\", GOTO=\"pad_end\"\n"
 "\n"
 "ATTRS{name}==\"litest Wacom Express Key Remote Pad*\",\\\n"
-"    ENV{ID_INPUT_TABLET_PAD}=\"1\"\n"
+"    ENV{ID_INPUT_TABLET_PAD}=\"1\",\\\n"
+"    ENV{LIBINPUT_TEST_TABLET_PAD_SYSFS_PATH}=\"" SYSFS_LED_BASE "\"\n"
 "\n"
 "LABEL=\"pad_end\"";
 
@@ -122,6 +201,7 @@ struct litest_test_device litest_wacom_ekr_device = {
 	.features = LITEST_TABLET_PAD | LITEST_RING,
 	.shortname = "wacom-ekr",
 	.setup = litest_wacom_ekr_setup,
+	.teardown = litest_wacom_ekr_teardown,
 	.interface = &interface,
 
 	.name = "Wacom Express Key Remote Pad",
