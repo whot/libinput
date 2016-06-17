@@ -495,6 +495,23 @@ touch_notify_touch_up(struct libinput_device *device,
 		      int32_t seat_slot);
 
 void
+touchpad_notify_touch_down(struct libinput_device *device,
+			   uint64_t time,
+			   int32_t slot,
+			   const struct device_coords *point);
+
+void
+touchpad_notify_touch_motion(struct libinput_device *device,
+			     uint64_t time,
+			     int32_t slot,
+			     const struct device_coords *point);
+
+void
+touchpad_notify_touch_up(struct libinput_device *device,
+			 uint64_t time,
+			 int32_t slot);
+
+void
 gesture_notify_swipe(struct libinput_device *device,
 		     uint64_t time,
 		     enum libinput_event_type type,

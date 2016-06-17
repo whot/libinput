@@ -157,6 +157,13 @@ struct libinput_event_tablet_pad {
 	} strip;
 };
 
+struct libinput_event_touchpad {
+	struct libinput_event base;
+	uint64_t time;
+	uint32_t slot;
+	struct device_coords point;
+};
+
 static void
 libinput_default_log_func(struct libinput *libinput,
 			  enum libinput_log_priority priority,
@@ -348,6 +355,19 @@ libinput_event_get_tablet_pad_event(struct libinput_event *event)
 			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
 
 	return (struct libinput_event_tablet_pad *) event;
+}
+
+LIBINPUT_EXPORT struct libinput_event_touchpad *
+libinput_event_get_touchpad_event(struct libinput_event *event)
+{
+	require_event_type(libinput_event_get_context(event),
+			   event->type,
+			   NULL,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION);
+
+	return (struct libinput_event_touchpad*) event;
 }
 
 LIBINPUT_EXPORT struct libinput_event_device_notify *
@@ -2266,6 +2286,82 @@ touch_notify_frame(struct libinput_device *device,
 }
 
 void
+touchpad_notify_touch_down(struct libinput_device *device,
+			   uint64_t time,
+			   int32_t slot,
+			   const struct device_coords *point)
+{
+	struct libinput_event_touchpad *touch_event;
+
+	if (!device_has_cap(device, LIBINPUT_DEVICE_CAP_POINTER))
+		return;
+
+	touch_event = zalloc(sizeof *touch_event);
+	if (!touch_event)
+		return;
+
+	*touch_event = (struct libinput_event_touchpad) {
+		.time = time,
+		.slot = slot,
+		.point = *point,
+	};
+
+	post_device_event(device, time,
+			  LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN,
+			  &touch_event->base);
+}
+
+void
+touchpad_notify_touch_motion(struct libinput_device *device,
+			     uint64_t time,
+			     int32_t slot,
+			     const struct device_coords *point)
+{
+	struct libinput_event_touchpad *touch_event;
+
+	if (!device_has_cap(device, LIBINPUT_DEVICE_CAP_POINTER))
+		return;
+
+	touch_event = zalloc(sizeof *touch_event);
+	if (!touch_event)
+		return;
+
+	*touch_event = (struct libinput_event_touchpad) {
+		.time = time,
+		.slot = slot,
+		.point = *point,
+	};
+
+	post_device_event(device, time,
+			  LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION,
+			  &touch_event->base);
+}
+
+void
+touchpad_notify_touch_up(struct libinput_device *device,
+			 uint64_t time,
+			 int32_t slot)
+{
+	struct libinput_event_touchpad *touch_event;
+
+	if (!device_has_cap(device, LIBINPUT_DEVICE_CAP_POINTER))
+		return;
+
+	touch_event = zalloc(sizeof *touch_event);
+	if (!touch_event)
+		return;
+
+	*touch_event = (struct libinput_event_touchpad) {
+		.time = time,
+		.slot = slot,
+	};
+
+	post_device_event(device, time,
+			  LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP,
+			  &touch_event->base);
+}
+
+void
 tablet_notify_axis(struct libinput_device *device,
 		   uint64_t time,
 		   struct libinput_tablet_tool *tool,
@@ -2586,6 +2682,9 @@ event_type_to_str(enum libinput_event_type type)
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_PINCH_BEGIN);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_PINCH_UPDATE);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_PINCH_END);
+	CASE_RETURN_STRING(LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN);
+	CASE_RETURN_STRING(LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP);
+	CASE_RETURN_STRING(LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION);
 	case LIBINPUT_EVENT_NONE:
 		abort();
 	}
@@ -3026,6 +3125,90 @@ libinput_event_tablet_pad_get_base_event(struct libinput_event_tablet_pad *event
 			   LIBINPUT_EVENT_TABLET_PAD_BUTTON);
 
 	return &event->base;
+}
+
+LIBINPUT_EXPORT struct libinput_event *
+libinput_event_touchpad_get_base_event(struct libinput_event_touchpad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   NULL,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION);
+
+	return &event->base;
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_event_touchpad_get_time(struct libinput_event_touchpad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION);
+
+	return us2ms(event->time);
+}
+
+LIBINPUT_EXPORT uint64_t
+libinput_event_touchpad_get_time_usec(struct libinput_event_touchpad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION);
+
+	return event->time;
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_event_touchpad_get_slot(struct libinput_event_touchpad *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION);
+
+	return event->slot;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_touchpad_get_x(struct libinput_event_touchpad *event)
+{
+	struct evdev_device *device =
+		(struct evdev_device *) event->base.device;
+
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION);
+
+	return evdev_convert_to_mm(device->abs.absinfo_x, event->point.x);
+}
+
+LIBINPUT_EXPORT double
+libinput_event_touchpad_get_y(struct libinput_event_touchpad *event)
+{
+	struct evdev_device *device =
+		(struct evdev_device *) event->base.device;
+
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0.0,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP,
+			   LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION);
+
+	return evdev_convert_to_mm(device->abs.absinfo_x, event->point.x);
 }
 
 LIBINPUT_EXPORT struct libinput_device_group *
@@ -3748,4 +3931,33 @@ libinput_device_config_rotation_get_default_angle(struct libinput_device *device
 		return 0;
 
 	return device->config.rotation->get_default_angle(device);
+}
+
+LIBINPUT_EXPORT int
+libinput_device_config_touchpad_direct_touch_is_available(struct libinput_device *device)
+{
+	return 0;
+
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_touchpad_direct_touch_set_enabled(
+		struct libinput_device *device,
+		enum libinput_config_touchpad_direct_touch_state state)
+{
+	return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+}
+
+LIBINPUT_EXPORT enum libinput_config_touchpad_direct_touch_state
+libinput_device_config_touchpad_direct_touch_get_enabled(
+			struct libinput_device *device)
+{
+	return LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED;
+}
+
+LIBINPUT_EXPORT enum libinput_config_touchpad_direct_touch_state
+libinput_device_config_touchpad_direct_touch_get_default_enabled(
+			struct libinput_device *device)
+{
+	return LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED;
 }

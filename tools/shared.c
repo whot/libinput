@@ -62,6 +62,8 @@ enum options {
 	OPT_SCROLL_BUTTON,
 	OPT_SPEED,
 	OPT_PROFILE,
+	OPT_DIRECT_ENABLE,
+	OPT_DIRECT_DISABLE,
 };
 
 static void
@@ -96,6 +98,8 @@ tools_usage()
 	       "--disable-middlebutton.... enable/disable middle button emulation\n"
 	       "--enable-dwt\n"
 	       "--disable-dwt..... enable/disable disable-while-typing\n"
+	       "--enable-direct-touch\n"
+	       "--disable-direct-touch..... enable/disable touchpad direct touch mode\n"
 	       "--set-click-method=[none|clickfinger|buttonareas] .... set the desired click method\n"
 	       "--set-scroll-method=[none|twofinger|edge|button] ... set the desired scroll method\n"
 	       "--set-scroll-button=BTN_MIDDLE ... set the button to the given button code\n"
@@ -134,6 +138,7 @@ tools_init_context(struct tools_context *context)
 	options->seat = "seat0";
 	options->speed = 0.0;
 	options->profile = LIBINPUT_CONFIG_ACCEL_PROFILE_NONE;
+	options->direct_touch = -1;
 }
 
 int
@@ -169,6 +174,8 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 			{ "set-scroll-button", 1, 0, OPT_SCROLL_BUTTON },
 			{ "set-profile", 1, 0, OPT_PROFILE },
 			{ "speed", 1, 0, OPT_SPEED },
+			{ "enable-direct-touch", 0, 0, OPT_DIRECT_ENABLE },
+			{ "disable-direct-touch", 0, 0, OPT_DIRECT_DISABLE },
 			{ 0, 0, 0, 0}
 		};
 
@@ -318,6 +325,12 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 				tools_usage();
 				return 1;
 			}
+			break;
+		case OPT_DIRECT_ENABLE:
+			options->direct_touch = 1;
+			break;
+		case OPT_DIRECT_DISABLE:
+			options->direct_touch = 0;
 			break;
 		default:
 			tools_usage();
@@ -486,4 +499,8 @@ tools_device_apply_config(struct libinput_device *device,
 			libinput_device_config_accel_set_profile(device,
 								 options->profile);
 	}
+
+	if (options->direct_touch != -1)
+		libinput_device_config_touchpad_direct_touch_set_enabled(device,
+									 options->direct_touch);
 }

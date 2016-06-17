@@ -401,6 +401,22 @@ enum libinput_event_type {
 	LIBINPUT_EVENT_GESTURE_PINCH_BEGIN,
 	LIBINPUT_EVENT_GESTURE_PINCH_UPDATE,
 	LIBINPUT_EVENT_GESTURE_PINCH_END,
+
+	/**
+	 * A touch down event on a touchpad device. See @ref
+	 * touchpad_direct_touch for details.
+	 */
+	LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN = 900,
+	/**
+	 * A touch up event on a touchpad device. See @ref
+	 * touchpad_direct_touch for details.
+	 */
+	LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP,
+	/**
+	 * A touch motion event on a touchpad device. See @ref
+	 * touchpad_direct_touch for details.
+	 */
+	LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION,
 };
 
 /**
@@ -446,6 +462,7 @@ struct libinput_seat;
  *
  * The base event type. Use libinput_event_get_pointer_event() or similar to
  * get the actual event type.
+
  *
  * @warning Unlike other structs events are considered transient and
  * <b>not</b> refcounted.
@@ -511,6 +528,23 @@ struct libinput_event_tablet_tool;
  * @ref LIBINPUT_EVENT_TABLET_PAD_STRIP.
  */
 struct libinput_event_tablet_pad;
+
+/**
+ * @ingroup event_touchpad
+ * @struct libinput_event_touchpad
+ *
+ * Touch event representing a touch down, move or up on a touchpad-like
+ * device that was switched into direct mode. See @ref touchpad_direct_touch
+ * for details.
+ *
+ * @note This event does NOT represent a normal touchpad input event.
+ *
+ * Valid event types for this event are
+ * @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN,
+ * @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION,
+ * @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP.
+ */
+struct libinput_event_touchpad;
 
 /**
  * @defgroup event Accessing and destruction of events
@@ -645,6 +679,17 @@ libinput_event_get_tablet_tool_event(struct libinput_event *event);
  */
 struct libinput_event_tablet_pad *
 libinput_event_get_tablet_pad_event(struct libinput_event *event);
+
+/**
+ * Return the touchpad touch event that is this input event. If the event type does not
+ * match the touchpad touch event types, this function returns NULL.
+ *
+ * The inverse of this function is libinput_event_touchpad_get_base_event().
+ *
+ * @return A touchpad touch event, or NULL for other events
+ */
+struct libinput_event_touchpad *
+libinput_event_get_touchpad_event(struct libinput_event *event);
 
 /**
  * @ingroup event
@@ -2386,6 +2431,115 @@ libinput_event_tablet_pad_get_time(struct libinput_event_tablet_pad *event);
  */
 uint64_t
 libinput_event_tablet_pad_get_time_usec(struct libinput_event_tablet_pad *event);
+
+/**
+ * @defgroup event_touchpad Touchpad custom events
+ *
+ * Events from touchpad devices when switched into direct touch mode. See
+ * @ref touchpad_direct_touch for details.
+ *
+ * @note This page does NOT describe normal touch events from touchpads.
+ * These events are for a special and niche use-case, e.g. drawing of
+ * logograms. For normal touchpad events see @ref event_pointer.
+ */
+
+/**
+ * @ingroup event_touchpad
+ *
+ * @return The generic libinput_event of this event
+ */
+struct libinput_event *
+libinput_event_touchpad_get_base_event(struct libinput_event_touchpad *event);
+
+/**
+ * @ingroup event_touchpad
+ *
+ * @note This is not a normal event from touchpads. See @ref
+ * touchpad_direct_touch for details.
+ *
+ * @return The event time for this event
+ */
+uint32_t
+libinput_event_touchpad_get_time(struct libinput_event_touchpad *event);
+
+/**
+ * @ingroup event_touchpad
+ *
+ * @note This is not a normal event from touchpads. See @ref
+ * touchpad_direct_touch for details.
+ *
+ * @return The event time for this event in microseconds
+ */
+uint64_t
+libinput_event_touchpad_get_time_usec(struct libinput_event_touchpad *event);
+
+/**
+ * @ingroup event_touchpad
+ *
+ * @note This is not a normal event from touchpads. See @ref
+ * touchpad_direct_touch for details.
+ *
+ * Get the slot of this touch event. See the kernel's multitouch
+ * protocol B documentation for more information. On single-touch touchpads
+ * this function always returns 0.
+ *
+ * For events not of type @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN, @ref
+ * LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP, @ref
+ * LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events of type
+ * other than @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN,
+ * @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP,
+ * @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION.
+ *
+ * @return The slot of this touchpad touch event
+ */
+uint32_t
+libinput_event_touchpad_get_slot(struct libinput_event_touchpad *event);
+
+/**
+ * @ingroup event_touchpad
+ *
+ * @note This is not a normal event from touchpads. See @ref
+ * touchpad_direct_touch for details.
+ *
+ * Return the current absolute x coordinate of the touch event, in mm from
+ * the top left corner of the device.
+ *
+ * For events not of type @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN, @ref
+ * LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events of type
+ * other than @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN or @ref
+ * LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION.
+ *
+ * @param event The libinput touchpad touch event
+ * @return The current absolute x coordinate
+ */
+double
+libinput_event_touchpad_get_x(struct libinput_event_touchpad *event);
+
+/**
+ * @ingroup event_touch
+ *
+ * @note This is not a normal event from touchpads. See @ref
+ * touchpad_direct_touch for details.
+ *
+ * Return the current absolute y coordinate of the touch event, in mm from
+ * the top left corner of the device.
+ *
+ * For events not of type @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN, @ref
+ * LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events of type
+ * other than @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN or @ref
+ * LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION.
+ *
+ * @param event The libinput touchpad_touch event
+ * @return The current absolute y coordinate
+ */
+double
+libinput_event_touchpad_get_y(struct libinput_event_touchpad *event);
 
 /**
  * @defgroup base Initialization and manipulation of libinput contexts
@@ -4753,6 +4907,81 @@ libinput_device_config_rotation_get_angle(struct libinput_device *device);
  */
 unsigned int
 libinput_device_config_rotation_get_default_angle(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Returns non-zero if this touchpad-like device can be switched into a
+ * direct touch mode. See @ref touchpad_direct_touch for details.
+ *
+ * @param device A device with the @ref LIBINPUT_DEVICE_CAP_POINTER
+ * capability.
+ * @return nonzero if the device can be switched to direct touch mode, zero
+ * otherwise
+ */
+int
+libinput_device_config_touchpad_direct_touch_is_available(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Possible states for the touchpad direct touch feature. See @ref
+ * touchpad_direct_touch for details.
+ */
+enum libinput_config_touchpad_direct_touch_state {
+	LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED,
+	LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_ENABLED,
+};
+
+/**
+ * @ingroup config
+ *
+ * Enable or disable the direct touch mode on a touchpad device. When
+ * enabled, the touchpad stops sending normal pointer events and instead
+ * acts like a direct touch input device, sending the events
+ * @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN,
+ * @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION, and
+ * @ref LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP.
+ *
+ * This usually means that touchpad functions such as two-finger scrolling
+ * of physical software buttons are disabled while this mode is active.
+ * See @ref touchpad_direct_touch for more details
+ *
+ * @note The selected state may not take effect immediately. The device may
+ * require changing to a neutral state first before activating the new
+ * method.
+ *
+ * Disabling the direct touch mode on a device that does not have a direct
+ * touch mode always succeeds.
+ */
+enum libinput_config_status
+libinput_device_config_touchpad_direct_touch_set_enabled(
+		struct libinput_device *device,
+		enum libinput_config_touchpad_direct_touch_state state);
+
+/**
+ * @ingroup config
+ *
+ * @retval LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED Touchpad direct
+ * touch state is disabled
+ * @retval LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_ENABLED Touchpad direct
+ * touch state is enabled
+ */
+enum libinput_config_touchpad_direct_touch_state
+libinput_device_config_touchpad_direct_touch_get_enabled(
+			struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * @retval LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED touchpad direct
+ * touch state is disabled by default
+ * @retval LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_ENABLED touchpad direct
+ * touch state is enabled by default
+ */
+enum libinput_config_touchpad_direct_touch_state
+libinput_device_config_touchpad_direct_touch_get_default_enabled(
+			struct libinput_device *device);
 
 #ifdef __cplusplus
 }

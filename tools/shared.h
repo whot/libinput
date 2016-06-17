@@ -50,6 +50,7 @@ struct tools_options {
 	double speed;
 	int dwt;
 	enum libinput_config_accel_profile profile;
+	int direct_touch;
 };
 
 struct tools_context {

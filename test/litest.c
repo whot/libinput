@@ -2083,6 +2083,15 @@ litest_event_type_str(struct libinput_event *event)
 	case LIBINPUT_EVENT_TABLET_PAD_STRIP:
 		str = "TABLET PAD STRIP";
 		break;
+	case LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN:
+		str = "TOUCHPAD TOUCH DOWN";
+		break;
+	case LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP:
+		str = "TOUCHPAD TOUCH UP";
+		break;
+	case LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION:
+		str = "TOUCHPAD TOUCH MOTION";
+		break;
 	}
 	return str;
 }

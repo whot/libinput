@@ -241,6 +241,18 @@ rotation_default(struct libinput_device *device)
 	return str;
 }
 
+static const char *
+touchpad_direct_touch_default(struct libinput_device *device)
+{
+	if (!libinput_device_config_touchpad_direct_touch_is_available(device))
+		return "n/a";
+
+	if (libinput_device_config_touchpad_direct_touch_get_default_enabled(device))
+		return "enabled";
+	else
+		return "disabled";
+}
+
 static void
 print_pad_info(struct libinput_device *device)
 {
@@ -335,6 +347,8 @@ print_device_notify(struct libinput_event *ev)
 	str = rotation_default(dev);
 	printf("Rotation:         %s\n", str);
 	free(str);
+
+	printf("Touchpad direct:  %s\n", touchpad_direct_touch_default(dev));
 
 	if (libinput_device_has_capability(dev,
 					   LIBINPUT_DEVICE_CAP_TABLET_PAD))

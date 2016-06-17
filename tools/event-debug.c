@@ -130,6 +130,15 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_TABLET_PAD_STRIP:
 		type = "TABLET_PAD_STRIP";
 		break;
+	case LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN:
+		type = "TOUCHPAD_TOUCH_DOWN";
+		break;
+	case LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP:
+		type = "TOUCHPAD_TOUCH_UP";
+		break;
+	case LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION:
+		type = "TOUCHPAD_TOUCH_MOTION";
+		break;
 	}
 
 	printf("%-7s	%-16s ", libinput_device_get_sysname(dev), type);
@@ -660,6 +669,33 @@ print_tablet_pad_strip_event(struct libinput_event *ev)
 	       source);
 }
 
+static void
+print_touchpad_event_with_coords(struct libinput_event *ev)
+{
+	struct libinput_event_touchpad *t = libinput_event_get_touchpad_event(ev);
+	double x = libinput_event_touchpad_get_x(t);
+	double y = libinput_event_touchpad_get_y(t);
+
+	print_event_time(libinput_event_touchpad_get_time(t));
+
+	printf("%d %5.2f/%5.2fmm\n",
+	       libinput_event_touchpad_get_slot(t),
+	       x,
+	       y);
+}
+
+static void
+print_touchpad_event_without_coords(struct libinput_event *ev)
+{
+	struct libinput_event_touchpad *t = libinput_event_get_touchpad_event(ev);
+	double x = libinput_event_touchpad_get_x(t);
+	double y = libinput_event_touchpad_get_y(t);
+
+	print_event_time(libinput_event_touchpad_get_time(t));
+
+	printf("%d\n", libinput_event_touchpad_get_slot(t));
+}
+
 static int
 handle_and_print_events(struct libinput *li)
 {
@@ -747,6 +783,13 @@ handle_and_print_events(struct libinput *li)
 			break;
 		case LIBINPUT_EVENT_TABLET_PAD_STRIP:
 			print_tablet_pad_strip_event(ev);
+			break;
+		case LIBINPUT_EVENT_TOUCHPAD_TOUCH_DOWN:
+		case LIBINPUT_EVENT_TOUCHPAD_TOUCH_MOTION:
+			print_touchpad_event_with_coords(ev);
+			break;
+		case LIBINPUT_EVENT_TOUCHPAD_TOUCH_UP:
+			print_touchpad_event_without_coords(ev);
 			break;
 		}
 

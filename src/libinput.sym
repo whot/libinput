@@ -259,3 +259,17 @@ LIBINPUT_1.4 {
 	libinput_device_config_rotation_is_available;
 	libinput_device_config_rotation_set_angle;
 } LIBINPUT_1.3;
+
+TOUCHPAD_TOUCH_SUPPORT {
+	libinput_device_config_touchpad_direct_touch_get_default_enabled;
+	libinput_device_config_touchpad_direct_touch_get_enabled;
+	libinput_device_config_touchpad_direct_touch_is_available;
+	libinput_device_config_touchpad_direct_touch_set_enabled;
+	libinput_event_get_touchpad_event;
+	libinput_event_touchpad_get_base_event;
+	libinput_event_touchpad_get_slot;
+	libinput_event_touchpad_get_time;
+	libinput_event_touchpad_get_time_usec;
+	libinput_event_touchpad_get_x;
+	libinput_event_touchpad_get_y;
+} LIBINPUT_1.4;

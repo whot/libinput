@@ -1,0 +1,26 @@
+/**
+@page touchpad_direct_touch Touch events on pointer devices
+
+libinput maps touchpads into the pointer device interface and maps touch
+events into the respective pointer motion or scroll events. For some
+specialized use-cases direct touch input from the touchpad is required. One
+example is use of the touchpad surface as canvas to logograms that are not
+otherwise easily accessible through the keyboard.
+
+The direct touch mode on touchpad devices relies on the touchpad being
+switched into a custom mode via the function
+libinput_device_config_tptouch_set_enabled(). Once the touchpad is in this
+mode it will not generate further pointer events but only send direct touch
+input that must be interpreted by the caller as such.
+
+While in direct touch mode the touchpad will disable advanced touchpad
+features such as gestures, scrolling or clickfinger/software button areas.
+Which features remain enabled is device-dependent.
+
+The protocol for touchpad direct touches is similar to the protocol used for
+multi-touch devices and libinput will generally forwards multiple touches
+as-is. On some devices where the accuracy of multiple touches on the
+touchpad cannot be guaranteed, libinput may restrict the device to a single
+touch.
+
+*/
