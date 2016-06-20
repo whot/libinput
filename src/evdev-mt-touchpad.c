@@ -1082,6 +1082,14 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 	tp_gesture_handle_state(tp, time);
 }
 
+static inline void
+tp_toggle_direct_mode(struct tp_dispatch *tp)
+{
+	if (tp->nfingers_down == 0 &&
+	    tp->direct_touch.enabled != tp->direct_touch.want_enabled)
+		tp->direct_touch.enabled = tp->direct_touch.want_enabled;
+}
+
 static void
 tp_post_process_state(struct tp_dispatch *tp, uint64_t time)
 {
@@ -1108,6 +1116,8 @@ tp_post_process_state(struct tp_dispatch *tp, uint64_t time)
 	tp->buttons.old_state = tp->buttons.state;
 
 	tp->queued = TOUCHPAD_EVENT_NONE;
+
+	tp_toggle_direct_mode(tp);
 }
 
 static void
@@ -1139,11 +1149,65 @@ tp_post_events(struct tp_dispatch *tp, uint64_t time)
 }
 
 static void
+tp_handle_direct_touch(struct tp_dispatch *tp,
+		       uint64_t time)
+{
+	struct tp_touch *t;
+	int nslots;
+	int i;
+
+	tp_unhover_touches(tp, time);
+	nslots = tp->has_mt ? tp->num_slots : 1;
+
+	for (i = 0; i < nslots; i++) {
+		t = tp_get_touch(tp, i);
+
+		if (!t->dirty)
+			continue;
+
+		/* FIXME: hysteresis should apply here too */
+
+		switch (t->state) {
+			case TOUCH_HOVERING:
+				break;
+			case TOUCH_BEGIN:
+				touchpad_notify_touch_down(&tp->device->base,
+							   time,
+							   i,
+							   &t->point);
+				break;
+			case TOUCH_UPDATE:
+				touchpad_notify_touch_motion(&tp->device->base,
+							     time,
+							     i,
+							     &t->point);
+				break;
+			case TOUCH_END:
+				touchpad_notify_touch_up(&tp->device->base,
+							 time,
+							 i);
+				break;
+			default:
+				log_bug_libinput(tp_libinput_context(tp),
+						 "Invalid touch state %d\n",
+						 t->state);
+				return;
+		}
+	}
+
+	/* FIXME: physical button state */
+}
+
+static void
 tp_handle_state(struct tp_dispatch *tp,
 		uint64_t time)
 {
-	tp_process_state(tp, time);
-	tp_post_events(tp, time);
+	if (tp->direct_touch.enabled) {
+		tp_handle_direct_touch(tp, time);
+	} else {
+		tp_process_state(tp, time);
+		tp_post_events(tp, time);
+	}
 	tp_post_process_state(tp, time);
 }
 
@@ -1973,6 +2037,8 @@ tp_direct_touch_config_set_enabled(struct libinput_device *device,
 
 	tp->direct_touch.want_enabled =
 		(enable == LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_ENABLED);
+
+	tp_toggle_direct_mode(tp);
 
 	return LIBINPUT_CONFIG_STATUS_SUCCESS;
 }
