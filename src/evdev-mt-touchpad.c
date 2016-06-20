@@ -1951,6 +1951,65 @@ tp_init_dwt(struct tp_dispatch *tp,
 }
 
 static int
+tp_direct_touch_config_available(struct libinput_device *device)
+{
+	return 1;
+}
+
+static enum libinput_config_status
+tp_direct_touch_config_set_enabled(struct libinput_device *device,
+	enum libinput_config_touchpad_direct_touch_state enable)
+{
+	struct evdev_device *evdev = (struct evdev_device*)device;
+	struct tp_dispatch *tp = (struct tp_dispatch*)evdev->dispatch;
+
+	switch(enable) {
+	case LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_ENABLED:
+	case LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED:
+		break;
+	default:
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+	}
+
+	tp->direct_touch.want_enabled =
+		(enable == LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_ENABLED);
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static enum libinput_config_touchpad_direct_touch_state
+tp_direct_touch_config_get_enabled(struct libinput_device *device)
+{
+	struct evdev_device *evdev = (struct evdev_device*)device;
+	struct tp_dispatch *tp = (struct tp_dispatch*)evdev->dispatch;
+
+	return tp->direct_touch.want_enabled ?
+			LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_ENABLED :
+			LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED;
+}
+
+static enum libinput_config_touchpad_direct_touch_state
+tp_direct_touch_config_get_default_enabled(struct libinput_device *device)
+{
+	return LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED;
+}
+
+static int
+tp_init_direct_touch(struct tp_dispatch *tp)
+{
+	tp->direct_touch.config.is_available = tp_direct_touch_config_available;
+	tp->direct_touch.config.set_enabled = tp_direct_touch_config_set_enabled;
+	tp->direct_touch.config.get_enabled = tp_direct_touch_config_get_enabled;
+	tp->direct_touch.config.get_default_enabled = tp_direct_touch_config_get_default_enabled;
+	tp->device->base.config.direct_touch = &tp->direct_touch.config;
+
+	tp->direct_touch.enabled = false;
+	tp->direct_touch.want_enabled = false;
+
+	return 0;
+}
+
+static int
 tp_init_palmdetect(struct tp_dispatch *tp,
 		   struct evdev_device *device)
 {
@@ -2202,6 +2261,9 @@ tp_init(struct tp_dispatch *tp,
 		return -1;
 
 	if (tp_init_thumb(tp) != 0)
+		return -1;
+
+	if (tp_init_direct_touch(tp) != 0)
 		return -1;
 
 	device->seat_caps |= EVDEV_DEVICE_POINTER;

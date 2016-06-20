@@ -267,6 +267,17 @@ struct libinput_device_config_rotation {
 	unsigned int (*get_default_angle)(struct libinput_device *device);
 };
 
+struct libinput_device_config_touchpad_touch {
+	int (*is_available)(struct libinput_device *device);
+	enum libinput_config_status (*set_enabled)(
+		struct libinput_device *device,
+		enum libinput_config_touchpad_direct_touch_state enable);
+	enum libinput_config_touchpad_direct_touch_state
+		(*get_enabled)(struct libinput_device *device);
+	enum libinput_config_touchpad_direct_touch_state
+		(*get_default_enabled)(struct libinput_device *device);
+};
+
 struct libinput_device_config {
 	struct libinput_device_config_tap *tap;
 	struct libinput_device_config_calibration *calibration;
@@ -279,6 +290,7 @@ struct libinput_device_config {
 	struct libinput_device_config_middle_emulation *middle_emulation;
 	struct libinput_device_config_dwt *dwt;
 	struct libinput_device_config_rotation *rotation;
+	struct libinput_device_config_touchpad_touch *direct_touch;
 };
 
 struct libinput_device_group {

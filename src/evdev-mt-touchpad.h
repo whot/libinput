@@ -372,6 +372,12 @@ struct tp_dispatch {
 		 */
 		unsigned int nonmotion_event_count;
 	} quirks;
+
+	struct {
+		bool enabled;
+		bool want_enabled;
+		struct libinput_device_config_touchpad_touch config;
+	} direct_touch;
 };
 
 #define tp_for_each_touch(_tp, _t) \

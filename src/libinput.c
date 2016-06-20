@@ -3936,8 +3936,10 @@ libinput_device_config_rotation_get_default_angle(struct libinput_device *device
 LIBINPUT_EXPORT int
 libinput_device_config_touchpad_direct_touch_is_available(struct libinput_device *device)
 {
-	return 0;
+	if (!device->config.direct_touch)
+		return 0;
 
+	return device->config.direct_touch->is_available(device);
 }
 
 LIBINPUT_EXPORT enum libinput_config_status
@@ -3945,19 +3947,37 @@ libinput_device_config_touchpad_direct_touch_set_enabled(
 		struct libinput_device *device,
 		enum libinput_config_touchpad_direct_touch_state state)
 {
-	return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+	if (!libinput_device_config_touchpad_direct_touch_is_available(device))
+		return state ? LIBINPUT_CONFIG_STATUS_UNSUPPORTED :
+			       LIBINPUT_CONFIG_STATUS_SUCCESS;
+
+	switch (state) {
+	case LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED:
+	case LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_ENABLED:
+		break;
+	default:
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+	}
+
+	return device->config.direct_touch->set_enabled(device, state);
 }
 
 LIBINPUT_EXPORT enum libinput_config_touchpad_direct_touch_state
 libinput_device_config_touchpad_direct_touch_get_enabled(
 			struct libinput_device *device)
 {
-	return LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED;
+	if (!libinput_device_config_touchpad_direct_touch_is_available(device))
+		return LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED;
+
+	return device->config.direct_touch->get_enabled(device);
 }
 
 LIBINPUT_EXPORT enum libinput_config_touchpad_direct_touch_state
 libinput_device_config_touchpad_direct_touch_get_default_enabled(
 			struct libinput_device *device)
 {
-	return LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED;
+	if (!libinput_device_config_touchpad_direct_touch_is_available(device))
+		return LIBINPUT_CONFIG_TOUCHPAD_DIRECT_TOUCH_DISABLED;
+
+	return device->config.direct_touch->get_default_enabled(device);
 }
