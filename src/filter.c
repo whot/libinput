@@ -167,7 +167,8 @@ struct tablet_accelerator_flat {
 	struct motion_filter base;
 
 	double factor;
-	int xres, yres;
+	double xres_scale, /* 1000dpi : tablet res */
+	       yres_scale; /* 1000dpi : tablet res */
 };
 
 static void
@@ -975,25 +976,29 @@ create_pointer_accelerator_filter_flat(int dpi)
 /* The tablet accel code uses mm as input */
 static struct normalized_coords
 tablet_accelerator_filter_flat(struct motion_filter *filter,
-			       const struct normalized_coords *mm,
+			       const struct normalized_coords *units,
 			       void *data, uint64_t time)
 {
 	struct tablet_accelerator_flat *accel_filter =
 		(struct tablet_accelerator_flat *)filter;
 	struct normalized_coords accelerated;
 
-	/* Tablet input is in mm, output is supposed to be in logical
-	 * pixels roughly equivalent to a mouse/touchpad.
-	 *
-	 * This is a magical constant found by trial and error. On a 96dpi
-	 * screen 0.4mm of movement correspond to 1px logical pixel which
-	 * is almost identical to the tablet mapped to screen in absolute
-	 * mode. Tested on a Intuos5, other tablets may vary.
-	 */
-	const double DPI_CONVERSION = 96.0/25.4 * 2.5; /* unitless factor */
+	/*
+	   The input for and output of accel methods is usually a delta in
+	   1000dpi equivalents. Tablets are high res (Intuos 4 is 5080 dpi)
+	   and unmodified deltas are way too high. Slow it down to the
+	   equivalent of a 1000dpi mouse. The ratio of that is:
+		ratio = 1000/(resolution_per_mm * 25.4)
 
-	accelerated.x = mm->x * accel_filter->factor * DPI_CONVERSION;
-	accelerated.y = mm->y * accel_filter->factor * DPI_CONVERSION;
+	   i.e. on the Intuos4 it's a ratio of ~1/5.
+
+	 */
+
+	accelerated.x = units->x * accel_filter->xres_scale;
+	accelerated.y = units->y * accel_filter->yres_scale;
+
+	accelerated.x *= accel_filter->factor;
+	accelerated.y *= accel_filter->factor;
 
 	return accelerated;
 }
@@ -1039,8 +1044,9 @@ create_tablet_filter_flat(int xres, int yres)
 	if (filter == NULL)
 		return NULL;
 
-	filter->xres = xres;
-	filter->yres = yres;
+	filter->factor = 1.0;
+	filter->xres_scale = DEFAULT_MOUSE_DPI/(25.4 * xres);
+	filter->yres_scale = DEFAULT_MOUSE_DPI/(25.4 * yres);
 
 	return filter;
 }

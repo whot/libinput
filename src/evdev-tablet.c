@@ -393,9 +393,8 @@ tablet_process_delta(struct tablet_dispatch *tablet,
 {
 	struct normalized_coords accel;
 
-	/* The tablet accel code uses mm as input */
-	accel.x = 1.0 * delta->x/device->abs.absinfo_x->resolution;
-	accel.y = 1.0 * delta->y/device->abs.absinfo_y->resolution;
+	accel.x = 1.0 * delta->x;
+	accel.y = 1.0 * delta->y;
 
 	if (normalized_is_zero(accel))
 		return accel;
