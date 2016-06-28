@@ -121,6 +121,10 @@ enum evdev_device_model {
 };
 
 struct mt_slot {
+#if 0
+	bool active;
+	bool discarded;
+#endif
 	int32_t seat_slot;
 	struct device_coords point;
 	struct device_coords hysteresis_center;
@@ -221,6 +225,10 @@ struct evdev_device {
 		uint32_t button_mask;
 		uint64_t first_event_time;
 	} middlebutton;
+
+	/* FIXME: do we need a link to the wacom device here?
+	 * - if so have a struct tablet_touch_dispatch??
+	 */
 };
 
 #define EVDEV_UNHANDLED_DEVICE ((struct evdev_device *) 1)
@@ -264,6 +272,14 @@ struct evdev_dispatch_interface {
 	 * was sent */
 	void (*post_added)(struct evdev_device *device,
 			   struct evdev_dispatch *dispatch);
+
+	void (*toggle_touch)(struct evdev_dispatch *dispatch,
+			     struct evdev_device *device,
+			     bool enable);
+
+	/* FIXME: maybe add a "filter" interface here for when touch
+	 * arbitration is enabled? Alternatively, use a toggle_touch()
+	 * function to turn touch on/off */
 };
 
 struct evdev_dispatch {
@@ -298,6 +314,7 @@ struct fallback_dispatch {
 		size_t slots_len;
 		bool want_hysteresis;
 		struct device_coords hysteresis_margin;
+		bool discard_events;
 	} mt;
 
 	struct device_coords rel;

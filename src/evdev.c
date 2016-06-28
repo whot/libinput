@@ -319,6 +319,56 @@ evdev_device_transform_y(struct evdev_device *device,
 	return scale_axis(device->abs.absinfo_y, y, height);
 }
 
+static void
+fallback_toggle_touch(struct evdev_dispatch *evdev_dispatch,
+		      struct evdev_device *device,
+		      bool enable)
+{
+	if (enable != device->is_suspended)
+		return;
+
+	if (enable)
+		evdev_device_resume(device);
+	else
+		evdev_device_suspend(device);
+#if 0
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)evdev_dispatch;
+
+	size_t slot_idx;
+	struct mt_slot *slot;
+	uint64_t time;
+
+	/* using a fresh timestamp to avoid backwards running timestamps if
+	 * a touch event was already processed before we saw the tablet
+	 * event that triggered this function */
+	time = libinput_now(evdev_libinput_context(device));
+
+	printf("............... discarding events: %d\n", !enable);
+	if (dispatch->mt.discard_events == !enable)
+		return;
+
+	dispatch->mt.discard_events = !enable;
+	/* we keep ignoring existing touches */
+	if (enable)
+		return;
+
+	/* FIXME: end currently existing touches */
+
+	printf("............... ending touches\n");
+
+	slot_idx = 0;
+	while (slot_idx < dispatch->mt.slots_len) {
+		slot = &dispatch->mt.slots[slot_idx];
+		if (slot->active) {
+			touch_notify_touch_up(&device->base,
+					      time,
+					      slot_idx,
+					      slot->seat_slot);
+		}
+	}
+#endif
+}
+
 static inline void
 normalize_delta(struct evdev_device *device,
 		const struct device_coords *delta,
@@ -1232,6 +1282,7 @@ struct evdev_dispatch_interface fallback_interface = {
 	NULL, /* device_suspended */
 	NULL, /* device_resumed */
 	NULL, /* post_added */
+	fallback_toggle_touch, /* toggle_touch */
 };
 
 static uint32_t

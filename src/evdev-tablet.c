@@ -1422,6 +1422,39 @@ tablet_flush(struct tablet_dispatch *tablet,
 }
 
 static inline void
+tablet_set_touch_device_enabled(struct evdev_device *touch_device,
+				bool enable)
+{
+	struct evdev_dispatch *dispatch;
+
+	if (touch_device == NULL)
+		return;
+
+	dispatch = touch_device->dispatch;
+	if (dispatch->interface->toggle_touch)
+		dispatch->interface->toggle_touch(dispatch,
+						  touch_device,
+						  enable);
+}
+
+static inline void
+tablet_toggle_touch_device(struct tablet_dispatch *tablet,
+			   struct evdev_device *tablet_device)
+{
+	bool enable_events;
+
+	enable_events = tablet_has_status(tablet,
+					  TABLET_TOOL_OUT_OF_RANGE) ||
+			tablet_has_status(tablet, TABLET_NONE) ||
+			tablet_has_status(tablet,
+					  TABLET_TOOL_LEAVING_PROXIMITY) ||
+			tablet_has_status(tablet,
+					  TABLET_TOOL_OUT_OF_PROXIMITY);
+
+	tablet_set_touch_device_enabled(tablet->touch_device, enable_events);
+}
+
+static inline void
 tablet_reset_state(struct tablet_dispatch *tablet)
 {
 	/* Update state */
@@ -1454,6 +1487,7 @@ tablet_process(struct evdev_dispatch *dispatch,
 		break;
 	case EV_SYN:
 		tablet_flush(tablet, device, time);
+		tablet_toggle_touch_device(tablet, device);
 		tablet_reset_state(tablet);
 		break;
 	default:
@@ -1463,6 +1497,16 @@ tablet_process(struct evdev_dispatch *dispatch,
 			  e->type);
 		break;
 	}
+}
+
+static void
+tablet_suspend(struct evdev_dispatch *dispatch,
+	       struct evdev_device *device)
+{
+	struct tablet_dispatch *tablet =
+		(struct tablet_dispatch *)dispatch;
+
+	tablet_set_touch_device_enabled(tablet->touch_device, true);
 }
 
 static void
@@ -1477,6 +1521,24 @@ tablet_destroy(struct evdev_dispatch *dispatch)
 	}
 
 	free(tablet);
+}
+
+static void
+tablet_device_added(struct evdev_device *device,
+		    struct evdev_device *added_device)
+{
+	struct tablet_dispatch *tablet =
+		(struct tablet_dispatch*)device->dispatch;
+
+	if (libinput_device_get_device_group(&device->base) !=
+	    libinput_device_get_device_group(&added_device->base))
+		return;
+
+	/* Touch screens or external touchpads only */
+	if (evdev_device_has_capability(added_device, LIBINPUT_DEVICE_CAP_TOUCH) ||
+	    (evdev_device_has_capability(added_device, LIBINPUT_DEVICE_CAP_POINTER) &&
+	     (added_device->tags & EVDEV_TAG_EXTERNAL_TOUCHPAD)))
+	    tablet->touch_device = added_device;
 }
 
 static void
@@ -1520,14 +1582,15 @@ tablet_check_initial_proximity(struct evdev_device *device,
 
 static struct evdev_dispatch_interface tablet_interface = {
 	tablet_process,
-	NULL, /* suspend */
+	tablet_suspend,
 	NULL, /* remove */
 	tablet_destroy,
-	NULL, /* device_added */
-	NULL, /* device_removed */
+	tablet_device_added, /* device_added */
+	NULL,
 	NULL, /* device_suspended */
 	NULL, /* device_resumed */
 	tablet_check_initial_proximity,
+	NULL, /* toggle_touch */
 };
 
 static void

@@ -512,6 +512,7 @@ static struct evdev_dispatch_interface pad_interface = {
 	NULL, /* device_suspended */
 	NULL, /* device_resumed */
 	NULL, /* post_added */
+	NULL, /* toggle_touch */
 };
 
 static void

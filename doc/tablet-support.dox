@@ -331,4 +331,17 @@ button and ring events on the right. When one of the three mode toggle
 buttons on the right is pressed, the right mode switches to that button's
 mode but the left mode remains unchanged.
 
+@section tablet-touch-arbitration Tablet touch arbitration
+
+"Touch arbitration" is the terminology used when touch events are suppressed
+while the pen is in proximity. Since it is almost impossible to use a stylus
+or other tool without triggering touches with the hand holding the tool,
+touch arbitration serves to reduce the number of accidental inputs.
+The wacom kernel provides touch arbitration but for other devices
+arbitration has to be done in userspace.
+
+libinput uses the @ref libinput_device_group to decide on touch arbitration
+and automatically discards touch events whenever a tool is in proximity.
+
+
 */

@@ -71,6 +71,15 @@ struct tablet_dispatch {
 	uint32_t cursor_proximity_threshold;
 
 	struct libinput_device_config_calibration calibration;
+
+	/* FIXME: we need a link to the touch device here
+	   - requires hooking up device_added/device_removed
+	   - does the touch device need a link to here?
+		I don't think so...
+	   - need a trigger into the evdev device to stop it sending touch
+	   events.
+	 */
+	struct evdev_device *touch_device;
 };
 
 static inline enum libinput_tablet_tool_axis

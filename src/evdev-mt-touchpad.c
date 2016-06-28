@@ -1651,6 +1651,23 @@ evdev_tag_touchpad(struct evdev_device *device,
 	}
 }
 
+static void
+tp_interface_toggle_touch(struct evdev_dispatch *dispatch,
+			  struct evdev_device *device,
+			  bool enable)
+{
+	struct tp_dispatch *tp = (struct tp_dispatch*)dispatch;
+
+	if (enable != tp->device->is_suspended)
+		return;
+
+	if (enable)
+		tp_resume(tp, device);
+	else
+		tp_suspend(tp, device);
+
+}
+
 static struct evdev_dispatch_interface tp_interface = {
 	tp_interface_process,
 	tp_interface_suspend,
@@ -1661,6 +1678,7 @@ static struct evdev_dispatch_interface tp_interface = {
 	tp_interface_device_removed, /* device_suspended, treat as remove */
 	tp_interface_device_added,   /* device_resumed, treat as add */
 	NULL,                        /* post_added */
+	tp_interface_toggle_touch,
 };
 
 static void
