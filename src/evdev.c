@@ -2126,7 +2126,7 @@ evdev_configure_mt_device(struct evdev_device *device)
 	return true;
 }
 
-static bool
+static struct evdev_dispatch *
 evdev_configure_device(struct evdev_device *device)
 {
 	struct libinput *libinput = evdev_libinput_context(device);
@@ -2134,6 +2134,7 @@ evdev_configure_device(struct evdev_device *device)
 	const char *devnode = udev_device_get_devnode(device->udev_device);
 	enum evdev_device_udev_tags udev_tags;
 	unsigned int tablet_tags;
+	struct evdev_dispatch *dispatch;
 
 	udev_tags = evdev_device_get_udev_tags(device, device->udev_device);
 
@@ -2142,7 +2143,7 @@ evdev_configure_device(struct evdev_device *device)
 		log_info(libinput,
 			 "input device '%s', %s not tagged as input device\n",
 			 device->devname, devnode);
-		return false;
+		return NULL;
 	}
 
 	log_info(libinput,
@@ -2162,7 +2163,7 @@ evdev_configure_device(struct evdev_device *device)
 		log_info(libinput,
 			 "input device '%s', %s is an accelerometer, ignoring\n",
 			 device->devname, devnode);
-		return false;
+		return NULL;
 	}
 
 	/* libwacom *adds* TABLET, TOUCHPAD but leaves JOYSTICK in place, so
@@ -2171,14 +2172,14 @@ evdev_configure_device(struct evdev_device *device)
 		log_info(libinput,
 			 "input device '%s', %s is a joystick, ignoring\n",
 			 device->devname, devnode);
-		return false;
+		return NULL;
 	}
 
 	if (evdev_reject_device(device)) {
 		log_info(libinput,
 			 "input device '%s', %s was rejected.\n",
 			 device->devname, devnode);
-		return false;
+		return NULL;
 	}
 
 	if (!evdev_is_fake_mt_device(device))
@@ -2199,7 +2200,7 @@ evdev_configure_device(struct evdev_device *device)
 		if (evdev_is_fake_mt_device(device)) {
 			udev_tags &= ~EVDEV_UDEV_TAG_TOUCHSCREEN;
 		} else if (!evdev_configure_mt_device(device)) {
-			return false;
+			return NULL;
 		}
 	}
 
@@ -2212,29 +2213,29 @@ evdev_configure_device(struct evdev_device *device)
 
 	/* libwacom assigns tablet _and_ tablet_pad to the pad devices */
 	if (udev_tags & EVDEV_UDEV_TAG_TABLET_PAD) {
-		device->dispatch = evdev_tablet_pad_create(device);
+		dispatch = evdev_tablet_pad_create(device);
 		device->seat_caps |= EVDEV_DEVICE_TABLET_PAD;
 		log_info(libinput,
 			 "input device '%s', %s is a tablet pad\n",
 			 device->devname, devnode);
-		return device->dispatch != NULL;
+		return dispatch;
 
 	} else if ((udev_tags & tablet_tags) == EVDEV_UDEV_TAG_TABLET) {
-		device->dispatch = evdev_tablet_create(device);
+		dispatch = evdev_tablet_create(device);
 		device->seat_caps |= EVDEV_DEVICE_TABLET;
 		log_info(libinput,
 			 "input device '%s', %s is a tablet\n",
 			 device->devname, devnode);
-		return device->dispatch != NULL;
+		return dispatch;
 	}
 
 	if (udev_tags & EVDEV_UDEV_TAG_TOUCHPAD) {
-		device->dispatch = evdev_mt_touchpad_create(device);
+		dispatch = evdev_mt_touchpad_create(device);
 		log_info(libinput,
 			 "input device '%s', %s is a touchpad\n",
 			 device->devname, devnode);
 
-		return device->dispatch != NULL;
+		return dispatch;
 	}
 
 	if (udev_tags & EVDEV_UDEV_TAG_MOUSE ||
@@ -2287,12 +2288,10 @@ evdev_configure_device(struct evdev_device *device)
 		log_error(libinput,
 			  "failed to initialize pointer acceleration for %s\n",
 			  device->devname);
-		return false;
+		return NULL;
 	}
 
-	device->dispatch = fallback_dispatch_create(&device->base);
-
-	return true;
+	return fallback_dispatch_create(&device->base);
 }
 
 static void
@@ -2495,16 +2494,12 @@ evdev_device_create(struct libinput_seat *seat,
 
 	evdev_pre_configure_model_quirks(device);
 
-	if (!evdev_configure_device(device))
-		goto err;
-
-	if (device->seat_caps == 0) {
-		unhandled_device = 1;
+	device->dispatch = evdev_configure_device(device);
+	if (device->dispatch == NULL) {
+		if (device->seat_caps == 0)
+			unhandled_device = 1;
 		goto err;
 	}
-
-	if (device->dispatch == NULL)
-		goto err;
 
 	device->source =
 		libinput_add_fd(libinput, fd, evdev_device_dispatch, device);
