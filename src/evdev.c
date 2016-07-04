@@ -1392,6 +1392,77 @@ evdev_init_rotation(struct evdev_device *device,
 	device->base.config.rotation = &dispatch->rotation.config;
 }
 
+static inline int
+evdev_need_mtdev(struct evdev_device *device)
+{
+	struct libevdev *evdev = device->evdev;
+
+	return (libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_X) &&
+		libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_Y) &&
+		!libevdev_has_event_code(evdev, EV_ABS, ABS_MT_SLOT));
+}
+
+static inline int
+fallback_dispatch_init_slots(struct evdev_dispatch *dispatch,
+			     struct evdev_device *device)
+{
+	struct libevdev *evdev = device->evdev;
+	struct mt_slot *slots;
+	int num_slots;
+	int active_slot;
+	int slot;
+
+	if (!libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_X) ||
+	    !libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_Y))
+		 return 0;
+
+	/* We only handle the slotted Protocol B in libinput.
+	   Devices with ABS_MT_POSITION_* but not ABS_MT_SLOT
+	   require mtdev for conversion. */
+	if (evdev_need_mtdev(device)) {
+		device->mtdev = mtdev_new_open(device->fd);
+		if (!device->mtdev)
+			return -1;
+
+		/* pick 10 slots as default for type A
+		   devices. */
+		num_slots = 10;
+		active_slot = device->mtdev->caps.slot.value;
+	} else {
+		num_slots = libevdev_get_num_slots(device->evdev);
+		active_slot = libevdev_get_current_slot(evdev);
+	}
+
+	slots = calloc(num_slots, sizeof(struct mt_slot));
+	if (!slots)
+		return -1;
+
+	for (slot = 0; slot < num_slots; ++slot) {
+		slots[slot].seat_slot = -1;
+
+		if (evdev_need_mtdev(device))
+			continue;
+
+		slots[slot].point.x = libevdev_get_slot_value(evdev,
+							      slot,
+							      ABS_MT_POSITION_X);
+		slots[slot].point.y = libevdev_get_slot_value(evdev,
+							      slot,
+							      ABS_MT_POSITION_Y);
+	}
+	device->mt.slots = slots;
+	device->mt.slots_len = num_slots;
+	device->mt.slot = active_slot;
+
+	if (device->abs.absinfo_x->fuzz || device->abs.absinfo_y->fuzz) {
+		device->mt.want_hysteresis = true;
+		device->mt.hysteresis_margin.x = device->abs.absinfo_x->fuzz/2;
+		device->mt.hysteresis_margin.y = device->abs.absinfo_y->fuzz/2;
+	}
+
+	return 0;
+}
+
 static struct evdev_dispatch *
 fallback_dispatch_create(struct libinput_device *device)
 {
@@ -1402,6 +1473,8 @@ fallback_dispatch_create(struct libinput_device *device)
 		return NULL;
 
 	dispatch->interface = &fallback_interface;
+
+	fallback_dispatch_init_slots(dispatch, evdev_device);
 
 	if (evdev_device->left_handed.want_enabled)
 		evdev_init_left_handed(evdev_device,
@@ -1669,16 +1742,6 @@ evdev_device_init_pointer_acceleration(struct evdev_device *device,
 		evdev_accel_config_set_speed(&device->base,
 			     evdev_accel_config_get_default_speed(&device->base));
 	}
-}
-
-static inline bool
-evdev_need_mtdev(struct evdev_device *device)
-{
-	struct libevdev *evdev = device->evdev;
-
-	return (libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_X) &&
-		libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_Y) &&
-		!libevdev_has_event_code(evdev, EV_ABS, ABS_MT_SLOT));
 }
 
 static inline int
@@ -2057,10 +2120,6 @@ static bool
 evdev_configure_mt_device(struct evdev_device *device)
 {
 	struct libevdev *evdev = device->evdev;
-	struct mt_slot *slots;
-	int num_slots;
-	int active_slot;
-	int slot;
 
 	if (!libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_X) ||
 	    !libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_Y))
@@ -2078,50 +2137,6 @@ evdev_configure_mt_device(struct evdev_device *device)
 	device->abs.dimensions.y = abs(device->abs.absinfo_y->maximum -
 				       device->abs.absinfo_y->minimum);
 	device->is_mt = 1;
-
-	/* We only handle the slotted Protocol B in libinput.
-	   Devices with ABS_MT_POSITION_* but not ABS_MT_SLOT
-	   require mtdev for conversion. */
-	if (evdev_need_mtdev(device)) {
-		device->mtdev = mtdev_new_open(device->fd);
-		if (!device->mtdev)
-			return false;
-
-		/* pick 10 slots as default for type A
-		   devices. */
-		num_slots = 10;
-		active_slot = device->mtdev->caps.slot.value;
-	} else {
-		num_slots = libevdev_get_num_slots(device->evdev);
-		active_slot = libevdev_get_current_slot(evdev);
-	}
-
-	slots = calloc(num_slots, sizeof(struct mt_slot));
-	if (!slots)
-		return false;
-
-	for (slot = 0; slot < num_slots; ++slot) {
-		slots[slot].seat_slot = -1;
-
-		if (evdev_need_mtdev(device))
-			continue;
-
-		slots[slot].point.x = libevdev_get_slot_value(evdev,
-							      slot,
-							      ABS_MT_POSITION_X);
-		slots[slot].point.y = libevdev_get_slot_value(evdev,
-							      slot,
-							      ABS_MT_POSITION_Y);
-	}
-	device->mt.slots = slots;
-	device->mt.slots_len = num_slots;
-	device->mt.slot = active_slot;
-
-	if (device->abs.absinfo_x->fuzz || device->abs.absinfo_y->fuzz) {
-		device->mt.want_hysteresis = true;
-		device->mt.hysteresis_margin.x = device->abs.absinfo_x->fuzz/2;
-		device->mt.hysteresis_margin.y = device->abs.absinfo_y->fuzz/2;
-	}
 
 	return true;
 }
