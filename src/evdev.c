@@ -2290,6 +2290,8 @@ evdev_configure_device(struct evdev_device *device)
 		return false;
 	}
 
+	device->dispatch = fallback_dispatch_create(&device->base);
+
 	return true;
 }
 
@@ -2501,9 +2503,6 @@ evdev_device_create(struct libinput_seat *seat,
 		goto err;
 	}
 
-	/* If the dispatch was not set up use the fallback. */
-	if (device->dispatch == NULL)
-		device->dispatch = fallback_dispatch_create(&device->base);
 	if (device->dispatch == NULL)
 		goto err;
 
