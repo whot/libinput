@@ -138,6 +138,16 @@ struct evdev_device {
 	const char *devname;
 	bool was_removed;
 	int fd;
+	enum evdev_device_seat_capability seat_caps;
+	enum evdev_device_tags tags;
+	int is_mt;
+	int suspended;
+	int dpi; /* HW resolution */
+	struct ratelimit syn_drop_limit; /* ratelimit for SYN_DROPPED logging */
+	struct ratelimit nonpointer_rel_limit; /* ratelimit for REL_* events from non-pointer devices */
+	uint32_t model_flags;
+	struct mtdev *mtdev;
+
 	struct {
 		const struct input_absinfo *absinfo_x, *absinfo_y;
 		int fake_resolution;
@@ -152,8 +162,6 @@ struct evdev_device {
 
 		struct device_coords dimensions;
 	} abs;
-
-	struct mtdev *mtdev;
 
 	struct {
 		struct libinput_timer timer;
@@ -184,12 +192,6 @@ struct evdev_device {
 		/* angle per REL_WHEEL click in degrees */
 		int wheel_click_angle;
 	} scroll;
-
-	enum evdev_device_seat_capability seat_caps;
-	enum evdev_device_tags tags;
-
-	int is_mt;
-	int suspended;
 
 	struct {
 		struct libinput_device_config_accel config;
@@ -222,12 +224,6 @@ struct evdev_device {
 		uint32_t button_mask;
 		uint64_t first_event_time;
 	} middlebutton;
-
-	int dpi; /* HW resolution */
-	struct ratelimit syn_drop_limit; /* ratelimit for SYN_DROPPED logging */
-	struct ratelimit nonpointer_rel_limit; /* ratelimit for REL_* events from non-pointer devices */
-
-	uint32_t model_flags;
 };
 
 #define EVDEV_UNHANDLED_DEVICE ((struct evdev_device *) 1)
