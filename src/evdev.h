@@ -153,13 +153,6 @@ struct evdev_device {
 		struct device_coords dimensions;
 	} abs;
 
-	struct {
-		int slot;
-		struct mt_slot *slots;
-		size_t slots_len;
-		bool want_hysteresis;
-		struct device_coords hysteresis_margin;
-	} mt;
 	struct mtdev *mtdev;
 
 	struct device_coords rel;
@@ -301,6 +294,14 @@ struct evdev_dispatch {
 		struct libinput_device_config_send_events config;
 		enum libinput_config_send_events_mode current_mode;
 	} sendevents;
+
+	struct {
+		int slot;
+		struct mt_slot *slots;
+		size_t slots_len;
+		bool want_hysteresis;
+		struct device_coords hysteresis_margin;
+	} mt;
 };
 
 struct evdev_device *

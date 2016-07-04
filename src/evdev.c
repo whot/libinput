@@ -349,17 +349,18 @@ evdev_post_trackpoint_scroll(struct evdev_device *device,
 static inline bool
 evdev_filter_defuzz_touch(struct evdev_device *device, struct mt_slot *slot)
 {
+	struct evdev_dispatch *dispatch = device->dispatch;
 	struct device_coords point;
 
-	if (!device->mt.want_hysteresis)
+	if (!dispatch->mt.want_hysteresis)
 		return false;
 
 	point.x = evdev_hysteresis(slot->point.x,
 				   slot->hysteresis_center.x,
-				   device->mt.hysteresis_margin.x);
+				   dispatch->mt.hysteresis_margin.x);
 	point.y = evdev_hysteresis(slot->point.y,
 				   slot->hysteresis_center.y,
-				   device->mt.hysteresis_margin.y);
+				   dispatch->mt.hysteresis_margin.y);
 
 	slot->hysteresis_center = slot->point;
 	if (point.x == slot->point.x && point.y == slot->point.y)
@@ -389,6 +390,7 @@ evdev_rotate_relative(struct evdev_device *device)
 static void
 evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 {
+	struct evdev_dispatch *dispatch = device->dispatch;
 	struct libinput *libinput = evdev_libinput_context(device);
 	int slot_idx;
 	int seat_slot;
@@ -399,9 +401,9 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 	struct device_float_coords raw;
 	struct mt_slot *slot = NULL;
 
-	slot_idx = device->mt.slot;
-	if (device->mt.slots)
-		slot = &device->mt.slots[slot_idx];
+	slot_idx = dispatch->mt.slot;
+	if (dispatch->mt.slots)
+		slot = &dispatch->mt.slots[slot_idx];
 
 	switch (device->pending_event) {
 	case EVDEV_NONE:
@@ -670,18 +672,20 @@ evdev_process_touch(struct evdev_device *device,
 		    struct input_event *e,
 		    uint64_t time)
 {
+	struct evdev_dispatch *dispatch = device->dispatch;
+
 	switch (e->code) {
 	case ABS_MT_SLOT:
-		if ((size_t)e->value >= device->mt.slots_len) {
+		if ((size_t)e->value >= dispatch->mt.slots_len) {
 			log_bug_libinput(evdev_libinput_context(device),
 					 "%s exceeds slots (%d of %zd)\n",
 					 device->devname,
 					 e->value,
-					 device->mt.slots_len);
-			e->value = device->mt.slots_len - 1;
+					 dispatch->mt.slots_len);
+			e->value = dispatch->mt.slots_len - 1;
 		}
 		evdev_flush_pending_event(device, time);
-		device->mt.slot = e->value;
+		dispatch->mt.slot = e->value;
 		break;
 	case ABS_MT_TRACKING_ID:
 		if (device->pending_event != EVDEV_NONE &&
@@ -693,12 +697,12 @@ evdev_process_touch(struct evdev_device *device,
 			device->pending_event = EVDEV_ABSOLUTE_MT_UP;
 		break;
 	case ABS_MT_POSITION_X:
-		device->mt.slots[device->mt.slot].point.x = e->value;
+		dispatch->mt.slots[dispatch->mt.slot].point.x = e->value;
 		if (device->pending_event == EVDEV_NONE)
 			device->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
 		break;
 	case ABS_MT_POSITION_Y:
-		device->mt.slots[device->mt.slot].point.y = e->value;
+		dispatch->mt.slots[dispatch->mt.slot].point.y = e->value;
 		if (device->pending_event == EVDEV_NONE)
 			device->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
 		break;
@@ -994,6 +998,7 @@ fallback_suspend(struct evdev_dispatch *dispatch,
 static void
 fallback_destroy(struct evdev_dispatch *dispatch)
 {
+	free(dispatch->mt.slots);
 	free(dispatch);
 }
 
@@ -1402,6 +1407,18 @@ evdev_need_mtdev(struct evdev_device *device)
 		!libevdev_has_event_code(evdev, EV_ABS, ABS_MT_SLOT));
 }
 
+/* Fake MT devices have the ABS_MT_SLOT bit set because of
+   the limited ABS_* range - they aren't MT devices, they
+   just have too many ABS_ axes */
+static inline bool
+evdev_is_fake_mt_device(struct evdev_device *device)
+{
+	struct libevdev *evdev = device->evdev;
+
+	return libevdev_has_event_code(evdev, EV_ABS, ABS_MT_SLOT) &&
+		libevdev_get_num_slots(evdev) == -1;
+}
+
 static inline int
 fallback_dispatch_init_slots(struct evdev_dispatch *dispatch,
 			     struct evdev_device *device)
@@ -1412,7 +1429,8 @@ fallback_dispatch_init_slots(struct evdev_dispatch *dispatch,
 	int active_slot;
 	int slot;
 
-	if (!libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_X) ||
+	if (evdev_is_fake_mt_device(device) ||
+	    !libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_X) ||
 	    !libevdev_has_event_code(evdev, EV_ABS, ABS_MT_POSITION_Y))
 		 return 0;
 
@@ -1450,14 +1468,14 @@ fallback_dispatch_init_slots(struct evdev_dispatch *dispatch,
 							      slot,
 							      ABS_MT_POSITION_Y);
 	}
-	device->mt.slots = slots;
-	device->mt.slots_len = num_slots;
-	device->mt.slot = active_slot;
+	dispatch->mt.slots = slots;
+	dispatch->mt.slots_len = num_slots;
+	dispatch->mt.slot = active_slot;
 
 	if (device->abs.absinfo_x->fuzz || device->abs.absinfo_y->fuzz) {
-		device->mt.want_hysteresis = true;
-		device->mt.hysteresis_margin.x = device->abs.absinfo_x->fuzz/2;
-		device->mt.hysteresis_margin.y = device->abs.absinfo_y->fuzz/2;
+		dispatch->mt.want_hysteresis = true;
+		dispatch->mt.hysteresis_margin.x = device->abs.absinfo_x->fuzz/2;
+		dispatch->mt.hysteresis_margin.y = device->abs.absinfo_y->fuzz/2;
 	}
 
 	return 0;
@@ -1474,7 +1492,10 @@ fallback_dispatch_create(struct libinput_device *device)
 
 	dispatch->interface = &fallback_interface;
 
-	fallback_dispatch_init_slots(dispatch, evdev_device);
+	if (fallback_dispatch_init_slots(dispatch, evdev_device) == -1) {
+		free(dispatch);
+		return NULL;
+	}
 
 	if (evdev_device->left_handed.want_enabled)
 		evdev_init_left_handed(evdev_device,
@@ -1986,18 +2007,6 @@ evdev_device_get_udev_tags(struct evdev_device *device,
 	}
 
 	return tags;
-}
-
-/* Fake MT devices have the ABS_MT_SLOT bit set because of
-   the limited ABS_* range - they aren't MT devices, they
-   just have too many ABS_ axes */
-static inline bool
-evdev_is_fake_mt_device(struct evdev_device *device)
-{
-	struct libevdev *evdev = device->evdev;
-
-	return libevdev_has_event_code(evdev, EV_ABS, ABS_MT_SLOT) &&
-		libevdev_get_num_slots(evdev) == -1;
 }
 
 static inline void
@@ -3003,7 +3012,6 @@ evdev_device_destroy(struct evdev_device *device)
 	libinput_seat_unref(device->base.seat);
 	libevdev_free(device->evdev);
 	udev_device_unref(device->udev_device);
-	free(device->mt.slots);
 	free(device);
 }
 
