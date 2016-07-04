@@ -275,6 +275,16 @@ struct evdev_dispatch_interface {
 
 struct evdev_dispatch {
 	struct evdev_dispatch_interface *interface;
+
+	struct {
+		struct libinput_device_config_send_events config;
+		enum libinput_config_send_events_mode current_mode;
+	} sendevents;
+};
+
+struct fallback_dispatch {
+	struct evdev_dispatch base;
+
 	struct libinput_device_config_calibration calibration;
 
 	struct {
@@ -283,11 +293,6 @@ struct evdev_dispatch {
 		struct matrix matrix;
 		struct libinput_device_config_rotation config;
 	} rotation;
-
-	struct {
-		struct libinput_device_config_send_events config;
-		enum libinput_config_send_events_mode current_mode;
-	} sendevents;
 
 	struct {
 		int slot;
@@ -320,7 +325,7 @@ evdev_transform_relative(struct evdev_device *device,
 
 void
 evdev_init_calibration(struct evdev_device *device,
-		       struct evdev_dispatch *dispatch);
+		        struct libinput_device_config_calibration *calibration);
 
 void
 evdev_device_init_pointer_acceleration(struct evdev_device *device,

@@ -69,6 +69,8 @@ struct tablet_dispatch {
 	uint32_t current_tool_serial;
 
 	uint32_t cursor_proximity_threshold;
+
+	struct libinput_device_config_calibration calibration;
 };
 
 static inline enum libinput_tablet_tool_axis

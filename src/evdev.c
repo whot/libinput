@@ -92,13 +92,13 @@ static const struct evdev_udev_tag_match evdev_udev_tag_matches[] = {
 };
 
 static void
-hw_set_key_down(struct evdev_dispatch *dispatch, int code, int pressed)
+hw_set_key_down(struct fallback_dispatch *dispatch, int code, int pressed)
 {
 	long_set_bit_state(dispatch->hw_key_mask, code, pressed);
 }
 
 static bool
-hw_is_key_down(struct evdev_dispatch *dispatch, int code)
+hw_is_key_down(struct fallback_dispatch *dispatch, int code)
 {
 	return long_bit_is_set(dispatch->hw_key_mask, code);
 }
@@ -132,7 +132,7 @@ update_key_down_count(struct evdev_device *device, int code, int pressed)
 }
 
 static void
-evdev_keyboard_notify_key(struct evdev_dispatch *dispatch,
+evdev_keyboard_notify_key(struct fallback_dispatch *dispatch,
 			  struct evdev_device *device,
 			  uint64_t time,
 			  int key,
@@ -350,7 +350,7 @@ evdev_post_trackpoint_scroll(struct evdev_device *device,
 static inline bool
 evdev_filter_defuzz_touch(struct evdev_device *device, struct mt_slot *slot)
 {
-	struct evdev_dispatch *dispatch = device->dispatch;
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)device->dispatch;
 	struct device_coords point;
 
 	if (!dispatch->mt.want_hysteresis)
@@ -373,7 +373,7 @@ evdev_filter_defuzz_touch(struct evdev_device *device, struct mt_slot *slot)
 }
 
 static inline void
-evdev_rotate_relative(struct evdev_dispatch *dispatch,
+evdev_rotate_relative(struct fallback_dispatch *dispatch,
 		      struct evdev_device *device)
 {
 	struct device_coords rel = dispatch->rel;
@@ -391,7 +391,7 @@ evdev_rotate_relative(struct evdev_dispatch *dispatch,
 static void
 evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 {
-	struct evdev_dispatch *dispatch = device->dispatch;
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)device->dispatch;
 	struct libinput *libinput = evdev_libinput_context(device);
 	int slot_idx;
 	int seat_slot;
@@ -602,7 +602,7 @@ static void
 evdev_process_touch_button(struct evdev_device *device,
 			   uint64_t time, int value)
 {
-	struct evdev_dispatch *dispatch = device->dispatch;
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)device->dispatch;
 
 	if (dispatch->pending_event != EVDEV_NONE &&
 	    dispatch->pending_event != EVDEV_ABSOLUTE_MOTION)
@@ -614,7 +614,7 @@ evdev_process_touch_button(struct evdev_device *device,
 }
 
 static inline void
-evdev_process_key(struct evdev_dispatch *dispatch,
+evdev_process_key(struct fallback_dispatch *dispatch,
 		  struct evdev_device *device,
 		  struct input_event *e, uint64_t time)
 {
@@ -677,7 +677,7 @@ evdev_process_touch(struct evdev_device *device,
 		    struct input_event *e,
 		    uint64_t time)
 {
-	struct evdev_dispatch *dispatch = device->dispatch;
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)device->dispatch;
 
 	switch (e->code) {
 	case ABS_MT_SLOT:
@@ -718,7 +718,7 @@ static inline void
 evdev_process_absolute_motion(struct evdev_device *device,
 			      struct input_event *e)
 {
-	struct evdev_dispatch *dispatch = device->dispatch;
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)device->dispatch;
 
 	switch (e->code) {
 	case ABS_X:
@@ -781,7 +781,7 @@ static inline void
 evdev_process_relative(struct evdev_device *device,
 		       struct input_event *e, uint64_t time)
 {
-	struct evdev_dispatch *dispatch = device->dispatch;
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)device->dispatch;
 	struct normalized_coords wheel_degrees = { 0.0, 0.0 };
 	struct discrete_coords discrete = { 0.0, 0.0 };
 
@@ -842,7 +842,7 @@ evdev_process_absolute(struct evdev_device *device,
 }
 
 static inline bool
-evdev_any_button_down(struct evdev_dispatch *dispatch,
+evdev_any_button_down(struct fallback_dispatch *dispatch,
 		      struct evdev_device *device)
 {
 	unsigned int button;
@@ -858,7 +858,7 @@ evdev_any_button_down(struct evdev_dispatch *dispatch,
 static inline bool
 evdev_need_touch_frame(struct evdev_device *device)
 {
-	struct evdev_dispatch *dispatch = device->dispatch;
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)device->dispatch;
 
 	if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
 		return false;
@@ -921,11 +921,12 @@ evdev_tag_keyboard(struct evdev_device *device,
 }
 
 static void
-fallback_process(struct evdev_dispatch *dispatch,
+fallback_process(struct evdev_dispatch *evdev_dispatch,
 		 struct evdev_device *device,
 		 struct input_event *event,
 		 uint64_t time)
 {
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)evdev_dispatch;
 	bool need_frame = false;
 
 	switch (event->type) {
@@ -948,7 +949,7 @@ fallback_process(struct evdev_dispatch *dispatch,
 }
 
 static void
-release_pressed_keys(struct evdev_dispatch *dispatch,
+release_pressed_keys(struct fallback_dispatch *dispatch,
 		     struct evdev_device *device)
 {
 	struct libinput *libinput = evdev_libinput_context(device);
@@ -1002,16 +1003,20 @@ release_pressed_keys(struct evdev_dispatch *dispatch,
 }
 
 static void
-fallback_suspend(struct evdev_dispatch *dispatch,
+fallback_suspend(struct evdev_dispatch *evdev_dispatch,
 		 struct evdev_device *device)
 {
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)evdev_dispatch;
+
 	release_pressed_keys(dispatch, device);
 	memset(dispatch->hw_key_mask, 0, sizeof(dispatch->hw_key_mask));
 }
 
 static void
-fallback_destroy(struct evdev_dispatch *dispatch)
+fallback_destroy(struct evdev_dispatch *evdev_dispatch)
 {
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)evdev_dispatch;
+
 	free(dispatch->mt.slots);
 	free(dispatch);
 }
@@ -1127,7 +1132,7 @@ evdev_left_handed_has(struct libinput_device *device)
 static void
 evdev_change_to_left_handed(struct evdev_device *device)
 {
-	struct evdev_dispatch *dispatch = device->dispatch;
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)device->dispatch;
 
 	if (device->left_handed.want_enabled == device->left_handed.enabled)
 		return;
@@ -1189,7 +1194,7 @@ evdev_scroll_get_methods(struct libinput_device *device)
 static void
 evdev_change_scroll_method(struct evdev_device *device)
 {
-	struct evdev_dispatch *dispatch = device->dispatch;
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)device->dispatch;
 
 	if (device->scroll.want_method == device->scroll.method &&
 	    device->scroll.want_button == device->scroll.button)
@@ -1299,14 +1304,14 @@ evdev_init_button_scroll(struct evdev_device *device,
 
 void
 evdev_init_calibration(struct evdev_device *device,
-		       struct evdev_dispatch *dispatch)
+		       struct libinput_device_config_calibration *calibration)
 {
-	device->base.config.calibration = &dispatch->calibration;
+	device->base.config.calibration = calibration;
 
-	dispatch->calibration.has_matrix = evdev_calibration_has_matrix;
-	dispatch->calibration.set_matrix = evdev_calibration_set_matrix;
-	dispatch->calibration.get_matrix = evdev_calibration_get_matrix;
-	dispatch->calibration.get_default_matrix = evdev_calibration_get_default_matrix;
+	calibration->has_matrix = evdev_calibration_has_matrix;
+	calibration->set_matrix = evdev_calibration_set_matrix;
+	calibration->get_matrix = evdev_calibration_get_matrix;
+	calibration->get_default_matrix = evdev_calibration_get_default_matrix;
 }
 
 static void
@@ -1374,10 +1379,11 @@ evdev_rotation_config_is_available(struct libinput_device *device)
 }
 
 static enum libinput_config_status
-evdev_rotation_config_set_angle(struct libinput_device *device,
+evdev_rotation_config_set_angle(struct libinput_device *libinput_device,
 				unsigned int degrees_cw)
 {
-	struct evdev_dispatch *dispatch = ((struct evdev_device*)device)->dispatch;
+	struct evdev_device *device = (struct evdev_device*)libinput_device;
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)device->dispatch;
 
 	dispatch->rotation.angle = degrees_cw;
 	matrix_init_rotate(&dispatch->rotation.matrix, degrees_cw);
@@ -1386,9 +1392,10 @@ evdev_rotation_config_set_angle(struct libinput_device *device,
 }
 
 static unsigned int
-evdev_rotation_config_get_angle(struct libinput_device *device)
+evdev_rotation_config_get_angle(struct libinput_device *libinput_device)
 {
-	struct evdev_dispatch *dispatch = ((struct evdev_device*)device)->dispatch;
+	struct evdev_device *device = (struct evdev_device*)libinput_device;
+	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)device->dispatch;
 
 	return dispatch->rotation.angle;
 }
@@ -1401,7 +1408,7 @@ evdev_rotation_config_get_default_angle(struct libinput_device *device)
 
 static void
 evdev_init_rotation(struct evdev_device *device,
-		    struct evdev_dispatch *dispatch)
+		    struct fallback_dispatch *dispatch)
 {
 	if ((device->model_flags & EVDEV_MODEL_TRACKBALL) == 0)
 		return;
@@ -1438,7 +1445,7 @@ evdev_is_fake_mt_device(struct evdev_device *device)
 }
 
 static inline int
-fallback_dispatch_init_slots(struct evdev_dispatch *dispatch,
+fallback_dispatch_init_slots(struct fallback_dispatch *dispatch,
 			     struct evdev_device *device)
 {
 	struct libevdev *evdev = device->evdev;
@@ -1500,7 +1507,7 @@ fallback_dispatch_init_slots(struct evdev_dispatch *dispatch,
 }
 
 static inline void
-fallback_dispatch_init_rel(struct evdev_dispatch *dispatch,
+fallback_dispatch_init_rel(struct fallback_dispatch *dispatch,
 			   struct evdev_device *device)
 {
 	dispatch->rel.x = 0;
@@ -1510,13 +1517,13 @@ fallback_dispatch_init_rel(struct evdev_dispatch *dispatch,
 static struct evdev_dispatch *
 fallback_dispatch_create(struct libinput_device *device)
 {
-	struct evdev_dispatch *dispatch = zalloc(sizeof *dispatch);
+	struct fallback_dispatch *dispatch = zalloc(sizeof *dispatch);
 	struct evdev_device *evdev_device = (struct evdev_device *)device;
 
 	if (dispatch == NULL)
 		return NULL;
 
-	dispatch->interface = &fallback_interface;
+	dispatch->base.interface = &fallback_interface;
 	dispatch->pending_event = EVDEV_NONE;
 
 	fallback_dispatch_init_rel(dispatch, evdev_device);
@@ -1536,8 +1543,8 @@ fallback_dispatch_create(struct libinput_device *device)
 	if (evdev_device->scroll.natural_scrolling_enabled)
 		evdev_init_natural_scroll(evdev_device);
 
-	evdev_init_calibration(evdev_device, dispatch);
-	evdev_init_sendevents(evdev_device, dispatch);
+	evdev_init_calibration(evdev_device, &dispatch->calibration);
+	evdev_init_sendevents(evdev_device, &dispatch->base);
 	evdev_init_rotation(evdev_device, dispatch);
 
 	/* BTN_MIDDLE is set on mice even when it's not present. So
@@ -1558,7 +1565,7 @@ fallback_dispatch_create(struct libinput_device *device)
 					want_config);
 	}
 
-	return dispatch;
+	return &dispatch->base;
 }
 
 static inline void

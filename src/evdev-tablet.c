@@ -1535,7 +1535,7 @@ tablet_init_calibration(struct tablet_dispatch *tablet,
 			struct evdev_device *device)
 {
 	if (libevdev_has_property(device->evdev, INPUT_PROP_DIRECT))
-		evdev_init_calibration(device, &tablet->base);
+		evdev_init_calibration(device, &tablet->calibration);
 }
 
 static void
