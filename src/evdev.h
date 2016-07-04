@@ -185,7 +185,6 @@ struct evdev_device {
 		int wheel_click_angle;
 	} scroll;
 
-	enum evdev_event_type pending_event;
 	enum evdev_device_seat_capability seat_caps;
 	enum evdev_device_tags tags;
 
@@ -302,6 +301,8 @@ struct evdev_dispatch {
 	} mt;
 
 	struct device_coords rel;
+
+	enum evdev_event_type pending_event;
 };
 
 struct evdev_device *

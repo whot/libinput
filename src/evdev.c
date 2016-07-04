@@ -405,7 +405,7 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 	if (dispatch->mt.slots)
 		slot = &dispatch->mt.slots[slot_idx];
 
-	switch (device->pending_event) {
+	switch (dispatch->pending_event) {
 	case EVDEV_NONE:
 		return;
 	case EVDEV_RELATIVE_MOTION:
@@ -559,7 +559,7 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 		break;
 	}
 
-	device->pending_event = EVDEV_NONE;
+	dispatch->pending_event = EVDEV_NONE;
 }
 
 static enum evdev_key_type
@@ -601,11 +601,13 @@ static void
 evdev_process_touch_button(struct evdev_device *device,
 			   uint64_t time, int value)
 {
-	if (device->pending_event != EVDEV_NONE &&
-	    device->pending_event != EVDEV_ABSOLUTE_MOTION)
+	struct evdev_dispatch *dispatch = device->dispatch;
+
+	if (dispatch->pending_event != EVDEV_NONE &&
+	    dispatch->pending_event != EVDEV_ABSOLUTE_MOTION)
 		evdev_flush_pending_event(device, time);
 
-	device->pending_event = (value ?
+	dispatch->pending_event = (value ?
 				 EVDEV_ABSOLUTE_TOUCH_DOWN :
 				 EVDEV_ABSOLUTE_TOUCH_UP);
 }
@@ -688,23 +690,23 @@ evdev_process_touch(struct evdev_device *device,
 		dispatch->mt.slot = e->value;
 		break;
 	case ABS_MT_TRACKING_ID:
-		if (device->pending_event != EVDEV_NONE &&
-		    device->pending_event != EVDEV_ABSOLUTE_MT_MOTION)
+		if (dispatch->pending_event != EVDEV_NONE &&
+		    dispatch->pending_event != EVDEV_ABSOLUTE_MT_MOTION)
 			evdev_flush_pending_event(device, time);
 		if (e->value >= 0)
-			device->pending_event = EVDEV_ABSOLUTE_MT_DOWN;
+			dispatch->pending_event = EVDEV_ABSOLUTE_MT_DOWN;
 		else
-			device->pending_event = EVDEV_ABSOLUTE_MT_UP;
+			dispatch->pending_event = EVDEV_ABSOLUTE_MT_UP;
 		break;
 	case ABS_MT_POSITION_X:
 		dispatch->mt.slots[dispatch->mt.slot].point.x = e->value;
-		if (device->pending_event == EVDEV_NONE)
-			device->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
+		if (dispatch->pending_event == EVDEV_NONE)
+			dispatch->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
 		break;
 	case ABS_MT_POSITION_Y:
 		dispatch->mt.slots[dispatch->mt.slot].point.y = e->value;
-		if (device->pending_event == EVDEV_NONE)
-			device->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
+		if (dispatch->pending_event == EVDEV_NONE)
+			dispatch->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
 		break;
 	}
 }
@@ -713,16 +715,18 @@ static inline void
 evdev_process_absolute_motion(struct evdev_device *device,
 			      struct input_event *e)
 {
+	struct evdev_dispatch *dispatch = device->dispatch;
+
 	switch (e->code) {
 	case ABS_X:
 		device->abs.point.x = e->value;
-		if (device->pending_event == EVDEV_NONE)
-			device->pending_event = EVDEV_ABSOLUTE_MOTION;
+		if (dispatch->pending_event == EVDEV_NONE)
+			dispatch->pending_event = EVDEV_ABSOLUTE_MOTION;
 		break;
 	case ABS_Y:
 		device->abs.point.y = e->value;
-		if (device->pending_event == EVDEV_NONE)
-			device->pending_event = EVDEV_ABSOLUTE_MOTION;
+		if (dispatch->pending_event == EVDEV_NONE)
+			dispatch->pending_event = EVDEV_ABSOLUTE_MOTION;
 		break;
 	}
 }
@@ -783,16 +787,16 @@ evdev_process_relative(struct evdev_device *device,
 
 	switch (e->code) {
 	case REL_X:
-		if (device->pending_event != EVDEV_RELATIVE_MOTION)
+		if (dispatch->pending_event != EVDEV_RELATIVE_MOTION)
 			evdev_flush_pending_event(device, time);
 		dispatch->rel.x += e->value;
-		device->pending_event = EVDEV_RELATIVE_MOTION;
+		dispatch->pending_event = EVDEV_RELATIVE_MOTION;
 		break;
 	case REL_Y:
-		if (device->pending_event != EVDEV_RELATIVE_MOTION)
+		if (dispatch->pending_event != EVDEV_RELATIVE_MOTION)
 			evdev_flush_pending_event(device, time);
 		dispatch->rel.y += e->value;
-		device->pending_event = EVDEV_RELATIVE_MOTION;
+		dispatch->pending_event = EVDEV_RELATIVE_MOTION;
 		break;
 	case REL_WHEEL:
 		evdev_flush_pending_event(device, time);
@@ -850,10 +854,12 @@ evdev_any_button_down(struct evdev_device *device)
 static inline bool
 evdev_need_touch_frame(struct evdev_device *device)
 {
+	struct evdev_dispatch *dispatch = device->dispatch;
+
 	if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
 		return false;
 
-	switch (device->pending_event) {
+	switch (dispatch->pending_event) {
 	case EVDEV_NONE:
 	case EVDEV_RELATIVE_MOTION:
 		break;
@@ -1500,6 +1506,7 @@ fallback_dispatch_create(struct libinput_device *device)
 		return NULL;
 
 	dispatch->interface = &fallback_interface;
+	dispatch->pending_event = EVDEV_NONE;
 
 	fallback_dispatch_init_rel(dispatch, evdev_device);
 	if (fallback_dispatch_init_slots(dispatch, evdev_device) == -1) {
@@ -2507,7 +2514,6 @@ evdev_device_create(struct libinput_seat *seat,
 	device->abs.seat_slot = -1;
 	device->dispatch = NULL;
 	device->fd = fd;
-	device->pending_event = EVDEV_NONE;
 	device->devname = libevdev_get_name(device->evdev);
 	device->scroll.threshold = 5.0; /* Default may be overridden */
 	device->scroll.direction_lock_threshold = 5.0; /* Default may be overridden */
