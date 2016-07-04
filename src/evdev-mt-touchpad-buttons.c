@@ -1056,7 +1056,7 @@ tp_notify_clickpadbutton(struct tp_dispatch *tp,
 	}
 
 	/* Ignore button events not for the trackpoint while suspended */
-	if (tp->device->suspended)
+	if (tp->device->is_suspended)
 		return 0;
 
 	/* A button click always terminates edge scrolling, even if we

@@ -2170,7 +2170,7 @@ evdev_extract_abs_axes(struct evdev_device *device)
 		 return;
 
 	if (evdev_fix_abs_resolution(device, ABS_X, ABS_Y))
-		device->abs.fake_resolution = 1;
+		device->abs.is_fake_resolution = true;
 	device->abs.absinfo_x = libevdev_get_abs_info(evdev, ABS_X);
 	device->abs.absinfo_y = libevdev_get_abs_info(evdev, ABS_Y);
 	device->abs.point.x = device->abs.absinfo_x->value;
@@ -2188,7 +2188,7 @@ evdev_extract_abs_axes(struct evdev_device *device)
 	if (evdev_fix_abs_resolution(device,
 				     ABS_MT_POSITION_X,
 				     ABS_MT_POSITION_Y))
-		device->abs.fake_resolution = 1;
+		device->abs.is_fake_resolution = true;
 
 	device->abs.absinfo_x = libevdev_get_abs_info(evdev, ABS_MT_POSITION_X);
 	device->abs.absinfo_y = libevdev_get_abs_info(evdev, ABS_MT_POSITION_Y);
@@ -2374,7 +2374,8 @@ evdev_notify_added_device(struct evdev_device *device)
 			device->dispatch->interface->device_added(device, d);
 
 		/* Notify new device if existing device d is suspended */
-		if (d->suspended && device->dispatch->interface->device_suspended)
+		if (d->is_suspended &&
+		    device->dispatch->interface->device_suspended)
 			device->dispatch->interface->device_suspended(device, d);
 	}
 
@@ -2722,7 +2723,7 @@ evdev_device_get_size(const struct evdev_device *device,
 	x = libevdev_get_abs_info(device->evdev, ABS_X);
 	y = libevdev_get_abs_info(device->evdev, ABS_Y);
 
-	if (!x || !y || device->abs.fake_resolution ||
+	if (!x || !y || device->abs.is_fake_resolution ||
 	    !x->resolution || !y->resolution)
 		return -1;
 
@@ -2872,7 +2873,7 @@ evdev_notify_suspended_device(struct evdev_device *device)
 {
 	struct libinput_device *it;
 
-	if (device->suspended)
+	if (device->is_suspended)
 		return;
 
 	list_for_each(it, &device->base.seat->devices_list, link) {
@@ -2884,7 +2885,7 @@ evdev_notify_suspended_device(struct evdev_device *device)
 			d->dispatch->interface->device_suspended(d, device);
 	}
 
-	device->suspended = 1;
+	device->is_suspended = true;
 }
 
 void
@@ -2892,7 +2893,7 @@ evdev_notify_resumed_device(struct evdev_device *device)
 {
 	struct libinput_device *it;
 
-	if (!device->suspended)
+	if (!device->is_suspended)
 		return;
 
 	list_for_each(it, &device->base.seat->devices_list, link) {
@@ -2904,7 +2905,7 @@ evdev_notify_resumed_device(struct evdev_device *device)
 			d->dispatch->interface->device_resumed(d, device);
 	}
 
-	device->suspended = 0;
+	device->is_suspended = false;
 }
 
 void

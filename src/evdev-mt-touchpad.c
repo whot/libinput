@@ -1118,7 +1118,7 @@ tp_post_events(struct tp_dispatch *tp, uint64_t time)
 	int filter_motion = 0;
 
 	/* Only post (top) button events while suspended */
-	if (tp->device->suspended) {
+	if (tp->device->is_suspended) {
 		tp_post_button_events(tp, time);
 		return;
 	}
@@ -2143,7 +2143,7 @@ tp_init_default_resolution(struct tp_dispatch *tp,
 		  touchpad_height_mm = 50;
 	int xres, yres;
 
-	if (!device->abs.fake_resolution)
+	if (!device->abs.is_fake_resolution)
 		return;
 
 	/* we only get here if
@@ -2167,7 +2167,7 @@ tp_init_default_resolution(struct tp_dispatch *tp,
 	libevdev_set_abs_resolution(device->evdev, ABS_Y, yres);
 	libevdev_set_abs_resolution(device->evdev, ABS_MT_POSITION_X, xres);
 	libevdev_set_abs_resolution(device->evdev, ABS_MT_POSITION_Y, yres);
-	device->abs.fake_resolution = 0;
+	device->abs.is_fake_resolution = false;
 }
 
 static inline void

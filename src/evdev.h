@@ -140,8 +140,8 @@ struct evdev_device {
 	int fd;
 	enum evdev_device_seat_capability seat_caps;
 	enum evdev_device_tags tags;
-	int is_mt;
-	int suspended;
+	bool is_mt;
+	bool is_suspended;
 	int dpi; /* HW resolution */
 	struct ratelimit syn_drop_limit; /* ratelimit for SYN_DROPPED logging */
 	struct ratelimit nonpointer_rel_limit; /* ratelimit for REL_* events from non-pointer devices */
@@ -150,7 +150,7 @@ struct evdev_device {
 
 	struct {
 		const struct input_absinfo *absinfo_x, *absinfo_y;
-		int fake_resolution;
+		bool is_fake_resolution;
 
 		struct device_coords point;
 		int32_t seat_slot;
