@@ -372,10 +372,10 @@ evdev_filter_defuzz_touch(struct evdev_device *device, struct mt_slot *slot)
 }
 
 static inline void
-evdev_rotate_relative(struct evdev_device *device)
+evdev_rotate_relative(struct evdev_dispatch *dispatch,
+		      struct evdev_device *device)
 {
-	struct evdev_dispatch *dispatch = device->dispatch;
-	struct device_coords rel = device->rel;
+	struct device_coords rel = dispatch->rel;
 
 	if (!device->base.config.rotation)
 		return;
@@ -384,7 +384,7 @@ evdev_rotate_relative(struct evdev_device *device)
 	 * right now anyway */
 	matrix_mult_vec(&dispatch->rotation.matrix, &rel.x, &rel.y);
 
-	device->rel = rel;
+	dispatch->rel = rel;
 }
 
 static void
@@ -412,13 +412,13 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 		if (!(device->seat_caps & EVDEV_DEVICE_POINTER))
 			break;
 
-		evdev_rotate_relative(device);
+		evdev_rotate_relative(dispatch, device);
 
-		normalize_delta(device, &device->rel, &unaccel);
-		raw.x = device->rel.x;
-		raw.y = device->rel.y;
-		device->rel.x = 0;
-		device->rel.y = 0;
+		normalize_delta(device, &dispatch->rel, &unaccel);
+		raw.x = dispatch->rel.x;
+		raw.y = dispatch->rel.y;
+		dispatch->rel.x = 0;
+		dispatch->rel.y = 0;
 
 		/* Use unaccelerated deltas for pointing stick scroll */
 		if (evdev_post_trackpoint_scroll(device, unaccel, time))
@@ -774,6 +774,7 @@ static inline void
 evdev_process_relative(struct evdev_device *device,
 		       struct input_event *e, uint64_t time)
 {
+	struct evdev_dispatch *dispatch = device->dispatch;
 	struct normalized_coords wheel_degrees = { 0.0, 0.0 };
 	struct discrete_coords discrete = { 0.0, 0.0 };
 
@@ -784,13 +785,13 @@ evdev_process_relative(struct evdev_device *device,
 	case REL_X:
 		if (device->pending_event != EVDEV_RELATIVE_MOTION)
 			evdev_flush_pending_event(device, time);
-		device->rel.x += e->value;
+		dispatch->rel.x += e->value;
 		device->pending_event = EVDEV_RELATIVE_MOTION;
 		break;
 	case REL_Y:
 		if (device->pending_event != EVDEV_RELATIVE_MOTION)
 			evdev_flush_pending_event(device, time);
-		device->rel.y += e->value;
+		dispatch->rel.y += e->value;
 		device->pending_event = EVDEV_RELATIVE_MOTION;
 		break;
 	case REL_WHEEL:
@@ -1481,6 +1482,14 @@ fallback_dispatch_init_slots(struct evdev_dispatch *dispatch,
 	return 0;
 }
 
+static inline void
+fallback_dispatch_init_rel(struct evdev_dispatch *dispatch,
+			   struct evdev_device *device)
+{
+	dispatch->rel.x = 0;
+	dispatch->rel.y = 0;
+}
+
 static struct evdev_dispatch *
 fallback_dispatch_create(struct libinput_device *device)
 {
@@ -1492,6 +1501,7 @@ fallback_dispatch_create(struct libinput_device *device)
 
 	dispatch->interface = &fallback_interface;
 
+	fallback_dispatch_init_rel(dispatch, evdev_device);
 	if (fallback_dispatch_init_slots(dispatch, evdev_device) == -1) {
 		free(dispatch);
 		return NULL;
@@ -2494,8 +2504,6 @@ evdev_device_create(struct libinput_seat *seat,
 	device->is_mt = 0;
 	device->mtdev = NULL;
 	device->udev_device = udev_device_ref(udev_device);
-	device->rel.x = 0;
-	device->rel.y = 0;
 	device->abs.seat_slot = -1;
 	device->dispatch = NULL;
 	device->fd = fd;

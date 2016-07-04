@@ -155,8 +155,6 @@ struct evdev_device {
 
 	struct mtdev *mtdev;
 
-	struct device_coords rel;
-
 	struct {
 		struct libinput_timer timer;
 		struct libinput_device_config_scroll_method config;
@@ -302,6 +300,8 @@ struct evdev_dispatch {
 		bool want_hysteresis;
 		struct device_coords hysteresis_margin;
 	} mt;
+
+	struct device_coords rel;
 };
 
 struct evdev_device *
