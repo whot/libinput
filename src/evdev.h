@@ -196,9 +196,6 @@ struct evdev_device {
 		struct motion_filter *filter;
 	} pointer;
 
-	/* Bitmask of pressed keys used to ignore initial release events from
-	 * the kernel. */
-	unsigned long hw_key_mask[NLONGS(KEY_CNT)];
 	/* Key counter used for multiplexing button events internally in
 	 * libinput. */
 	uint8_t key_count[KEY_CNT];
@@ -301,6 +298,10 @@ struct evdev_dispatch {
 	} mt;
 
 	struct device_coords rel;
+
+	/* Bitmask of pressed keys used to ignore initial release events from
+	 * the kernel. */
+	unsigned long hw_key_mask[NLONGS(KEY_CNT)];
 
 	enum evdev_event_type pending_event;
 };
@@ -428,12 +429,6 @@ evdev_notify_suspended_device(struct evdev_device *device);
 
 void
 evdev_notify_resumed_device(struct evdev_device *device);
-
-void
-evdev_keyboard_notify_key(struct evdev_device *device,
-			  uint64_t time,
-			  int key,
-			  enum libinput_key_state state);
 
 void
 evdev_pointer_notify_button(struct evdev_device *device,

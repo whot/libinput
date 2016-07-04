@@ -92,15 +92,15 @@ static const struct evdev_udev_tag_match evdev_udev_tag_matches[] = {
 };
 
 static void
-hw_set_key_down(struct evdev_device *device, int code, int pressed)
+hw_set_key_down(struct evdev_dispatch *dispatch, int code, int pressed)
 {
-	long_set_bit_state(device->hw_key_mask, code, pressed);
+	long_set_bit_state(dispatch->hw_key_mask, code, pressed);
 }
 
 static bool
-hw_is_key_down(struct evdev_device *device, int code)
+hw_is_key_down(struct evdev_dispatch *dispatch, int code)
 {
-	return long_bit_is_set(device->hw_key_mask, code);
+	return long_bit_is_set(dispatch->hw_key_mask, code);
 }
 
 static int
@@ -131,8 +131,9 @@ update_key_down_count(struct evdev_device *device, int code, int pressed)
 	return key_count;
 }
 
-void
-evdev_keyboard_notify_key(struct evdev_device *device,
+static void
+evdev_keyboard_notify_key(struct evdev_dispatch *dispatch,
+			  struct evdev_device *device,
 			  uint64_t time,
 			  int key,
 			  enum libinput_key_state state)
@@ -613,7 +614,8 @@ evdev_process_touch_button(struct evdev_device *device,
 }
 
 static inline void
-evdev_process_key(struct evdev_device *device,
+evdev_process_key(struct evdev_dispatch *dispatch,
+		  struct evdev_device *device,
 		  struct input_event *e, uint64_t time)
 {
 	enum evdev_key_type type;
@@ -640,18 +642,19 @@ evdev_process_key(struct evdev_device *device,
 			break;
 		case EVDEV_KEY_TYPE_KEY:
 		case EVDEV_KEY_TYPE_BUTTON:
-			if (!hw_is_key_down(device, e->code))
+			if (!hw_is_key_down(dispatch, e->code))
 				return;
 		}
 	}
 
-	hw_set_key_down(device, e->code, e->value);
+	hw_set_key_down(dispatch, e->code, e->value);
 
 	switch (type) {
 	case EVDEV_KEY_TYPE_NONE:
 		break;
 	case EVDEV_KEY_TYPE_KEY:
 		evdev_keyboard_notify_key(
+			dispatch,
 			device,
 			time,
 			e->code,
@@ -839,13 +842,14 @@ evdev_process_absolute(struct evdev_device *device,
 }
 
 static inline bool
-evdev_any_button_down(struct evdev_device *device)
+evdev_any_button_down(struct evdev_dispatch *dispatch,
+		      struct evdev_device *device)
 {
 	unsigned int button;
 
 	for (button = BTN_LEFT; button < BTN_JOYSTICK; button++) {
 		if (libevdev_has_event_code(device->evdev, EV_KEY, button) &&
-		    hw_is_key_down(device, button))
+		    hw_is_key_down(dispatch, button))
 			return true;
 	}
 	return false;
@@ -932,7 +936,7 @@ fallback_process(struct evdev_dispatch *dispatch,
 		evdev_process_absolute(device, event, time);
 		break;
 	case EV_KEY:
-		evdev_process_key(device, event, time);
+		evdev_process_key(dispatch, device, event, time);
 		break;
 	case EV_SYN:
 		need_frame = evdev_need_touch_frame(device);
@@ -944,7 +948,8 @@ fallback_process(struct evdev_dispatch *dispatch,
 }
 
 static void
-release_pressed_keys(struct evdev_device *device)
+release_pressed_keys(struct evdev_dispatch *dispatch,
+		     struct evdev_device *device)
 {
 	struct libinput *libinput = evdev_libinput_context(device);
 	uint64_t time;
@@ -971,6 +976,7 @@ release_pressed_keys(struct evdev_device *device)
 			break;
 		case EVDEV_KEY_TYPE_KEY:
 			evdev_keyboard_notify_key(
+				dispatch,
 				device,
 				time,
 				code,
@@ -999,7 +1005,8 @@ static void
 fallback_suspend(struct evdev_dispatch *dispatch,
 		 struct evdev_device *device)
 {
-	release_pressed_keys(device);
+	release_pressed_keys(dispatch, device);
+	memset(dispatch->hw_key_mask, 0, sizeof(dispatch->hw_key_mask));
 }
 
 static void
@@ -1120,10 +1127,12 @@ evdev_left_handed_has(struct libinput_device *device)
 static void
 evdev_change_to_left_handed(struct evdev_device *device)
 {
+	struct evdev_dispatch *dispatch = device->dispatch;
+
 	if (device->left_handed.want_enabled == device->left_handed.enabled)
 		return;
 
-	if (evdev_any_button_down(device))
+	if (evdev_any_button_down(dispatch, device))
 		return;
 
 	device->left_handed.enabled = device->left_handed.want_enabled;
@@ -1180,11 +1189,13 @@ evdev_scroll_get_methods(struct libinput_device *device)
 static void
 evdev_change_scroll_method(struct evdev_device *device)
 {
+	struct evdev_dispatch *dispatch = device->dispatch;
+
 	if (device->scroll.want_method == device->scroll.method &&
 	    device->scroll.want_button == device->scroll.button)
 		return;
 
-	if (evdev_any_button_down(device))
+	if (evdev_any_button_down(dispatch, device))
 		return;
 
 	device->scroll.method = device->scroll.want_method;
@@ -2973,8 +2984,6 @@ evdev_device_resume(struct evdev_device *device)
 		mtdev_close_delete(device->mtdev);
 		return -ENOMEM;
 	}
-
-	memset(device->hw_key_mask, 0, sizeof(device->hw_key_mask));
 
 	evdev_notify_resumed_device(device);
 
