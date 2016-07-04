@@ -152,9 +152,6 @@ struct evdev_device {
 		const struct input_absinfo *absinfo_x, *absinfo_y;
 		bool is_fake_resolution;
 
-		struct device_coords point;
-		int32_t seat_slot;
-
 		int apply_calibration;
 		struct matrix calibration;
 		struct matrix default_calibration; /* from LIBINPUT_CALIBRATION_MATRIX */
@@ -289,6 +286,11 @@ struct fallback_dispatch {
 		struct matrix matrix;
 		struct libinput_device_config_rotation config;
 	} rotation;
+
+	struct {
+		struct device_coords point;
+		int32_t seat_slot;
+	} abs;
 
 	struct {
 		int slot;

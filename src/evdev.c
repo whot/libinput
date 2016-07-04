@@ -504,7 +504,7 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 		if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
 			break;
 
-		if (device->abs.seat_slot != -1) {
+		if (dispatch->abs.seat_slot != -1) {
 			log_bug_kernel(libinput,
 				       "%s: Driver sent multiple touch down for the "
 				       "same slot",
@@ -513,24 +513,24 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 		}
 
 		seat_slot = ffs(~seat->slot_map) - 1;
-		device->abs.seat_slot = seat_slot;
+		dispatch->abs.seat_slot = seat_slot;
 
 		if (seat_slot == -1)
 			break;
 
 		seat->slot_map |= 1 << seat_slot;
 
-		point = device->abs.point;
+		point = dispatch->abs.point;
 		evdev_transform_absolute(device, &point);
 
 		touch_notify_touch_down(base, time, -1, seat_slot, &point);
 		break;
 	case EVDEV_ABSOLUTE_MOTION:
-		point = device->abs.point;
+		point = dispatch->abs.point;
 		evdev_transform_absolute(device, &point);
 
 		if (device->seat_caps & EVDEV_DEVICE_TOUCH) {
-			seat_slot = device->abs.seat_slot;
+			seat_slot = dispatch->abs.seat_slot;
 
 			if (seat_slot == -1)
 				break;
@@ -545,8 +545,8 @@ evdev_flush_pending_event(struct evdev_device *device, uint64_t time)
 		if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
 			break;
 
-		seat_slot = device->abs.seat_slot;
-		device->abs.seat_slot = -1;
+		seat_slot = dispatch->abs.seat_slot;
+		dispatch->abs.seat_slot = -1;
 
 		if (seat_slot == -1)
 			break;
@@ -722,12 +722,12 @@ evdev_process_absolute_motion(struct evdev_device *device,
 
 	switch (e->code) {
 	case ABS_X:
-		device->abs.point.x = e->value;
+		dispatch->abs.point.x = e->value;
 		if (dispatch->pending_event == EVDEV_NONE)
 			dispatch->pending_event = EVDEV_ABSOLUTE_MOTION;
 		break;
 	case ABS_Y:
-		device->abs.point.y = e->value;
+		dispatch->abs.point.y = e->value;
 		if (dispatch->pending_event == EVDEV_NONE)
 			dispatch->pending_event = EVDEV_ABSOLUTE_MOTION;
 		break;
@@ -1514,6 +1514,18 @@ fallback_dispatch_init_rel(struct fallback_dispatch *dispatch,
 	dispatch->rel.y = 0;
 }
 
+static inline void
+fallback_dispatch_init_abs(struct fallback_dispatch *dispatch,
+			   struct evdev_device *device)
+{
+	if (!libevdev_has_event_code(device->evdev, EV_ABS, ABS_X))
+		return;
+
+	dispatch->abs.point.x = device->abs.absinfo_x->value;
+	dispatch->abs.point.y = device->abs.absinfo_y->value;
+	dispatch->abs.seat_slot = -1;
+}
+
 static struct evdev_dispatch *
 fallback_dispatch_create(struct libinput_device *device)
 {
@@ -1527,6 +1539,7 @@ fallback_dispatch_create(struct libinput_device *device)
 	dispatch->pending_event = EVDEV_NONE;
 
 	fallback_dispatch_init_rel(dispatch, evdev_device);
+	fallback_dispatch_init_abs(dispatch, evdev_device);
 	if (fallback_dispatch_init_slots(dispatch, evdev_device) == -1) {
 		free(dispatch);
 		return NULL;
@@ -2173,8 +2186,6 @@ evdev_extract_abs_axes(struct evdev_device *device)
 		device->abs.is_fake_resolution = true;
 	device->abs.absinfo_x = libevdev_get_abs_info(evdev, ABS_X);
 	device->abs.absinfo_y = libevdev_get_abs_info(evdev, ABS_Y);
-	device->abs.point.x = device->abs.absinfo_x->value;
-	device->abs.point.y = device->abs.absinfo_y->value;
 	device->abs.dimensions.x = abs(device->abs.absinfo_x->maximum -
 				       device->abs.absinfo_x->minimum);
 	device->abs.dimensions.y = abs(device->abs.absinfo_y->maximum -
@@ -2530,7 +2541,6 @@ evdev_device_create(struct libinput_seat *seat,
 	device->is_mt = 0;
 	device->mtdev = NULL;
 	device->udev_device = udev_device_ref(udev_device);
-	device->abs.seat_slot = -1;
 	device->dispatch = NULL;
 	device->fd = fd;
 	device->devname = libevdev_get_name(device->evdev);
