@@ -80,6 +80,7 @@ endif
 run_tests = \
 	touchpad.test \
 	touchpad-tap.test \
+	touchpad-tap-1fg.test \
 	touchpad-buttons.test \
 	pad.test \
 	tablet.test \
@@ -143,6 +144,10 @@ touchpad_test_LDFLAGS = -no-install
 touchpad_tap_test_SOURCES = touchpad-tap.c
 touchpad_tap_test_LDADD = $(TEST_LIBS)
 touchpad_tap_test_LDFLAGS = -no-install
+
+touchpad_tap_1fg_test_SOURCES = touchpad-tap-1fg.c
+touchpad_tap_1fg_test_LDADD = $(TEST_LIBS)
+touchpad_tap_1fg_test_LDFLAGS = -no-install
 
 touchpad_buttons_test_SOURCES = touchpad-buttons.c
 touchpad_buttons_test_LDADD = $(TEST_LIBS)
