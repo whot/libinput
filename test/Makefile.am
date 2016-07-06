@@ -74,13 +74,12 @@ liblitest_la_LIBADD += $(LIBUNWIND_LIBS) -ldl
 liblitest_la_CFLAGS += $(LIBUNWIND_CFLAGS)
 endif
 
-run_tests = \
+parallel_tests = \
 	touchpad.test \
 	touchpad-tap.test \
 	touchpad-buttons.test \
 	pad.test \
 	tablet.test \
-	device.test \
 	gestures.test \
 	pointer.test \
 	touch.test \
@@ -93,6 +92,14 @@ run_tests = \
 	keyboard.test \
 	litest-selftest.test
 
+# serial tests require a manual dependency for testname.log, see below
+serial_tests = \
+	device.test
+
+run_tests = \
+	    $(parallel_tests) \
+	    $(serial_tests)
+
 build_tests = \
 	build-cxx.test \
 	build-linker.test \
@@ -102,8 +109,6 @@ build_tests = \
 noinst_PROGRAMS = $(build_tests) $(run_tests)
 noinst_SCRIPTS = symbols-leak-test
 TESTS = $(run_tests) symbols-leak-test
-
-.NOTPARALLEL:
 
 udev_test_SOURCES = udev.c
 udev_test_LDADD = $(TEST_LIBS)
@@ -196,6 +201,11 @@ build_cxx_test_SOURCES = build-cxx.cc
 build_cxx_test_CXXFLAGS = -Wall -Wextra -Wno-unused-parameter $(AM_CXXFLAGS)
 
 AM_TESTS_ENVIRONMENT= LITEST_VERBOSE=1; export LITEST_VERBOSE;
+
+# serial tests require a manual dependency to avoid parallel execution
+device.log: $(parallel_tests:.test=.log)
+# add any further serial tests as:
+# testname.log: device.log
 
 if HAVE_VALGRIND
 VALGRIND_FLAGS=--leak-check=full \
