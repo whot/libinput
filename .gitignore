@@ -36,6 +36,6 @@ src/libinput-version.h
 doc/libinput.doxygen
 doc/html
 tags
-test/test-*
+test/*.test
 test/symbols-leak-test*
 test-driver
