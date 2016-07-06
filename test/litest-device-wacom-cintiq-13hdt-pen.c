@@ -133,6 +133,15 @@ static int events[] = {
 	-1, -1,
 };
 
+static const char udev_rule[] =
+"ACTION==\"remove\", GOTO=\"rule_end\"\n"
+"KERNEL!=\"event*\", GOTO=\"rule_end\"\n"
+"\n"
+"ATTRS{name}==\"litest Wacom Cintiq 13 HD touch Pen*\",\\\n"
+"    ENV{LIBINPUT_DEVICE_GROUP}=\"wacom-13hdt-group\"\n"
+"\n"
+"LABEL=\"rule_end\"";
+
 struct litest_test_device litest_wacom_cintiq_13hdt_pen_device = {
 	.type = LITEST_WACOM_CINTIQ_13HDT_PEN,
 	.features = LITEST_TABLET | LITEST_DISTANCE | LITEST_TOOL_SERIAL | LITEST_TILT,
@@ -144,4 +153,5 @@ struct litest_test_device litest_wacom_cintiq_13hdt_pen_device = {
 	.id = &input_id,
 	.events = events,
 	.absinfo = absinfo,
+	.udev_rule = udev_rule,
 };

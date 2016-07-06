@@ -102,7 +102,8 @@ static const char udev_rule[] =
 "KERNEL!=\"event*\", GOTO=\"pad_end\"\n"
 "\n"
 "ATTRS{name}==\"litest Wacom Cintiq 13 HD touch Pad*\",\\\n"
-"    ENV{ID_INPUT_TABLET_PAD}=\"1\"\n"
+"    ENV{ID_INPUT_TABLET_PAD}=\"1\",\\\n"
+"    ENV{LIBINPUT_DEVICE_GROUP}=\"wacom-13hdt-group\"\n"
 "\n"
 "LABEL=\"pad_end\"";
 
