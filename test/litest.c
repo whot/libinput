@@ -482,49 +482,6 @@ litest_reload_udev_rules(void)
 	litest_system("udevadm hwdb --update");
 }
 
-static int
-litest_udev_rule_filter(const struct dirent *entry)
-{
-	return strneq(entry->d_name,
-		      UDEV_RULE_PREFIX,
-		      strlen(UDEV_RULE_PREFIX));
-}
-
-static void
-litest_drop_udev_rules(void)
-{
-	int n;
-	int rc;
-	struct dirent **entries;
-	char path[PATH_MAX];
-
-	n = scandir(UDEV_RULES_D,
-		    &entries,
-		    litest_udev_rule_filter,
-		    alphasort);
-	if (n <= 0)
-		return;
-
-	while (n--) {
-		rc = snprintf(path, sizeof(path),
-			      "%s/%s",
-			      UDEV_RULES_D,
-			      entries[n]->d_name);
-		if (rc > 0 &&
-		    (size_t)rc == strlen(UDEV_RULES_D) +
-			    strlen(entries[n]->d_name) + 1)
-			unlink(path);
-		else
-			fprintf(stderr,
-				"Failed to delete %s. Remaining tests are unreliable\n",
-				entries[n]->d_name);
-		free(entries[n]);
-	}
-	free(entries);
-
-	litest_reload_udev_rules();
-}
-
 static void
 litest_add_tcase_for_device(struct suite *suite,
 			    const char *funcname,
@@ -554,13 +511,6 @@ litest_add_tcase_for_device(struct suite *suite,
 	t->name = strdup(test_name);
 	t->tc = tcase_create(test_name);
 	list_insert(&suite->tests, &t->node);
-	/* we can't guarantee that we clean up properly if a test fails, the
-	   udev rules used for a previous test may still be in place. Add an
-	   unchecked fixture to always clean up all rules before/after a
-	   test case completes */
-	tcase_add_unchecked_fixture(t->tc,
-				    litest_drop_udev_rules,
-				    litest_drop_udev_rules);
 	tcase_add_checked_fixture(t->tc, dev->setup,
 				  dev->teardown ? dev->teardown : litest_generic_device_teardown);
 	if (range)
@@ -847,6 +797,28 @@ litest_log_handler(struct libinput *libinput,
 		litest_abort_msg("libinput bug triggered, aborting.\n");
 }
 
+static char *
+litest_init_device_udev_rules(struct litest_test_device *dev);
+
+static void
+litest_init_all_device_udev_rules(struct list *created_files)
+{
+	struct litest_test_device **dev = devices;
+
+	while (*dev) {
+		char *udev_file;
+
+		udev_file = litest_init_device_udev_rules(*dev);
+		if (udev_file) {
+			struct created_file *file = zalloc(sizeof(*file));
+			litest_assert(file);
+			file->path = udev_file;
+			list_insert(created_files, &file->link);
+		}
+		dev++;
+	}
+}
+
 static int
 open_restricted(const char *path, int flags, void *userdata)
 {
@@ -1065,6 +1037,7 @@ litest_init_udev_rules(struct list *created_files)
 			     strerror(errno));
 
 	litest_install_model_quirks(created_files);
+	litest_init_all_device_udev_rules(created_files);
 	litest_reload_udev_rules();
 }
 
@@ -1089,26 +1062,31 @@ litest_init_device_udev_rules(struct litest_test_device *dev)
 	int rc;
 	FILE *f;
 	char *path = NULL;
+	char prefix[PATH_MAX];
 
 	if (!dev->udev_rule)
 		return NULL;
 
+	snprintf(prefix,
+		 sizeof(prefix),
+		 "%s%s",
+		 UDEV_RULE_PREFIX,
+		 basename(program_invocation_short_name));
+
 	rc = xasprintf(&path,
-		      "%s/%s%s.rules",
+		      "%s/%s.%s.rules",
 		      UDEV_RULES_D,
-		      UDEV_RULE_PREFIX,
+		      prefix,
 		      dev->shortname);
 	litest_assert_int_eq(rc,
 			     (int)(
 				   strlen(UDEV_RULES_D) +
-				   strlen(UDEV_RULE_PREFIX) +
-				   strlen(dev->shortname) + 7));
+				   strlen(prefix) +
+				   strlen(dev->shortname) + 8));
 	f = fopen(path, "w");
 	litest_assert_notnull(f);
 	litest_assert_int_ge(fputs(dev->udev_rule, f), 0);
 	fclose(f);
-
-	litest_reload_udev_rules();
 
 	return path;
 }
@@ -1126,7 +1104,6 @@ litest_create(enum litest_device_type which,
 	const struct input_id *id;
 	struct input_absinfo *abs;
 	int *events;
-	char *udev_file;
 
 	dev = devices;
 	while (*dev) {
@@ -1141,17 +1118,13 @@ litest_create(enum litest_device_type which,
 	d = zalloc(sizeof(*d));
 	litest_assert(d != NULL);
 
-	udev_file = litest_init_device_udev_rules(*dev);
 	/* device has custom create method */
 	if ((*dev)->create) {
 		(*dev)->create(d);
 		if (abs_override || events_override) {
-			if (udev_file)
-				unlink(udev_file);
 			litest_abort_msg("Custom create cannot be overridden");
 		}
 
-		d->udev_rule_file = udev_file;
 		return d;
 	}
 
@@ -1165,7 +1138,6 @@ litest_create(enum litest_device_type which,
 								 abs,
 								 events);
 	d->interface = (*dev)->interface;
-	d->udev_rule_file = udev_file;
 	free(abs);
 	free(events);
 
@@ -1356,13 +1328,6 @@ litest_delete_device(struct litest_device *d)
 		return;
 
 	lfd = create_udev_lock_file();
-
-	if (d->udev_rule_file) {
-		unlink(d->udev_rule_file);
-		free(d->udev_rule_file);
-		d->udev_rule_file = NULL;
-		litest_reload_udev_rules();
-	}
 
 	libinput_device_unref(d->libinput_device);
 	libinput_path_remove_device(d->libinput_device);
