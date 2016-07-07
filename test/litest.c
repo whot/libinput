@@ -482,6 +482,8 @@ litest_udev_rule_filter(const struct dirent *entry)
 static void
 litest_drop_udev_rules(void)
 {
+	return;
+
 	int n;
 	int rc;
 	struct dirent **entries;
@@ -836,6 +838,29 @@ litest_log_handler(struct libinput *libinput,
 		litest_abort_msg("libinput bug triggered, aborting.\n");
 }
 
+static char *
+litest_init_device_udev_rules(struct litest_test_device *dev);
+
+static char **
+litest_init_all_device_udev_rules(void)
+{
+	struct litest_test_device **dev = devices;
+	char *udev_file;
+	char **udev_rules = zalloc(ARRAY_LENGTH(devices) * sizeof (*udev_rules));
+	int idx = 0;
+
+	while (*dev) {
+		udev_file = litest_init_device_udev_rules(*dev);
+		if (udev_file) {
+			printf("udev rule is %s\n", udev_file);
+			udev_rules[idx++] = udev_file;
+		}
+		dev++;
+	}
+
+	return udev_rules;
+}
+
 static int
 open_restricted(const char *path, int flags, void *userdata)
 {
@@ -860,6 +885,7 @@ litest_run(int argc, char **argv)
 	struct suite *s, *snext;
 	int failed;
 	SRunner *sr = NULL;
+	char **udev_rule_files, **rule;
 
 	if (list_empty(&all_tests)) {
 		fprintf(stderr,
@@ -884,6 +910,8 @@ litest_run(int argc, char **argv)
 		verbose = 1;
 
 	litest_init_udev_rules();
+	udev_rule_files = litest_init_all_device_udev_rules();
+	litest_reload_udev_rules();
 
 	srunner_run_all(sr, CK_ENV);
 	failed = srunner_ntests_failed(sr);
@@ -904,6 +932,11 @@ litest_run(int argc, char **argv)
 	}
 
 	litest_remove_model_quirks();
+	rule = udev_rule_files;
+	while (*rule) {
+		unlink(*rule);
+		rule++;
+	}
 	litest_reload_udev_rules();
 
 	return failed;
@@ -1045,7 +1078,6 @@ litest_init_udev_rules(void)
 			     strerror(errno));
 
 	litest_install_model_quirks();
-	litest_reload_udev_rules();
 }
 
 static char *
@@ -1072,8 +1104,6 @@ litest_init_device_udev_rules(struct litest_test_device *dev)
 	litest_assert_notnull(f);
 	litest_assert_int_ge(fputs(dev->udev_rule, f), 0);
 	fclose(f);
-
-	litest_reload_udev_rules();
 
 	return path;
 }
@@ -1321,13 +1351,6 @@ litest_delete_device(struct litest_device *d)
 		return;
 
 	lfd = create_udev_lock_file();
-
-	if (d->udev_rule_file) {
-		unlink(d->udev_rule_file);
-		free(d->udev_rule_file);
-		d->udev_rule_file = NULL;
-		litest_reload_udev_rules();
-	}
 
 	libinput_device_unref(d->libinput_device);
 	libinput_path_remove_device(d->libinput_device);
