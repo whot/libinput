@@ -250,8 +250,6 @@ struct litest_device {
 	bool skip_ev_syn;
 
 	void *private; /* device-specific data */
-
-	char *udev_rule_file;
 };
 
 struct axis_replacement {
