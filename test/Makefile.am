@@ -79,6 +79,7 @@ endif
 
 run_tests = \
 	touchpad.test \
+	touchpad-dwt.test \
 	touchpad-scroll.test \
 	touchpad-tap.test \
 	touchpad-tap-1fg.test \
@@ -141,6 +142,10 @@ pad_test_LDFLAGS = -static
 touchpad_test_SOURCES = touchpad.c
 touchpad_test_LDADD = $(TEST_LIBS)
 touchpad_test_LDFLAGS = -no-install
+
+touchpad_dwt_test_SOURCES = touchpad-dwt.c
+touchpad_dwt_test_LDADD = $(TEST_LIBS)
+touchpad_dwt_test_LDFLAGS = -no-install
 
 touchpad_scroll_test_SOURCES = touchpad-scroll.c
 touchpad_scroll_test_LDADD = $(TEST_LIBS)
