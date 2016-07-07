@@ -76,6 +76,7 @@ endif
 
 parallel_tests = \
 	touchpad.test \
+	touchpad-scroll.test \
 	touchpad-tap.test \
 	touchpad-tap-1fg.test \
 	touchpad-buttons.test \
@@ -142,6 +143,10 @@ pad_test_LDFLAGS = -static
 touchpad_test_SOURCES = touchpad.c
 touchpad_test_LDADD = $(TEST_LIBS)
 touchpad_test_LDFLAGS = -no-install
+
+touchpad_scroll_test_SOURCES = touchpad-scroll.c
+touchpad_scroll_test_LDADD = $(TEST_LIBS)
+touchpad_scroll_test_LDFLAGS = -no-install
 
 touchpad_tap_test_SOURCES = touchpad-tap.c
 touchpad_tap_test_LDADD = $(TEST_LIBS)
