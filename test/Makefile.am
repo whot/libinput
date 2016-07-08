@@ -97,7 +97,9 @@ parallel_tests = \
 
 # serial tests require a manual dependency for testname.log, see below
 serial_tests = \
-	device.test
+	device.test \
+	litest-setup.test \
+	litest-teardown.test
 
 run_tests = \
 	    $(parallel_tests) \
@@ -112,6 +114,16 @@ build_tests = \
 noinst_PROGRAMS = $(build_tests) $(run_tests)
 noinst_SCRIPTS = symbols-leak-test
 TESTS = $(run_tests) symbols-leak-test
+
+litest_setup_test_SOURCES = litest-setup.c litest.c litest-int.h litest.h
+litest_setup_test_CFLAGS = -DLITEST_NO_MAIN $(liblitest_la_CFLAGS)
+litest_setup_test_LDADD = $(TEST_LIBS)
+litest_setup_test_LDFLAGS = -no-install
+
+litest_teardown_test_SOURCES = litest-setup.c litest.c litest-int.h litest.h
+litest_teardown_test_CFLAGS = -DLITEST_NO_MAIN $(liblitest_la_CFLAGS)
+litest_teardown_test_LDADD = $(TEST_LIBS)
+litest_teardown_test_LDFLAGS = -no-install
 
 udev_test_SOURCES = udev.c
 udev_test_LDADD = $(TEST_LIBS)
@@ -215,12 +227,17 @@ build_linker_test_LDADD = $(top_builddir)/src/libinput.la $(top_builddir)/src/li
 build_cxx_test_SOURCES = build-cxx.cc
 build_cxx_test_CXXFLAGS = -Wall -Wextra -Wno-unused-parameter $(AM_CXXFLAGS)
 
-AM_TESTS_ENVIRONMENT= LITEST_VERBOSE=1; export LITEST_VERBOSE;
+AM_TESTS_ENVIRONMENT= LITEST_VERBOSE=1; export LITEST_VERBOSE; LITEST_UDEV_RULES_PREVIOUSLY_INSTALLED=1; export LITEST_UDEV_RULES_PREVIOUSLY_INSTALLED;
 
 # serial tests require a manual dependency to avoid parallel execution
+touchpad.log touchpad-dwt.log touchpad-scroll.log touchpad-tap.log touchpad-tap-1fg.log touchpad-buttons.log pad.log tablet.log gestures.log pointer.log touch.log trackball.log trackpoint.log udev.log path.log log.log misc.log keyboard.log litest-selftest.log: litest-setup.log
+
 device.log: $(parallel_tests:.test=.log)
 # add any further serial tests as:
 # testname.log: device.log
+
+# litest-teardown must be the last entry
+litest-teardown.log: device.log
 
 if HAVE_VALGRIND
 VALGRIND_FLAGS=--leak-check=full \

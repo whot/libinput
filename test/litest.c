@@ -68,8 +68,10 @@ const char *filter_test = NULL;
 const char *filter_device = NULL;
 const char *filter_group = NULL;
 
-static inline void litest_remove_model_quirks(void);
-static void litest_init_udev_rules(void);
+struct litest_udev_rule {
+	struct list link;
+	char *path;
+};
 
 /* defined for the litest selftest */
 #ifndef LITEST_DISABLE_BACKTRACE_LOGGING
@@ -471,51 +473,6 @@ litest_reload_udev_rules(void)
 	litest_system("udevadm hwdb --update");
 }
 
-static int
-litest_udev_rule_filter(const struct dirent *entry)
-{
-	return strneq(entry->d_name,
-		      UDEV_RULE_PREFIX,
-		      strlen(UDEV_RULE_PREFIX));
-}
-
-static void
-litest_drop_udev_rules(void)
-{
-	return;
-
-	int n;
-	int rc;
-	struct dirent **entries;
-	char path[PATH_MAX];
-
-	n = scandir(UDEV_RULES_D,
-		    &entries,
-		    litest_udev_rule_filter,
-		    alphasort);
-	if (n <= 0)
-		return;
-
-	while (n--) {
-		rc = snprintf(path, sizeof(path),
-			      "%s/%s",
-			      UDEV_RULES_D,
-			      entries[n]->d_name);
-		if (rc > 0 &&
-		    (size_t)rc == strlen(UDEV_RULES_D) +
-			    strlen(entries[n]->d_name) + 1)
-			unlink(path);
-		else
-			fprintf(stderr,
-				"Failed to delete %s. Remaining tests are unreliable\n",
-				entries[n]->d_name);
-		free(entries[n]);
-	}
-	free(entries);
-
-	litest_reload_udev_rules();
-}
-
 static void
 litest_add_tcase_for_device(struct suite *suite,
 			    const char *funcname,
@@ -545,13 +502,6 @@ litest_add_tcase_for_device(struct suite *suite,
 	t->name = strdup(test_name);
 	t->tc = tcase_create(test_name);
 	list_insert(&suite->tests, &t->node);
-	/* we can't guarantee that we clean up properly if a test fails, the
-	   udev rules used for a previous test may still be in place. Add an
-	   unchecked fixture to always clean up all rules before/after a
-	   test case completes */
-	tcase_add_unchecked_fixture(t->tc,
-				    litest_drop_udev_rules,
-				    litest_drop_udev_rules);
 	tcase_add_checked_fixture(t->tc, dev->setup,
 				  dev->teardown ? dev->teardown : litest_generic_device_teardown);
 	if (range)
@@ -841,24 +791,23 @@ litest_log_handler(struct libinput *libinput,
 static char *
 litest_init_device_udev_rules(struct litest_test_device *dev);
 
-static char **
-litest_init_all_device_udev_rules(void)
+static void
+litest_init_all_device_udev_rules(struct list *files)
 {
 	struct litest_test_device **dev = devices;
 	char *udev_file;
-	char **udev_rules = zalloc(ARRAY_LENGTH(devices) * sizeof (*udev_rules));
-	int idx = 0;
 
 	while (*dev) {
 		udev_file = litest_init_device_udev_rules(*dev);
 		if (udev_file) {
-			printf("udev rule is %s\n", udev_file);
-			udev_rules[idx++] = udev_file;
+			struct litest_udev_rule *rule;
+
+			rule = zalloc(sizeof(*rule));
+			rule->path = udev_file;
+			list_insert(files, &rule->link);
 		}
 		dev++;
 	}
-
-	return udev_rules;
 }
 
 static int
@@ -885,7 +834,7 @@ litest_run(int argc, char **argv)
 	struct suite *s, *snext;
 	int failed;
 	SRunner *sr = NULL;
-	char **udev_rule_files, **rule;
+	struct list udev_files;
 
 	if (list_empty(&all_tests)) {
 		fprintf(stderr,
@@ -909,9 +858,9 @@ litest_run(int argc, char **argv)
 	if (getenv("LITEST_VERBOSE"))
 		verbose = 1;
 
-	litest_init_udev_rules();
-	udev_rule_files = litest_init_all_device_udev_rules();
-	litest_reload_udev_rules();
+	list_init(&udev_files);
+	if (getenv("LITEST_UDEV_RULES_PREVIOUSLY_INSTALLED") == NULL)
+		litest_init_udev_rules(&udev_files);
 
 	srunner_run_all(sr, CK_ENV);
 	failed = srunner_ntests_failed(sr);
@@ -931,13 +880,7 @@ litest_run(int argc, char **argv)
 		free(s);
 	}
 
-	litest_remove_model_quirks();
-	rule = udev_rule_files;
-	while (*rule) {
-		unlink(*rule);
-		rule++;
-	}
-	litest_reload_udev_rules();
+	litest_remove_udev_rules(&udev_files);
 
 	return failed;
 }
@@ -1033,8 +976,9 @@ litest_copy_file(const char *dest, const char *src, const char *header)
 }
 
 static inline void
-litest_install_model_quirks(void)
+litest_install_model_quirks(struct list *list)
 {
+	struct litest_udev_rule *rule;
 	const char *warning =
 			 "#################################################################\n"
 			 "# WARNING: REMOVE THIS FILE\n"
@@ -1043,27 +987,31 @@ litest_install_model_quirks(void)
 			 "# running, remove this file and update your hwdb: \n"
 			 "#       sudo udevadm hwdb --update\n"
 			 "#################################################################\n\n";
+
+	rule = zalloc(sizeof *rule);
+	rule->path = UDEV_MODEL_QUIRKS_RULE_FILE;
+	list_insert(list, &rule->link);
 	litest_copy_file(UDEV_MODEL_QUIRKS_RULE_FILE,
 			 LIBINPUT_MODEL_QUIRKS_UDEV_RULES_FILE,
 			 warning);
+
+	rule = zalloc(sizeof *rule);
+	rule->path = UDEV_TEST_DEVICE_RULE_FILE;
+	list_insert(list, &rule->link);
 	litest_copy_file(UDEV_MODEL_QUIRKS_HWDB_FILE,
 			 LIBINPUT_MODEL_QUIRKS_UDEV_HWDB_FILE,
 			 warning);
+
+	rule = zalloc(sizeof *rule);
+	rule->path = UDEV_MODEL_QUIRKS_HWDB_FILE;
+	list_insert(list, &rule->link);
 	litest_copy_file(UDEV_TEST_DEVICE_RULE_FILE,
 			 LIBINPUT_TEST_DEVICE_RULES_FILE,
 			 warning);
 }
 
-static inline void
-litest_remove_model_quirks(void)
-{
-	unlink(UDEV_MODEL_QUIRKS_RULE_FILE);
-	unlink(UDEV_MODEL_QUIRKS_HWDB_FILE);
-	unlink(UDEV_TEST_DEVICE_RULE_FILE);
-}
-
-static void
-litest_init_udev_rules(void)
+void
+litest_init_udev_rules(struct list *files)
 {
 	int rc;
 
@@ -1077,7 +1025,32 @@ litest_init_udev_rules(void)
 		ck_abort_msg("Failed to create udev hwdb directory (%s)\n",
 			     strerror(errno));
 
-	litest_install_model_quirks();
+	litest_install_model_quirks(files);
+	litest_init_all_device_udev_rules(files);
+
+	litest_reload_udev_rules();
+}
+
+void
+litest_remove_udev_rules(struct list *files)
+{
+	struct litest_udev_rule *rule, *tmp;
+
+	list_for_each_safe(rule, tmp, files, link) {
+		/* We're running as root, do some basic sanity testing so we
+		   can abort if some bug causes path to be garbled. */
+		litest_assert(strneq(rule->path,
+				     UDEV_RULES_D,
+				     strlen(UDEV_RULES_D)) ||
+			      strneq(rule->path,
+				     UDEV_HWDB_D,
+				     strlen(UDEV_HWDB_D)));
+		litest_assert(strstr(rule->path, ".rules") ||
+			      strstr(rule->path, ".hwdb"));
+		unlink(rule->path);
+		free(rule);
+	}
+	litest_reload_udev_rules();
 }
 
 static char *

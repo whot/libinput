@@ -34,6 +34,12 @@
 #include <libevdev/libevdev-uinput.h>
 #include <libinput.h>
 #include <math.h>
+#include "libinput-util.h"
+
+void
+litest_init_udev_rules(struct list *files);
+void
+litest_remove_udev_rules(struct list *files);
 
 void
 litest_fail_condition(const char *file,
