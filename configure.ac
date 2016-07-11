@@ -206,7 +206,7 @@ AC_ARG_ENABLE(libwacom,
 	      [use_libwacom="$enableval"],
 	      [use_libwacom="yes"])
 if test "x$use_libwacom" = "xyes"; then
-	PKG_CHECK_MODULES(LIBWACOM, [libwacom >= 0.12], [HAVE_LIBWACOM="yes"])
+	PKG_CHECK_MODULES(LIBWACOM, [libwacom >= 0.20], [HAVE_LIBWACOM="yes"])
 	AC_DEFINE(HAVE_LIBWACOM, 1, [Build with libwacom])
 fi
 
