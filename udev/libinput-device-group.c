@@ -21,10 +21,48 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <libudev.h>
+
+#include "libinput-util.h"
+
+#if HAVE_LIBWACOM_GET_PAIRED_DEVICE
+#include <libwacom/libwacom.h>
+
+static void
+wacom_handle_paired(struct udev_device *device,
+		    int *vendor_id,
+		    int *product_id)
+{
+	WacomDeviceDatabase *db = NULL;
+	WacomDevice *tablet = NULL;
+	const WacomMatch *paired;
+
+	db = libwacom_database_new();
+	if (!db)
+		goto out;
+
+	tablet = libwacom_new_from_usbid(db, *vendor_id, *product_id, NULL);
+	if (!tablet)
+		goto out;
+	paired = libwacom_get_paired_device(tablet);
+	if (!paired)
+		goto out;
+
+	*vendor_id = libwacom_match_get_vendor_id(paired);
+	*product_id = libwacom_match_get_product_id(paired);
+
+out:
+	if (tablet)
+		libwacom_destroy(tablet);
+	if (db)
+		libwacom_database_destroy(db);
+}
+#endif
 
 int main(int argc, char **argv)
 {
@@ -34,6 +72,7 @@ int main(int argc, char **argv)
 	const char *syspath,
 	           *phys = NULL;
 	const char *product;
+	int bustype, vendor_id, product_id, version;
 	char group[1024];
 	char *str;
 
@@ -73,8 +112,29 @@ int main(int argc, char **argv)
 	   on that*/
 	product = udev_device_get_property_value(device, "PRODUCT");
 	if (!product)
-		product = "";
-	snprintf(group, sizeof(group), "%s:%s", product, phys);
+		product = "00/00/00/00";
+
+	if (sscanf(product,
+		   "%x/%x/%x/%x",
+		   &bustype,
+		   &vendor_id,
+		   &product_id,
+		   &version) != 4) {
+		snprintf(group, sizeof(group), "%s:%s", product, phys);
+	} else {
+#if HAVE_LIBWACOM_GET_PAIRED_DEVICE
+	    if (vendor_id == VENDOR_ID_WACOM)
+		    wacom_handle_paired(device, &vendor_id, &product_id);
+#endif
+	    snprintf(group,
+		     sizeof(group),
+		     "%x/%x/%x/%x:%s",
+		     bustype,
+		     vendor_id,
+		     product_id,
+		     version,
+		     phys);
+	}
 
 	str = strstr(group, "/input");
 	if (str)
@@ -85,7 +145,7 @@ int main(int argc, char **argv)
 	   usb-0000:00:14.0-6.3.0/input0 for the pen
 	   Check if there's a . after the last -, if so, cut off the string
 	   there.
-	  */
+	   */
 	str = strrchr(group, '.');
 	if (str && str > strrchr(group, '-'))
 		*str = '\0';
