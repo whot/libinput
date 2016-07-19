@@ -194,9 +194,6 @@ if test "x$build_tests" = "xyes"; then
 		AC_DEFINE_UNQUOTED(HAVE_ADDR2LINE, 1, [addr2line found])
 		AC_DEFINE_UNQUOTED(ADDR2LINE, ["$ADDR2LINE"], [Path to addr2line])
 	fi
-
-	AC_DEFINE(LITEST_UDEV_LOCKFILE, ["/tmp/litest-udev.lock"],
-		  [Lock file used to restrict udev reloads during tests])
 fi
 AM_CONDITIONAL(HAVE_LIBUNWIND, [test "x$HAVE_LIBUNWIND" = xyes])
 
