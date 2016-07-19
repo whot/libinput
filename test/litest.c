@@ -852,6 +852,12 @@ litest_signal(int sig)
 		/* in the sighandler, we can't free */
 	}
 
+	if (fork() == 0) {
+		/* child, we can run system() */
+		litest_reload_udev_rules();
+		exit(0);
+	}
+
 	exit(1);
 }
 
