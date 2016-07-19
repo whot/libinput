@@ -1245,14 +1245,16 @@ litest_add_device_with_overrides(struct libinput *libinput,
 
 	path = libevdev_uinput_get_devnode(d->uinput);
 	litest_assert(path != NULL);
+	d->libinput = libinput;
+	d->libinput_device = libinput_path_add_device(d->libinput, path);
 	fd = open(path, O_RDWR|O_NONBLOCK);
 	litest_assert_int_ne(fd, -1);
+
+	delete_udev_lock_file(lfd);
 
 	rc = libevdev_new_from_fd(fd, &d->evdev);
 	litest_assert_int_eq(rc, 0);
 
-	d->libinput = libinput;
-	d->libinput_device = libinput_path_add_device(d->libinput, path);
 	litest_assert(d->libinput_device != NULL);
 	libinput_device_ref(d->libinput_device);
 
@@ -1262,8 +1264,6 @@ litest_add_device_with_overrides(struct libinput *libinput,
 		d->interface->min[ABS_Y] = libevdev_get_abs_minimum(d->evdev, ABS_Y);
 		d->interface->max[ABS_Y] = libevdev_get_abs_maximum(d->evdev, ABS_Y);
 	}
-
-	delete_udev_lock_file(lfd);
 
 	return d;
 }
