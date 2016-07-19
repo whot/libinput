@@ -34,6 +34,7 @@
 #include <fnmatch.h>
 #include <getopt.h>
 #include <poll.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,6 +73,9 @@ struct created_file {
 	struct list link;
 	char *path;
 };
+
+struct list created_files_list; /* list of all files to remove at the end of
+				   the test run */
 
 static void litest_init_udev_rules(struct list *created_files_list);
 static void litest_remove_udev_rules(struct list *created_files_list);
@@ -837,13 +841,40 @@ struct libinput_interface interface = {
 	.close_restricted = close_restricted,
 };
 
+static void
+litest_signal(int sig)
+{
+	struct created_file *f, *tmp;
+
+	list_for_each_safe(f, tmp, &created_files_list, link) {
+		list_remove(&f->link);
+		unlink(f->path);
+		/* in the sighandler, we can't free */
+	}
+
+	exit(1);
+}
+
+static inline void
+litest_setup_sighandler(int sig)
+{
+	struct sigaction act, oact;
+	int rc;
+
+	sigemptyset(&act.sa_mask);
+	sigaddset(&act.sa_mask, sig);
+	act.sa_flags = 0;
+	act.sa_handler = litest_signal;
+	rc = sigaction(sig, &act, &oact);
+	litest_assert_int_ne(rc, -1);
+}
+
 static inline int
 litest_run(int argc, char **argv)
 {
 	struct suite *s, *snext;
 	int failed;
 	SRunner *sr = NULL;
-	struct list created_files_list;
 
 	list_init(&created_files_list);
 
@@ -870,6 +901,8 @@ litest_run(int argc, char **argv)
 		verbose = 1;
 
 	litest_init_udev_rules(&created_files_list);
+
+	litest_setup_sighandler(SIGINT);
 
 	srunner_run_all(sr, CK_ENV);
 	failed = srunner_ntests_failed(sr);
