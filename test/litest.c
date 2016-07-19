@@ -39,7 +39,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-#include "linux/input.h"
 #include <sys/ptrace.h>
 #include <sys/sendfile.h>
 #include <sys/timerfd.h>
@@ -48,6 +47,7 @@
 #include <sys/types.h>
 #include <libudev.h>
 
+#include "linux/input.h"
 #include "litest.h"
 #include "litest-int.h"
 #include "libinput-util.h"
