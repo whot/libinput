@@ -90,8 +90,6 @@ noinst_PROGRAMS = $(build_tests) $(run_tests)
 noinst_SCRIPTS = symbols-leak-test
 TESTS = $(run_tests) symbols-leak-test
 
-.NOTPARALLEL:
-
 libinput_test_suite_runner_SOURCES = udev.c \
 				     path.c \
 				     pointer.c \
