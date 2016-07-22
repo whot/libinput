@@ -63,6 +63,7 @@
 #define UDEV_TEST_DEVICE_RULE_FILE UDEV_RULES_D \
 	"/91-litest-test-device-REMOVEME.rules"
 
+static int max_forks = 16;
 static int in_debugger = -1;
 static int verbose = 0;
 const char *filter_test = NULL;
@@ -896,18 +897,21 @@ litest_free_test_list(struct list *tests)
 }
 
 static int
-litest_run_suite(char *argv0, struct list *tests, const char *filter)
+litest_run_suite(char *argv0, struct list *tests, int which, int max)
 {
 	int failed = 0;
 	SRunner *sr = NULL;
 	struct suite *s;
 	int argvlen = strlen(argv0);
+	int count = -1;
 
-	snprintf(argv0, argvlen, "libinput-test-%-50s", filter);
+	snprintf(argv0, argvlen, "libinput-test-%-50d", which);
 
 	list_for_each(s, tests, node) {
-		if (!strneq(s->name, filter, strlen(filter)))
+		++count;
+		if ((count % max) != which) {
 			continue;
+		}
 
 		if (!sr)
 			sr = srunner_create(s->suite);
@@ -922,35 +926,17 @@ litest_run_suite(char *argv0, struct list *tests, const char *filter)
 }
 
 static int
-litest_fork_subtests(char *argv0, struct list *tests)
+litest_fork_subtests(char *argv0, struct list *tests, int max_forks)
 {
-	struct suite *s;
 	int failed = 0;
 	int status;
 	pid_t pid;
-	char *this_suite_name = strdup("");
+	int f;
 
-	list_for_each(s, tests, node) {
-		char *sep;
-		char name[64];
-
-		/* split a touchpad:foo test into just "touchpad" and group
-		 * by that prefix */
-		sprintf(name, "%s", s->name);
-		sep = index(name, ':');
-		*sep = '\0';
-
-		if (streq(this_suite_name, name))
-			continue;
-
-		free(this_suite_name);
-		this_suite_name = strdup(name);
+	for (f = 0; f < max_forks; f++) {
 		pid = fork();
 		if (pid == 0) {
-			failed = litest_run_suite(argv0, tests, this_suite_name);
-
-			litest_free_test_list(tests);
-
+			failed = litest_run_suite(argv0, tests, f, max_forks);
 			exit(failed);
 			/* child always exits here */
 		}
@@ -991,7 +977,7 @@ litest_run(int argc, char **argv)
 
 	litest_setup_sighandler(SIGINT);
 
-	litest_fork_subtests(argv[0], &all_tests);
+	litest_fork_subtests(argv[0], &all_tests, max_forks);
 
 	litest_free_test_list(&all_tests);
 
@@ -3076,6 +3062,7 @@ static inline enum litest_mode
 litest_parse_argv(int argc, char **argv)
 {
 	enum {
+		OPT_MAX_FORKS,
 		OPT_FILTER_TEST,
 		OPT_FILTER_DEVICE,
 		OPT_FILTER_GROUP,
@@ -3083,6 +3070,7 @@ litest_parse_argv(int argc, char **argv)
 		OPT_VERBOSE,
 	};
 	static const struct option opts[] = {
+		{ "max-forks", 1, 0, OPT_MAX_FORKS },
 		{ "filter-test", 1, 0, OPT_FILTER_TEST },
 		{ "filter-device", 1, 0, OPT_FILTER_DEVICE },
 		{ "filter-group", 1, 0, OPT_FILTER_GROUP },
@@ -3099,6 +3087,9 @@ litest_parse_argv(int argc, char **argv)
 		if (c == -1)
 			break;
 		switch(c) {
+		case OPT_MAX_FORKS:
+			max_forks = atoi(optarg);
+			break;
 		case OPT_FILTER_TEST:
 			filter_test = optarg;
 			break;
