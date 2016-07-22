@@ -77,7 +77,7 @@ liblitest_la_LIBADD += $(LIBUNWIND_LIBS) -ldl
 liblitest_la_CFLAGS += $(LIBUNWIND_CFLAGS)
 endif
 
-run_tests = litest \
+run_tests = libinput-test-suite-runner \
 	    test_litest_selftest
 
 build_tests = \
@@ -92,26 +92,26 @@ TESTS = $(run_tests) symbols-leak-test
 
 .NOTPARALLEL:
 
-litest_SOURCES = udev.c \
-		 path.c \
-		 pointer.c \
-		 touch.c \
-		 log.c \
-		 tablet.c \
-		 pad.c \
-		 touchpad.c \
-		 touchpad-tap.c \
-		 touchpad-buttons.c \
-		 trackpoint.c \
-		 trackball.c \
-		 misc.c \
-		 keyboard.c \
-		 device.c \
-		 gestures.c
+libinput_test_suite_runner_SOURCES = udev.c \
+				     path.c \
+				     pointer.c \
+				     touch.c \
+				     log.c \
+				     tablet.c \
+				     pad.c \
+				     touchpad.c \
+				     touchpad-tap.c \
+				     touchpad-buttons.c \
+				     trackpoint.c \
+				     trackball.c \
+				     misc.c \
+				     keyboard.c \
+				     device.c \
+				     gestures.c
 
-litest_CFLAGS = $(AM_CFLAGS) -DLIBINPUT_LT_VERSION="\"$(LIBINPUT_LT_VERSION)\""
-litest_LDADD = $(TEST_LIBS)
-litest_LDFLAGS = -no-install
+libinput_test_suite_runner_CFLAGS = $(AM_CFLAGS) -DLIBINPUT_LT_VERSION="\"$(LIBINPUT_LT_VERSION)\""
+libinput_test_suite_runner_LDADD = $(TEST_LIBS)
+libinput_test_suite_runner_LDFLAGS = -no-install
 
 test_litest_selftest_SOURCES = litest-selftest.c litest.c litest-int.h litest.h
 test_litest_selftest_CFLAGS = -DLITEST_DISABLE_BACKTRACE_LOGGING -DLITEST_NO_MAIN $(liblitest_la_CFLAGS)
