@@ -875,6 +875,26 @@ litest_setup_sighandler(int sig)
 	litest_assert_int_ne(rc, -1);
 }
 
+static void
+litest_free_test_list(struct list *tests)
+{
+	struct suite *s, *snext;
+
+	list_for_each_safe(s, snext, tests, node) {
+		struct test *t, *tnext;
+
+		list_for_each_safe(t, tnext, &s->tests, node) {
+			free(t->name);
+			list_remove(&t->node);
+			free(t);
+		}
+
+		list_remove(&s->node);
+		free(s->name);
+		free(s);
+	}
+}
+
 static int
 litest_run_suite(char *argv0, struct list *tests, const char *filter)
 {
@@ -928,6 +948,9 @@ litest_fork_subtests(char *argv0, struct list *tests)
 		pid = fork();
 		if (pid == 0) {
 			failed = litest_run_suite(argv0, tests, this_suite_name);
+
+			litest_free_test_list(tests);
+
 			exit(failed);
 			/* child always exits here */
 		}
@@ -945,7 +968,6 @@ litest_fork_subtests(char *argv0, struct list *tests)
 static inline int
 litest_run(int argc, char **argv)
 {
-	struct suite *s, *snext;
 	int failed = 0;
 
 	list_init(&created_files_list);
@@ -971,19 +993,7 @@ litest_run(int argc, char **argv)
 
 	litest_fork_subtests(argv[0], &all_tests);
 
-	list_for_each_safe(s, snext, &all_tests, node) {
-		struct test *t, *tnext;
-
-		list_for_each_safe(t, tnext, &s->tests, node) {
-			free(t->name);
-			list_remove(&t->node);
-			free(t);
-		}
-
-		list_remove(&s->node);
-		free(s->name);
-		free(s);
-	}
+	litest_free_test_list(&all_tests);
 
 	litest_remove_udev_rules(&created_files_list);
 
