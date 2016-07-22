@@ -875,12 +875,78 @@ litest_setup_sighandler(int sig)
 	litest_assert_int_ne(rc, -1);
 }
 
+static int
+litest_run_suite(char *argv0, struct list *tests, const char *filter)
+{
+	int failed = 0;
+	SRunner *sr = NULL;
+	struct suite *s;
+	int argvlen = strlen(argv0);
+
+	snprintf(argv0, argvlen, "libinput-test-%-50s", filter);
+
+	list_for_each(s, tests, node) {
+		if (!strneq(s->name, filter, strlen(filter)))
+			continue;
+
+		if (!sr)
+			sr = srunner_create(s->suite);
+		else
+			srunner_add_suite(sr, s->suite);
+	}
+
+	srunner_run_all(sr, CK_ENV);
+	failed = srunner_ntests_failed(sr);
+	srunner_free(sr);
+	return failed;
+}
+
+static int
+litest_fork_subtests(char *argv0, struct list *tests)
+{
+	struct suite *s;
+	int failed = 0;
+	int status;
+	pid_t pid;
+	char *this_suite_name = strdup("");
+
+	list_for_each(s, tests, node) {
+		char *sep;
+		char name[64];
+
+		/* split a touchpad:foo test into just "touchpad" and group
+		 * by that prefix */
+		sprintf(name, "%s", s->name);
+		sep = index(name, ':');
+		*sep = '\0';
+
+		if (streq(this_suite_name, name))
+			continue;
+
+		free(this_suite_name);
+		this_suite_name = strdup(name);
+		pid = fork();
+		if (pid == 0) {
+			failed = litest_run_suite(argv0, tests, this_suite_name);
+			exit(failed);
+			/* child always exits here */
+		}
+	}
+
+	/* parent process only */
+	while (wait(&status) != -1 && errno != ECHILD) {
+		if (WEXITSTATUS(status) != 0)
+			failed++;
+	}
+
+	return failed;
+}
+
 static inline int
 litest_run(int argc, char **argv)
 {
 	struct suite *s, *snext;
-	int failed;
-	SRunner *sr = NULL;
+	int failed = 0;
 
 	list_init(&created_files_list);
 
@@ -896,13 +962,6 @@ litest_run(int argc, char **argv)
 			setenv("CK_FORK", "no", 0);
 	}
 
-	list_for_each(s, &all_tests, node) {
-		if (!sr)
-			sr = srunner_create(s->suite);
-		else
-			srunner_add_suite(sr, s->suite);
-	}
-
 	if (getenv("LITEST_VERBOSE"))
 		verbose = 1;
 
@@ -910,9 +969,7 @@ litest_run(int argc, char **argv)
 
 	litest_setup_sighandler(SIGINT);
 
-	srunner_run_all(sr, CK_ENV);
-	failed = srunner_ntests_failed(sr);
-	srunner_free(sr);
+	litest_fork_subtests(argv[0], &all_tests);
 
 	list_for_each_safe(s, snext, &all_tests, node) {
 		struct test *t, *tnext;
