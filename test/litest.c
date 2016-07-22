@@ -68,8 +68,13 @@ const char *filter_test = NULL;
 const char *filter_device = NULL;
 const char *filter_group = NULL;
 
-static inline void litest_remove_model_quirks(void);
-static void litest_init_udev_rules(void);
+struct created_file {
+	struct list link;
+	char *path;
+};
+
+static void litest_init_udev_rules(struct list *created_files_list);
+static void litest_remove_udev_rules(struct list *created_files_list);
 
 /* defined for the litest selftest */
 #ifndef LITEST_DISABLE_BACKTRACE_LOGGING
@@ -866,6 +871,9 @@ litest_run(int argc, char **argv)
 	struct suite *s, *snext;
 	int failed;
 	SRunner *sr = NULL;
+	struct list created_files_list;
+
+	list_init(&created_files_list);
 
 	if (list_empty(&all_tests)) {
 		fprintf(stderr,
@@ -889,7 +897,7 @@ litest_run(int argc, char **argv)
 	if (getenv("LITEST_VERBOSE"))
 		verbose = 1;
 
-	litest_init_udev_rules();
+	litest_init_udev_rules(&created_files_list);
 
 	srunner_run_all(sr, CK_ENV);
 	failed = srunner_ntests_failed(sr);
@@ -909,8 +917,7 @@ litest_run(int argc, char **argv)
 		free(s);
 	}
 
-	litest_remove_model_quirks();
-	litest_reload_udev_rules();
+	litest_remove_udev_rules(&created_files_list);
 
 	return failed;
 }
@@ -984,10 +991,16 @@ merge_events(const int *orig, const int *override)
 	return events;
 }
 
-static inline void
+static inline struct created_file *
 litest_copy_file(const char *dest, const char *src, const char *header)
 {
 	int in, out, length;
+	struct created_file *file;
+
+	file = zalloc(sizeof(*file));
+	litest_assert(file);
+	file->path = strdup(dest);
+	litest_assert(file->path);
 
 	out = open(dest, O_CREAT|O_WRONLY, 0644);
 	litest_assert_int_gt(out, -1);
@@ -1003,10 +1016,12 @@ litest_copy_file(const char *dest, const char *src, const char *header)
 	litest_assert_int_gt(sendfile(out, in, NULL, 40960), 0);
 	close(out);
 	close(in);
+
+	return file;
 }
 
 static inline void
-litest_install_model_quirks(void)
+litest_install_model_quirks(struct list *created_files_list)
 {
 	const char *warning =
 			 "#################################################################\n"
@@ -1016,27 +1031,26 @@ litest_install_model_quirks(void)
 			 "# running, remove this file and update your hwdb: \n"
 			 "#       sudo udevadm hwdb --update\n"
 			 "#################################################################\n\n";
-	litest_copy_file(UDEV_MODEL_QUIRKS_RULE_FILE,
-			 LIBINPUT_MODEL_QUIRKS_UDEV_RULES_FILE,
-			 warning);
-	litest_copy_file(UDEV_MODEL_QUIRKS_HWDB_FILE,
-			 LIBINPUT_MODEL_QUIRKS_UDEV_HWDB_FILE,
-			 warning);
-	litest_copy_file(UDEV_TEST_DEVICE_RULE_FILE,
-			 LIBINPUT_TEST_DEVICE_RULES_FILE,
-			 warning);
-}
+	struct created_file *file;
 
-static inline void
-litest_remove_model_quirks(void)
-{
-	unlink(UDEV_MODEL_QUIRKS_RULE_FILE);
-	unlink(UDEV_MODEL_QUIRKS_HWDB_FILE);
-	unlink(UDEV_TEST_DEVICE_RULE_FILE);
+	file = litest_copy_file(UDEV_MODEL_QUIRKS_RULE_FILE,
+				LIBINPUT_MODEL_QUIRKS_UDEV_RULES_FILE,
+				warning);
+	list_insert(created_files_list, &file->link);
+
+	file = litest_copy_file(UDEV_MODEL_QUIRKS_HWDB_FILE,
+				LIBINPUT_MODEL_QUIRKS_UDEV_HWDB_FILE,
+				warning);
+	list_insert(created_files_list, &file->link);
+
+	file = litest_copy_file(UDEV_TEST_DEVICE_RULE_FILE,
+				LIBINPUT_TEST_DEVICE_RULES_FILE,
+				warning);
+	list_insert(created_files_list, &file->link);
 }
 
 static void
-litest_init_udev_rules(void)
+litest_init_udev_rules(struct list *created_files)
 {
 	int rc;
 
@@ -1050,7 +1064,22 @@ litest_init_udev_rules(void)
 		ck_abort_msg("Failed to create udev hwdb directory (%s)\n",
 			     strerror(errno));
 
-	litest_install_model_quirks();
+	litest_install_model_quirks(created_files);
+	litest_reload_udev_rules();
+}
+
+static void
+litest_remove_udev_rules(struct list *created_files_list)
+{
+	struct created_file *f, *tmp;
+
+	list_for_each_safe(f, tmp, created_files_list, link) {
+		list_remove(&f->link);
+		unlink(f->path);
+		free(f->path);
+		free(f);
+	}
+
 	litest_reload_udev_rules();
 }
 
