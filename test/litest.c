@@ -1210,58 +1210,6 @@ litest_restore_log_handler(struct libinput *libinput)
 	libinput_log_set_handler(libinput, litest_log_handler);
 }
 
-static inline int
-create_udev_lock_file(void)
-{
-	int lfd;
-
-	/* Running the multiple tests in parallel usually trips over udev
-	 * not being  up-to-date. We change the udev rules for every device
-	 * created, sometimes this means we end up getting the wrong udev
-	 * device, or having wrong properties applied.
-	 *
-	 * litests use the path interface and there is a window between
-	 * creating the device (which triggers udev reloads) and adding the
-	 * device to the libinput context where another udev reload may
-	 * upset things.
-	 *
-	 * To avoid this, create a lockfile on device add and device delete
-	 * to make sure that we have exclusive access to udev while
-	 * the udev rules are reloaded.
-	 */
-	do {
-		lfd = open(LITEST_UDEV_LOCKFILE, O_CREAT|O_EXCL, O_RDWR);
-
-		if (lfd == -1) {
-			struct stat st;
-			time_t now = time(NULL);
-
-			litest_assert_int_eq(errno, EEXIST);
-			msleep(10);
-
-			/* If the lock file is older than 10s, it's a
-			   leftover from some aborted test */
-			if (stat(LITEST_UDEV_LOCKFILE, &st) != -1) {
-				if (st.st_mtime < now - 10) {
-					fprintf(stderr,
-						"Removing stale lock file %s.\n",
-						LITEST_UDEV_LOCKFILE);
-					unlink(LITEST_UDEV_LOCKFILE);
-				}
-			}
-		}
-	} while (lfd < 0);
-
-	return lfd;
-}
-
-static inline void
-delete_udev_lock_file(int lfd)
-{
-	close(lfd);
-	unlink(LITEST_UDEV_LOCKFILE);
-}
-
 struct litest_device *
 litest_add_device_with_overrides(struct libinput *libinput,
 				 enum litest_device_type which,
@@ -1274,8 +1222,6 @@ litest_add_device_with_overrides(struct libinput *libinput,
 	int fd;
 	int rc;
 	const char *path;
-
-	int lfd = create_udev_lock_file();
 
 	d = litest_create(which,
 			  name_override,
@@ -1302,9 +1248,6 @@ litest_add_device_with_overrides(struct libinput *libinput,
 		d->interface->min[ABS_Y] = libevdev_get_abs_minimum(d->evdev, ABS_Y);
 		d->interface->max[ABS_Y] = libevdev_get_abs_maximum(d->evdev, ABS_Y);
 	}
-
-	delete_udev_lock_file(lfd);
-
 	return d;
 }
 
@@ -1361,12 +1304,8 @@ litest_handle_events(struct litest_device *d)
 void
 litest_delete_device(struct litest_device *d)
 {
-	int lfd;
-
 	if (!d)
 		return;
-
-	lfd = create_udev_lock_file();
 
 	libinput_device_unref(d->libinput_device);
 	libinput_path_remove_device(d->libinput_device);
@@ -1378,8 +1317,6 @@ litest_delete_device(struct litest_device *d)
 	free(d->private);
 	memset(d,0, sizeof(*d));
 	free(d);
-
-	delete_udev_lock_file(lfd);
 }
 
 void
