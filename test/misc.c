@@ -946,7 +946,7 @@ litest_setup_tests_misc(void)
 	litest_add_for_device("events:conversion", event_conversion_gesture, LITEST_BCM5974);
 	litest_add_for_device("events:conversion", event_conversion_tablet, LITEST_WACOM_CINTIQ);
 	litest_add_for_device("events:conversion", event_conversion_tablet_pad, LITEST_WACOM_INTUOS5_PAD);
-	litest_add_no_device("bitfield_helpers", bitfield_helpers);
+	litest_add_no_device("misc:bitfield_helpers", bitfield_helpers);
 
 	litest_add_no_device("context:refcount", context_ref_counting);
 	litest_add_no_device("config:status string", config_status_string);
