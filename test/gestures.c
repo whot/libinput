@@ -1237,5 +1237,5 @@ litest_setup_tests_gestures(void)
 	litest_add("gestures:swipe", gestures_3fg_buttonarea_scroll, LITEST_CLICKPAD, LITEST_SINGLE_TOUCH);
 	litest_add("gestures:swipe", gestures_3fg_buttonarea_scroll_btntool, LITEST_CLICKPAD, LITEST_SINGLE_TOUCH);
 
-	litest_add("gesture:time", gestures_time_usec, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
+	litest_add("gestures:time", gestures_time_usec, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
 }
