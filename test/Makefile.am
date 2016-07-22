@@ -146,7 +146,7 @@ VALGRIND_FLAGS=--leak-check=full \
 	       --error-exitcode=3 \
 	       --suppressions=$(srcdir)/valgrind.suppressions
 
-valgrind: all
+valgrind: check-am
 	$(MAKE) check-TESTS TEST_SUITE_LOG="test-suite-valgrind.log" LOG_COMPILER="$(VALGRIND)" LOG_FLAGS="$(VALGRIND_FLAGS)" CK_FORK=no USING_VALGRIND=yes
 
 check: valgrind
