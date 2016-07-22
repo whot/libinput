@@ -260,7 +260,7 @@ START_TEST(trackball_rotation_accel)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_trackball(void)
 {
 	litest_add("trackball:rotation", trackball_rotation_config_defaults, LITEST_TRACKBALL, LITEST_ANY);
 	litest_add("trackball:rotation", trackball_rotation_config_invalid_range, LITEST_TRACKBALL, LITEST_ANY);

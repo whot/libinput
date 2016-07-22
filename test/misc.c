@@ -935,7 +935,7 @@ START_TEST(library_version)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_misc(void)
 {
 	litest_add_no_device("events:conversion", event_conversion_device_notify);
 	litest_add_for_device("events:conversion", event_conversion_pointer, LITEST_MOUSE);

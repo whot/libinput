@@ -1723,7 +1723,7 @@ START_TEST(pointer_time_usec)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_pointer(void)
 {
 	struct range axis_range = {ABS_X, ABS_Y + 1};
 	struct range compass = {0, 7}; /* cardinal directions */

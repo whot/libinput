@@ -1347,7 +1347,7 @@ START_TEST(device_quirks_apple_magicmouse)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_device(void)
 {
 	struct range abs_range = { 0, ABS_MISC };
 	struct range abs_mt_range = { ABS_MT_SLOT + 1, ABS_CNT };

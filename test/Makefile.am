@@ -77,24 +77,8 @@ liblitest_la_LIBADD += $(LIBUNWIND_LIBS) -ldl
 liblitest_la_CFLAGS += $(LIBUNWIND_CFLAGS)
 endif
 
-run_tests = \
-	test-touchpad \
-	test-touchpad-tap \
-	test-touchpad-buttons \
-	test-pad \
-	test-tablet \
-	test-device \
-	test-gestures \
-	test-pointer \
-	test-touch \
-	test-trackball \
-	test-trackpoint \
-	test-udev \
-	test-path \
-	test-log \
-	test-misc \
-	test-keyboard \
-	test-litest-selftest
+run_tests = litest \
+	    test_litest_selftest
 
 build_tests = \
 	test-build-cxx \
@@ -108,70 +92,25 @@ TESTS = $(run_tests) symbols-leak-test
 
 .NOTPARALLEL:
 
-test_udev_SOURCES = udev.c
-test_udev_LDADD = $(TEST_LIBS)
-test_udev_LDFLAGS = -no-install
+litest_SOURCES = udev.c \
+		 path.c \
+		 pointer.c \
+		 touch.c \
+		 log.c \
+		 tablet.c \
+		 pad.c \
+		 touchpad.c \
+		 touchpad-tap.c \
+		 touchpad-buttons.c \
+		 trackpoint.c \
+		 trackball.c \
+		 misc.c \
+		 keyboard.c \
+		 device.c \
+		 gestures.c
 
-test_path_SOURCES = path.c
-test_path_LDADD = $(TEST_LIBS)
-test_path_LDFLAGS = -no-install
-
-test_pointer_SOURCES = pointer.c
-test_pointer_LDADD = $(TEST_LIBS)
-test_pointer_LDFLAGS = -no-install
-
-test_touch_SOURCES = touch.c
-test_touch_LDADD = $(TEST_LIBS)
-test_touch_LDFLAGS = -no-install
-
-test_log_SOURCES = log.c
-test_log_LDADD = $(TEST_LIBS)
-test_log_LDFLAGS = -no-install
-
-test_tablet_SOURCES = tablet.c
-test_tablet_LDADD = $(TEST_LIBS)
-test_tablet_LDFLAGS = -static
-
-test_pad_SOURCES = pad.c
-test_pad_LDADD = $(TEST_LIBS)
-test_pad_LDFLAGS = -static
-
-test_touchpad_SOURCES = touchpad.c
-test_touchpad_LDADD = $(TEST_LIBS)
-test_touchpad_LDFLAGS = -no-install
-
-test_touchpad_tap_SOURCES = touchpad-tap.c
-test_touchpad_tap_LDADD = $(TEST_LIBS)
-test_touchpad_tap_LDFLAGS = -no-install
-
-test_touchpad_buttons_SOURCES = touchpad-buttons.c
-test_touchpad_buttons_LDADD = $(TEST_LIBS)
-test_touchpad_buttons_LDFLAGS = -no-install
-
-test_trackpoint_SOURCES = trackpoint.c
-test_trackpoint_LDADD = $(TEST_LIBS)
-test_trackpoint_LDFLAGS = -no-install
-
-test_trackball_SOURCES = trackball.c
-test_trackball_LDADD = $(TEST_LIBS)
-test_trackball_LDFLAGS = -no-install
-
-test_misc_SOURCES = misc.c
-test_misc_CFLAGS= $(AM_CFLAGS) -DLIBINPUT_LT_VERSION="\"$(LIBINPUT_LT_VERSION)\""
-test_misc_LDADD = $(TEST_LIBS)
-test_misc_LDFLAGS = -no-install
-
-test_keyboard_SOURCES = keyboard.c
-test_keyboard_LDADD = $(TEST_LIBS)
-test_keyboard_LDFLAGS = -no-install
-
-test_device_SOURCES = device.c
-test_device_LDADD = $(TEST_LIBS)
-test_device_LDFLAGS = -no-install
-
-test_gestures_SOURCES = gestures.c
-test_gestures_LDADD = $(TEST_LIBS)
-test_gestures_LDFLAGS = -no-install
+litest_CFLAGS = $(AM_CFLAGS) -DLIBINPUT_LT_VERSION="\"$(LIBINPUT_LT_VERSION)\""
+litest_LDADD = $(TEST_LIBS)
 
 test_litest_selftest_SOURCES = litest-selftest.c litest.c litest-int.h litest.h
 test_litest_selftest_CFLAGS = -DLITEST_DISABLE_BACKTRACE_LOGGING -DLITEST_NO_MAIN $(liblitest_la_CFLAGS)

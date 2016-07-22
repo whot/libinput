@@ -1959,7 +1959,7 @@ START_TEST(touchpad_drag_lock_default_unavailable)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_touchpad_tap(void)
 {
 	struct range multitap_range = {3, 8};
 

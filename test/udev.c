@@ -507,7 +507,7 @@ START_TEST(udev_seat_recycle)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_udev(void)
 {
 	litest_add_no_device("udev:create", udev_create_NULL);
 	litest_add_no_device("udev:create", udev_create_seat0);

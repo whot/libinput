@@ -720,7 +720,7 @@ START_TEST(touch_fuzz)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_touch(void)
 {
 	struct range axes = { ABS_X, ABS_Y + 1};
 

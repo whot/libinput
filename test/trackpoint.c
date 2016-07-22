@@ -281,7 +281,7 @@ START_TEST(trackpoint_topsoftbuttons_left_handed_both)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_trackpoint(void)
 {
 	litest_add("trackpoint:middlebutton", trackpoint_middlebutton, LITEST_POINTINGSTICK, LITEST_ANY);
 	litest_add("trackpoint:middlebutton", trackpoint_middlebutton_noscroll, LITEST_POINTINGSTICK, LITEST_ANY);

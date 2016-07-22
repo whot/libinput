@@ -3676,7 +3676,7 @@ START_TEST(relative_calibration)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_tablet(void)
 {
 	litest_add("tablet:tool", tool_ref, LITEST_TABLET | LITEST_TOOL_SERIAL, LITEST_ANY);
 	litest_add_no_device("tablet:tool", tool_capabilities);

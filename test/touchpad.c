@@ -4136,7 +4136,7 @@ START_TEST(touchpad_jump_finger_motion)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_touchpad(void)
 {
 	struct range axis_range = {ABS_X, ABS_Y + 1};
 

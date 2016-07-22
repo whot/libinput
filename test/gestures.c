@@ -1215,7 +1215,7 @@ START_TEST(gestures_3fg_buttonarea_scroll_btntool)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_gestures(void)
 {
 	/* N, NE, ... */
 	struct range cardinals = { 0, 8 };

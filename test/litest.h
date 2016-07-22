@@ -35,6 +35,23 @@
 #include <libinput.h>
 #include <math.h>
 
+extern void litest_setup_tests_udev(void);
+extern void litest_setup_tests_path(void);
+extern void litest_setup_tests_pointer(void);
+extern void litest_setup_tests_touch(void);
+extern void litest_setup_tests_log(void);
+extern void litest_setup_tests_tablet(void);
+extern void litest_setup_tests_pad(void);
+extern void litest_setup_tests_touchpad(void);
+extern void litest_setup_tests_touchpad_tap(void);
+extern void litest_setup_tests_touchpad_buttons(void);
+extern void litest_setup_tests_trackpoint(void);
+extern void litest_setup_tests_trackball(void);
+extern void litest_setup_tests_misc(void);
+extern void litest_setup_tests_keyboard(void);
+extern void litest_setup_tests_device(void);
+extern void litest_setup_tests_gestures(void);
+
 void
 litest_fail_condition(const char *file,
 		      int line,
@@ -333,9 +350,6 @@ _litest_add_ranged_no_device(const char *name,
 			     const char *funcname,
 			     void *func,
 			     const struct range *range);
-
-extern void
-litest_setup_tests(void);
 
 struct litest_device *
 litest_create_device(enum litest_device_type which);

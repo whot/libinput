@@ -3114,7 +3114,22 @@ main(int argc, char **argv)
 	if (mode == LITEST_MODE_ERROR)
 		return EXIT_FAILURE;
 
-	litest_setup_tests();
+	litest_setup_tests_udev();
+	litest_setup_tests_path();
+	litest_setup_tests_pointer();
+	litest_setup_tests_touch();
+	litest_setup_tests_log();
+	litest_setup_tests_tablet();
+	litest_setup_tests_pad();
+	litest_setup_tests_touchpad();
+	litest_setup_tests_touchpad_tap();
+	litest_setup_tests_touchpad_buttons();
+	litest_setup_tests_trackpoint();
+	litest_setup_tests_trackball();
+	litest_setup_tests_misc();
+	litest_setup_tests_keyboard();
+	litest_setup_tests_device();
+	litest_setup_tests_gestures();
 
 	if (mode == LITEST_MODE_LIST) {
 		litest_list_tests(&all_tests);

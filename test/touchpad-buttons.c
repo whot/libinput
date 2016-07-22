@@ -1805,7 +1805,7 @@ START_TEST(clickpad_middleemulation_click_disable_while_down)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_touchpad_buttons(void)
 {
 	litest_add("touchpad:clickfinger", touchpad_1fg_clickfinger, LITEST_CLICKPAD, LITEST_ANY);
 	litest_add("touchpad:clickfinger", touchpad_1fg_clickfinger_no_touch, LITEST_CLICKPAD, LITEST_ANY);

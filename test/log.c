@@ -141,7 +141,7 @@ START_TEST(log_priority)
 END_TEST
 
 void
-litest_setup_tests(void)
+litest_setup_tests_log(void)
 {
 	litest_add_no_device("log:defaults", log_default_priority);
 	litest_add_no_device("log:logging", log_handler_invoked);
