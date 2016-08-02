@@ -390,172 +390,280 @@ fallback_rotate_relative(struct fallback_dispatch *dispatch,
 }
 
 static void
+fallback_flush_relative_motion(struct fallback_dispatch *dispatch,
+			       struct evdev_device *device,
+			       uint64_t time)
+{
+	struct libinput *libinput = evdev_libinput_context(device);
+	struct libinput_device *base = &device->base;
+	struct normalized_coords accel, unaccel;
+	struct device_float_coords raw;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_POINTER))
+		return;
+
+	fallback_rotate_relative(dispatch, device);
+
+	normalize_delta(device, &dispatch->rel, &unaccel);
+	raw.x = dispatch->rel.x;
+	raw.y = dispatch->rel.y;
+	dispatch->rel.x = 0;
+	dispatch->rel.y = 0;
+
+	/* Use unaccelerated deltas for pointing stick scroll */
+	if (evdev_post_trackpoint_scroll(device, unaccel, time))
+		return;
+
+	if (device->pointer.filter) {
+		/* Apply pointer acceleration. */
+		accel = filter_dispatch(device->pointer.filter,
+					&unaccel,
+					device,
+					time);
+	} else {
+		log_bug_libinput(libinput,
+				 "%s: accel filter missing\n",
+				 udev_device_get_devnode(device->udev_device));
+		accel = unaccel;
+	}
+
+	if (normalized_is_zero(accel) && normalized_is_zero(unaccel))
+		return;
+
+	pointer_notify_motion(base, time, &accel, &raw);
+}
+
+static void
+fallback_flush_absolute_motion(struct fallback_dispatch *dispatch,
+			       struct evdev_device *device,
+			       uint64_t time)
+{
+	struct libinput_device *base = &device->base;
+	struct device_coords point;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_POINTER))
+		return;
+
+	point = dispatch->abs.point;
+	evdev_transform_absolute(device, &point);
+
+	pointer_notify_motion_absolute(base, time, &point);
+}
+
+static void
+fallback_flush_mt_down(struct fallback_dispatch *dispatch,
+		       struct evdev_device *device,
+		       int slot_idx,
+		       uint64_t time)
+{
+	struct libinput_device *base = &device->base;
+	struct libinput_seat *seat = base->seat;
+	struct device_coords point;
+	struct mt_slot *slot;
+	int seat_slot;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
+		return;
+
+	slot = &dispatch->mt.slots[slot_idx];
+	if (slot->seat_slot != -1) {
+		struct libinput *libinput = evdev_libinput_context(device);
+
+		log_bug_kernel(libinput,
+			       "%s: Driver sent multiple touch down for the "
+			       "same slot",
+			       udev_device_get_devnode(device->udev_device));
+		return;
+	}
+
+	seat_slot = ffs(~seat->slot_map) - 1;
+	slot->seat_slot = seat_slot;
+
+	if (seat_slot == -1)
+		return;
+
+	seat->slot_map |= 1 << seat_slot;
+	point = slot->point;
+	slot->hysteresis_center = point;
+	evdev_transform_absolute(device, &point);
+
+	touch_notify_touch_down(base, time, slot_idx, seat_slot,
+				&point);
+}
+
+static void
+fallback_flush_mt_motion(struct fallback_dispatch *dispatch,
+			 struct evdev_device *device,
+			 int slot_idx,
+			 uint64_t time)
+{
+	struct libinput_device *base = &device->base;
+	struct device_coords point;
+	struct mt_slot *slot;
+	int seat_slot;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
+		return;
+
+	slot = &dispatch->mt.slots[slot_idx];
+	seat_slot = slot->seat_slot;
+	point = slot->point;
+
+	if (seat_slot == -1)
+		return;
+
+	if (fallback_filter_defuzz_touch(dispatch, device, slot))
+		return;
+
+	evdev_transform_absolute(device, &point);
+	touch_notify_touch_motion(base, time, slot_idx, seat_slot,
+				  &point);
+}
+
+static void
+fallback_flush_mt_up(struct fallback_dispatch *dispatch,
+		     struct evdev_device *device,
+		     int slot_idx,
+		     uint64_t time)
+{
+	struct libinput_device *base = &device->base;
+	struct libinput_seat *seat = base->seat;
+	struct mt_slot *slot;
+	int seat_slot;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
+		return;
+
+	slot = &dispatch->mt.slots[slot_idx];
+	seat_slot = slot->seat_slot;
+	slot->seat_slot = -1;
+
+	if (seat_slot == -1)
+		return;
+
+	seat->slot_map &= ~(1 << seat_slot);
+
+	touch_notify_touch_up(base, time, slot_idx, seat_slot);
+}
+
+static void
+fallback_flush_st_down(struct fallback_dispatch *dispatch,
+		       struct evdev_device *device,
+		       uint64_t time)
+{
+	struct libinput_device *base = &device->base;
+	struct libinput_seat *seat = base->seat;
+	struct device_coords point;
+	int seat_slot;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
+		return;
+
+	if (dispatch->abs.seat_slot != -1) {
+		struct libinput *libinput = evdev_libinput_context(device);
+
+		log_bug_kernel(libinput,
+			       "%s: Driver sent multiple touch down for the "
+			       "same slot",
+			       udev_device_get_devnode(device->udev_device));
+		return;
+	}
+
+	seat_slot = ffs(~seat->slot_map) - 1;
+	dispatch->abs.seat_slot = seat_slot;
+
+	if (seat_slot == -1)
+		return;
+
+	seat->slot_map |= 1 << seat_slot;
+
+	point = dispatch->abs.point;
+	evdev_transform_absolute(device, &point);
+
+	touch_notify_touch_down(base, time, -1, seat_slot, &point);
+}
+
+static void
+fallback_flush_st_motion(struct fallback_dispatch *dispatch,
+			 struct evdev_device *device,
+			 uint64_t time)
+{
+	struct libinput_device *base = &device->base;
+	struct device_coords point;
+	int seat_slot;
+
+	point = dispatch->abs.point;
+	evdev_transform_absolute(device, &point);
+
+	seat_slot = dispatch->abs.seat_slot;
+
+	if (seat_slot == -1)
+		return;
+
+	touch_notify_touch_motion(base, time, -1, seat_slot, &point);
+}
+
+static void
+fallback_flush_st_up(struct fallback_dispatch *dispatch,
+		     struct evdev_device *device,
+		     uint64_t time)
+{
+	struct libinput_device *base = &device->base;
+	struct libinput_seat *seat = base->seat;
+	int seat_slot;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
+		return;
+
+	seat_slot = dispatch->abs.seat_slot;
+	dispatch->abs.seat_slot = -1;
+
+	if (seat_slot == -1)
+		return;
+
+	seat->slot_map &= ~(1 << seat_slot);
+
+	touch_notify_touch_up(base, time, -1, seat_slot);
+}
+
+static void
 fallback_flush_pending_event(struct fallback_dispatch *dispatch,
 			     struct evdev_device *device,
 			     uint64_t time)
 {
-	struct libinput *libinput = evdev_libinput_context(device);
 	int slot_idx;
-	int seat_slot;
-	struct libinput_device *base = &device->base;
-	struct libinput_seat *seat = base->seat;
-	struct normalized_coords accel, unaccel;
-	struct device_coords point;
-	struct device_float_coords raw;
-	struct mt_slot *slot = NULL;
-
-	slot_idx = dispatch->mt.slot;
-	if (dispatch->mt.slots)
-		slot = &dispatch->mt.slots[slot_idx];
 
 	switch (dispatch->pending_event) {
 	case EVDEV_NONE:
 		return;
 	case EVDEV_RELATIVE_MOTION:
-		if (!(device->seat_caps & EVDEV_DEVICE_POINTER))
-			break;
-
-		fallback_rotate_relative(dispatch, device);
-
-		normalize_delta(device, &dispatch->rel, &unaccel);
-		raw.x = dispatch->rel.x;
-		raw.y = dispatch->rel.y;
-		dispatch->rel.x = 0;
-		dispatch->rel.y = 0;
-
-		/* Use unaccelerated deltas for pointing stick scroll */
-		if (evdev_post_trackpoint_scroll(device, unaccel, time))
-			break;
-
-		if (device->pointer.filter) {
-			/* Apply pointer acceleration. */
-			accel = filter_dispatch(device->pointer.filter,
-						&unaccel,
-						device,
-						time);
-		} else {
-			log_bug_libinput(libinput,
-					 "%s: accel filter missing\n",
-					 udev_device_get_devnode(device->udev_device));
-			accel = unaccel;
-		}
-
-		if (normalized_is_zero(accel) && normalized_is_zero(unaccel))
-			break;
-
-		pointer_notify_motion(base, time, &accel, &raw);
+		fallback_flush_relative_motion(dispatch, device, time);
 		break;
 	case EVDEV_ABSOLUTE_MT_DOWN:
-		if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
-			break;
-
-		if (slot->seat_slot != -1) {
-			log_bug_kernel(libinput,
-				       "%s: Driver sent multiple touch down for the "
-				       "same slot",
-				       udev_device_get_devnode(device->udev_device));
-			break;
-		}
-
-		seat_slot = ffs(~seat->slot_map) - 1;
-		slot->seat_slot = seat_slot;
-
-		if (seat_slot == -1)
-			break;
-
-		seat->slot_map |= 1 << seat_slot;
-		point = slot->point;
-		slot->hysteresis_center = point;
-		evdev_transform_absolute(device, &point);
-
-		touch_notify_touch_down(base, time, slot_idx, seat_slot,
-					&point);
+		slot_idx = dispatch->mt.slot;
+		fallback_flush_mt_down(dispatch, device, slot_idx, time);
 		break;
 	case EVDEV_ABSOLUTE_MT_MOTION:
-		if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
-			break;
-
-		seat_slot = slot->seat_slot;
-		point = slot->point;
-
-		if (seat_slot == -1)
-			break;
-
-		if (fallback_filter_defuzz_touch(dispatch, device, slot))
-			break;
-
-		evdev_transform_absolute(device, &point);
-		touch_notify_touch_motion(base, time, slot_idx, seat_slot,
-					  &point);
+		slot_idx = dispatch->mt.slot;
+		fallback_flush_mt_motion(dispatch, device, slot_idx, time);
 		break;
 	case EVDEV_ABSOLUTE_MT_UP:
-		if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
-			break;
-
-		seat_slot = slot->seat_slot;
-		slot->seat_slot = -1;
-
-		if (seat_slot == -1)
-			break;
-
-		seat->slot_map &= ~(1 << seat_slot);
-
-		touch_notify_touch_up(base, time, slot_idx, seat_slot);
+		slot_idx = dispatch->mt.slot;
+		fallback_flush_mt_up(dispatch, device, slot_idx, time);
 		break;
 	case EVDEV_ABSOLUTE_TOUCH_DOWN:
-		if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
-			break;
-
-		if (dispatch->abs.seat_slot != -1) {
-			log_bug_kernel(libinput,
-				       "%s: Driver sent multiple touch down for the "
-				       "same slot",
-				       udev_device_get_devnode(device->udev_device));
-			break;
-		}
-
-		seat_slot = ffs(~seat->slot_map) - 1;
-		dispatch->abs.seat_slot = seat_slot;
-
-		if (seat_slot == -1)
-			break;
-
-		seat->slot_map |= 1 << seat_slot;
-
-		point = dispatch->abs.point;
-		evdev_transform_absolute(device, &point);
-
-		touch_notify_touch_down(base, time, -1, seat_slot, &point);
+		fallback_flush_st_down(dispatch, device, time);
 		break;
 	case EVDEV_ABSOLUTE_MOTION:
-		point = dispatch->abs.point;
-		evdev_transform_absolute(device, &point);
-
-		if (device->seat_caps & EVDEV_DEVICE_TOUCH) {
-			seat_slot = dispatch->abs.seat_slot;
-
-			if (seat_slot == -1)
-				break;
-
-			touch_notify_touch_motion(base, time, -1, seat_slot,
-						  &point);
-		} else if (device->seat_caps & EVDEV_DEVICE_POINTER) {
-			pointer_notify_motion_absolute(base, time, &point);
-		}
+		if (device->seat_caps & EVDEV_DEVICE_TOUCH)
+			fallback_flush_st_motion(dispatch, device, time);
+		else if (device->seat_caps & EVDEV_DEVICE_POINTER)
+			fallback_flush_absolute_motion(dispatch,
+						       device,
+						       time);
 		break;
 	case EVDEV_ABSOLUTE_TOUCH_UP:
-		if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
-			break;
-
-		seat_slot = dispatch->abs.seat_slot;
-		dispatch->abs.seat_slot = -1;
-
-		if (seat_slot == -1)
-			break;
-
-		seat->slot_map &= ~(1 << seat_slot);
-
-		touch_notify_touch_up(base, time, -1, seat_slot);
+		fallback_flush_st_up(dispatch, device, time);
 		break;
 	default:
 		assert(0 && "Unknown pending event type");
