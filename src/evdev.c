@@ -1082,15 +1082,36 @@ fallback_process(struct evdev_dispatch *evdev_dispatch,
 }
 
 static void
+release_touches(struct fallback_dispatch *dispatch,
+		struct evdev_device *device,
+		uint64_t time)
+{
+	unsigned int idx;
+	bool need_frame = false;
+
+	need_frame = fallback_flush_st_up(dispatch, device, time);
+
+	for (idx = 0; idx < dispatch->mt.slots_len; idx++) {
+		struct mt_slot *slot = &dispatch->mt.slots[idx];
+
+		if (slot->seat_slot == -1)
+			continue;
+
+		if (fallback_flush_mt_up(dispatch, device, idx, time))
+			need_frame = true;
+	}
+
+	if (need_frame)
+		touch_notify_frame(&device->base, time);
+}
+
+static void
 release_pressed_keys(struct fallback_dispatch *dispatch,
-		     struct evdev_device *device)
+		     struct evdev_device *device,
+		     uint64_t time)
 {
 	struct libinput *libinput = evdev_libinput_context(device);
-	uint64_t time;
 	int code;
-
-	if ((time = libinput_now(libinput)) == 0)
-		return;
 
 	for (code = 0; code < KEY_CNT; code++) {
 		int count = get_key_down_count(device, code);
@@ -1140,8 +1161,14 @@ fallback_suspend(struct evdev_dispatch *evdev_dispatch,
 		 struct evdev_device *device)
 {
 	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)evdev_dispatch;
+	struct libinput *libinput = evdev_libinput_context(device);
+	uint64_t time;
 
-	release_pressed_keys(dispatch, device);
+	if ((time = libinput_now(libinput)) == 0)
+		return;
+
+	release_touches(dispatch, device, time);
+	release_pressed_keys(dispatch, device, time);
 	memset(dispatch->hw_key_mask, 0, sizeof(dispatch->hw_key_mask));
 }
 
