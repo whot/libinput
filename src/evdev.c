@@ -626,16 +626,19 @@ fallback_flush_st_up(struct fallback_dispatch *dispatch,
 	touch_notify_touch_up(base, time, -1, seat_slot);
 }
 
-static void
+static enum evdev_event_type
 fallback_flush_pending_event(struct fallback_dispatch *dispatch,
 			     struct evdev_device *device,
 			     uint64_t time)
 {
+	enum evdev_event_type sent_event;
 	int slot_idx;
+
+	sent_event = dispatch->pending_event;
 
 	switch (dispatch->pending_event) {
 	case EVDEV_NONE:
-		return;
+		break;
 	case EVDEV_RELATIVE_MOTION:
 		fallback_flush_relative_motion(dispatch, device, time);
 		break;
@@ -655,12 +658,14 @@ fallback_flush_pending_event(struct fallback_dispatch *dispatch,
 		fallback_flush_st_down(dispatch, device, time);
 		break;
 	case EVDEV_ABSOLUTE_MOTION:
-		if (device->seat_caps & EVDEV_DEVICE_TOUCH)
+		if (device->seat_caps & EVDEV_DEVICE_TOUCH) {
 			fallback_flush_st_motion(dispatch, device, time);
-		else if (device->seat_caps & EVDEV_DEVICE_POINTER)
+			sent_event = EVDEV_ABSOLUTE_MT_MOTION;
+		} else if (device->seat_caps & EVDEV_DEVICE_POINTER) {
 			fallback_flush_absolute_motion(dispatch,
 						       device,
 						       time);
+		}
 		break;
 	case EVDEV_ABSOLUTE_TOUCH_UP:
 		fallback_flush_st_up(dispatch, device, time);
@@ -671,6 +676,8 @@ fallback_flush_pending_event(struct fallback_dispatch *dispatch,
 	}
 
 	dispatch->pending_event = EVDEV_NONE;
+
+	return sent_event;
 }
 
 static enum evdev_key_type
@@ -965,29 +972,6 @@ fallback_any_button_down(struct fallback_dispatch *dispatch,
 	return false;
 }
 
-static inline bool
-fallback_need_touch_frame(struct fallback_dispatch *dispatch,
-			  struct evdev_device *device)
-{
-	if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
-		return false;
-
-	switch (dispatch->pending_event) {
-	case EVDEV_NONE:
-	case EVDEV_RELATIVE_MOTION:
-		break;
-	case EVDEV_ABSOLUTE_MT_DOWN:
-	case EVDEV_ABSOLUTE_MT_MOTION:
-	case EVDEV_ABSOLUTE_MT_UP:
-	case EVDEV_ABSOLUTE_TOUCH_DOWN:
-	case EVDEV_ABSOLUTE_TOUCH_UP:
-	case EVDEV_ABSOLUTE_MOTION:
-		return true;
-	}
-
-	return false;
-}
-
 static void
 evdev_tag_external_mouse(struct evdev_device *device,
 			 struct udev_device *udev_device)
@@ -1036,7 +1020,7 @@ fallback_process(struct evdev_dispatch *evdev_dispatch,
 		 uint64_t time)
 {
 	struct fallback_dispatch *dispatch = (struct fallback_dispatch*)evdev_dispatch;
-	bool need_frame = false;
+	enum evdev_event_type sent;
 
 	switch (event->type) {
 	case EV_REL:
@@ -1049,11 +1033,20 @@ fallback_process(struct evdev_dispatch *evdev_dispatch,
 		fallback_process_key(dispatch, device, event, time);
 		break;
 	case EV_SYN:
-		need_frame = fallback_need_touch_frame(dispatch,
-						       device);
-		fallback_flush_pending_event(dispatch, device, time);
-		if (need_frame)
+		sent = fallback_flush_pending_event(dispatch, device, time);
+		switch (sent) {
+		case EVDEV_ABSOLUTE_TOUCH_DOWN:
+		case EVDEV_ABSOLUTE_TOUCH_UP:
+		case EVDEV_ABSOLUTE_MT_DOWN:
+		case EVDEV_ABSOLUTE_MT_MOTION:
+		case EVDEV_ABSOLUTE_MT_UP:
 			touch_notify_frame(&device->base, time);
+			break;
+		case EVDEV_ABSOLUTE_MOTION:
+		case EVDEV_RELATIVE_MOTION:
+		case EVDEV_NONE:
+			break;
+		}
 		break;
 	}
 }
