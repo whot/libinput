@@ -63,6 +63,7 @@ enum evdev_device_seat_capability {
 	EVDEV_DEVICE_TABLET = (1 << 3),
 	EVDEV_DEVICE_TABLET_PAD = (1 << 4),
 	EVDEV_DEVICE_GESTURE = (1 << 5),
+	EVDEV_DEVICE_SWITCH = (1 << 6),
 };
 
 enum evdev_device_tags {

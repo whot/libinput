@@ -68,6 +68,7 @@ enum evdev_device_udev_tags {
         EVDEV_UDEV_TAG_TABLET_PAD = (1 << 8),
         EVDEV_UDEV_TAG_POINTINGSTICK = (1 << 9),
         EVDEV_UDEV_TAG_TRACKBALL = (1 << 10),
+        EVDEV_UDEV_TAG_SWITCH = (1 << 11),
 };
 
 struct evdev_udev_tag_match {
@@ -88,6 +89,7 @@ static const struct evdev_udev_tag_match evdev_udev_tag_matches[] = {
 	{"ID_INPUT_ACCELEROMETER",	EVDEV_UDEV_TAG_ACCELEROMETER},
 	{"ID_INPUT_POINTINGSTICK",	EVDEV_UDEV_TAG_POINTINGSTICK},
 	{"ID_INPUT_TRACKBALL",		EVDEV_UDEV_TAG_TRACKBALL},
+	{"ID_INPUT_SWITCH",		EVDEV_UDEV_TAG_SWITCH},
 
 	/* sentinel value */
 	{ 0 },
@@ -2447,7 +2449,7 @@ evdev_configure_device(struct evdev_device *device)
 	}
 
 	log_info(libinput,
-		 "input device '%s', %s is tagged by udev as:%s%s%s%s%s%s%s%s%s%s\n",
+		 "input device '%s', %s is tagged by udev as:%s%s%s%s%s%s%s%s%s%s%s\n",
 		 device->devname, devnode,
 		 udev_tags & EVDEV_UDEV_TAG_KEYBOARD ? " Keyboard" : "",
 		 udev_tags & EVDEV_UDEV_TAG_MOUSE ? " Mouse" : "",
@@ -2458,7 +2460,8 @@ evdev_configure_device(struct evdev_device *device)
 		 udev_tags & EVDEV_UDEV_TAG_JOYSTICK ? " Joystick" : "",
 		 udev_tags & EVDEV_UDEV_TAG_ACCELEROMETER ? " Accelerometer" : "",
 		 udev_tags & EVDEV_UDEV_TAG_TABLET_PAD ? " TabletPad" : "",
-		 udev_tags & EVDEV_UDEV_TAG_TRACKBALL ? " Trackball" : "");
+		 udev_tags & EVDEV_UDEV_TAG_TRACKBALL ? " Trackball" : "",
+		 udev_tags & EVDEV_UDEV_TAG_SWITCH ? " Switch" : "");
 
 	if (udev_tags & EVDEV_UDEV_TAG_ACCELEROMETER) {
 		log_info(libinput,
@@ -2567,6 +2570,14 @@ evdev_configure_device(struct evdev_device *device)
 		device->seat_caps |= EVDEV_DEVICE_TOUCH;
 		log_info(libinput,
 			 "input device '%s', %s is a touch device\n",
+			 device->devname, devnode);
+	}
+
+	if (udev_tags & EVDEV_UDEV_TAG_SWITCH &&
+	    libevdev_has_event_code(evdev, EV_SW, SW_LID)) {
+		device->seat_caps |= EVDEV_DEVICE_SWITCH;
+		log_info(libinput,
+			 "input device '%s', %s is a switch device\n",
 			 device->devname, devnode);
 	}
 

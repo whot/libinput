@@ -15,6 +15,12 @@
 #	libinput:name:<name>:fwversion:<version>
 #
 # Sort by brand, model
+#
+
+
+# TEMPORARY UNTIL SYSTEMD HAS THIS PATCH
+libinput:name:*Switch*
+ ID_INPUT_SWITCH=1
 
 ##########################################
 # ALPS

@@ -1595,7 +1595,7 @@ tp_pair_with_lid_switch(struct evdev_device *touchpad,
 		libinput_device_add_event_listener(&lid_switch->base,
 					&tp->lid_switch.lid_switch_listener,
 					tp_lid_switch_event, tp);
-		tp->lid_switch_listener.lid_switch = lid_switch;
+//		tp->lid_switch_listener.lid_switch = lid_switch;
 	}
 }
 
