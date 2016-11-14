@@ -117,6 +117,12 @@ filter_get_type(struct motion_filter *filter)
 #define DEFAULT_ACCELERATION 2.0		/* unitless factor */
 #define DEFAULT_INCLINE 1.1			/* unitless factor */
 
+/* Touchpad acceleration */
+#define TOUCHPAD_DEFAULT_THRESHOLD v_ms2us(0.4)
+#define TOUCHPAD_MINIMUM_THRESHOLD v_ms2us(0.2)
+#define TOUCHPAD_ACCELERATION 2.0		/* unitless factor */
+#define TOUCHPAD_INCLINE 1.1			/* unitless factor */
+
 /* for the Lenovo x230 custom accel. do not touch */
 #define X230_THRESHOLD v_ms2us(0.4)		/* in units/us */
 #define X230_ACCELERATION 2.0			/* unitless factor */
@@ -470,6 +476,34 @@ accelerator_filter_constant_x230(struct motion_filter *filter,
 	return normalized;
 }
 
+static bool
+touchpad_accelerator_set_speed(struct motion_filter *filter,
+		      double speed_adjustment)
+{
+	struct pointer_accelerator *accel_filter =
+		(struct pointer_accelerator *)filter;
+
+	assert(speed_adjustment >= -1.0 && speed_adjustment <= 1.0);
+
+	/* Note: the numbers below are nothing but trial-and-error magic,
+	   don't read more into them other than "they mostly worked ok" */
+
+	/* delay when accel kicks in */
+	accel_filter->threshold = TOUCHPAD_DEFAULT_THRESHOLD -
+					v_ms2us(0.25) * speed_adjustment;
+	if (accel_filter->threshold < TOUCHPAD_MINIMUM_THRESHOLD)
+		accel_filter->threshold = TOUCHPAD_MINIMUM_THRESHOLD;
+
+	/* adjust max accel factor */
+	accel_filter->accel = TOUCHPAD_ACCELERATION + speed_adjustment * 1.5;
+
+	/* higher speed -> faster to reach max */
+	accel_filter->incline = TOUCHPAD_INCLINE + speed_adjustment * 0.75;
+
+	filter->speed_adjustment = speed_adjustment;
+	return true;
+}
+
 static struct normalized_coords
 touchpad_constant_filter(struct motion_filter *filter,
 			 const struct normalized_coords *unaccelerated,
@@ -662,15 +696,74 @@ pointer_accel_profile_linear(struct motion_filter *filter,
 
 double
 touchpad_accel_profile_linear(struct motion_filter *filter,
-                              void *data,
-                              double speed_in, /* units/us */
-                              uint64_t time)
+			      void *data,
+			      double speed_in, /* 1000-dpi normalized */
+			      uint64_t time)
 {
+	struct pointer_accelerator *accel_filter =
+		(struct pointer_accelerator *)filter;
+	const double max_accel = accel_filter->accel; /* unitless factor */
+	const double threshold = accel_filter->threshold; /* units/us */
+	const double incline = accel_filter->incline;
 	double factor; /* unitless */
 
 	speed_in *= TP_MAGIC_SLOWDOWN;
 
-	factor = pointer_accel_profile_linear(filter, data, speed_in, time);
+	/*
+	   Our acceleration function calculates a factor to accelerate input
+	   deltas with. The function is a double incline with a plateau,
+	   with a rough shape like this:
+
+	  accel
+	 factor
+	   ^
+	   |        /
+	   |  _____/
+	   | /
+	   |/
+	   +-------------> speed in
+
+	   The two inclines are linear functions in the form
+		   y = ax + b
+		   where y is speed_out
+		         x is speed_in
+			 a is the incline of acceleration
+			 b is minimum acceleration factor
+
+	   for speeds up to 0.07 u/ms, we decelerate, down to 30% of input
+	   speed.
+		   hence 1 = a * 0.07 + 0.3
+		       0.3 = a * 0.07  => a := 10
+		   deceleration function is thus:
+			y = 10x + 0.3
+
+	  Note:
+	  * 0.07u/ms as threshold is a result of trial-and-error and
+	    has no other intrinsic meaning.
+	  * 0.3 is chosen simply because it is above the Nyquist frequency
+	    for subpixel motion within a pixel.
+	*/
+	if (v_us2ms(speed_in) < 0.07) {
+		factor = 10 * v_us2ms(speed_in) + 0.3;
+	/* up to the threshold, we keep factor 1, i.e. 1:1 movement */
+	} else if (speed_in < threshold) {
+		factor = 1;
+	} else {
+	/* Acceleration function above the threshold:
+		y = ax' + b
+		where T is threshold
+		      x is speed_in
+		      x' is speed
+	        and
+			y(T) == 1
+		hence 1 = ax' + 1
+			=> x' := (x - T)
+	 */
+		factor = incline * v_us2ms(speed_in - threshold) + 1;
+	}
+
+	/* Cap at the maximum acceleration factor */
+	factor = min(max_accel, factor);
 
 	return factor * TP_MAGIC_SLOWDOWN;
 }
@@ -823,7 +916,7 @@ struct motion_filter_interface accelerator_interface_touchpad = {
 	.filter_constant = touchpad_constant_filter,
 	.restart = accelerator_restart,
 	.destroy = accelerator_destroy,
-	.set_speed = accelerator_set_speed,
+	.set_speed = touchpad_accelerator_set_speed,
 };
 
 struct motion_filter *
