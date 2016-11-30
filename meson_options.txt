@@ -1,0 +1,16 @@
+option('udev-dir',
+       type: 'string',
+       default: '',
+       description: 'udev base directory [default=$libdir/udev]')
+option('libwacom',
+       type: 'boolean',
+       default: true,
+       description: 'Use libwacom for tablet identification (default=enabled)')
+option('event-gui',
+       type: 'boolean',
+       default: true,
+       description: 'Build the GUI event viewer [default=enabled]')
+option('enable-tests',
+       type: 'boolean',
+       default: true,
+       description: 'Build the tests [default=yes]')
