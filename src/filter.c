@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -78,7 +79,11 @@ filter_dispatch(struct motion_filter *filter,
 		const struct device_float_coords *unaccelerated,
 		void *data, uint64_t time)
 {
-	return filter->interface->filter(filter, unaccelerated, data, time);
+	struct normalized_coords normalized;
+	normalized =  filter->interface->filter(filter, unaccelerated, data, time);
+	filter_debug("sync:1\n");
+
+	return normalized;
 }
 
 struct normalized_coords
@@ -303,12 +308,15 @@ calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
 		} else {
 			/* Stop if velocity differs too much from initial */
 			velocity_diff = fabs(initial_velocity - velocity);
+			filter_debug("velocity_diff[%d]:%f\n", offset - 2, velocity_diff);
 			if (velocity_diff > MAX_VELOCITY_DIFF)
 				break;
 
 			result = velocity;
 		}
 	}
+
+	filter_debug("velocity:%f velocity_offset:%d\n", result, offset);
 
 	return result; /* units/us */
 }
@@ -417,6 +425,13 @@ accelerator_filter_generic(struct motion_filter *filter,
 		(struct pointer_accelerator *) filter;
 	double accel_value; /* unitless factor */
 	struct normalized_coords accelerated;
+	uint64_t dt = 0;
+
+	dt = time - tracker_by_offset(accel, 0)->time;
+	filter_debug("time:%" PRIu64 " time_delta:%" PRIu64"\n",
+		     time, dt);
+	filter_debug("unaccelerated-x:%f unaccelerated-y:%f\n",
+		     unaccelerated->x, unaccelerated->y);
 
 	accel_value = calculate_acceleration_factor(accel,
 						    unaccelerated,
@@ -425,6 +440,10 @@ accelerator_filter_generic(struct motion_filter *filter,
 
 	accelerated.x = accel_value * unaccelerated->x;
 	accelerated.y = accel_value * unaccelerated->y;
+
+	filter_debug("accelerated-x:%f accelerated-y:%f factor:%f\n",
+		     accelerated.x, accelerated.y,
+		     accel_value);
 
 	return accelerated;
 }
