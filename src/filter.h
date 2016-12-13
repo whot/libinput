@@ -32,6 +32,18 @@
 
 #include "libinput-private.h"
 
+LIBINPUT_ATTRIBUTE_PRINTF(1, 2)
+static inline void
+filter_debug(const char *format, ...)
+{
+	va_list args;
+
+	printf("filter: ");
+	va_start(args, format);
+	vprintf(format, args);
+	va_end(args);
+}
+
 struct motion_filter;
 
 /**
