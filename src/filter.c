@@ -262,6 +262,28 @@ calculate_velocity_after_timeout(struct pointer_tracker *tracker)
  * different" to our current one. That includes either being too far in the
  * past, moving into a different direction or having too much of a velocity
  * change between events.
+ *
+ * There is a problem with this approach:
+ * Averaging across a fixed number of trackers only scales well if we
+ * assume that events from slow movements come in less often than those
+ * from fast movements. Thus, 16 trackers cover a larger time for slow
+ * movements and provide better averaging.
+ *
+ * This only works towards the slow end of the scale though where events
+ * are filtered by the device's firmware. If events come in at a fixed
+ * sampling rate, faster movements will increase the value but the covered
+ * time remains the same. e.g. on a touchpad with events every 10ms,
+ * our 16 trackers cover 160ms of movement regardless of the motion speed.
+ * When you're moving fast enough, what you did 160ms ago should not
+ * matter. On a mouse with 1000Hz, 16 trackers cover 16ms.
+ *
+ * This shouldn't matter because we also check for speed changes and if
+ * the variation in speed is too high, we bail out and ignore the older,
+ * different values. So regardless what the trackers cover, we can assume
+ * that the speed is roughly the same so averaging it only papers over short
+ * jerky motion.
+ *
+ * But: MAX_VELOCITY_DIFF is complete guesswork.
  */
 static double
 calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
