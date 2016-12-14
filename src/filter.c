@@ -135,9 +135,9 @@ filter_get_type(struct motion_filter *filter)
 #define DEFAULT_INCLINE 1.1			/* unitless factor */
 
 /* Touchpad acceleration */
-#define TOUCHPAD_DEFAULT_THRESHOLD 40		/* mm/s */
-#define TOUCHPAD_MINIMUM_THRESHOLD 20		/* mm/s */
-#define TOUCHPAD_ACCELERATION 2.0		/* unitless factor */
+#define TOUCHPAD_DEFAULT_THRESHOLD 254		/* mm/s */
+#define TOUCHPAD_THRESHOLD_RANGE 184		/* mm/s */
+#define TOUCHPAD_ACCELERATION 9.0		/* unitless factor */
 #define TOUCHPAD_INCLINE 0.011			/* unitless factor */
 
 /* for the Lenovo x230 custom accel. do not touch */
@@ -521,19 +521,13 @@ touchpad_accelerator_set_speed(struct motion_filter *filter,
 	/* Note: the numbers below are nothing but trial-and-error magic,
 	   don't read more into them other than "they mostly worked ok" */
 
-	/* delay when accel kicks in */
+	/* adjust when accel kicks in */
 	accel_filter->threshold = TOUCHPAD_DEFAULT_THRESHOLD -
-					v_ms2us(0.25) * speed_adjustment;
-	if (accel_filter->threshold < TOUCHPAD_MINIMUM_THRESHOLD)
-		accel_filter->threshold = TOUCHPAD_MINIMUM_THRESHOLD;
-
-	/* adjust max accel factor */
-	accel_filter->accel = TOUCHPAD_ACCELERATION + speed_adjustment * 1.5;
-
-	/* higher speed -> faster to reach max */
-	accel_filter->incline = TOUCHPAD_INCLINE + speed_adjustment * 0.75;
-
+		TOUCHPAD_THRESHOLD_RANGE * speed_adjustment;
+	accel_filter->accel = TOUCHPAD_ACCELERATION;
+	accel_filter->incline = TOUCHPAD_INCLINE;
 	filter->speed_adjustment = speed_adjustment;
+
 	return true;
 }
 
@@ -804,6 +798,9 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 
 	/* Cap at the maximum acceleration factor */
 	factor = min(max_accel, factor);
+
+	/* Scale everything depending on the acceleration set */
+	factor *= 1 + 0.5 * filter->speed_adjustment;
 
 	return factor * TP_MAGIC_SLOWDOWN;
 }
