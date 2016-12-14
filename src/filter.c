@@ -154,6 +154,7 @@ struct pointer_accelerator {
 	double incline;		/* incline of the function */
 
 	double dpi_factor;
+	int dpi;
 };
 
 struct pointer_accelerator_flat {
@@ -161,6 +162,7 @@ struct pointer_accelerator_flat {
 
 	double factor;
 	double dpi_factor;
+	int dpi;
 };
 
 struct tablet_accelerator_flat {
@@ -775,6 +777,7 @@ create_default_filter(int dpi)
 	filter->incline = DEFAULT_INCLINE;
 
 	filter->dpi_factor = dpi/(double)DEFAULT_MOUSE_DPI;
+	filter->dpi = dpi;
 
 	return filter;
 }
@@ -877,6 +880,7 @@ create_pointer_accelerator_filter_lenovo_x230(int dpi)
 	filter->incline = X230_INCLINE; /* incline of the acceleration function */
 
 	filter->dpi_factor = 1; /* unused for this accel method */
+	filter->dpi = dpi;
 
 	return &filter->base;
 }
@@ -904,6 +908,7 @@ create_pointer_accelerator_filter_trackpoint(int dpi)
 	filter->threshold = DEFAULT_THRESHOLD;
 	filter->accel = DEFAULT_ACCELERATION;
 	filter->incline = DEFAULT_INCLINE;
+	filter->dpi = dpi;
 
 	return &filter->base;
 }
@@ -980,6 +985,7 @@ create_pointer_accelerator_filter_flat(int dpi)
 
 	filter->base.interface = &accelerator_interface_flat;
 	filter->dpi_factor = dpi/(double)DEFAULT_MOUSE_DPI;
+	filter->dpi = dpi;
 
 	return &filter->base;
 }
