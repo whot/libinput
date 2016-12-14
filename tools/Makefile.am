@@ -42,4 +42,4 @@ event_gui_CFLAGS = $(CAIRO_CFLAGS) $(GTK_CFLAGS) $(LIBUDEV_CFLAGS) $(AM_CFLAGS)
 event_gui_LDFLAGS = -no-install
 endif
 
-EXTRA_DIST = make-ptraccel-graphs.sh
+EXTRA_DIST = make-ptraccel-graphs.sh process-filter-debug.py
