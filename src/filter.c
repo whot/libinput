@@ -40,7 +40,7 @@
  * technically correct but subjectively wrong, we expect a touchpad to be a
  * lot slower than a mouse. Apply a magic factor to slow down all movements
  */
-#define TP_MAGIC_SLOWDOWN 0.4 /* unitless factor */
+#define TP_MAGIC_SLOWDOWN 0.37 /* unitless factor */
 
 /* Convert speed/velocity from units/us to units/ms */
 static inline double
