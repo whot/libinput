@@ -676,6 +676,12 @@ device_float_average(struct device_float_coords a, struct device_float_coords b)
 	return average;
 }
 
+static inline bool
+device_float_is_zero(struct device_float_coords coords)
+{
+	return coords.x == 0.0 && coords.y == 0.0;
+}
+
 static inline double
 normalized_length(struct normalized_coords norm)
 {

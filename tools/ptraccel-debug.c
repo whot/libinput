@@ -38,7 +38,8 @@
 static void
 print_ptraccel_deltas(struct motion_filter *filter, double step)
 {
-	struct normalized_coords motion;
+	struct device_float_coords motion;
+	struct normalized_coords accel;
 	uint64_t time = 0;
 	double i;
 
@@ -55,9 +56,9 @@ print_ptraccel_deltas(struct motion_filter *filter, double step)
 		motion.y = 0;
 		time += us(12500); /* pretend 80Hz data */
 
-		motion = filter_dispatch(filter, &motion, NULL, time);
+		accel = filter_dispatch(filter, &motion, NULL, time);
 
-		printf("%.2f	%.3f\n", i, motion.x);
+		printf("%.2f	%.3f\n", i, accel.x);
 	}
 }
 
@@ -67,7 +68,8 @@ print_ptraccel_movement(struct motion_filter *filter,
 			double max_dx,
 			double step)
 {
-	struct normalized_coords motion;
+	struct device_float_coords motion;
+	struct normalized_coords accel;
 	uint64_t time = 0;
 	double dx;
 	int i;
@@ -98,9 +100,9 @@ print_ptraccel_movement(struct motion_filter *filter,
 		motion.y = 0;
 		time += us(12500); /* pretend 80Hz data */
 
-		motion = filter_dispatch(filter, &motion, NULL, time);
+		accel = filter_dispatch(filter, &motion, NULL, time);
 
-		printf("%d	%.3f	%.3f\n", i, motion.x, dx);
+		printf("%d	%.3f	%.3f\n", i, accel.x, dx);
 
 		if (dx < max_dx)
 			dx += step;
@@ -112,7 +114,8 @@ print_ptraccel_sequence(struct motion_filter *filter,
 			int nevents,
 			double *deltas)
 {
-	struct normalized_coords motion;
+	struct device_float_coords motion;
+	struct normalized_coords accel;
 	uint64_t time = 0;
 	double *dx;
 	int i;
@@ -132,9 +135,9 @@ print_ptraccel_sequence(struct motion_filter *filter,
 		motion.y = 0;
 		time += us(12500); /* pretend 80Hz data */
 
-		motion = filter_dispatch(filter, &motion, NULL, time);
+		accel = filter_dispatch(filter, &motion, NULL, time);
 
-		printf("%d	%.3f	%.3f\n", i, motion.x, *dx);
+		printf("%d	%.3f	%.3f\n", i, accel.x, *dx);
 	}
 }
 

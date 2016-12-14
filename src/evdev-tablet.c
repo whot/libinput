@@ -392,13 +392,14 @@ tool_process_delta(struct libinput_tablet_tool *tool,
 		   const struct device_coords *delta,
 		   uint64_t time)
 {
-	struct normalized_coords accel;
+	const struct normalized_coords zero = { 0.0, 0.0 };
+	struct device_float_coords accel;
 
 	accel.x = 1.0 * delta->x;
 	accel.y = 1.0 * delta->y;
 
-	if (normalized_is_zero(accel))
-		return accel;
+	if (device_float_is_zero(accel))
+		return zero;
 
 	return filter_dispatch(device->pointer.filter,
 			       &accel,

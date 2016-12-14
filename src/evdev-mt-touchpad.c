@@ -51,11 +51,17 @@ tp_filter_motion(struct tp_dispatch *tp,
 		 const struct normalized_coords *unaccelerated,
 		 uint64_t time)
 {
+	struct device_float_coords raw;
+
 	if (normalized_is_zero(*unaccelerated))
 		return *unaccelerated;
 
+	/* Temporary solution only: convert back to raw coordinates, but
+	 * make sure we're on the same resolution for both axes */
+	raw = tp_unnormalize_for_xaxis(tp, *unaccelerated);
+
 	return filter_dispatch(tp->device->pointer.filter,
-			       unaccelerated, tp, time);
+			       &raw, tp, time);
 }
 
 struct normalized_coords
@@ -63,11 +69,17 @@ tp_filter_motion_unaccelerated(struct tp_dispatch *tp,
 			       const struct normalized_coords *unaccelerated,
 			       uint64_t time)
 {
+	struct device_float_coords raw;
+
 	if (normalized_is_zero(*unaccelerated))
 		return *unaccelerated;
 
+	/* Temporary solution only: convert back to raw coordinates, but
+	 * make sure we're on the same resolution for both axes */
+	raw = tp_unnormalize_for_xaxis(tp, *unaccelerated);
+
 	return filter_dispatch_constant(tp->device->pointer.filter,
-					unaccelerated, tp, time);
+					&raw, tp, time);
 }
 
 static inline void

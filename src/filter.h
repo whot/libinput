@@ -41,11 +41,24 @@ struct motion_filter;
  *
  * This is a superset of filter_dispatch_constant()
  *
+ * @param filter The device's motion filter
+ * @param unaccelerated The unaccelerated delta in the device's dpi
+ * resolution as specified during filter creation. If a device has uneven
+ * resolution for x and y, one axis needs to be scaled to match the
+ * originally provided resolution.
+ * @param data Custom data
+ * @param time The time of the delta
+ *
+ * @return A set of normalized coordinates that can be used for pixel
+ * movement. The normalized coordiantes are scaled to the default dpi range,
+ * i.e. regardless of the resolution of the underlying device, the returned
+ * values always reflect a 1000dpi mouse.
+ *
  * @see filter_dispatch_constant
  */
 struct normalized_coords
 filter_dispatch(struct motion_filter *filter,
-		const struct normalized_coords *unaccelerated,
+		const struct device_float_coords *unaccelerated,
 		void *data, uint64_t time);
 
 /**
@@ -54,11 +67,19 @@ filter_dispatch(struct motion_filter *filter,
  * Takes a set of unaccelerated deltas and applies any constant filters to
  * it but does not accelerate the delta in the conventional sense.
  *
+ * @param filter The device's motion filter
+ * @param unaccelerated The unaccelerated delta in the device's dpi
+ * resolution as specified during filter creation. If a device has uneven
+ * resolution for x and y, one axis needs to be scaled to match the
+ * originally provided resolution.
+ * @param data Custom data
+ * @param time The time of the delta
+ *
  * @see filter_dispatch
  */
 struct normalized_coords
 filter_dispatch_constant(struct motion_filter *filter,
-			 const struct normalized_coords *unaccelerated,
+			 const struct device_float_coords *unaccelerated,
 			 void *data, uint64_t time);
 
 void

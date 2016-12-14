@@ -56,9 +56,20 @@ v_ms2us(double units_per_ms)
 	return units_per_ms/1000.0;
 }
 
+static inline struct normalized_coords
+normalize_for_dpi(const struct device_float_coords *coords, int dpi)
+{
+	struct normalized_coords norm;
+
+	norm.x = coords->x * DEFAULT_MOUSE_DPI/dpi;
+	norm.y = coords->y * DEFAULT_MOUSE_DPI/dpi;
+
+	return norm;
+}
+
 struct normalized_coords
 filter_dispatch(struct motion_filter *filter,
-		const struct normalized_coords *unaccelerated,
+		const struct device_float_coords *unaccelerated,
 		void *data, uint64_t time)
 {
 	return filter->interface->filter(filter, unaccelerated, data, time);
@@ -66,7 +77,7 @@ filter_dispatch(struct motion_filter *filter,
 
 struct normalized_coords
 filter_dispatch_constant(struct motion_filter *filter,
-			 const struct normalized_coords *unaccelerated,
+			 const struct device_float_coords *unaccelerated,
 			 void *data, uint64_t time)
 {
 	return filter->interface->filter_constant(filter, unaccelerated, data, time);
@@ -180,7 +191,7 @@ struct tablet_accelerator_flat {
 
 static void
 feed_trackers(struct pointer_accelerator *accel,
-	      const struct normalized_coords *delta,
+	      const struct device_float_coords *delta,
 	      uint64_t time)
 {
 	int i, current;
@@ -197,7 +208,7 @@ feed_trackers(struct pointer_accelerator *accel,
 	trackers[current].delta.x = 0.0;
 	trackers[current].delta.y = 0.0;
 	trackers[current].time = time;
-	trackers[current].dir = normalized_get_direction(*delta);
+	trackers[current].dir = device_float_get_direction(*delta);
 }
 
 static struct pointer_tracker *
@@ -296,6 +307,16 @@ calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
 	return result; /* units/us */
 }
 
+/**
+ * Apply the acceleration profile to the given velocity.
+ *
+ * @param accel The acceleration filter
+ * @param data Caller-specific data
+ * @param velocity Velocity in device-units per µs
+ * @param time Current time in µs
+ *
+ * @return A unitless acceleration factor, to be applied to the delta
+ */
 static double
 acceleration_profile(struct pointer_accelerator *accel,
 		     void *data, double velocity, uint64_t time)
@@ -303,6 +324,18 @@ acceleration_profile(struct pointer_accelerator *accel,
 	return accel->profile(&accel->base, data, velocity, time);
 }
 
+/**
+ * Calculate the acceleration factor for our current velocity, averaging
+ * between our current and the most recent velocity to smoothen out changes.
+ *
+ * @param accel The acceleration filter
+ * @param data Caller-specific data
+ * @param velocity Velocity in device-units per µs
+ * @param last_velocity Previous velocity in device-units per µs
+ * @param time Current time in µs
+ *
+ * @return A unitless acceleration factor, to be applied to the delta
+ */
 static double
 calculate_acceleration(struct pointer_accelerator *accel,
 		       void *data,
@@ -326,13 +359,23 @@ calculate_acceleration(struct pointer_accelerator *accel,
 	return factor; /* unitless factor */
 }
 
+/**
+ * Calculate the acceleration factor for the given delta with the timestamp.
+ *
+ * @param accel The acceleration filter
+ * @param unaccelerated The raw delta in the device's dpi
+ * @param data Caller-specific data
+ * @param time Current time in µs
+ *
+ * @return A unitless acceleration factor, to be applied to the delta
+ */
 static inline double
 calculate_acceleration_factor(struct pointer_accelerator *accel,
-			      const struct normalized_coords *unaccelerated,
+			      const struct device_float_coords *unaccelerated,
 			      void *data,
 			      uint64_t time)
 {
-	double velocity; /* units/us */
+	double velocity; /* units/us in device-native dpi*/
 	double accel_factor;
 
 	feed_trackers(accel, unaccelerated, time);
@@ -347,9 +390,21 @@ calculate_acceleration_factor(struct pointer_accelerator *accel,
 	return accel_factor;
 }
 
+/**
+ * Generic filter that calculates the acceleration factor and applies it to
+ * the coordinates.
+ *
+ * @param filter The acceleration filter
+ * @param unaccelerated The raw delta in the device's dpi
+ * @param data Caller-specific data
+ * @param time Current time in µs
+ *
+ * @return An accelerated tuple of coordinates representing normalized
+ * motion
+ */
 static struct normalized_coords
 accelerator_filter(struct motion_filter *filter,
-		   const struct normalized_coords *unaccelerated,
+		   const struct device_float_coords *unaccelerated,
 		   void *data, uint64_t time)
 {
 	struct pointer_accelerator *accel =
@@ -368,85 +423,120 @@ accelerator_filter(struct motion_filter *filter,
 	return accelerated;
 }
 
+/**
+ * Generic filter that does nothing beyond converting from the device's
+ * native dpi into normalized coordinates.
+ *
+ * @param filter The acceleration filter
+ * @param unaccelerated The raw delta in the device's dpi
+ * @param data Caller-specific data
+ * @param time Current time in µs
+ *
+ * @return An accelerated tuple of coordinates representing normalized
+ * motion
+ */
 static struct normalized_coords
 accelerator_filter_noop(struct motion_filter *filter,
-			const struct normalized_coords *unaccelerated,
+			const struct device_float_coords *unaccelerated,
 			void *data, uint64_t time)
 {
-	return *unaccelerated;
+	struct pointer_accelerator *accel =
+		(struct pointer_accelerator *) filter;
+
+	return normalize_for_dpi(unaccelerated, accel->dpi);
 }
 
+/**
+ * Low-dpi filter that handles events from devices with less than the
+ * default dpi.
+ *
+ * @param filter The acceleration filter
+ * @param unaccelerated The raw delta in the device's dpi
+ * @param data Caller-specific data
+ * @param time Current time in µs
+ *
+ * @return An accelerated tuple of coordinates representing normalized
+ * motion
+ */
 static struct normalized_coords
 accelerator_filter_low_dpi(struct motion_filter *filter,
-			   const struct normalized_coords *unaccelerated,
+			   const struct device_float_coords *unaccelerated,
 			   void *data, uint64_t time)
 {
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
 	double accel_value; /* unitless factor */
 	struct normalized_coords accelerated;
-	struct normalized_coords unnormalized;
-	double dpi_factor = accel->dpi/(double)DEFAULT_MOUSE_DPI;
 
-	/* For low-dpi mice, use device units, everything else uses
-	   1000dpi normalized */
-	dpi_factor = min(1.0, dpi_factor);
-	unnormalized.x = unaccelerated->x * dpi_factor;
-	unnormalized.y = unaccelerated->y * dpi_factor;
-
+	/* Input is already in device-native DPI, nothing else needed */
 	accel_value = calculate_acceleration_factor(accel,
-						    &unnormalized,
+						    unaccelerated,
 						    data,
 						    time);
-
-	accelerated.x = accel_value * unnormalized.x;
-	accelerated.y = accel_value * unnormalized.y;
+	accelerated.x = accel_value * unaccelerated->x;
+	accelerated.y = accel_value * unaccelerated->y;
 
 	return accelerated;
 }
 
+/**
+ * Custom filter that applies the trackpoint's constant acceleration, if any.
+ *
+ * @param filter The acceleration filter
+ * @param unaccelerated The raw delta in the device's dpi
+ * @param data Caller-specific data
+ * @param time Current time in µs
+ *
+ * @return An accelerated tuple of coordinates representing normalized
+ * motion
+ */
 static struct normalized_coords
 accelerator_filter_trackpoint(struct motion_filter *filter,
-			      const struct normalized_coords *unaccelerated,
+			      const struct device_float_coords *unaccelerated,
 			      void *data, uint64_t time)
 {
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
 	double accel_value; /* unitless factor */
 	struct normalized_coords accelerated;
-	struct normalized_coords unnormalized;
-	double dpi_factor = accel->dpi/(double)DEFAULT_MOUSE_DPI;
 
-	/* trackpoints with a dpi factor have a const accel set, remove that
-	 * and restore device units. The accel profile takes const accel
-	 * into account */
-	dpi_factor = min(1.0, dpi_factor);
-	unnormalized.x = unaccelerated->x * dpi_factor;
-	unnormalized.y = unaccelerated->y * dpi_factor;
-
+	/* Nothing special to do here, data is already in device dpi */
 	accel_value = calculate_acceleration_factor(accel,
-						    &unnormalized,
+						    unaccelerated,
 						    data,
 						    time);
 
-	accelerated.x = accel_value * unnormalized.x;
-	accelerated.y = accel_value * unnormalized.y;
+	accelerated.x = accel_value * unaccelerated->x;
+	accelerated.y = accel_value * unaccelerated->y;
 
 	return accelerated;
 }
 
 static struct normalized_coords
 accelerator_filter_x230(struct motion_filter *filter,
-			const struct normalized_coords *unaccelerated,
+			const struct device_float_coords *raw,
 			void *data, uint64_t time)
 {
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
 	double accel_factor; /* unitless factor */
 	struct normalized_coords accelerated;
+	struct device_float_coords delta_normalized;
+	struct normalized_coords unaccelerated;
 	double velocity; /* units/us */
 
-	feed_trackers(accel, unaccelerated, time);
+	/* This filter is a "do not touch me" filter. So the hack here is
+	 * just to replicate the old behavior before filters switched to
+	 * device-native dpi:
+	 * 1) convert from device-native to 1000dpi normalized
+	 * 2) run all calculation on 1000dpi-normalized data
+	 * 3) apply accel factor no normalized data
+	 */
+	unaccelerated = normalize_for_dpi(raw, accel->dpi);
+	delta_normalized.x = unaccelerated.x;
+	delta_normalized.y = unaccelerated.y;
+
+	feed_trackers(accel, &delta_normalized, time);
 	velocity = calculate_velocity(accel, time);
 	accel_factor = calculate_acceleration(accel,
 					      data,
@@ -455,23 +545,26 @@ accelerator_filter_x230(struct motion_filter *filter,
 					      time);
 	accel->last_velocity = velocity;
 
-	accelerated.x = accel_factor * unaccelerated->x;
-	accelerated.y = accel_factor * unaccelerated->y;
+	accelerated.x = accel_factor * delta_normalized.x;
+	accelerated.y = accel_factor * delta_normalized.y;
 
 	return accelerated;
 }
 
 static struct normalized_coords
 accelerator_filter_constant_x230(struct motion_filter *filter,
-				 const struct normalized_coords *unaccelerated,
+				 const struct device_float_coords *unaccelerated,
 				 void *data, uint64_t time)
 {
+	struct pointer_accelerator *accel =
+		(struct pointer_accelerator *) filter;
 	struct normalized_coords normalized;
 	const double factor =
 		X230_MAGIC_SLOWDOWN/X230_TP_MAGIC_LOW_RES_FACTOR;
 
-	normalized.x = factor * unaccelerated->x;
-	normalized.y = factor * unaccelerated->y;
+	normalized = normalize_for_dpi(unaccelerated, accel->dpi);
+	normalized.x = factor * normalized.x;
+	normalized.y = factor * normalized.y;
 
 	return normalized;
 }
@@ -506,13 +599,16 @@ touchpad_accelerator_set_speed(struct motion_filter *filter,
 
 static struct normalized_coords
 touchpad_constant_filter(struct motion_filter *filter,
-			 const struct normalized_coords *unaccelerated,
+			 const struct device_float_coords *unaccelerated,
 			 void *data, uint64_t time)
 {
+	struct pointer_accelerator *accel =
+		(struct pointer_accelerator *)filter;
 	struct normalized_coords normalized;
 
-	normalized.x = TP_MAGIC_SLOWDOWN * unaccelerated->x;
-	normalized.y = TP_MAGIC_SLOWDOWN * unaccelerated->y;
+	normalized = normalize_for_dpi(unaccelerated, accel->dpi);
+	normalized.x = TP_MAGIC_SLOWDOWN * normalized.x;
+	normalized.y = TP_MAGIC_SLOWDOWN * normalized.y;
 
 	return normalized;
 }
@@ -624,7 +720,7 @@ pointer_accel_profile_linear_low_dpi(struct motion_filter *filter,
 double
 pointer_accel_profile_linear(struct motion_filter *filter,
 			     void *data,
-			     double speed_in, /* 1000-dpi normalized */
+			     double speed_in, /* in device units (units/µs) */
 			     uint64_t time)
 {
 	struct pointer_accelerator *accel_filter =
@@ -633,6 +729,9 @@ pointer_accel_profile_linear(struct motion_filter *filter,
 	const double threshold = accel_filter->threshold; /* units/us */
 	const double incline = accel_filter->incline;
 	double factor; /* unitless */
+
+	/* Normalize to 1000dpi, because the rest below relies on that */
+	speed_in = speed_in * DEFAULT_MOUSE_DPI/accel_filter->dpi;
 
 	/*
 	   Our acceleration function calculates a factor to accelerate input
@@ -697,7 +796,7 @@ pointer_accel_profile_linear(struct motion_filter *filter,
 double
 touchpad_accel_profile_linear(struct motion_filter *filter,
 			      void *data,
-			      double speed_in, /* 1000-dpi normalized */
+			      double speed_in, /* in device units/µs */
 			      uint64_t time)
 {
 	struct pointer_accelerator *accel_filter =
@@ -706,6 +805,9 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	const double threshold = accel_filter->threshold; /* units/us */
 	const double incline = accel_filter->incline;
 	double factor; /* unitless */
+
+	/* Normalize to 1000dpi, because the rest below relies on that */
+	speed_in = speed_in * DEFAULT_MOUSE_DPI/accel_filter->dpi;
 
 	speed_in *= TP_MAGIC_SLOWDOWN;
 
@@ -771,7 +873,7 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 double
 touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
 				      void *data,
-				      double speed_in,
+				      double speed_in, /* 1000dpi-units/µs */
 				      uint64_t time)
 {
 	/* Those touchpads presents an actual lower resolution that what is
@@ -1002,24 +1104,19 @@ create_pointer_accelerator_filter_trackpoint(int dpi)
 
 static struct normalized_coords
 accelerator_filter_flat(struct motion_filter *filter,
-			const struct normalized_coords *unaccelerated,
+			const struct device_float_coords *unaccelerated,
 			void *data, uint64_t time)
 {
 	struct pointer_accelerator_flat *accel_filter =
 		(struct pointer_accelerator_flat *)filter;
 	double factor; /* unitless factor */
 	struct normalized_coords accelerated;
-	struct normalized_coords unnormalized;
-	double dpi_factor = accel_filter->dpi/(double)DEFAULT_MOUSE_DPI;
 
 	/* You want flat acceleration, you get flat acceleration for the
 	 * device */
-	unnormalized.x = unaccelerated->x * dpi_factor;
-	unnormalized.y = unaccelerated->y * dpi_factor;
 	factor = accel_filter->factor;
-
-	accelerated.x = factor * unnormalized.x;
-	accelerated.y = factor * unnormalized.y;
+	accelerated.x = factor * unaccelerated->x;
+	accelerated.y = factor * unaccelerated->y;
 
 	return accelerated;
 }
@@ -1079,19 +1176,17 @@ create_pointer_accelerator_filter_flat(int dpi)
 
 static inline struct normalized_coords
 tablet_accelerator_filter_flat_mouse(struct tablet_accelerator_flat *filter,
-				     const struct normalized_coords *units)
+				     const struct device_float_coords *units)
 {
 	struct normalized_coords accelerated;
 
 	/*
-	   The input for and output of accel methods is usually a delta in
-	   1000dpi equivalents. Tablets are high res (Intuos 4 is 5080 dpi)
-	   and unmodified deltas are way too high. Slow it down to the
-	   equivalent of a 1000dpi mouse. The ratio of that is:
+	   Tablets are high res (Intuos 4 is 5080 dpi) and unmodified deltas
+	   are way too high. Slow it down to the equivalent of a 1000dpi
+	   mouse. The ratio of that is:
 		ratio = 1000/(resolution_per_mm * 25.4)
 
 	   i.e. on the Intuos4 it's a ratio of ~1/5.
-
 	 */
 
 	accelerated.x = units->x * filter->xres_scale;
@@ -1105,12 +1200,12 @@ tablet_accelerator_filter_flat_mouse(struct tablet_accelerator_flat *filter,
 
 static struct normalized_coords
 tablet_accelerator_filter_flat_pen(struct tablet_accelerator_flat *filter,
-				   const struct normalized_coords *units)
+				   const struct device_float_coords *units)
 {
 	struct normalized_coords accelerated;
 
-	/* Tablet input is in device units, output is supposed to be in logical
-	 * pixels roughly equivalent to a mouse/touchpad.
+	/* Tablet input is in device units, output is supposed to be in
+	 * logical pixels roughly equivalent to a mouse/touchpad.
 	 *
 	 * This is a magical constant found by trial and error. On a 96dpi
 	 * screen 0.4mm of movement correspond to 1px logical pixel which
@@ -1130,7 +1225,7 @@ tablet_accelerator_filter_flat_pen(struct tablet_accelerator_flat *filter,
 
 static struct normalized_coords
 tablet_accelerator_filter_flat(struct motion_filter *filter,
-			       const struct normalized_coords *units,
+			       const struct device_float_coords *units,
 			       void *data, uint64_t time)
 {
 	struct tablet_accelerator_flat *accel_filter =

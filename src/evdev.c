@@ -419,7 +419,7 @@ fallback_flush_relative_motion(struct fallback_dispatch *dispatch,
 	if (device->pointer.filter) {
 		/* Apply pointer acceleration. */
 		accel = filter_dispatch(device->pointer.filter,
-					&unaccel,
+					&raw,
 					device,
 					time);
 	} else {
