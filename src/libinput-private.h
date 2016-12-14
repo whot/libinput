@@ -701,28 +701,28 @@ enum directions {
 };
 
 static inline uint32_t
-normalized_get_direction(struct normalized_coords norm)
+xy_get_direction(double x, double y)
 {
 	uint32_t dir = UNDEFINED_DIRECTION;
 	int d1, d2;
 	double r;
 
-	if (fabs(norm.x) < 2.0 && fabs(norm.y) < 2.0) {
-		if (norm.x > 0.0 && norm.y > 0.0)
+	if (fabs(x) < 2.0 && fabs(y) < 2.0) {
+		if (x > 0.0 && y > 0.0)
 			dir = S | SE | E;
-		else if (norm.x > 0.0 && norm.y < 0.0)
+		else if (x > 0.0 && y < 0.0)
 			dir = N | NE | E;
-		else if (norm.x < 0.0 && norm.y > 0.0)
+		else if (x < 0.0 && y > 0.0)
 			dir = S | SW | W;
-		else if (norm.x < 0.0 && norm.y < 0.0)
+		else if (x < 0.0 && y < 0.0)
 			dir = N | NW | W;
-		else if (norm.x > 0.0)
+		else if (x > 0.0)
 			dir = NE | E | SE;
-		else if (norm.x < 0.0)
+		else if (x < 0.0)
 			dir = NW | W | SW;
-		else if (norm.y > 0.0)
+		else if (y > 0.0)
 			dir = SE | S | SW;
-		else if (norm.y < 0.0)
+		else if (y < 0.0)
 			dir = NE | N | NW;
 	} else {
 		/* Calculate r within the interval  [0 to 8)
@@ -731,7 +731,7 @@ normalized_get_direction(struct normalized_coords norm)
 		 * d_f = r / 2π  ([0 .. 1))
 		 * d_8 = 8 * d_f
 		 */
-		r = atan2(norm.y, norm.x);
+		r = atan2(y, x);
 		r = fmod(r + 2.5*M_PI, 2*M_PI);
 		r *= 4*M_1_PI;
 
@@ -745,4 +745,19 @@ normalized_get_direction(struct normalized_coords norm)
 	return dir;
 }
 
+static inline uint32_t
+normalized_get_direction(struct normalized_coords norm)
+{
+	return xy_get_direction(norm.x, norm.y);
+}
+
+/**
+ * Get the direction for the given set of coordinates.
+ * assumption: coordinates are normalized to one axis resolution.
+ */
+static inline uint32_t
+device_float_get_direction(struct device_float_coords coords)
+{
+	return xy_get_direction(coords.x, coords.y);
+}
 #endif /* LIBINPUT_PRIVATE_H */
