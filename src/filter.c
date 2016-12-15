@@ -153,7 +153,6 @@ struct pointer_accelerator {
 	double accel;		/* unitless factor */
 	double incline;		/* incline of the function */
 
-	double dpi_factor;
 	int dpi;
 };
 
@@ -161,7 +160,6 @@ struct pointer_accelerator_flat {
 	struct motion_filter base;
 
 	double factor;
-	double dpi_factor;
 	int dpi;
 };
 
@@ -382,7 +380,7 @@ accelerator_filter_low_dpi(struct motion_filter *filter,
 	double accel_value; /* unitless factor */
 	struct normalized_coords accelerated;
 	struct normalized_coords unnormalized;
-	double dpi_factor = accel->dpi_factor;
+	double dpi_factor = accel->dpi/(double)DEFAULT_MOUSE_DPI;
 
 	/* For low-dpi mice, use device units, everything else uses
 	   1000dpi normalized */
@@ -411,7 +409,7 @@ accelerator_filter_trackpoint(struct motion_filter *filter,
 	double accel_value; /* unitless factor */
 	struct normalized_coords accelerated;
 	struct normalized_coords unnormalized;
-	double dpi_factor = accel->dpi_factor;
+	double dpi_factor = accel->dpi/(double)DEFAULT_MOUSE_DPI;
 
 	/* trackpoints with a dpi factor have a const accel set, remove that
 	 * and restore device units. The accel profile takes const accel
@@ -568,8 +566,8 @@ pointer_accel_profile_linear_low_dpi(struct motion_filter *filter,
 	double max_accel = accel_filter->accel; /* unitless factor */
 	double threshold = accel_filter->threshold; /* units/us */
 	const double incline = accel_filter->incline;
+	double dpi_factor = accel_filter->dpi/(double)DEFAULT_MOUSE_DPI;
 	double factor; /* unitless */
-	double dpi_factor = accel_filter->dpi_factor;
 
 	/* dpi_factor is always < 1.0, increase max_accel, reduce
 	   the threshold so it kicks in earlier */
@@ -727,8 +725,8 @@ trackpoint_accel_profile(struct motion_filter *filter,
 	double max_accel = accel_filter->accel; /* unitless factor */
 	double threshold = accel_filter->threshold; /* units/ms */
 	const double incline = accel_filter->incline;
+	double dpi_factor = accel_filter->dpi/(double)DEFAULT_MOUSE_DPI;
 	double factor;
-	double dpi_factor = accel_filter->dpi_factor;
 
 	/* dpi_factor is always < 1.0, increase max_accel, reduce
 	   the threshold so it kicks in earlier */
@@ -775,8 +773,6 @@ create_default_filter(int dpi)
 	filter->threshold = DEFAULT_THRESHOLD;
 	filter->accel = DEFAULT_ACCELERATION;
 	filter->incline = DEFAULT_INCLINE;
-
-	filter->dpi_factor = dpi/(double)DEFAULT_MOUSE_DPI;
 	filter->dpi = dpi;
 
 	return filter;
@@ -878,8 +874,6 @@ create_pointer_accelerator_filter_lenovo_x230(int dpi)
 	filter->threshold = X230_THRESHOLD;
 	filter->accel = X230_ACCELERATION; /* unitless factor */
 	filter->incline = X230_INCLINE; /* incline of the acceleration function */
-
-	filter->dpi_factor = 1; /* unused for this accel method */
 	filter->dpi = dpi;
 
 	return &filter->base;
@@ -923,11 +917,12 @@ accelerator_filter_flat(struct motion_filter *filter,
 	double factor; /* unitless factor */
 	struct normalized_coords accelerated;
 	struct normalized_coords unnormalized;
+	double dpi_factor = accel_filter->dpi/(double)DEFAULT_MOUSE_DPI;
 
 	/* You want flat acceleration, you get flat acceleration for the
 	 * device */
-	unnormalized.x = unaccelerated->x * accel_filter->dpi_factor;
-	unnormalized.y = unaccelerated->y * accel_filter->dpi_factor;
+	unnormalized.x = unaccelerated->x * dpi_factor;
+	unnormalized.y = unaccelerated->y * dpi_factor;
 	factor = accel_filter->factor;
 
 	accelerated.x = factor * unnormalized.x;
@@ -984,7 +979,6 @@ create_pointer_accelerator_filter_flat(int dpi)
 		return NULL;
 
 	filter->base.interface = &accelerator_interface_flat;
-	filter->dpi_factor = dpi/(double)DEFAULT_MOUSE_DPI;
 	filter->dpi = dpi;
 
 	return &filter->base;
