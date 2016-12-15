@@ -49,6 +49,12 @@ v_us2ms(double units_per_us)
 	return units_per_us * 1000.0;
 }
 
+static inline double
+v_us2s(double units_per_us)
+{
+	return units_per_us * 1000000.0;
+}
+
 /* Convert speed/velocity from units/ms to units/us */
 static inline double
 v_ms2us(double units_per_ms)
@@ -129,10 +135,10 @@ filter_get_type(struct motion_filter *filter)
 #define DEFAULT_INCLINE 1.1			/* unitless factor */
 
 /* Touchpad acceleration */
-#define TOUCHPAD_DEFAULT_THRESHOLD v_ms2us(0.4)
-#define TOUCHPAD_MINIMUM_THRESHOLD v_ms2us(0.2)
+#define TOUCHPAD_DEFAULT_THRESHOLD 15.75	/* mm/s */
+#define TOUCHPAD_MINIMUM_THRESHOLD 7.87		/* mm/s */
 #define TOUCHPAD_ACCELERATION 2.0		/* unitless factor */
-#define TOUCHPAD_INCLINE 1.1			/* unitless factor */
+#define TOUCHPAD_INCLINE 0.02794		/* unitless factor */
 
 /* for the Lenovo x230 custom accel. do not touch */
 #define X230_THRESHOLD v_ms2us(0.4)		/* in units/us */
@@ -740,8 +746,8 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	const double incline = accel_filter->incline;
 	double factor; /* unitless */
 
-	/* Normalize to 1000dpi, because the rest below relies on that */
-	speed_in = speed_in * DEFAULT_MOUSE_DPI/accel_filter->dpi;
+	/* Convert to mm/s because that's something one can understand */
+	speed_in = v_us2s(speed_in) * 25.4/accel_filter->dpi;
 
 	speed_in *= TP_MAGIC_SLOWDOWN;
 
@@ -766,21 +772,22 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 			 a is the incline of acceleration
 			 b is minimum acceleration factor
 
-	   for speeds up to 0.07 u/ms, we decelerate, down to 30% of input
-	   speed.
-		   hence 1 = a * 0.07 + 0.3
-		       0.3 = a * 0.07  => a := 10
+	   for speeds up to the lower threshold, we decelerate, down to 30%
+	   of input speed.
+		   hence 1 = a * 2.756 + 0.3
+		       0.7 = a * 2.756  => a := 0.254
 		   deceleration function is thus:
-			y = 10x + 0.3
+			y = 0.254x + 0.3
 
 	  Note:
-	  * 0.07u/ms as threshold is a result of trial-and-error and
+	  * The minimum threshold is a result of trial-and-error and
 	    has no other intrinsic meaning.
 	  * 0.3 is chosen simply because it is above the Nyquist frequency
 	    for subpixel motion within a pixel.
 	*/
-	if (v_us2ms(speed_in) < 0.07) {
-		factor = 10 * v_us2ms(speed_in) + 0.3;
+	if (speed_in < 2.756) {
+		const double incline = 0.254;
+		factor = incline * speed_in + 0.3;
 	/* up to the threshold, we keep factor 1, i.e. 1:1 movement */
 	} else if (speed_in < threshold) {
 		factor = 1;
@@ -795,7 +802,7 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 		hence 1 = ax' + 1
 			=> x' := (x - T)
 	 */
-		factor = incline * v_us2ms(speed_in - threshold) + 1;
+		factor = incline * (speed_in - threshold) + 1;
 	}
 
 	/* Cap at the maximum acceleration factor */
