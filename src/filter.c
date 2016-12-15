@@ -135,10 +135,10 @@ filter_get_type(struct motion_filter *filter)
 #define DEFAULT_INCLINE 1.1			/* unitless factor */
 
 /* Touchpad acceleration */
-#define TOUCHPAD_DEFAULT_THRESHOLD 15.75	/* mm/s */
-#define TOUCHPAD_MINIMUM_THRESHOLD 7.87		/* mm/s */
+#define TOUCHPAD_DEFAULT_THRESHOLD 40		/* mm/s */
+#define TOUCHPAD_MINIMUM_THRESHOLD 20		/* mm/s */
 #define TOUCHPAD_ACCELERATION 2.0		/* unitless factor */
-#define TOUCHPAD_INCLINE 0.02794		/* unitless factor */
+#define TOUCHPAD_INCLINE 0.011			/* unitless factor */
 
 /* for the Lenovo x230 custom accel. do not touch */
 #define X230_THRESHOLD v_ms2us(0.4)		/* in units/us */
@@ -749,8 +749,6 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	/* Convert to mm/s because that's something one can understand */
 	speed_in = v_us2s(speed_in) * 25.4/accel_filter->dpi;
 
-	speed_in *= TP_MAGIC_SLOWDOWN;
-
 	/*
 	   Our acceleration function calculates a factor to accelerate input
 	   deltas with. The function is a double incline with a plateau,
@@ -774,10 +772,10 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 
 	   for speeds up to the lower threshold, we decelerate, down to 30%
 	   of input speed.
-		   hence 1 = a * 2.756 + 0.3
-		       0.7 = a * 2.756  => a := 0.254
+		   hence 1 = a * 7 + 0.3
+		       0.7 = a * 7  => a := 0.1
 		   deceleration function is thus:
-			y = 0.254x + 0.3
+			y = 0.1x + 0.3
 
 	  Note:
 	  * The minimum threshold is a result of trial-and-error and
@@ -785,9 +783,8 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	  * 0.3 is chosen simply because it is above the Nyquist frequency
 	    for subpixel motion within a pixel.
 	*/
-	if (speed_in < 2.756) {
-		const double incline = 0.254;
-		factor = incline * speed_in + 0.3;
+	if (speed_in < 7.0) {
+		factor = 0.1 * speed_in + 0.3;
 	/* up to the threshold, we keep factor 1, i.e. 1:1 movement */
 	} else if (speed_in < threshold) {
 		factor = 1;
