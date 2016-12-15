@@ -2257,6 +2257,10 @@ tp_init(struct tp_dispatch *tp,
 						       EV_ABS,
 						       ABS_MT_DISTANCE);
 
+	/* Set the dpi to that of the x axis, because that's what we normalize
+	   to when needed*/
+	device->dpi = device->abs.absinfo_x->resolution * 25.4;
+
 	tp_init_hysteresis(tp);
 
 	if (!tp_init_accel(tp))
