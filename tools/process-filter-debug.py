@@ -186,12 +186,20 @@ def dump_gnuplot_velocity_histogram(data):
 		index = int(v / max_vel * buckets)
 		counts[index] += 1
 
-	max_factor = max([d.factor for d in data])
+	# If we do this programattically, slow movements think the max
+	# factor is less than it is
+	#max_factor = max([d.factor for d in data])
+	max_factor = 0.8
 	# can't reliably detect this because of deceleration
 	# min_factor = min([d.factor for d in data])
 	min_factor = 0.4 # min([d.factor for d in data])
-	lowest_max_vel = min([d.velocity for d in data if d.factor == max_factor])
-	highest_min_vel = max([0] + [d.velocity for d in data if d.factor == min_factor])
+	lowest_max_vels = [d.velocity for d in data if d.factor == max_factor]
+	if lowest_max_vels:
+		lowest_max_vel = min(lowest_max_vels)
+	else:	
+		lowest_max_vel = max([d.velocity for d in data])
+
+	highest_min_vel = max([0] + [d.velocity for d in data if d.factor < min_factor])
 
 	with open("filter-data-velocity-histogram.gnuplot", "w+") as f:
 		f.write((
@@ -337,7 +345,10 @@ def dump_gnuplot_max_factor_parts(data):
 	Produces a graph that shows which parts of a sequence had the maximum factor applied.
 	"""
 
-	max_factor = max([d.factor for d in data])
+	# If we do this programattically, slow movements think the max
+	# factor is less than it is
+	#max_factor = max([d.factor for d in data])
+	max_factor = 0.8
 	# can't reliably detect this because of deceleration
 	# min_factor = min([d.factor for d in data])
 	min_factor = 0.4
