@@ -96,10 +96,11 @@ applied sooner and with a stronger acceleration factor.
 
 @section ptraccel-touchpad Pointer acceleration on touchpads
 
-Touchpad pointer acceleration uses the @ref ptraccel-linear profile, with a
-constant deceleration factor applied. The user expectation of how much a
-pointer should move in response to finger movement is different to that of a
-mouse device, hence the constant deceleration factor.
+Touchpad pointer acceleration uses the same approach as the @ref
+ptraccel-linear profile, with a constant deceleration factor applied. The
+user expectation of how much a pointer should move in response to finger
+movement is different to that of a mouse device, hence the constant
+deceleration factor.
 
 @image html ptraccel-touchpad.svg "Pointer acceleration curve for touchpads"
 

@@ -44,18 +44,20 @@ plot "$outfile-200.gnuplot" using 1:2 title "200dpi", \
 EOF
 
 outfile="ptraccel-touchpad"
-$tool --mode=accel --dpi=1000 --filter=linear > $outfile-mouse.gnuplot
-$tool --mode=accel --dpi=1000 --filter=touchpad > $outfile-touchpad.gnuplot
 $gnuplot <<EOF
 set terminal svg enhanced background rgb 'white'
 set output "$outfile.svg"
-set xlabel "speed in units/us"
+set xlabel "speed in mm/s"
 set ylabel "accel factor"
 set style data lines
-set yrange [0:3]
-set xrange [0:0.003]
-plot "$outfile-mouse.gnuplot" using 1:2 title "linear (mouse)", \
-     "$outfile-touchpad.gnuplot" using 1:2 title "touchpad"
+set xrange [0:400]
+plot \
+$(
+	for speed in -1 -0.5 -0.2 0 0.2 0.5 1; do
+		$tool --mode=accel --dpi=1000 --filter=touchpad --speed=$speed> $outfile-$speed.gnuplot
+		echo "\"$outfile-$speed.gnuplot\" using 1:2 title '$speed', \\"
+	done
+)
 EOF
 
 outfile="ptraccel-trackpoint"
