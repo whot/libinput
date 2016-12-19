@@ -372,6 +372,44 @@ def dump_gnuplot_max_factor_parts(data):
 			"     file using 0:($5 < {min_factor} ? $6 : 0) with boxes ls 5 title 'decel', \\\n"
 			"     file using 0:6 title 'velocity' ls 1\n"
 			).format(max_factor=max_factor, min_factor=min_factor, max_vel=max_vel))
+
+def dump_gnuplot_factors_velocity_accel_type(data):
+	"""
+	Produces a graph that shows which parts of a sequence had the maximum factor applied.
+	"""
+
+	# If we do this programattically, slow movements think the max
+	# factor is less than it is
+	#max_factor = max([d.factor for d in data])
+	max_factor = 0.8
+	# can't reliably detect this because of deceleration
+	# min_factor = min([d.factor for d in data])
+	min_factor = 0.4
+	max_vel = max([d.velocity for d in data])
+
+	with open("filter-data-factors-velocity-accel-type.gnuplot", "w+") as f:
+		f.write((
+			"file = 'filter-data-raw.dat\n"
+			"load '/home/whot/code/gnuplot-palettes/pastel1.pal'\n"
+			"set term wxt title 'max factor'\n"
+			"set style data lines\n"
+			"set xlabel 'event'\n"
+			"set ylabel 'velocity'\n"
+			"set autoscale y\n"
+			"set tics out\n"
+			"set key out\n"
+			"set ytics\n"
+			"set y2tics\n"
+			"set yrange [0:{max_vel}]\n"
+			"set autoscale y2\n"
+			"set style fill solid 1.0\n"
+			"plot file using 0:($5 >= {max_factor} ? 1 : 0) with boxes ls 3 title 'max', \\\n"
+			"     file using 0:($5 > {min_factor} && $5 < {max_factor} ? 1 : 0) with boxes ls 4 title 'adaptive', \\\n"
+			"     file using 0:($5 < {min_factor} ? 1 : 0) with boxes ls 5 title 'decel', \\\n"
+			"     file using 0:6 title 'velocity' lc rgb 'black' lw 2,\\\n"
+			"     file using 0:5 title 'factor' lc rgb 'red' lw 2 axes x1y2\n"
+			).format(max_factor=max_factor, min_factor=min_factor, max_vel=max_vel))
+
 def process_data(data):
 	"""
 	Parameters:
@@ -388,6 +426,7 @@ def process_data(data):
 	dump_gnuplot_velocity_diffs(data)
 	dump_gnuplot_max_factor_parts(data)
 	dump_gnuplot_velocity_histogram(data)
+	dump_gnuplot_factors_velocity_accel_type(data)
 
 def main(argv):
 	debug_file = argv[1]
