@@ -250,6 +250,21 @@ START_TEST(tip_down_prox_in)
 }
 END_TEST
 
+static inline bool
+tablet_has_proxout_quirk(struct litest_device *dev)
+{
+	struct udev_device *udev_device;
+	bool has_quirk;
+
+	udev_device = libinput_device_get_udev_device(dev->libinput_device);
+
+	has_quirk = !!udev_device_get_property_value(udev_device,
+			   "LIBINPUT_MODEL_HUION_TABLET_NO_PROXIMITY_OUT");
+	udev_device_unref(udev_device);
+
+	return has_quirk;
+}
+
 START_TEST(tip_up_prox_out)
 {
 	struct litest_device *dev = litest_current_device();
@@ -261,6 +276,9 @@ START_TEST(tip_up_prox_out)
 		{ ABS_PRESSURE, 30 },
 		{ -1, -1 }
 	};
+
+	if (tablet_has_proxout_quirk(dev))
+		return;
 
 	litest_tablet_proximity_in(dev, 10, 10, axes);
 	litest_event(dev, EV_KEY, BTN_TOUCH, 1);
@@ -616,6 +634,9 @@ START_TEST(tip_state_proximity)
 	litest_tablet_proximity_out(dev);
 	libinput_dispatch(li);
 
+	litest_timeout_tablet_proxout();
+	libinput_dispatch(li);
+
 	event = libinput_get_event(li);
 	tablet_event = litest_is_tablet_event(event,
 					      LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
@@ -808,6 +829,9 @@ START_TEST(proximity_in_out)
 	litest_tablet_proximity_out(dev);
 	libinput_dispatch(li);
 
+	litest_timeout_tablet_proxout();
+	libinput_dispatch(li);
+
 	while ((event = libinput_get_event(li))) {
 		if (libinput_event_get_type(event) ==
 		    LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY) {
@@ -917,7 +941,9 @@ START_TEST(proximity_out_clear_buttons)
 		litest_event(dev, EV_KEY, button, 1);
 		litest_event(dev, EV_SYN, SYN_REPORT, 0);
 		litest_tablet_proximity_out(dev);
+		libinput_dispatch(li);
 
+		litest_timeout_tablet_proxout();
 		libinput_dispatch(li);
 
 		while ((event = libinput_get_event(li))) {
@@ -1040,6 +1066,9 @@ START_TEST(proximity_has_axes)
 
 	/* Make sure that the axes are still present on proximity out */
 	litest_tablet_proximity_out(dev);
+	libinput_dispatch(li);
+
+	litest_timeout_tablet_proxout();
 	libinput_dispatch(li);
 
 	event = libinput_get_event(li);
@@ -2506,6 +2535,10 @@ START_TEST(tool_in_prox_before_start)
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_TABLET_TOOL_BUTTON);
 	litest_tablet_proximity_out(dev);
+	libinput_dispatch(li);
+
+	litest_timeout_tablet_proxout();
+	libinput_dispatch(li);
 
 	litest_wait_for_event_of_type(li,
 				      LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
@@ -4314,6 +4347,101 @@ START_TEST(cintiq_touch_arbitration_remove_tablet)
 }
 END_TEST
 
+START_TEST(huion_static_btn_tool_pen)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	int i;
+
+	litest_drain_events(li);
+
+	litest_event(dev, EV_ABS, ABS_X, 20000);
+	litest_event(dev, EV_ABS, ABS_Y, 20000);
+	litest_event(dev, EV_ABS, ABS_PRESSURE, 100);
+	litest_event(dev, EV_KEY, BTN_TOOL_PEN, 1);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	litest_drain_events(li);
+
+	for (i = 0; i < 10; i++) {
+		litest_event(dev, EV_ABS, ABS_X, 20000 + 10 * i);
+		litest_event(dev, EV_ABS, ABS_Y, 20000 - 10 * i);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+		libinput_dispatch(li);
+	}
+	litest_assert_only_typed_events(li,
+					LIBINPUT_EVENT_TABLET_TOOL_AXIS);
+
+	/* Wait past the timeout to expect a proximity out */
+	litest_timeout_tablet_proxout();
+	libinput_dispatch(li);
+	litest_assert_tablet_proximity_event(li,
+			     LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_OUT);
+	libinput_dispatch(li);
+
+	/* New events should fake a proximity in again */
+	litest_event(dev, EV_ABS, ABS_X, 20000);
+	litest_event(dev, EV_ABS, ABS_Y, 20000);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	libinput_dispatch(li);
+	litest_assert_tablet_proximity_event(li,
+			     LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_IN);
+	libinput_dispatch(li);
+
+	for (i = 0; i < 10; i++) {
+		litest_event(dev, EV_ABS, ABS_X, 20000 + 10 * i);
+		litest_event(dev, EV_ABS, ABS_Y, 20000 - 10 * i);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+		libinput_dispatch(li);
+	}
+	litest_assert_only_typed_events(li,
+					LIBINPUT_EVENT_TABLET_TOOL_AXIS);
+	litest_timeout_tablet_proxout();
+	libinput_dispatch(li);
+	litest_assert_tablet_proximity_event(li,
+			     LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_OUT);
+	libinput_dispatch(li);
+
+	/* New events, just to ensure cleanup paths are correct */
+	litest_event(dev, EV_ABS, ABS_X, 20000);
+	litest_event(dev, EV_ABS, ABS_Y, 20000);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	libinput_dispatch(li);
+}
+END_TEST
+
+START_TEST(huion_static_btn_tool_pen_no_timeout_during_usage)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	int i;
+
+	litest_drain_events(li);
+
+	litest_event(dev, EV_ABS, ABS_X, 20000);
+	litest_event(dev, EV_ABS, ABS_Y, 20000);
+	litest_event(dev, EV_ABS, ABS_PRESSURE, 100);
+	litest_event(dev, EV_KEY, BTN_TOOL_PEN, 1);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	litest_drain_events(li);
+
+	/* take longer than the no-activity timeout */
+	for (i = 0; i < 50; i++) {
+		litest_event(dev, EV_ABS, ABS_X, 20000 + 10 * i);
+		litest_event(dev, EV_ABS, ABS_Y, 20000 - 10 * i);
+		litest_event(dev, EV_SYN, SYN_REPORT, 0);
+		libinput_dispatch(li);
+		msleep(5);
+	}
+	litest_assert_only_typed_events(li,
+					LIBINPUT_EVENT_TABLET_TOOL_AXIS);
+	litest_timeout_tablet_proxout();
+	libinput_dispatch(li);
+	litest_assert_tablet_proximity_event(li,
+			     LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_OUT);
+	libinput_dispatch(li);
+}
+END_TEST
+
 void
 litest_setup_tests_tablet(void)
 {
@@ -4409,4 +4537,7 @@ litest_setup_tests_tablet(void)
 	litest_add_for_device("tablet:touch-arbitration", cintiq_touch_arbitration_suspend_touch_device, LITEST_WACOM_CINTIQ_13HDT_FINGER);
 	litest_add_for_device("tablet:touch-arbitration", cintiq_touch_arbitration_remove_touch, LITEST_WACOM_CINTIQ_13HDT_PEN);
 	litest_add_for_device("tablet:touch-arbitration", cintiq_touch_arbitration_remove_tablet, LITEST_WACOM_CINTIQ_13HDT_FINGER);
+
+	litest_add_for_device("tablet:quirks", huion_static_btn_tool_pen, LITEST_HUION_TABLET);
+	litest_add_for_device("tablet:quirks", huion_static_btn_tool_pen_no_timeout_during_usage, LITEST_HUION_TABLET);
 }

@@ -3340,6 +3340,12 @@ litest_timeout_trackpoint(void)
 }
 
 void
+litest_timeout_tablet_proxout(void)
+{
+	msleep(70);
+}
+
+void
 litest_push_event_frame(struct litest_device *dev)
 {
 	litest_assert(dev->skip_ev_syn >= 0);
