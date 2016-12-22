@@ -473,6 +473,17 @@ tv2us(const struct timeval *tv)
 	return s2us(tv->tv_sec) + tv->tv_usec;
 }
 
+static inline struct timeval
+us2tv(uint64_t time)
+{
+	struct timeval tv;
+
+	tv.tv_sec = time / ms2us(1000);
+	tv.tv_usec = time % ms2us(1000);
+
+	return tv;
+}
+
 static inline bool
 safe_atoi_base(const char *str, int *val, int base)
 {

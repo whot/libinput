@@ -1056,8 +1056,7 @@ tp_notify_clickpadbutton(struct tp_dispatch *tp,
 		struct evdev_dispatch *dispatch = tp->buttons.trackpoint->dispatch;
 		struct input_event event;
 
-		event.time.tv_sec = time / ms2us(1000);
-		event.time.tv_usec = time % ms2us(1000);
+		event.time = us2tv(time);
 		event.type = EV_KEY;
 		event.code = button;
 		event.value = (state == LIBINPUT_BUTTON_STATE_PRESSED) ? 1 : 0;
