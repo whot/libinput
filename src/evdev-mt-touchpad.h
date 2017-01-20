@@ -376,6 +376,11 @@ struct tp_dispatch {
 		 */
 		unsigned int nonmotion_event_count;
 	} quirks;
+
+	struct {
+		struct libinput_event_listener lid_switch_listener;
+		struct evdev_device *lid_switch;
+	} lid_switch;
 };
 
 #define tp_for_each_touch(_tp, _t) \
