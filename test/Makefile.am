@@ -32,6 +32,7 @@ liblitest_la_SOURCES = \
 	litest-device-keyboard.c \
 	litest-device-keyboard-all-codes.c \
 	litest-device-keyboard-razer-blackwidow.c \
+	litest-device-lid-switch.c \
 	litest-device-logitech-trackball.c \
 	litest-device-nexus4-touch-screen.c \
 	litest-device-magic-trackpad.c \
@@ -117,7 +118,8 @@ libinput_test_suite_runner_SOURCES = test-udev.c \
 				     test-misc.c \
 				     test-keyboard.c \
 				     test-device.c \
-				     test-gestures.c
+				     test-gestures.c \
+				     test-lid.c
 
 libinput_test_suite_runner_CFLAGS = $(AM_CFLAGS) -DLIBINPUT_LT_VERSION="\"$(LIBINPUT_LT_VERSION)\""
 libinput_test_suite_runner_LDADD = $(TEST_LIBS)

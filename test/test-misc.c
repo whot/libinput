@@ -135,6 +135,7 @@ START_TEST(event_conversion_device_notify)
 			ck_assert(libinput_event_get_gesture_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_pad_event(event) == NULL);
+			ck_assert(libinput_event_get_switch_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 
@@ -192,6 +193,7 @@ START_TEST(event_conversion_pointer)
 			ck_assert(libinput_event_get_gesture_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_pad_event(event) == NULL);
+			ck_assert(libinput_event_get_switch_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 		libinput_event_destroy(event);
@@ -243,6 +245,7 @@ START_TEST(event_conversion_pointer_abs)
 			ck_assert(libinput_event_get_gesture_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_pad_event(event) == NULL);
+			ck_assert(libinput_event_get_switch_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 		libinput_event_destroy(event);
@@ -287,6 +290,7 @@ START_TEST(event_conversion_key)
 			ck_assert(libinput_event_get_gesture_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_pad_event(event) == NULL);
+			ck_assert(libinput_event_get_switch_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 		libinput_event_destroy(event);
@@ -338,6 +342,7 @@ START_TEST(event_conversion_touch)
 			ck_assert(libinput_event_get_gesture_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_pad_event(event) == NULL);
+			ck_assert(libinput_event_get_switch_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 		libinput_event_destroy(event);
@@ -387,6 +392,7 @@ START_TEST(event_conversion_gesture)
 			ck_assert(libinput_event_get_keyboard_event(event) == NULL);
 			ck_assert(libinput_event_get_touch_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_pad_event(event) == NULL);
+			ck_assert(libinput_event_get_switch_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 		libinput_event_destroy(event);
@@ -434,6 +440,7 @@ START_TEST(event_conversion_tablet)
 			ck_assert(libinput_event_get_keyboard_event(event) == NULL);
 			ck_assert(libinput_event_get_touch_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_pad_event(event) == NULL);
+			ck_assert(libinput_event_get_switch_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 		libinput_event_destroy(event);
@@ -477,12 +484,54 @@ START_TEST(event_conversion_tablet_pad)
 			ck_assert(libinput_event_get_keyboard_event(event) == NULL);
 			ck_assert(libinput_event_get_touch_event(event) == NULL);
 			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
+			ck_assert(libinput_event_get_switch_event(event) == NULL);
 			litest_restore_log_handler(li);
 		}
 		libinput_event_destroy(event);
 	}
 
 	ck_assert_int_gt(events, 0);
+}
+END_TEST
+
+START_TEST(event_conversion_switch)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event *event;
+	int sw = 0;
+
+	litest_lid_action(dev, LIBINPUT_SWITCH_STATE_ON);
+	litest_lid_action(dev, LIBINPUT_SWITCH_STATE_OFF);
+	libinput_dispatch(li);
+
+	while ((event = libinput_get_event(li))) {
+		enum libinput_event_type type;
+		type = libinput_event_get_type(event);
+
+		if (type == LIBINPUT_EVENT_SWITCH_TOGGLE) {
+			struct libinput_event_switch *s;
+			struct libinput_event *base;
+			s = libinput_event_get_switch_event(event);
+			base = libinput_event_switch_get_base_event(s);
+			ck_assert(event == base);
+
+			sw++;
+
+			litest_disable_log_handler(li);
+			ck_assert(libinput_event_get_device_notify_event(event) == NULL);
+			ck_assert(libinput_event_get_keyboard_event(event) == NULL);
+			ck_assert(libinput_event_get_pointer_event(event) == NULL);
+			ck_assert(libinput_event_get_touch_event(event) == NULL);
+			ck_assert(libinput_event_get_gesture_event(event) == NULL);
+			ck_assert(libinput_event_get_tablet_tool_event(event) == NULL);
+			ck_assert(libinput_event_get_tablet_pad_event(event) == NULL);
+			litest_restore_log_handler(li);
+		}
+		libinput_event_destroy(event);
+	}
+
+	ck_assert_int_gt(sw, 0);
 }
 END_TEST
 
@@ -1118,6 +1167,7 @@ litest_setup_tests_misc(void)
 	litest_add_for_device("events:conversion", event_conversion_gesture, LITEST_BCM5974);
 	litest_add_for_device("events:conversion", event_conversion_tablet, LITEST_WACOM_CINTIQ);
 	litest_add_for_device("events:conversion", event_conversion_tablet_pad, LITEST_WACOM_INTUOS5_PAD);
+	litest_add_for_device("events:conversion", event_conversion_switch, LITEST_LID_SWITCH);
 	litest_add_no_device("misc:bitfield_helpers", bitfield_helpers);
 
 	litest_add_no_device("context:refcount", context_ref_counting);

@@ -1493,6 +1493,7 @@ START_TEST(device_capability_at_least_one)
 		LIBINPUT_DEVICE_CAP_TABLET_TOOL,
 		LIBINPUT_DEVICE_CAP_TABLET_PAD,
 		LIBINPUT_DEVICE_CAP_GESTURE,
+		LIBINPUT_DEVICE_CAP_SWITCH,
 	};
 	enum libinput_device_capability *cap;
 	int ncaps = 0;
@@ -1512,7 +1513,7 @@ START_TEST(device_capability_check_invalid)
 	struct libinput_device *device = dev->libinput_device;
 
 	ck_assert(!libinput_device_has_capability(device, -1));
-	ck_assert(!libinput_device_has_capability(device, 6));
+	ck_assert(!libinput_device_has_capability(device, 7));
 	ck_assert(!libinput_device_has_capability(device, 0xffff));
 
 }

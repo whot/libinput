@@ -49,6 +49,7 @@ extern void litest_setup_tests_misc(void);
 extern void litest_setup_tests_keyboard(void);
 extern void litest_setup_tests_device(void);
 extern void litest_setup_tests_gestures(void);
+extern void litest_setup_tests_lid(void);
 
 void
 litest_fail_condition(const char *file,
@@ -228,6 +229,7 @@ enum litest_device_type {
 	LITEST_ACER_HAWAII_TOUCHPAD,
 	LITEST_SYNAPTICS_RMI4,
 	LITEST_MOUSE_WHEEL_TILT,
+	LITEST_LID_SWITCH,
 };
 
 enum litest_device_feature {
@@ -259,6 +261,7 @@ enum litest_device_feature {
 	LITEST_STRIP = 1 << 23,
 	LITEST_TRACKBALL = 1 << 24,
 	LITEST_LEDS = 1 << 25,
+	LITEST_SWITCH = 1 << 26,
 };
 
 struct litest_device {
@@ -526,6 +529,9 @@ litest_keyboard_key(struct litest_device *d,
 		    unsigned int key,
 		    bool is_press);
 
+void litest_lid_action(struct litest_device *d,
+		       enum libinput_switch_state state);
+
 void
 litest_wait_for_event(struct libinput *li);
 
@@ -588,6 +594,11 @@ struct libinput_event_tablet_pad *
 litest_is_pad_strip_event(struct libinput_event *event,
 			  unsigned int number,
 			  enum libinput_tablet_pad_strip_axis_source source);
+
+struct libinput_event_switch *
+litest_is_switch_event(struct libinput_event *event,
+		       enum libinput_switch sw,
+		       enum libinput_switch_state state);
 
 void
 litest_assert_button_event(struct libinput *li,
