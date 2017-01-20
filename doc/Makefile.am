@@ -22,6 +22,7 @@ header_files = \
 	$(srcdir)/reporting-bugs.dox \
 	$(srcdir)/scrolling.dox \
 	$(srcdir)/seats.dox \
+	$(srcdir)/switches.dox \
 	$(srcdir)/t440-support.dox \
 	$(srcdir)/tablet-support.dox \
 	$(srcdir)/tapping.dox \

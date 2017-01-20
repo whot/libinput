@@ -2203,6 +2203,9 @@ litest_event_type_str(enum libinput_event_type type)
 	case LIBINPUT_EVENT_TABLET_PAD_STRIP:
 		str = "TABLET PAD STRIP";
 		break;
+	case LIBINPUT_EVENT_SWITCH_TOGGLE:
+		str = "SWITCH TOGGLE";
+		break;
 	}
 	return str;
 }

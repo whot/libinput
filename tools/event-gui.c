@@ -845,6 +845,8 @@ handle_event_libinput(GIOChannel *source, GIOCondition condition, gpointer data)
 		case LIBINPUT_EVENT_TABLET_PAD_RING:
 		case LIBINPUT_EVENT_TABLET_PAD_STRIP:
 			break;
+		case LIBINPUT_EVENT_SWITCH_TOGGLE:
+			break;
 		}
 
 		libinput_event_destroy(ev);

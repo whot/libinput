@@ -280,3 +280,12 @@ LIBINPUT_1.5 {
 	libinput_device_config_tap_get_default_button_map;
 	libinput_device_config_tap_set_button_map;
 } LIBINPUT_1.4;
+
+LIBINPUT_SWITCH {
+	libinput_event_get_switch_event;
+	libinput_event_switch_get_base_event;
+	libinput_event_switch_get_switch_state;
+	libinput_event_switch_get_switch;
+	libinput_event_switch_get_time;
+	libinput_event_switch_get_time_usec;
+} LIBINPUT_1.5;

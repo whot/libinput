@@ -623,6 +623,11 @@ tablet_pad_notify_strip(struct libinput_device *device,
 			double value,
 			enum libinput_tablet_pad_strip_axis_source source,
 			struct libinput_tablet_pad_mode_group *group);
+void
+switch_notify_toggle(struct libinput_device *device,
+		     uint64_t time,
+		     enum libinput_switch sw,
+		     enum libinput_switch_state state);
 
 static inline uint64_t
 libinput_now(struct libinput *libinput)

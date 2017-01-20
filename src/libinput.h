@@ -187,6 +187,7 @@ enum libinput_device_capability {
 	LIBINPUT_DEVICE_CAP_TABLET_TOOL = 3,
 	LIBINPUT_DEVICE_CAP_TABLET_PAD = 4,
 	LIBINPUT_DEVICE_CAP_GESTURE = 5,
+	LIBINPUT_DEVICE_CAP_SWITCH = 6,
 };
 
 /**
@@ -598,6 +599,38 @@ libinput_tablet_pad_mode_group_get_user_data(
 			struct libinput_tablet_pad_mode_group *group);
 
 /**
+ * @ingroup device
+ *
+ * The state of a switch.
+ */
+enum libinput_switch_state {
+	LIBINPUT_SWITCH_STATE_OFF = 0,
+	LIBINPUT_SWITCH_STATE_ON = 1,
+};
+
+/**
+ * @ingroup device
+ *
+ * The type of a switch.
+ */
+enum libinput_switch {
+	/**
+	 * The laptop lid was closed when the switch state is @ref
+	 * LIBINPUT_SWITCH_STATE_ON, or was opened when it is @ref
+	 * LIBINPUT_SWITCH_STATE_OFF.
+	 */
+	LIBINPUT_SWITCH_LID = 1,
+};
+
+/**
+ * @ingroup event_switch
+ * @struct libinput_event_switch
+ *
+ * A switch event representing a changed state in a switch.
+ */
+struct libinput_event_switch;
+
+/**
  * @ingroup base
  *
  * Event type for events returned by libinput_get_event().
@@ -752,6 +785,8 @@ enum libinput_event_type {
 	LIBINPUT_EVENT_GESTURE_PINCH_BEGIN,
 	LIBINPUT_EVENT_GESTURE_PINCH_UPDATE,
 	LIBINPUT_EVENT_GESTURE_PINCH_END,
+
+	LIBINPUT_EVENT_SWITCH_TOGGLE = 900,
 };
 
 /**
@@ -887,6 +922,19 @@ libinput_event_get_tablet_tool_event(struct libinput_event *event);
  */
 struct libinput_event_tablet_pad *
 libinput_event_get_tablet_pad_event(struct libinput_event *event);
+
+/**
+ * @ingroup event
+ *
+ * Return the switch event that is this input event. If the event type does
+ * not match the switch event types, this function returns NULL.
+ *
+ * The inverse of this function is libinput_event_switch_get_base_event().
+ *
+ * @return A switch event, or NULL for other events
+ */
+struct libinput_event_switch *
+libinput_event_get_switch_event(struct libinput_event *event);
 
 /**
  * @ingroup event
@@ -2697,6 +2745,70 @@ libinput_event_tablet_pad_get_time(struct libinput_event_tablet_pad *event);
  */
 uint64_t
 libinput_event_tablet_pad_get_time_usec(struct libinput_event_tablet_pad *event);
+
+/**
+ * @defgroup event_switch Switch events
+ *
+ * Events that come from switch devices.
+ */
+
+/**
+ * @ingroup event_switch
+ *
+ * Return the switch that triggered this event.
+ * For pointer events that are not of type @ref
+ * LIBINPUT_EVENT_SWITCH_TOGGLE, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_SWITCH_TOGGLE.
+ *
+ * @param event The libinput switch event
+ * @return The switch triggering this event
+ */
+enum libinput_switch
+libinput_event_switch_get_switch(struct libinput_event_switch *event);
+
+/**
+ * @ingroup event_switch
+ *
+ * Return the switch state that triggered this event.
+ * For switch events that are not of type @ref
+ * LIBINPUT_EVENT_SWITCH_TOGGLE, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_SWITCH_TOGGLE.
+ *
+ * @param event The libinput switch event
+ * @return The switch state triggering this event
+ */
+enum libinput_switch_state
+libinput_event_switch_get_switch_state(struct libinput_event_switch *event);
+
+/**
+ * @ingroup event_switch
+ *
+ * @return The generic libinput_event of this event
+ */
+struct libinput_event *
+libinput_event_switch_get_base_event(struct libinput_event_switch *event);
+
+/**
+ * @ingroup event_switch
+ *
+ * @param event The libinput switch event
+ * @return The event time for this event
+ */
+uint32_t
+libinput_event_switch_get_time(struct libinput_event_switch *event);
+
+/**
+ * @ingroup event_switch
+ *
+ * @param event The libinput switch event
+ * @return The event time for this event in microseconds
+ */
+uint64_t
+libinput_event_switch_get_time_usec(struct libinput_event_switch *event);
 
 /**
  * @defgroup base Initialization and manipulation of libinput contexts
