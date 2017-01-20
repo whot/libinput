@@ -63,6 +63,7 @@ enum evdev_device_seat_capability {
 	EVDEV_DEVICE_TABLET = (1 << 3),
 	EVDEV_DEVICE_TABLET_PAD = (1 << 4),
 	EVDEV_DEVICE_GESTURE = (1 << 5),
+	EVDEV_DEVICE_SWITCH = (1 << 6),
 };
 
 enum evdev_device_tags {
@@ -71,6 +72,7 @@ enum evdev_device_tags {
 	EVDEV_TAG_EXTERNAL_TOUCHPAD = (1 << 2),
 	EVDEV_TAG_TRACKPOINT = (1 << 3),
 	EVDEV_TAG_KEYBOARD = (1 << 4),
+	EVDEV_TAG_LID_SWITCH = (1 << 5),
 };
 
 enum evdev_middlebutton_state {
@@ -332,6 +334,12 @@ struct fallback_dispatch {
 	/* true if we're reading events (i.e. not suspended) but we're
 	   ignoring them */
 	bool ignore_events;
+};
+
+struct lid_switch_dispatch {
+	struct evdev_dispatch base;
+
+	bool lid_is_closed;
 };
 
 struct evdev_device *

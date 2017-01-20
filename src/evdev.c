@@ -68,6 +68,7 @@ enum evdev_device_udev_tags {
         EVDEV_UDEV_TAG_TABLET_PAD = (1 << 8),
         EVDEV_UDEV_TAG_POINTINGSTICK = (1 << 9),
         EVDEV_UDEV_TAG_TRACKBALL = (1 << 10),
+        EVDEV_UDEV_TAG_SWITCH = (1 << 11),
 };
 
 struct evdev_udev_tag_match {
@@ -88,6 +89,7 @@ static const struct evdev_udev_tag_match evdev_udev_tag_matches[] = {
 	{"ID_INPUT_ACCELEROMETER",	EVDEV_UDEV_TAG_ACCELEROMETER},
 	{"ID_INPUT_POINTINGSTICK",	EVDEV_UDEV_TAG_POINTINGSTICK},
 	{"ID_INPUT_TRACKBALL",		EVDEV_UDEV_TAG_TRACKBALL},
+	{"ID_INPUT_SWITCH",		EVDEV_UDEV_TAG_SWITCH},
 
 	/* sentinel value */
 	{ 0 },
@@ -1028,6 +1030,24 @@ fallback_process_absolute(struct fallback_dispatch *dispatch,
 	}
 }
 
+static void
+lid_switch_process_switch(struct lid_switch_dispatch *dispatch,
+			  struct evdev_device *device,
+			  struct input_event *e,
+			  uint64_t time)
+{
+	switch (e->code) {
+	case SW_LID:
+		dispatch->lid_is_closed = !!e->value;
+
+		switch_notify_toggle(&device->base,
+				     time,
+				     LIBINPUT_SWITCH_LID,
+				     dispatch->lid_is_closed);
+		break;
+	}
+}
+
 static inline bool
 fallback_any_button_down(struct fallback_dispatch *dispatch,
 		      struct evdev_device *device)
@@ -1083,6 +1103,13 @@ evdev_tag_keyboard(struct evdev_device *device,
 }
 
 static void
+evdev_tag_lid_switch(struct evdev_device *device,
+		     struct udev_device *udev_device)
+{
+	device->tags |= EVDEV_TAG_LID_SWITCH;
+}
+
+static void
 fallback_process(struct evdev_dispatch *evdev_dispatch,
 		 struct evdev_device *device,
 		 struct input_event *event,
@@ -1119,6 +1146,27 @@ fallback_process(struct evdev_dispatch *evdev_dispatch,
 		case EVDEV_NONE:
 			break;
 		}
+		break;
+	}
+}
+
+static void
+lid_switch_process(struct evdev_dispatch *evdev_dispatch,
+		   struct evdev_device *device,
+		   struct input_event *event,
+		   uint64_t time)
+{
+	struct lid_switch_dispatch *dispatch =
+		(struct lid_switch_dispatch*)evdev_dispatch;
+
+	switch (event->type) {
+	case EV_SW:
+		lid_switch_process_switch(dispatch, device, event, time);
+		break;
+	case EV_SYN:
+		break;
+	default:
+		assert(0 && "Unknown event type");
 		break;
 	}
 }
@@ -1248,6 +1296,15 @@ fallback_destroy(struct evdev_dispatch *evdev_dispatch)
 	free(dispatch);
 }
 
+static void
+lid_switch_destroy(struct evdev_dispatch *evdev_dispatch)
+{
+	struct lid_switch_dispatch *dispatch =
+		(struct lid_switch_dispatch*)evdev_dispatch;
+
+	free(dispatch);
+}
+
 static int
 evdev_calibration_has_matrix(struct libinput_device *libinput_device)
 {
@@ -1300,6 +1357,19 @@ struct evdev_dispatch_interface fallback_interface = {
 	NULL, /* device_resumed */
 	NULL, /* post_added */
 	fallback_toggle_touch, /* toggle_touch */
+};
+
+struct evdev_dispatch_interface lid_switch_interface = {
+	lid_switch_process,
+	NULL, /* suspend */
+	NULL, /* remove */
+	lid_switch_destroy,
+	NULL, /* device_added */
+	NULL, /* device_removed */
+	NULL, /* device_suspended */
+	NULL, /* device_resumed */
+	NULL, /* post_added */
+	NULL, /* toggle_touch */
 };
 
 static uint32_t
@@ -1807,6 +1877,24 @@ fallback_dispatch_create(struct libinput_device *device)
 					enable_by_default,
 					want_config);
 	}
+
+	return &dispatch->base;
+}
+
+static struct evdev_dispatch *
+lid_switch_dispatch_create(struct libinput_device *device)
+{
+	struct lid_switch_dispatch *dispatch = zalloc(sizeof *dispatch);
+	struct evdev_device *lid_device = (struct evdev_device *)device;
+
+	if (dispatch == NULL)
+		return NULL;
+
+	dispatch->base.interface = &lid_switch_interface;
+
+	evdev_init_sendevents(lid_device, &dispatch->base);
+
+	dispatch->lid_is_closed = false;
 
 	return &dispatch->base;
 }
@@ -2534,7 +2622,7 @@ evdev_configure_device(struct evdev_device *device)
 	}
 
 	log_info(libinput,
-		 "input device '%s', %s is tagged by udev as:%s%s%s%s%s%s%s%s%s%s\n",
+		 "input device '%s', %s is tagged by udev as:%s%s%s%s%s%s%s%s%s%s%s\n",
 		 device->devname, devnode,
 		 udev_tags & EVDEV_UDEV_TAG_KEYBOARD ? " Keyboard" : "",
 		 udev_tags & EVDEV_UDEV_TAG_MOUSE ? " Mouse" : "",
@@ -2545,7 +2633,8 @@ evdev_configure_device(struct evdev_device *device)
 		 udev_tags & EVDEV_UDEV_TAG_JOYSTICK ? " Joystick" : "",
 		 udev_tags & EVDEV_UDEV_TAG_ACCELEROMETER ? " Accelerometer" : "",
 		 udev_tags & EVDEV_UDEV_TAG_TABLET_PAD ? " TabletPad" : "",
-		 udev_tags & EVDEV_UDEV_TAG_TRACKBALL ? " Trackball" : "");
+		 udev_tags & EVDEV_UDEV_TAG_TRACKBALL ? " Trackball" : "",
+		 udev_tags & EVDEV_UDEV_TAG_SWITCH ? " Switch" : "");
 
 	if (udev_tags & EVDEV_UDEV_TAG_ACCELEROMETER) {
 		log_info(libinput,
@@ -2655,6 +2744,17 @@ evdev_configure_device(struct evdev_device *device)
 		log_info(libinput,
 			 "input device '%s', %s is a touch device\n",
 			 device->devname, devnode);
+	}
+
+	if (udev_tags & EVDEV_UDEV_TAG_SWITCH &&
+	    libevdev_has_event_code(evdev, EV_SW, SW_LID)) {
+		dispatch = lid_switch_dispatch_create(&device->base);
+		device->seat_caps |= EVDEV_DEVICE_SWITCH;
+		evdev_tag_lid_switch(device, device->udev_device);
+		log_info(libinput,
+			 "input device '%s', %s is a switch device\n",
+			 device->devname, devnode);
+		return dispatch;
 	}
 
 	if (device->seat_caps & EVDEV_DEVICE_POINTER &&
@@ -3089,6 +3189,8 @@ evdev_device_has_capability(struct evdev_device *device,
 		return !!(device->seat_caps & EVDEV_DEVICE_TABLET);
 	case LIBINPUT_DEVICE_CAP_TABLET_PAD:
 		return !!(device->seat_caps & EVDEV_DEVICE_TABLET_PAD);
+	case LIBINPUT_DEVICE_CAP_SWITCH:
+		return !!(device->seat_caps & EVDEV_DEVICE_SWITCH);
 	default:
 		return false;
 	}
