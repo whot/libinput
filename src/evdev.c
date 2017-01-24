@@ -1030,24 +1030,6 @@ fallback_process_absolute(struct fallback_dispatch *dispatch,
 	}
 }
 
-static void
-lid_switch_process_switch(struct lid_switch_dispatch *dispatch,
-			  struct evdev_device *device,
-			  struct input_event *e,
-			  uint64_t time)
-{
-	switch (e->code) {
-	case SW_LID:
-		dispatch->lid_is_closed = !!e->value;
-
-		switch_notify_toggle(&device->base,
-				     time,
-				     LIBINPUT_SWITCH_LID,
-				     dispatch->lid_is_closed);
-		break;
-	}
-}
-
 static inline bool
 fallback_any_button_down(struct fallback_dispatch *dispatch,
 		      struct evdev_device *device)
@@ -1146,27 +1128,6 @@ fallback_process(struct evdev_dispatch *evdev_dispatch,
 		case EVDEV_NONE:
 			break;
 		}
-		break;
-	}
-}
-
-static void
-lid_switch_process(struct evdev_dispatch *evdev_dispatch,
-		   struct evdev_device *device,
-		   struct input_event *event,
-		   uint64_t time)
-{
-	struct lid_switch_dispatch *dispatch =
-		(struct lid_switch_dispatch*)evdev_dispatch;
-
-	switch (event->type) {
-	case EV_SW:
-		lid_switch_process_switch(dispatch, device, event, time);
-		break;
-	case EV_SYN:
-		break;
-	default:
-		assert(0 && "Unknown event type");
 		break;
 	}
 }
@@ -1296,15 +1257,6 @@ fallback_destroy(struct evdev_dispatch *evdev_dispatch)
 	free(dispatch);
 }
 
-static void
-lid_switch_destroy(struct evdev_dispatch *evdev_dispatch)
-{
-	struct lid_switch_dispatch *dispatch =
-		(struct lid_switch_dispatch*)evdev_dispatch;
-
-	free(dispatch);
-}
-
 static int
 evdev_calibration_has_matrix(struct libinput_device *libinput_device)
 {
@@ -1358,6 +1310,54 @@ struct evdev_dispatch_interface fallback_interface = {
 	NULL, /* post_added */
 	fallback_toggle_touch, /* toggle_touch */
 };
+
+static void
+lid_switch_process_switch(struct lid_switch_dispatch *dispatch,
+			  struct evdev_device *device,
+			  struct input_event *e,
+			  uint64_t time)
+{
+	switch (e->code) {
+	case SW_LID:
+		dispatch->lid_is_closed = !!e->value;
+
+		switch_notify_toggle(&device->base,
+				     time,
+				     LIBINPUT_SWITCH_LID,
+				     dispatch->lid_is_closed);
+		break;
+	}
+}
+
+static void
+lid_switch_process(struct evdev_dispatch *evdev_dispatch,
+		   struct evdev_device *device,
+		   struct input_event *event,
+		   uint64_t time)
+{
+	struct lid_switch_dispatch *dispatch =
+		(struct lid_switch_dispatch*)evdev_dispatch;
+
+	switch (event->type) {
+	case EV_SW:
+		lid_switch_process_switch(dispatch, device, event, time);
+		break;
+	case EV_SYN:
+		break;
+	default:
+		assert(0 && "Unknown event type");
+		break;
+	}
+}
+
+static void
+lid_switch_destroy(struct evdev_dispatch *evdev_dispatch)
+{
+	struct lid_switch_dispatch *dispatch =
+		(struct lid_switch_dispatch*)evdev_dispatch;
+
+	free(dispatch);
+}
 
 struct evdev_dispatch_interface lid_switch_interface = {
 	lid_switch_process,
