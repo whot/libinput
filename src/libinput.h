@@ -601,7 +601,11 @@ libinput_tablet_pad_mode_group_get_user_data(
 /**
  * @ingroup device
  *
- * The state of a switch.
+ * The state of a switch. The default state of a switch is @ref
+ * LIBINPUT_SWITCH_STATE_OFF and no event is sent to confirm a switch in the
+ * off position. If a switch is logically on during initialization, libinput
+ * sends an event of type @ref LIBINPUT_EVENT_SWITCH_TOGGLE with a state
+ * @ref LIBINPUT_SWITCH_STATE_ON.
  */
 enum libinput_switch_state {
 	LIBINPUT_SWITCH_STATE_OFF = 0,
