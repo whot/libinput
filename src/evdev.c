@@ -1359,6 +1359,27 @@ lid_switch_destroy(struct evdev_dispatch *evdev_dispatch)
 	free(dispatch);
 }
 
+static void
+lid_switch_sync_initial_state(struct evdev_device *device,
+			      struct evdev_dispatch *evdev_dispatch)
+{
+	struct lid_switch_dispatch *dispatch =
+		(struct lid_switch_dispatch*)evdev_dispatch;
+	struct libevdev *evdev = device->evdev;
+
+	dispatch->lid_is_closed = libevdev_get_event_value(evdev,
+							   EV_SW,
+							   SW_LID);
+	if (dispatch->lid_is_closed) {
+		uint64_t time;
+		time = libinput_now(evdev_libinput_context(device));
+		switch_notify_toggle(&device->base,
+				     time,
+				     LIBINPUT_SWITCH_LID,
+				     LIBINPUT_SWITCH_STATE_ON);
+	}
+}
+
 struct evdev_dispatch_interface lid_switch_interface = {
 	lid_switch_process,
 	NULL, /* suspend */
@@ -1368,7 +1389,7 @@ struct evdev_dispatch_interface lid_switch_interface = {
 	NULL, /* device_removed */
 	NULL, /* device_suspended */
 	NULL, /* device_resumed */
-	NULL, /* post_added */
+	lid_switch_sync_initial_state,
 	NULL, /* toggle_touch */
 };
 
