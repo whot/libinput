@@ -1562,19 +1562,19 @@ tp_lid_switch_event(uint64_t time, struct libinput_event *event, void *data)
 	struct tp_dispatch *tp = data;
 	struct libinput_event_switch *swev;
 
-	swev = libinput_event_get_switch_event(event);
+	if (libinput_event_get_type(event) != LIBINPUT_EVENT_SWITCH_TOGGLE)
+		return;
 
-	if (swev) {
-		switch (libinput_event_switch_get_switch_state(swev)) {
-		case LIBINPUT_SWITCH_STATE_OFF:
-			tp_resume(tp, tp->device);
-			log_debug(tp_libinput_context(tp), "lid: resume touchpad\n");
-			break;
-		case LIBINPUT_SWITCH_STATE_ON:
-			tp_suspend(tp, tp->device);
-			log_debug(tp_libinput_context(tp), "lid: suspend touchpad\n");
-			break;
-		}
+	swev = libinput_event_get_switch_event(event);
+	switch (libinput_event_switch_get_switch_state(swev)) {
+	case LIBINPUT_SWITCH_STATE_OFF:
+		tp_resume(tp, tp->device);
+		log_debug(tp_libinput_context(tp), "lid: resume touchpad\n");
+		break;
+	case LIBINPUT_SWITCH_STATE_ON:
+		tp_suspend(tp, tp->device);
+		log_debug(tp_libinput_context(tp), "lid: suspend touchpad\n");
+		break;
 	}
 }
 
