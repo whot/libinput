@@ -1945,6 +1945,12 @@ libinput_dispatch(struct libinput *libinput)
 }
 
 void
+libinput_device_init_event_listener(struct libinput_event_listener *listener)
+{
+	list_init(&listener->link);
+}
+
+void
 libinput_device_add_event_listener(struct libinput_device *device,
 				   struct libinput_event_listener *listener,
 				   void (*notify_func)(
