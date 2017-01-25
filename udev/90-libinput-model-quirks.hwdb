@@ -187,3 +187,12 @@ libinput:touchpad:input:b0003v056Ap*
 ##########################################
 libinput:name:*Trackball*:dmi:*
  LIBINPUT_MODEL_TRACKBALL=1
+
+##########################################
+# Chassis types 9 (Laptop) and 10
+# (Notebook) are expected to have working
+# lid switches
+##########################################
+libinput:name:*Lid Switch*:dmi:*:ct10:*
+libinput:name:*Lid Switch*:dmi:*:ct9:*
+ LIBINPUT_ATTR_LID_SWITCH_RELIABILITY=reliable
