@@ -908,6 +908,45 @@ START_TEST(dimension_prop_parser)
 }
 END_TEST
 
+struct parser_test_reliability {
+	char *tag;
+	bool success;
+	enum switch_reliability reliability;
+};
+
+START_TEST(reliability_prop_parser)
+{
+	struct parser_test_reliability tests[] = {
+		{ "reliable", true, RELIABILITY_RELIABLE },
+		{ "unreliable", false, 0 },
+		{ "", false, 0 },
+		{ "0", false, 0 },
+		{ "1", false, 0 },
+		{ NULL, false, 0, }
+	};
+	enum switch_reliability r;
+	bool success;
+	int i;
+
+	for (i = 0; tests[i].tag != NULL; i++) {
+		r = 0xaf;
+		success = parse_switch_reliability_property(tests[i].tag, &r);
+		ck_assert(success == tests[i].success);
+		if (success)
+			ck_assert_int_eq(r, tests[i].reliability);
+		else
+			ck_assert_int_eq(r, 0xaf);
+	}
+
+	success = parse_switch_reliability_property(NULL, &r);
+	ck_assert(success == true);
+	ck_assert_int_eq(r, RELIABILITY_UNKNOWN);
+
+	success = parse_switch_reliability_property("foo", NULL);
+	ck_assert(success == false);
+}
+END_TEST
+
 START_TEST(time_conversion)
 {
 	ck_assert_int_eq(us(10), 10);
@@ -1180,6 +1219,7 @@ litest_setup_tests_misc(void)
 	litest_add_no_device("misc:parser", wheel_click_count_parser);
 	litest_add_no_device("misc:parser", trackpoint_accel_parser);
 	litest_add_no_device("misc:parser", dimension_prop_parser);
+	litest_add_no_device("misc:parser", reliability_prop_parser);
 	litest_add_no_device("misc:parser", safe_atoi_test);
 	litest_add_no_device("misc:parser", safe_atod_test);
 	litest_add_no_device("misc:parser", strsplit_test);

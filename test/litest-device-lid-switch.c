@@ -49,7 +49,8 @@ static const char udev_rule[] =
 "KERNEL!=\"event*\", GOTO=\"switch_end\"\n"
 "\n"
 "ATTRS{name}==\"litest Lid Switch*\",\\\n"
-"    ENV{ID_INPUT_SWITCH}=\"1\"\n"
+"    ENV{ID_INPUT_SWITCH}=\"1\",\\\n"
+"    ENV{LIBINPUT_ATTR_LID_SWITCH_RELIABILITY}=\"reliable\"\n"
 "\n"
 "LABEL=\"switch_end\"";
 

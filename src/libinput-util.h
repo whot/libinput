@@ -377,6 +377,15 @@ int parse_mouse_wheel_click_count_property(const char *prop);
 double parse_trackpoint_accel_property(const char *prop);
 bool parse_dimension_property(const char *prop, size_t *width, size_t *height);
 
+enum switch_reliability {
+	RELIABILITY_UNKNOWN,
+	RELIABILITY_RELIABLE,
+};
+
+bool
+parse_switch_reliability_property(const char *prop,
+				  enum switch_reliability *reliability);
+
 static inline uint64_t
 us(uint64_t us)
 {

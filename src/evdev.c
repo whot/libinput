@@ -1356,6 +1356,25 @@ lid_switch_process(struct evdev_dispatch *evdev_dispatch,
 	}
 }
 
+static inline enum switch_reliability
+evdev_read_switch_reliability_prop(struct evdev_device *device)
+{
+	const char *prop;
+	enum switch_reliability r;
+
+	prop = udev_device_get_property_value(device->udev_device,
+					      "LIBINPUT_ATTR_LID_SWITCH_RELIABILITY");
+	if (!parse_switch_reliability_property(prop, &r)) {
+		log_error(evdev_libinput_context(device),
+			  "%s: switch reliability set to unknown value '%s'\n",
+			  device->devname,
+			  prop);
+		r =  RELIABILITY_UNKNOWN;
+	}
+
+	return r;
+}
+
 static void
 lid_switch_destroy(struct evdev_dispatch *evdev_dispatch)
 {
@@ -1372,10 +1391,25 @@ lid_switch_sync_initial_state(struct evdev_device *device,
 	struct lid_switch_dispatch *dispatch =
 		(struct lid_switch_dispatch*)evdev_dispatch;
 	struct libevdev *evdev = device->evdev;
+	bool is_closed = false;
 
-	dispatch->lid_is_closed = libevdev_get_event_value(evdev,
-							   EV_SW,
-							   SW_LID);
+	/* For the initial state sync, we depend on whether the lid switch
+	 * is reliable. If we know it's reliable, we sync as expected.
+	 * If we're not sure, we ignore the initial state and only sync on
+	 * the first future lid close event. Laptops with a broken switch
+	 * that always have the switch in 'on' state thus don't mess up our
+	 * touchpad.
+	 */
+	switch(evdev_read_switch_reliability_prop(device)) {
+	case RELIABILITY_UNKNOWN:
+		is_closed = false;
+		break;
+	case RELIABILITY_RELIABLE:
+		is_closed = libevdev_get_event_value(evdev, EV_SW, SW_LID);
+		break;
+	}
+
+	dispatch->lid_is_closed = is_closed;
 	if (dispatch->lid_is_closed) {
 		uint64_t time;
 		time = libinput_now(evdev_libinput_context(device));

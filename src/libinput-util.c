@@ -278,6 +278,23 @@ parse_dimension_property(const char *prop, size_t *w, size_t *h)
 	return true;
 }
 
+bool
+parse_switch_reliability_property(const char *prop,
+				  enum switch_reliability *reliability)
+{
+	if (!prop) {
+		*reliability = RELIABILITY_UNKNOWN;
+		return true;
+	}
+
+	if (streq(prop, "reliable"))
+		*reliability = RELIABILITY_RELIABLE;
+	else
+		return false;
+
+	return true;
+}
+
 /**
  * Return the next word in a string pointed to by state before the first
  * separator character. Call repeatedly to tokenize a whole string.
