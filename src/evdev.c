@@ -1317,10 +1317,16 @@ lid_switch_process_switch(struct lid_switch_dispatch *dispatch,
 			  struct input_event *e,
 			  uint64_t time)
 {
+	bool is_closed;
+
 	switch (e->code) {
 	case SW_LID:
-		dispatch->lid_is_closed = !!e->value;
+		is_closed = !!e->value;
 
+		if (dispatch->lid_is_closed == is_closed)
+			return;
+
+		dispatch->lid_is_closed = is_closed;
 		switch_notify_toggle(&device->base,
 				     time,
 				     LIBINPUT_SWITCH_LID,
