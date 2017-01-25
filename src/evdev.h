@@ -336,12 +336,6 @@ struct fallback_dispatch {
 	bool ignore_events;
 };
 
-struct lid_switch_dispatch {
-	struct evdev_dispatch base;
-
-	bool lid_is_closed;
-};
-
 struct evdev_device *
 evdev_device_create(struct libinput_seat *seat,
 		    struct udev_device *device);
@@ -362,6 +356,10 @@ void
 evdev_read_calibration_prop(struct evdev_device *device);
 
 void
+evdev_init_sendevents(struct evdev_device *device,
+		      struct evdev_dispatch *dispatch);
+
+void
 evdev_device_init_pointer_acceleration(struct evdev_device *device,
 				       struct motion_filter *filter);
 
@@ -376,6 +374,9 @@ evdev_tablet_create(struct evdev_device *device);
 
 struct evdev_dispatch *
 evdev_tablet_pad_create(struct evdev_device *device);
+
+struct evdev_dispatch *
+evdev_lid_switch_dispatch_create(struct evdev_device *device);
 
 void
 evdev_device_led_update(struct evdev_device *device, enum libinput_led leds);
