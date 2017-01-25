@@ -293,6 +293,71 @@ START_TEST(lid_disable_touchpad_already_open)
 }
 END_TEST
 
+START_TEST(lid_open_on_key)
+{
+	struct litest_device *sw = litest_current_device();
+	struct litest_device *keyboard;
+	struct libinput *li = sw->libinput;
+	struct libinput_event *event;
+
+	keyboard = litest_add_device(li, LITEST_KEYBOARD);
+
+	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_drain_events(li);
+
+	litest_event(keyboard, EV_KEY, KEY_A, 1);
+	litest_event(keyboard, EV_SYN, SYN_REPORT, 0);
+	litest_event(keyboard, EV_KEY, KEY_A, 0);
+	litest_event(keyboard, EV_SYN, SYN_REPORT, 0);
+	libinput_dispatch(li);
+
+	litest_wait_for_event_of_type(li, LIBINPUT_EVENT_SWITCH_TOGGLE, -1);
+	event = libinput_get_event(li);
+	litest_is_switch_event(event,
+			       LIBINPUT_SWITCH_LID,
+			       LIBINPUT_SWITCH_STATE_OFF);
+
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_KEYBOARD_KEY);
+
+	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_OFF);
+	litest_assert_empty_queue(li);
+
+	libinput_event_destroy(event);
+	litest_delete_device(keyboard);
+}
+END_TEST
+
+START_TEST(lid_open_on_key_touchpad_enabled)
+{
+	struct litest_device *sw = litest_current_device();
+	struct litest_device *keyboard, *touchpad;
+	struct libinput *li = sw->libinput;
+
+	keyboard = litest_add_device(li, LITEST_KEYBOARD);
+	touchpad = litest_add_device(li, LITEST_SYNAPTICS_I2C);
+
+	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_drain_events(li);
+
+	litest_event(keyboard, EV_KEY, KEY_A, 1);
+	litest_event(keyboard, EV_SYN, SYN_REPORT, 0);
+	litest_event(keyboard, EV_KEY, KEY_A, 0);
+	litest_event(keyboard, EV_SYN, SYN_REPORT, 0);
+	litest_drain_events(li);
+	litest_timeout_dwt_long();
+
+	litest_touch_down(touchpad, 0, 50, 50);
+	litest_touch_move_to(touchpad, 0, 50, 50, 70, 70, 10, 1);
+	litest_touch_up(touchpad, 0);
+	libinput_dispatch(li);
+
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_POINTER_MOTION);
+
+	litest_delete_device(keyboard);
+	litest_delete_device(touchpad);
+}
+END_TEST
+
 void
 litest_setup_tests_lid(void)
 {
@@ -304,4 +369,7 @@ litest_setup_tests_lid(void)
 	litest_add("lid:disable_touchpad", lid_disable_touchpad_edge_scroll, LITEST_SWITCH, LITEST_ANY);
 	litest_add("lid:disable_touchpad", lid_disable_touchpad_edge_scroll_interrupt, LITEST_SWITCH, LITEST_ANY);
 	litest_add("lid:disable_touchpad", lid_disable_touchpad_already_open, LITEST_SWITCH, LITEST_ANY);
+
+	litest_add("lid:keyboard", lid_open_on_key, LITEST_SWITCH, LITEST_ANY);
+	litest_add("lid:keyboard", lid_open_on_key_touchpad_enabled, LITEST_SWITCH, LITEST_ANY);
 }

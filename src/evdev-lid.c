@@ -30,9 +30,55 @@
 
 struct lid_switch_dispatch {
 	struct evdev_dispatch base;
+	struct evdev_device *device;
 
 	bool lid_is_closed;
+
+	struct {
+		struct evdev_device *keyboard;
+		struct libinput_event_listener listener;
+	} keyboard;
 };
+
+static void
+lid_switch_keyboard_event(uint64_t time,
+			  struct libinput_event *event,
+			  void *data)
+{
+	struct lid_switch_dispatch *dispatch =
+		(struct lid_switch_dispatch*)data;
+
+	if (!dispatch->lid_is_closed)
+		return;
+
+	if (event->type != LIBINPUT_EVENT_KEYBOARD_KEY)
+		return;
+
+	dispatch->lid_is_closed = false;
+	switch_notify_toggle(&dispatch->device->base,
+			     time,
+			     LIBINPUT_SWITCH_LID,
+			     dispatch->lid_is_closed);
+}
+
+static void
+lid_switch_toggle_keyboard_listener(struct lid_switch_dispatch *dispatch,
+				    bool is_closed)
+{
+	if (!dispatch->keyboard.keyboard)
+		return;
+
+	if (is_closed) {
+		libinput_device_add_event_listener(
+					   &dispatch->keyboard.keyboard->base,
+					   &dispatch->keyboard.listener,
+					   lid_switch_keyboard_event,
+					   dispatch);
+	} else {
+		libinput_device_remove_event_listener(
+						      &dispatch->keyboard.listener);
+	}
+}
 
 static void
 lid_switch_process_switch(struct lid_switch_dispatch *dispatch,
@@ -49,7 +95,11 @@ lid_switch_process_switch(struct lid_switch_dispatch *dispatch,
 		if (dispatch->lid_is_closed == is_closed)
 			return;
 
+		lid_switch_toggle_keyboard_listener(dispatch,
+						    is_closed);
+
 		dispatch->lid_is_closed = is_closed;
+
 		switch_notify_toggle(&device->base,
 				     time,
 				     LIBINPUT_SWITCH_LID,
@@ -108,6 +158,56 @@ lid_switch_destroy(struct evdev_dispatch *evdev_dispatch)
 }
 
 static void
+lid_switch_pair_keyboard(struct evdev_device *lid_switch,
+			 struct evdev_device *keyboard)
+{
+	struct lid_switch_dispatch *dispatch =
+		(struct lid_switch_dispatch*)lid_switch->dispatch;
+	unsigned int bus_kbd = libevdev_get_id_bustype(keyboard->evdev);
+
+	if ((keyboard->tags & EVDEV_TAG_KEYBOARD) == 0)
+		return;
+
+	/* If we already have a keyboard paired, override it if the new one
+	 * is a serio device. Otherwise keep the current one */
+	if (dispatch->keyboard.keyboard) {
+		if (bus_kbd != BUS_I8042)
+			return;
+		libinput_device_remove_event_listener(&dispatch->keyboard.listener);
+	}
+
+	dispatch->keyboard.keyboard = keyboard;
+	log_debug(evdev_libinput_context(lid_switch),
+		  "lid: keyboard paired with %s<->%s\n",
+		  lid_switch->devname,
+		  keyboard->devname);
+
+	/* We don't init the event listener yet - we don't care about
+	 * keyboard events until the lid is closed */
+}
+
+static void
+lid_switch_interface_device_added(struct evdev_device *device,
+				  struct evdev_device *added_device)
+{
+	lid_switch_pair_keyboard(device, added_device);
+}
+
+static void
+lid_switch_interface_device_removed(struct evdev_device *device,
+				    struct evdev_device *removed_device)
+{
+	struct lid_switch_dispatch *dispatch =
+		(struct lid_switch_dispatch*)device->dispatch;
+
+	if (removed_device == dispatch->keyboard.keyboard) {
+		libinput_device_remove_event_listener(
+				      &dispatch->keyboard.listener);
+		dispatch->keyboard.keyboard = NULL;
+	}
+}
+
+static void
 lid_switch_sync_initial_state(struct evdev_device *device,
 			      struct evdev_dispatch *evdev_dispatch)
 {
@@ -148,10 +248,10 @@ struct evdev_dispatch_interface lid_switch_interface = {
 	NULL, /* suspend */
 	NULL, /* remove */
 	lid_switch_destroy,
-	NULL, /* device_added */
-	NULL, /* device_removed */
-	NULL, /* device_suspended */
-	NULL, /* device_resumed */
+	lid_switch_interface_device_added,
+	lid_switch_interface_device_removed,
+	lid_switch_interface_device_removed, /* device_suspended, treat as remove */
+	lid_switch_interface_device_added,   /* device_resumed, treat as add */
 	lid_switch_sync_initial_state,
 	NULL, /* toggle_touch */
 };
@@ -165,6 +265,8 @@ evdev_lid_switch_dispatch_create(struct evdev_device *lid_device)
 		return NULL;
 
 	dispatch->base.interface = &lid_switch_interface;
+	dispatch->device = lid_device;
+	libinput_device_init_event_listener(&dispatch->keyboard.listener);
 
 	evdev_init_sendevents(lid_device, &dispatch->base);
 
