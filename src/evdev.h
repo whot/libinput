@@ -619,17 +619,8 @@ evdev_to_left_handed(struct evdev_device *device,
  * Otherwise, the center has a dead zone of size margin around it and the
  * first reachable point is the margin edge.
  *
- * Hysteresis is handled separately per axis (and the window is thus
- * rectangular, not circular). It is unkown if that's an issue, but the
- * calculation to do circular hysteresis are nontrivial, especially since
- * many touchpads have uneven x/y resolutions.
- *
- * Given coordinates, 0, 1, 2, ... this is what we return for a margin of 3
- * and a center of 0:
- *
- * Input:  1 2 3 4 5 6 5 4 3 2 1 0 -1
- * Coord:  0 0 0 1 2 3 3 3 3 3 3 3 2
- * Center: 0 0 0 1 2 3 3 3 3 3 3 3 2
+ * If either x or y is outside the margin, then the hysteresis is applied to
+ * both axes.
  *
  * Problem: viewed from a stationary finger that starts moving, the
  * hysteresis margin is M in both directions. Once we start moving
@@ -643,17 +634,66 @@ evdev_to_left_handed(struct evdev_device *device,
  *
  * @return The new center of the hysteresis
  */
-static inline int
-evdev_hysteresis(int in, int center, int margin)
+
+static inline struct device_coords
+evdev_hysteresis(const struct device_coords point,
+		 const struct device_coords center,
+		 const struct device_coords margin)
 {
-	int diff = in - center;
-	if (abs(diff) <= margin)
+	struct device_coords diff;
+	struct device_coords p;
+	int offset = 0;
+	float ratio;
+
+	diff.x = point.x - center.x;
+	diff.y = point.y - center.y;
+
+	/* do we need to test for a real circle here? */
+	if (abs(diff.x) <= margin.x && abs(diff.y) <= margin.y)
 		return center;
 
-	if (diff > 0)
-		return in - margin;
+	/* If we're outside the margin, we always move back by
+	 * the margin, never any other value. So we can use a few tricks to
+	 * make this easier to calculate because there are a finite number
+	 * of vectors we use to move back (2*margin). And the margin is
+	 * usually small, so there's rounding anyway to meet the integer
+	 * coordinates. Thus the algorithm is:
+	 *
+	 * For a movement vector (x, y), calculate the ratio y:x.
+	 * Multiply that ratio by the margin, the vector
+	 * (-margin, -int(margin * ratio)) is now the vector to subtract
+	 * from (x, y). Add the right x/y swapping and the infinity
+	 * exceptions and we're good.
+	 *
+	 * Example for margin 8:
+	 * (20, 1) -> ratio 0.05 -> vec (-8, 0) -> final position (12, 1)
+	 * (20, 10) -> ratio 0.5 -> vec (-8, -4) -> final position (12, 6)
+	 * (20, 20) -> ratio 1.0 -> vec (-8, -8) -> final position (12, 12)
+	 *
+	 * And if y > x we swap things around:
+	 * (10, 20) -> ratio 0.5 -> vec (-4, -8) -> final position (6, 12)
+	 * ...
+	 */
+
+	p = point;
+	if (diff.x == 0 || diff.y == 0)
+		goto out;
 	else
-		return in + margin;
+		ratio = 1.0 * max(abs(diff.x), abs(diff.y))/
+				min(abs(diff.x), abs(diff.y));
+
+	offset = (int)(margin.x/ratio);
+
+out:
+	if (diff.x >= diff.y) {
+		p.x -= margin.x * ((diff.x > 0) ? 1 : -1);
+		p.y -= offset * ((diff.y > 0) ? 1 : -1);
+	} else {
+		p.x -= offset * ((diff.x > 0) ? 1 : -1);
+		p.y -= margin.x * ((diff.y > 0) ? 1 : -1);
+	}
+
+	return p;
 }
 
 static inline struct libinput *
