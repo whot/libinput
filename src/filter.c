@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -310,6 +311,9 @@ calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
 		}
 	}
 
+	printf("____ tdelta: %" PRIu64"\n",
+	       time - tracker->time);
+
 	return result; /* units/us */
 }
 
@@ -437,13 +441,23 @@ accelerator_filter_post_normalized(struct motion_filter *filter,
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
 	struct device_float_coords accelerated;
+	struct normalized_coords norm;
 
 	/* Accelerate for device units, normalize afterwards */
 	accelerated = accelerator_filter_generic(filter,
 						 unaccelerated,
 						 data,
 						 time);
-	return normalize_for_dpi(&accelerated, accel->dpi);
+
+	norm = normalize_for_dpi(&accelerated, accel->dpi);
+
+	printf(":: %ldms dpi %d unaccel %.2f/%.2f accelerated %.2f/%.2f normalized %.2f/%.2f\n",
+	       time/1000,
+	       accel->dpi, unaccelerated->x, unaccelerated->y,
+	       accelerated.x, accelerated.y,
+	       norm.x, norm.y);
+
+	return norm;
 }
 
 static struct normalized_coords
@@ -799,6 +813,7 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	const double threshold = accel_filter->threshold; /* units/us */
 	const double incline = accel_filter->incline;
 	double factor; /* unitless */
+	double raw_speed = speed_in;
 
 	/* Convert to mm/s because that's something one can understand */
 	speed_in = v_us2s(speed_in) * 25.4/accel_filter->dpi;
@@ -861,6 +876,9 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 
 	/* Scale everything depending on the acceleration set */
 	factor *= 1 + 0.5 * filter->speed_adjustment;
+
+	printf("..... raw-speed %f mmps %f factor %f (before magic)\n",
+	       raw_speed, speed_in, factor);
 
 	return factor * TP_MAGIC_SLOWDOWN;
 }
