@@ -1,5 +1,6 @@
 lib_LTLIBRARIES = libinput.la
 noinst_LTLIBRARIES = libinput-util.la \
+		     libinput-evfd.la \
 		     libfilter.la
 
 include_HEADERS =			\
@@ -70,6 +71,15 @@ libfilter_la_SOURCES = \
 	filter-private.h
 libfilter_la_LIBADD =
 libfilter_la_CFLAGS =
+
+libinput_evfd_la_SOURCES =\
+	evfd-seat.c		\
+	evfd-seat.h		\
+	$(libinput_la_SOURCES)
+
+libinput_evfd_la_LIBADD = $(libinput_la_LIBADD)
+libinput_evfd_la_LDFLAGS = --shared
+libinput_evfd_la_CFLAGS = $(libinput_la_CFLAGS)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libinput.pc

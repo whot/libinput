@@ -80,6 +80,12 @@ struct libinput_source {
 	struct list link;
 };
 
+libinput_source_dispatch_t
+libinput_source_get_dispatch(const struct libinput_source *s)
+{
+	return s->dispatch;
+}
+
 struct libinput_event_device_notify {
 	struct libinput_event base;
 };

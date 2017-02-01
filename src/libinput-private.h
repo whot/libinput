@@ -433,6 +433,9 @@ void
 libinput_remove_source(struct libinput *libinput,
 		       struct libinput_source *source);
 
+libinput_source_dispatch_t
+libinput_source_get_dispatch(const struct libinput_source *s);
+
 int
 open_restricted(struct libinput *libinput,
 		const char *path, int flags);
@@ -785,4 +788,5 @@ device_float_get_direction(struct device_float_coords coords)
 {
 	return xy_get_direction(coords.x, coords.y);
 }
+
 #endif /* LIBINPUT_PRIVATE_H */
