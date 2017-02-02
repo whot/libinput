@@ -577,7 +577,10 @@ litest_add_tcase_no_device(struct suite *suite,
 	t->name = strdup(test_name);
 	t->tc = tcase_create(test_name);
 	list_insert(&suite->tests, &t->node);
-	tcase_add_test(t->tc, func);
+	if (range)
+		tcase_add_loop_test(t->tc, func, range->lower, range->upper);
+	else
+		tcase_add_test(t->tc, func);
 	suite_add_tcase(suite->suite, t->tc);
 }
 
