@@ -49,6 +49,7 @@
 #include "litest.h"
 #include "litest-int.h"
 #include "libinput-util.h"
+#include "evfd-seat.h"
 
 #define UDEV_RULES_D "/run/udev/rules.d"
 #define UDEV_RULE_PREFIX "99-litest-"
@@ -1250,6 +1251,20 @@ litest_create_context(void)
 {
 	struct libinput *libinput =
 		libinput_path_create_context(&interface, NULL);
+	litest_assert_notnull(libinput);
+
+	libinput_log_set_handler(libinput, litest_log_handler);
+	if (verbose)
+		libinput_log_set_priority(libinput, LIBINPUT_LOG_PRIORITY_DEBUG);
+
+	return libinput;
+}
+
+struct libinput *
+litest_create_evfd_context(void)
+{
+	struct libinput *libinput =
+		libinput_evfd_create_context(&interface, NULL);
 	litest_assert_notnull(libinput);
 
 	libinput_log_set_handler(libinput, litest_log_handler);

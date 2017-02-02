@@ -310,6 +310,8 @@ struct range {
 };
 
 struct libinput *litest_create_context(void);
+struct libinput *litest_create_evfd_context(void);
+
 void litest_disable_log_handler(struct libinput *libinput);
 void litest_restore_log_handler(struct libinput *libinput);
 void litest_set_log_handler_bug(struct libinput *libinput);
