@@ -187,3 +187,27 @@ libinput:touchpad:input:b0003v056Ap*
 ##########################################
 libinput:name:*Trackball*:dmi:*
  LIBINPUT_MODEL_TRACKBALL=1
+
+# The T440s (main development laptop for libinput atm) is
+# at 1920x1080 at 14.1". Adjust the scale factor below 
+# to match your display. 2.4 is the scale factor for a 3840
+# width at 14.1". This doesn't have to be precise, it's just
+# for testing.
+#
+# The match rule below is designed to work on any touchpad
+# THIS IS A TEMPORARY FIX FOR TESTING, DON'T FILE BUGS IF IT DOESNT WORK. If
+# you do, I *will* hunt you down and force you to buy me beers.
+#
+# HOW TO USE THIS:
+# * copy this file into /etc/udev/hwdb.d or edit the one in
+#   /usr/lib/udev/hwdb.d
+# * sudo udevadm hwdb --update
+# * sudo udevadm test /sys/class/input/event4
+#   replace the event node if needed (sudo evemu-record tells you which one)
+# * make sure the TEST_HIDPI_SCALE_FACTOR shows up in the output
+# * if it does, restart X/Wayland
+# * check the log/journal for a "::: %s: using scale factor of %f\n" message
+# * test how the device moves
+#
+libinput:touchpad:input:*
+  TEST_HIDPI_SCALE_FACTOR=2.4

@@ -177,6 +177,8 @@ struct pointer_accelerator {
 	double incline;		/* incline of the function */
 
 	int dpi;
+
+	double hidpi_scale_factor;
 };
 
 struct pointer_accelerator_flat {
@@ -437,13 +439,20 @@ accelerator_filter_post_normalized(struct motion_filter *filter,
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
 	struct device_float_coords accelerated;
+	struct normalized_coords norm;
 
 	/* Accelerate for device units, normalize afterwards */
 	accelerated = accelerator_filter_generic(filter,
 						 unaccelerated,
 						 data,
 						 time);
-	return normalize_for_dpi(&accelerated, accel->dpi);
+	norm = normalize_for_dpi(&accelerated, accel->dpi);
+	if (accel->hidpi_scale_factor != 0.0) {
+		norm.x *= accel->hidpi_scale_factor;
+		norm.y *= accel->hidpi_scale_factor;
+	}
+
+	return norm;
 }
 
 static struct normalized_coords
@@ -1017,7 +1026,7 @@ struct motion_filter_interface accelerator_interface_touchpad = {
 };
 
 struct motion_filter *
-create_pointer_accelerator_filter_touchpad(int dpi)
+create_pointer_accelerator_filter_touchpad(int dpi, double hidpi_scale_factor)
 {
 	struct pointer_accelerator *filter;
 
@@ -1027,6 +1036,7 @@ create_pointer_accelerator_filter_touchpad(int dpi)
 
 	filter->base.interface = &accelerator_interface_touchpad;
 	filter->profile = touchpad_accel_profile_linear;
+	filter->hidpi_scale_factor = hidpi_scale_factor;
 
 	return &filter->base;
 }

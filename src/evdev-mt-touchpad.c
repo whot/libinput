@@ -27,6 +27,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <libudev.h>
 
 #include "evdev-mt-touchpad.h"
 
@@ -1886,8 +1887,25 @@ tp_init_accel(struct tp_dispatch *tp)
 	if (tp->device->model_flags & EVDEV_MODEL_LENOVO_X230 ||
 	    tp->device->model_flags & EVDEV_MODEL_LENOVO_X220_TOUCHPAD_FW81)
 		filter = create_pointer_accelerator_filter_lenovo_x230(tp->device->dpi);
-	else
-		filter = create_pointer_accelerator_filter_touchpad(tp->device->dpi);
+	else {
+		double hidpi_factor = 1.0;
+		const char *prop;
+
+		prop = udev_device_get_property_value(device->udev_device,
+						      "TEST_HIDPI_SCALE_FACTOR");
+		if (prop && safe_atod(prop, &hidpi_factor)) {
+			if (hidpi_factor == 0.0)
+				hidpi_factor = 1.0;
+
+			log_info(tp_libinput_context(tp),
+				 "::: %s: using scale factor of %f\n",
+				 device->devname,
+				 hidpi_factor);
+		}
+
+		filter = create_pointer_accelerator_filter_touchpad(tp->device->dpi,
+								    hidpi_factor);
+	}
 
 	if (!filter)
 		return false;

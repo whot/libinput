@@ -314,7 +314,7 @@ main(int argc, char **argv)
 		filter = create_pointer_accelerator_filter_linear_low_dpi(dpi);
 		profile = pointer_accel_profile_linear_low_dpi;
 	} else if (streq(filter_type, "touchpad")) {
-		filter = create_pointer_accelerator_filter_touchpad(dpi);
+		filter = create_pointer_accelerator_filter_touchpad(dpi, 1.0);
 		profile = touchpad_accel_profile_linear;
 	} else if (streq(filter_type, "x230")) {
 		filter = create_pointer_accelerator_filter_lenovo_x230(dpi);

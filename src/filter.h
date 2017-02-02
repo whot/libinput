@@ -114,7 +114,7 @@ struct motion_filter *
 create_pointer_accelerator_filter_linear_low_dpi(int dpi);
 
 struct motion_filter *
-create_pointer_accelerator_filter_touchpad(int dpi);
+create_pointer_accelerator_filter_touchpad(int dpi, double hidpi_factor);
 
 struct motion_filter *
 create_pointer_accelerator_filter_lenovo_x230(int dpi);
