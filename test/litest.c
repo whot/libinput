@@ -3373,6 +3373,7 @@ main(int argc, char **argv)
 	litest_setup_tests_device();
 	litest_setup_tests_gestures();
 	litest_setup_tests_lid();
+	litest_setup_tests_accel();
 
 	if (mode == LITEST_MODE_LIST) {
 		litest_list_tests(&all_tests);

@@ -50,6 +50,7 @@ extern void litest_setup_tests_keyboard(void);
 extern void litest_setup_tests_device(void);
 extern void litest_setup_tests_gestures(void);
 extern void litest_setup_tests_lid(void);
+extern void litest_setup_tests_accel(void);
 
 void
 litest_fail_condition(const char *file,
