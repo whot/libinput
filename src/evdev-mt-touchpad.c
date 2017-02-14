@@ -1117,8 +1117,37 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 }
 
 static void
+tp_print_and_reset_statistics(struct tp_dispatch *tp, uint64_t time)
+{
+	double factor = tp->statistics.pixels/tp->statistics.pixels_unaccel;
+	uint64_t dtime = time - tp->statistics.start_time;
+	double speed = 0;
+
+	if (dtime != 0.0)
+		speed = tp->statistics.mm/(dtime/1000000.0);
+
+	log_debug(tp_libinput_context(tp),
+		  "%-7s: touch movement %.1fmm, "
+		  "pixels %.1f, raw px %.1f, "
+		  "avg factor %.1f, "
+		  "speed %.2fmm/s\n",
+		  evdev_device_get_sysname(tp->device),
+		  tp->statistics.mm,
+		  tp->statistics.pixels,
+		  tp->statistics.pixels_unaccel,
+		  factor,
+		  speed);
+
+	tp->statistics.pixels = 0;
+	tp->statistics.pixels_unaccel = 0;
+	tp->statistics.mm = 0;
+	tp->statistics.start_time = 0;
+}
+
+static void
 tp_post_process_state(struct tp_dispatch *tp, uint64_t time)
 {
+	bool want_statistics = false;
 	struct tp_touch *t;
 
 	tp_for_each_touch(tp, t) {
@@ -1127,11 +1156,14 @@ tp_post_process_state(struct tp_dispatch *tp, uint64_t time)
 			continue;
 
 		if (t->state == TOUCH_END) {
-			if (t->has_ended)
+			if (t->has_ended) {
+				want_statistics = true;
 				t->state = TOUCH_NONE;
-			else
+			} else {
 				t->state = TOUCH_HOVERING;
+			}
 		} else if (t->state == TOUCH_BEGIN) {
+			tp->statistics.start_time = time;
 			t->state = TOUCH_UPDATE;
 		}
 
@@ -1144,6 +1176,9 @@ tp_post_process_state(struct tp_dispatch *tp, uint64_t time)
 	tp->queued = TOUCHPAD_EVENT_NONE;
 
 	tp_tap_post_process_state(tp);
+
+	if (want_statistics)
+		tp_print_and_reset_statistics(tp, time);
 }
 
 static void

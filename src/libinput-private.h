@@ -707,6 +707,17 @@ normalized_is_zero(struct normalized_coords norm)
 	return norm.x == 0.0 && norm.y == 0.0;
 }
 
+static inline struct phys_coords
+normalized_to_mm(const struct normalized_coords *norm)
+{
+	struct phys_coords mm;
+
+	mm.x = 25.4 * norm->x/DEFAULT_MOUSE_DPI;
+	mm.y = 25.4 * norm->y/DEFAULT_MOUSE_DPI;
+
+	return mm;
+}
+
 static inline double
 length_in_mm(struct phys_coords mm)
 {

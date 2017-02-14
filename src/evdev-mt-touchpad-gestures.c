@@ -126,6 +126,20 @@ tp_gesture_start(struct tp_dispatch *tp, uint64_t time)
 	tp->gesture.started = true;
 }
 
+static inline void
+tp_add_statistics(struct tp_dispatch *tp,
+		  const struct normalized_coords *accelerated,
+		  const struct normalized_coords *unaccelerated)
+{
+	struct phys_coords mm;
+
+	tp->statistics.pixels += normalized_length(*accelerated);
+	tp->statistics.pixels_unaccel += normalized_length(*unaccelerated);
+
+	mm = normalized_to_mm(unaccelerated);
+	tp->statistics.mm += length_in_mm(mm);
+}
+
 static void
 tp_gesture_post_pointer_motion(struct tp_dispatch *tp, uint64_t time)
 {
@@ -146,6 +160,8 @@ tp_gesture_post_pointer_motion(struct tp_dispatch *tp, uint64_t time)
 				      time,
 				      &delta,
 				      &raw);
+
+		tp_add_statistics(tp, &delta, &unaccel);
 	}
 }
 
