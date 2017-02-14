@@ -390,6 +390,13 @@ struct tp_dispatch {
 		struct libinput_event_listener lid_switch_listener;
 		struct evdev_device *lid_switch;
 	} lid_switch;
+
+	struct {
+		uint64_t start_time;
+		double pixels;
+		double pixels_unaccel;
+		double mm;
+	} statistics;
 };
 
 static inline struct tp_dispatch*
