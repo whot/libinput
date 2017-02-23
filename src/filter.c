@@ -40,7 +40,7 @@
  * technically correct but subjectively wrong, we expect a touchpad to be a
  * lot slower than a mouse. Apply a magic factor to slow down all movements
  */
-#define TP_MAGIC_SLOWDOWN 0.37 /* unitless factor */
+#define TP_MAGIC_SLOWDOWN 0.29 /* unitless factor */
 
 /* Convert speed/velocity from units/us to units/ms */
 static inline double
@@ -135,10 +135,10 @@ filter_get_type(struct motion_filter *filter)
 #define DEFAULT_INCLINE 1.1			/* unitless factor */
 
 /* Touchpad acceleration */
-#define TOUCHPAD_DEFAULT_THRESHOLD 254		/* mm/s */
-#define TOUCHPAD_THRESHOLD_RANGE 184		/* mm/s */
-#define TOUCHPAD_ACCELERATION 9.0		/* unitless factor */
-#define TOUCHPAD_INCLINE 0.011			/* unitless factor */
+#define TOUCHPAD_DEFAULT_THRESHOLD 225		/* mm/s */
+#define TOUCHPAD_THRESHOLD_RANGE 25		/* mm/s */
+#define TOUCHPAD_ACCELERATION 3.0		/* unitless factor */
+#define TOUCHPAD_INCLINE 0.008			/* unitless factor */
 
 /* for the Lenovo x230 custom accel. do not touch */
 #define X230_THRESHOLD v_ms2us(0.4)		/* in units/us */
@@ -175,6 +175,7 @@ struct pointer_accelerator {
 	double threshold;	/* units/us */
 	double accel;		/* unitless factor */
 	double incline;		/* incline of the function */
+	double magic;		/* magic scaling factor */
 
 	int dpi;
 };
@@ -583,9 +584,16 @@ touchpad_accelerator_set_speed(struct motion_filter *filter,
 
 	/* adjust when accel kicks in */
 	accel_filter->threshold = TOUCHPAD_DEFAULT_THRESHOLD -
-		TOUCHPAD_THRESHOLD_RANGE * speed_adjustment;
+		TOUCHPAD_THRESHOLD_RANGE * (1 + speed_adjustment);
 	accel_filter->accel = TOUCHPAD_ACCELERATION;
 	accel_filter->incline = TOUCHPAD_INCLINE;
+
+	/* magic is the factor we scale everything by. For unaccelerated
+	 * motion, this is the baseline factor, for accelerated this scales
+	 * down the gain we otherwise calculate. 0.28 is a result of
+	 * trial&error, don't attach any meaning to it. */
+	accel_filter->magic = TP_MAGIC_SLOWDOWN + 0.28 * speed_adjustment;
+
 	filter->speed_adjustment = speed_adjustment;
 
 	return true;
@@ -810,7 +818,7 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 
 	  accel
 	 factor
-	   ^
+	   ^         ____
 	   |        /
 	   |  _____/
 	   | /
@@ -823,6 +831,9 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 		         x is speed_in
 			 a is the incline of acceleration
 			 b is minimum acceleration factor
+	   The flat bit is the unaccelerated 'baseline speed' where we
+	   merely slow down the input speed to provide reasonable pointer
+	   speed.
 
 	   for speeds up to the lower threshold, we decelerate, down to 30%
 	   of input speed.
@@ -836,7 +847,13 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	    has no other intrinsic meaning.
 	  * 0.3 is chosen simply because it is above the Nyquist frequency
 	    for subpixel motion within a pixel.
-	*/
+
+	  The acceleration setting [-1.0, 1.0] affects:
+	   * the baseline speed (higher setting -> faster baseline)
+	   * the incline's angle (higher setting -> steeper incline)
+	   * the threshold when accel kicks in (higher setting -> sooner)
+	 */
+
 	if (speed_in < 7.0) {
 		factor = 0.1 * speed_in + 0.3;
 	/* up to the threshold, we keep factor 1, i.e. 1:1 movement */
@@ -860,9 +877,7 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	factor = min(max_accel, factor);
 
 	/* Scale everything depending on the acceleration set */
-	factor *= 1 + 0.5 * filter->speed_adjustment;
-
-	return factor * TP_MAGIC_SLOWDOWN;
+	return factor * accel_filter->magic;
 }
 
 double
