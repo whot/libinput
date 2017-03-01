@@ -1421,7 +1421,6 @@ tablet_flush(struct tablet_dispatch *tablet,
 	}
 
 	if (tablet_has_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY)) {
-		memset(tablet->changed_axes, 0, sizeof(tablet->changed_axes));
 		tablet_notify_proximity(&device->base,
 					time,
 					tool,
