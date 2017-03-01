@@ -99,18 +99,6 @@ struct wheel_tilt_flags {
 	bool vertical, horizontal;
 };
 
-struct tablet_axes {
-	struct device_coords point;
-	struct normalized_coords delta;
-	double distance;
-	double pressure;
-	struct tilt_degrees tilt;
-	double rotation;
-	double slider;
-	double wheel;
-	int wheel_discrete;
-};
-
 struct libinput_interface_backend {
 	int (*resume)(struct libinput *libinput);
 	void (*suspend)(struct libinput *libinput);
@@ -334,6 +322,18 @@ enum libinput_tablet_tool_axis {
 };
 
 #define LIBINPUT_TABLET_TOOL_AXIS_MAX LIBINPUT_TABLET_TOOL_AXIS_REL_WHEEL
+
+struct tablet_axes {
+	struct device_coords point;
+	struct normalized_coords delta;
+	double distance;
+	double pressure;
+	struct tilt_degrees tilt;
+	double rotation;
+	double slider;
+	double wheel;
+	int wheel_discrete;
+};
 
 struct libinput_tablet_tool {
 	struct list link;
