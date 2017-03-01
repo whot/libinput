@@ -543,8 +543,10 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	const char tmp[sizeof(tablet->changed_axes)] = {0};
 	struct device_coords delta;
 
-	if (memcmp(tmp, tablet->changed_axes, sizeof(tmp)) == 0)
+	if (memcmp(tmp, tablet->changed_axes, sizeof(tmp)) == 0) {
+		*axes_out = tablet->axes;
 		return false;
+	}
 
 	tablet_handle_xy(tablet, device, &axes.point, &delta);
 	axes.pressure = tablet_handle_pressure(tablet, device, tool);
@@ -1270,11 +1272,144 @@ tablet_update_proximity_state(struct tablet_dispatch *tablet,
 	tablet_set_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY);
 }
 
+static inline bool
+tablet_send_proximity_in(struct tablet_dispatch *tablet,
+			 struct libinput_tablet_tool *tool,
+			 struct evdev_device *device,
+			 const struct tablet_axes *axes,
+			 uint64_t time)
+{
+	if (!tablet_has_status(tablet, TABLET_TOOL_ENTERING_PROXIMITY))
+		return false;
+
+	tablet_notify_proximity(&device->base,
+				time,
+				tool,
+				LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_IN,
+				tablet->changed_axes,
+				axes);
+	tablet_unset_status(tablet, TABLET_TOOL_ENTERING_PROXIMITY);
+	tablet_unset_status(tablet, TABLET_AXES_UPDATED);
+
+	return true;
+}
+
+static inline bool
+tablet_send_proximity_out(struct tablet_dispatch *tablet,
+			 struct libinput_tablet_tool *tool,
+			 struct evdev_device *device,
+			 const struct tablet_axes *axes,
+			 uint64_t time)
+{
+	if (!tablet_has_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY))
+		return false;
+
+	tablet_notify_proximity(&device->base,
+				time,
+				tool,
+				LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_OUT,
+				tablet->changed_axes,
+				axes);
+
+	tablet_set_status(tablet, TABLET_TOOL_OUT_OF_PROXIMITY);
+	tablet_unset_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY);
+
+	return true;
+}
+
+static inline bool
+tablet_send_tip(struct tablet_dispatch *tablet,
+		struct libinput_tablet_tool *tool,
+		struct evdev_device *device,
+		const struct tablet_axes *axes,
+		uint64_t time)
+{
+	if (tablet_has_status(tablet, TABLET_TOOL_ENTERING_CONTACT)) {
+		tablet_notify_tip(&device->base,
+				  time,
+				  tool,
+				  LIBINPUT_TABLET_TOOL_TIP_DOWN,
+				  tablet->changed_axes,
+				  axes);
+		tablet_unset_status(tablet, TABLET_AXES_UPDATED);
+		tablet_unset_status(tablet, TABLET_TOOL_ENTERING_CONTACT);
+		tablet_set_status(tablet, TABLET_TOOL_IN_CONTACT);
+		return true;
+	}
+
+	if (tablet_has_status(tablet, TABLET_TOOL_LEAVING_CONTACT)) {
+		tablet_notify_tip(&device->base,
+				  time,
+				  tool,
+				  LIBINPUT_TABLET_TOOL_TIP_UP,
+				  tablet->changed_axes,
+				  axes);
+		tablet_unset_status(tablet, TABLET_AXES_UPDATED);
+		tablet_unset_status(tablet, TABLET_TOOL_LEAVING_CONTACT);
+		tablet_unset_status(tablet, TABLET_TOOL_IN_CONTACT);
+		return true;
+	}
+
+	return false;
+}
+
+static inline void
+tablet_send_axes(struct tablet_dispatch *tablet,
+		 struct libinput_tablet_tool *tool,
+		 struct evdev_device *device,
+		 const struct tablet_axes *axes,
+		 uint64_t time)
+{
+	enum libinput_tablet_tool_tip_state tip_state;
+
+	if (!tablet_has_status(tablet, TABLET_AXES_UPDATED))
+		return;
+
+	if (tablet_has_status(tablet,
+			      TABLET_TOOL_IN_CONTACT))
+		tip_state = LIBINPUT_TABLET_TOOL_TIP_DOWN;
+	else
+		tip_state = LIBINPUT_TABLET_TOOL_TIP_UP;
+
+	tablet_notify_axis(&device->base,
+			   time,
+			   tool,
+			   tip_state,
+			   tablet->changed_axes,
+			   axes);
+	tablet_unset_status(tablet, TABLET_AXES_UPDATED);
+}
+
+static inline void
+tablet_send_buttons(struct tablet_dispatch *tablet,
+		    struct libinput_tablet_tool *tool,
+		    struct evdev_device *device,
+		    uint64_t time)
+{
+	if (tablet_has_status(tablet, TABLET_BUTTONS_RELEASED)) {
+		tablet_notify_buttons(tablet,
+				      device,
+				      time,
+				      tool,
+				      LIBINPUT_BUTTON_STATE_RELEASED);
+		tablet_unset_status(tablet, TABLET_BUTTONS_RELEASED);
+	}
+
+	if (tablet_has_status(tablet, TABLET_BUTTONS_PRESSED)) {
+		tablet_notify_buttons(tablet,
+				      device,
+				      time,
+				      tool,
+				      LIBINPUT_BUTTON_STATE_PRESSED);
+		tablet_unset_status(tablet, TABLET_BUTTONS_PRESSED);
+	}
+}
+
 static void
-tablet_send_axis_proximity_tip_down_events(struct tablet_dispatch *tablet,
-					   struct evdev_device *device,
-					   struct libinput_tablet_tool *tool,
-					   uint64_t time)
+tablet_send_events(struct tablet_dispatch *tablet,
+		   struct libinput_tablet_tool *tool,
+		   struct evdev_device *device,
+		   uint64_t time)
 {
 	struct tablet_axes axes = {0};
 
@@ -1288,66 +1423,21 @@ tablet_send_axis_proximity_tip_down_events(struct tablet_dispatch *tablet,
 		/* Dont' send an axis event, but we may have a tip event
 		 * update */
 		tablet_unset_status(tablet, TABLET_AXES_UPDATED);
-	} else if (!tablet_check_notify_axes(tablet,
-					     device,
-					     tool,
-					     &axes,
-					     time)) {
-		goto out;
+	} else {
+		tablet_check_notify_axes(tablet, device, tool, &axes, time);
 	}
 
-	if (tablet_has_status(tablet, TABLET_TOOL_ENTERING_PROXIMITY)) {
-		tablet_notify_proximity(&device->base,
-					time,
-					tool,
-					LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_IN,
-					tablet->changed_axes,
-					&axes);
-		tablet_unset_status(tablet, TABLET_TOOL_ENTERING_PROXIMITY);
-		tablet_unset_status(tablet, TABLET_AXES_UPDATED);
-	}
+	tablet_send_proximity_in(tablet, tool, device, &axes, time);
+	if (!tablet_send_tip(tablet, tool, device, &axes, time))
+		tablet_send_axes(tablet, tool, device, &axes, time);
 
-	if (tablet_has_status(tablet, TABLET_TOOL_ENTERING_CONTACT)) {
-		tablet_notify_tip(&device->base,
-				  time,
-				  tool,
-				  LIBINPUT_TABLET_TOOL_TIP_DOWN,
-				  tablet->changed_axes,
-				  &tablet->axes);
-		tablet_unset_status(tablet, TABLET_AXES_UPDATED);
-		tablet_unset_status(tablet, TABLET_TOOL_ENTERING_CONTACT);
-		tablet_set_status(tablet, TABLET_TOOL_IN_CONTACT);
-	} else if (tablet_has_status(tablet, TABLET_TOOL_LEAVING_CONTACT)) {
-		tablet_notify_tip(&device->base,
-				  time,
-				  tool,
-				  LIBINPUT_TABLET_TOOL_TIP_UP,
-				  tablet->changed_axes,
-				  &tablet->axes);
-		tablet_unset_status(tablet, TABLET_AXES_UPDATED);
-		tablet_unset_status(tablet, TABLET_TOOL_LEAVING_CONTACT);
-		tablet_unset_status(tablet, TABLET_TOOL_IN_CONTACT);
-	} else if (tablet_has_status(tablet, TABLET_AXES_UPDATED)) {
-		enum libinput_tablet_tool_tip_state tip_state;
-
-		if (tablet_has_status(tablet,
-				      TABLET_TOOL_IN_CONTACT))
-			tip_state = LIBINPUT_TABLET_TOOL_TIP_DOWN;
-		else
-			tip_state = LIBINPUT_TABLET_TOOL_TIP_UP;
-
-		tablet_notify_axis(&device->base,
-				   time,
-				   tool,
-				   tip_state,
-				   tablet->changed_axes,
-				   &axes);
-		tablet_unset_status(tablet, TABLET_AXES_UPDATED);
-	}
-
-out:
 	memset(tablet->changed_axes, 0, sizeof(tablet->changed_axes));
 	tablet_unset_status(tablet, TABLET_TOOL_ENTERING_CONTACT);
+
+	tablet_send_buttons(tablet, tool, device, time);
+
+	if (tablet_send_proximity_out(tablet, tool, device, &axes, time))
+		tablet_change_to_left_handed(device);
 }
 
 static void
@@ -1390,42 +1480,7 @@ tablet_flush(struct tablet_dispatch *tablet,
 		sanitize_tablet_axes(tablet, tool);
 	}
 
-	tablet_send_axis_proximity_tip_down_events(tablet,
-						   device,
-						   tool,
-						   time);
-
-	if (tablet_has_status(tablet, TABLET_BUTTONS_RELEASED)) {
-		tablet_notify_buttons(tablet,
-				      device,
-				      time,
-				      tool,
-				      LIBINPUT_BUTTON_STATE_RELEASED);
-		tablet_unset_status(tablet, TABLET_BUTTONS_RELEASED);
-	}
-
-	if (tablet_has_status(tablet, TABLET_BUTTONS_PRESSED)) {
-		tablet_notify_buttons(tablet,
-				      device,
-				      time,
-				      tool,
-				      LIBINPUT_BUTTON_STATE_PRESSED);
-		tablet_unset_status(tablet, TABLET_BUTTONS_PRESSED);
-	}
-
-	if (tablet_has_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY)) {
-		tablet_notify_proximity(&device->base,
-					time,
-					tool,
-					LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_OUT,
-					tablet->changed_axes,
-					&tablet->axes);
-
-		tablet_set_status(tablet, TABLET_TOOL_OUT_OF_PROXIMITY);
-		tablet_unset_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY);
-
-		tablet_change_to_left_handed(device);
-	}
+	tablet_send_events(tablet, tool, device, time);
 }
 
 static inline void
