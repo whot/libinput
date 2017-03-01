@@ -814,13 +814,18 @@ tp_unhover_pressure(struct tp_dispatch *tp, uint64_t time)
 		if (t->dirty) {
 			if (t->state == TOUCH_HOVERING) {
 				if (t->pressure >= tp->pressure.high) {
+					evdev_log_debug(tp->device,
+							"pressure: begin touch\n");
 					/* avoid jumps when landing a finger */
 					tp_motion_history_reset(t);
 					tp_begin_touch(tp, t, time);
 				}
 			} else {
-				if (t->pressure < tp->pressure.low)
+				if (t->pressure < tp->pressure.low) {
+					evdev_log_debug(tp->device,
+							"pressure: end touch\n");
 					tp_end_touch(tp, t, time);
+				}
 			}
 		}
 
