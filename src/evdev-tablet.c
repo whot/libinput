@@ -1278,14 +1278,7 @@ tablet_send_axis_proximity_tip_down_events(struct tablet_dispatch *tablet,
 {
 	struct tablet_axes axes = {0};
 
-	/* We need to make sure that we check that the tool is not out of
-	 * proximity before we send any axis updates. This is because many
-	 * tablets will send axis events with incorrect values if the tablet
-	 * tool is close enough so that the tablet can partially detect that
-	 * it's there, but can't properly receive any data from the tool. */
-	if (tablet_has_status(tablet, TABLET_TOOL_OUT_OF_PROXIMITY))
-		goto out;
-	else if (tablet_has_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY)) {
+	if (tablet_has_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY)) {
 		/* Tool is leaving proximity, we can't rely on the last axis
 		 * information (it'll be mostly 0), so we just get the
 		 * current state and skip over updating the axes.
