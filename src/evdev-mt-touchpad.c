@@ -2382,9 +2382,14 @@ tp_init_pressure(struct tp_dispatch *tp,
 
 	range = abs->maximum - abs->minimum;
 
-	/* Approximately the synaptics defaults */
-	tp->pressure.high = abs->minimum + 0.12 * range;
-	tp->pressure.low = abs->minimum + 0.10 * range;
+	if (device->model_flags & EVDEV_MODEL_APPLE_TOUCHPAD) {
+		tp->pressure.high = 75;
+		tp->pressure.low = 70;
+	} else {
+		/* Approximately the synaptics defaults */
+		tp->pressure.high = abs->minimum + 0.12 * range;
+		tp->pressure.low = abs->minimum + 0.10 * range;
+	}
 
 	evdev_log_debug(device,
 			"using pressure-based touch detection\n",
