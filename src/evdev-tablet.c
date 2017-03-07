@@ -494,20 +494,23 @@ tablet_update_tilt(struct tablet_dispatch *tablet,
 {
 	const struct input_absinfo *absinfo;
 
+	/* mouse rotation resets tilt to 0 so always fetch both axes if
+	 * either has changed */
 	if (bit_is_set(tablet->changed_axes,
-		       LIBINPUT_TABLET_TOOL_AXIS_TILT_X)) {
+		       LIBINPUT_TABLET_TOOL_AXIS_TILT_X) ||
+	    bit_is_set(tablet->changed_axes,
+		       LIBINPUT_TABLET_TOOL_AXIS_TILT_Y)) {
+
 		absinfo = libevdev_get_abs_info(device->evdev, ABS_TILT_X);
 		tablet->axes.tilt.x = adjust_tilt(absinfo);
-		if (device->left_handed.enabled)
-			tablet->axes.tilt.x *= -1;
-	}
 
-	if (bit_is_set(tablet->changed_axes,
-		       LIBINPUT_TABLET_TOOL_AXIS_TILT_Y)) {
 		absinfo = libevdev_get_abs_info(device->evdev, ABS_TILT_Y);
 		tablet->axes.tilt.y = adjust_tilt(absinfo);
-		if (device->left_handed.enabled)
+
+		if (device->left_handed.enabled) {
+			tablet->axes.tilt.x *= -1;
 			tablet->axes.tilt.y *= -1;
+		}
 	}
 }
 
@@ -535,6 +538,34 @@ tablet_update_mouse_rotation(struct tablet_dispatch *tablet,
 	    bit_is_set(tablet->changed_axes,
 		       LIBINPUT_TABLET_TOOL_AXIS_TILT_Y)) {
 		convert_tilt_to_rotation(tablet);
+	}
+}
+
+static inline void
+tablet_update_rotation(struct tablet_dispatch *tablet,
+		       struct evdev_device *device)
+{
+	/* We must check ROTATION_Z after TILT_X/Y so that the tilt axes are
+	 * already normalized and set if we have the mouse/lens tool */
+	if (tablet->current_tool_type == LIBINPUT_TABLET_TOOL_TYPE_MOUSE ||
+	    tablet->current_tool_type == LIBINPUT_TABLET_TOOL_TYPE_LENS) {
+		tablet_update_mouse_rotation(tablet, device);
+		clear_bit(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_TILT_X);
+		clear_bit(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_TILT_Y);
+		tablet->axes.tilt.x = 0;
+		tablet->axes.tilt.y = 0;
+		tablet->axes.rotation = tablet->axes.rotation;
+
+		/* tilt is already converted to left-handed, so mouse
+		 * rotation is converted to left-handed automatically */
+	} else {
+
+		tablet_update_artpen_rotation(tablet, device);
+
+		if (device->left_handed.enabled) {
+			double r = tablet->axes.rotation;
+			tablet->axes.rotation = fmod(180 + r, 360);
+		}
 	}
 }
 
@@ -579,6 +610,9 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	tablet_update_slider(tablet, device);
 	tablet_update_tilt(tablet, device);
 	tablet_update_wheel(tablet, device);
+	/* We must check ROTATION_Z after TILT_X/Y so that the tilt axes are
+	 * already normalized and set if we have the mouse/lens tool */
+	tablet_update_rotation(tablet, device);
 
 	axes.pressure = tablet->axes.pressure;
 	axes.distance = tablet->axes.distance;
@@ -586,26 +620,7 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	axes.tilt = tablet->axes.tilt;
 	axes.wheel = tablet->axes.wheel;
 	axes.wheel_discrete = tablet->axes.wheel_discrete;
-
-	/* We must check ROTATION_Z after TILT_X/Y so that the tilt axes are
-	 * already normalized and set if we have the mouse/lens tool */
-	if (tablet->current_tool_type == LIBINPUT_TABLET_TOOL_TYPE_MOUSE ||
-	    tablet->current_tool_type == LIBINPUT_TABLET_TOOL_TYPE_LENS) {
-		tablet_update_mouse_rotation(tablet, device);
-		clear_bit(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_TILT_X);
-		clear_bit(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_TILT_Y);
-		axes.tilt.x = 0;
-		axes.tilt.y = 0;
-		axes.rotation = tablet->axes.rotation;
-
-		/* tilt is already converted to left-handed, so mouse
-		 * rotation is converted to left-handed automatically */
-	} else {
-		tablet_update_artpen_rotation(tablet, device);
-		axes.rotation = tablet->axes.rotation;
-		if (device->left_handed.enabled)
-			axes.rotation = fmod(180 + axes.rotation, 360);
-	}
+	axes.rotation = tablet->axes.rotation;
 
 	evdev_transform_absolute(device, &axes.point);
 	evdev_transform_relative(device, &delta);
