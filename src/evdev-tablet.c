@@ -423,9 +423,6 @@ tablet_handle_xy(struct tablet_dispatch *tablet,
 	}
 	point.y = tablet->axes.point.y;
 
-	evdev_transform_absolute(device, &point);
-	evdev_transform_relative(device, &delta);
-
 	*delta_out = delta;
 	*point_out = point;
 }
@@ -618,6 +615,9 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	}
 
 	axes.wheel = tablet_handle_wheel(tablet, device, &axes.wheel_discrete);
+
+	evdev_transform_absolute(device, &axes.point);
+	evdev_transform_relative(device, &delta);
 
 	axes.delta = tool_process_delta(tool, device, &delta, time);
 
