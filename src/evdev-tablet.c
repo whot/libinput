@@ -1505,6 +1505,9 @@ tablet_send_events(struct tablet_dispatch *tablet,
 		tablet_check_notify_axes(tablet, device, tool, &axes, time);
 	}
 
+	assert(tablet->axes.delta.x == 0);
+	assert(tablet->axes.delta.y == 0);
+
 	tablet_send_proximity_in(tablet, tool, device, &axes, time);
 	if (!tablet_send_tip(tablet, tool, device, &axes, time))
 		tablet_send_axes(tablet, tool, device, &axes, time);
