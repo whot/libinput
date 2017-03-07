@@ -55,7 +55,8 @@ struct tablet_dispatch {
 	struct evdev_device *device;
 	unsigned int status;
 	unsigned char changed_axes[NCHARS(LIBINPUT_TABLET_TOOL_AXIS_MAX + 1)];
-	struct tablet_axes axes;
+	struct tablet_axes axes; /* for assembling the current state */
+	struct device_coords last_smooth_point;
 	struct {
 		unsigned int index;
 		unsigned int count;

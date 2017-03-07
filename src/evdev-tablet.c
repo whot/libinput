@@ -417,10 +417,10 @@ static inline struct normalized_coords
 tablet_tool_process_delta(struct tablet_dispatch *tablet,
 			  struct libinput_tablet_tool *tool,
 			  const struct evdev_device *device,
+			  struct tablet_axes *axes,
 			  uint64_t time)
 {
 	const struct normalized_coords zero = { 0.0, 0.0 };
-	const struct tablet_axes *last, *current;
 	struct device_coords delta = { 0, 0 };
 	struct device_float_coords accel;
 
@@ -428,12 +428,11 @@ tablet_tool_process_delta(struct tablet_dispatch *tablet,
 			       TABLET_TOOL_ENTERING_PROXIMITY) &&
 	    (bit_is_set(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_X) ||
 	     bit_is_set(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_Y))) {
-		current = &tablet->axes;
-		last = tablet_history_get(tablet, 0);
-
-		delta.x = current->point.x - last->point.x;
-		delta.y = current->point.y - last->point.y;
+		delta.x = axes->point.x - tablet->last_smooth_point.x;
+		delta.y = axes->point.y - tablet->last_smooth_point.y;
 	}
+
+	tablet->last_smooth_point = axes->point;
 
 	accel.x = 1.0 * delta.x;
 	accel.y = 1.0 * delta.y;
@@ -585,6 +584,31 @@ tablet_update_wheel(struct tablet_dispatch *tablet,
 	}
 }
 
+static void
+tablet_smoothen_axes(const struct tablet_dispatch *tablet,
+		     struct tablet_axes *axes)
+{
+	size_t i;
+	size_t count = tablet_history_size(tablet);
+	struct tablet_axes smooth = { 0 };
+
+	for (i = 0; i < count; i++) {
+		const struct tablet_axes *a = tablet_history_get(tablet, i);
+
+		smooth.point.x += a->point.x;
+		smooth.point.y += a->point.y;
+
+		smooth.tilt.x += a->tilt.x;
+		smooth.tilt.y += a->tilt.y;
+	}
+
+	axes->point.x = smooth.point.x/count;
+	axes->point.y = smooth.point.y/count;
+
+	axes->tilt.x = smooth.tilt.x/count;
+	axes->tilt.y = smooth.tilt.y/count;
+}
+
 static bool
 tablet_check_notify_axes(struct tablet_dispatch *tablet,
 			 struct evdev_device *device,
@@ -620,18 +644,20 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	axes.wheel_discrete = tablet->axes.wheel_discrete;
 	axes.rotation = tablet->axes.rotation;
 
-	axes.delta = tablet_tool_process_delta(tablet, tool, device, time);
-
-	*axes_out = axes;
-
 	rc = true;
 
 out:
 	tablet_history_push(tablet, &tablet->axes);
+	tablet_smoothen_axes(tablet, &axes);
+
+	/* The delta relies on the last *smooth* point, so we do it last */
+	axes.delta = tablet_tool_process_delta(tablet, tool, device, &axes, time);
+
+	*axes_out = axes;
 
 	return rc;
 }
-/**/
+
 static void
 tablet_update_button(struct tablet_dispatch *tablet,
 		     uint32_t evcode,
