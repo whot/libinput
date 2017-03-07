@@ -383,17 +383,14 @@ normalize_wheel(struct tablet_dispatch *tablet,
 }
 
 static inline void
-tablet_handle_xy(struct tablet_dispatch *tablet,
-		 struct evdev_device *device,
-		 struct device_coords *point_out,
-		 struct device_coords *delta_out)
+tablet_update_xy(struct tablet_dispatch *tablet,
+		 struct evdev_device *device)
 {
-	struct device_coords point;
-	struct device_coords delta = { 0, 0 };
 	const struct input_absinfo *absinfo;
 	int value;
 
-	if (bit_is_set(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_X)) {
+	if (bit_is_set(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_X) ||
+	    bit_is_set(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_Y)) {
 		absinfo = libevdev_get_abs_info(device->evdev, ABS_X);
 
 		if (device->left_handed.enabled)
@@ -401,14 +398,8 @@ tablet_handle_xy(struct tablet_dispatch *tablet,
 		else
 			value = absinfo->value;
 
-		if (!tablet_has_status(tablet,
-				       TABLET_TOOL_ENTERING_PROXIMITY))
-			delta.x = value - tablet->axes.point.x;
 		tablet->axes.point.x = value;
-	}
-	point.x = tablet->axes.point.x;
 
-	if (bit_is_set(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_Y)) {
 		absinfo = libevdev_get_abs_info(device->evdev, ABS_Y);
 
 		if (device->left_handed.enabled)
@@ -416,28 +407,36 @@ tablet_handle_xy(struct tablet_dispatch *tablet,
 		else
 			value = absinfo->value;
 
-		if (!tablet_has_status(tablet,
-				       TABLET_TOOL_ENTERING_PROXIMITY))
-			delta.y = value - tablet->axes.point.y;
 		tablet->axes.point.y = value;
-	}
-	point.y = tablet->axes.point.y;
 
-	*delta_out = delta;
-	*point_out = point;
+		evdev_transform_absolute(device, &tablet->axes.point);
+	}
 }
 
 static inline struct normalized_coords
-tool_process_delta(struct libinput_tablet_tool *tool,
-		   const struct evdev_device *device,
-		   const struct device_coords *delta,
-		   uint64_t time)
+tablet_tool_process_delta(struct tablet_dispatch *tablet,
+			  struct libinput_tablet_tool *tool,
+			  const struct evdev_device *device,
+			  uint64_t time)
 {
 	const struct normalized_coords zero = { 0.0, 0.0 };
+	const struct tablet_axes *last, *current;
+	struct device_coords delta = { 0, 0 };
 	struct device_float_coords accel;
 
-	accel.x = 1.0 * delta->x;
-	accel.y = 1.0 * delta->y;
+	if (!tablet_has_status(tablet,
+			       TABLET_TOOL_ENTERING_PROXIMITY) &&
+	    (bit_is_set(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_X) ||
+	     bit_is_set(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_Y))) {
+		current = &tablet->axes;
+		last = tablet_history_get(tablet, 0);
+
+		delta.x = current->point.x - last->point.x;
+		delta.y = current->point.y - last->point.y;
+	}
+
+	accel.x = 1.0 * delta.x;
+	accel.y = 1.0 * delta.y;
 
 	if (device_float_is_zero(accel))
 		return zero;
@@ -595,7 +594,6 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 {
 	struct tablet_axes axes = {0};
 	const char tmp[sizeof(tablet->changed_axes)] = {0};
-	struct device_coords delta;
 	bool rc = false;
 
 	if (memcmp(tmp, tablet->changed_axes, sizeof(tmp)) == 0) {
@@ -603,8 +601,7 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 		goto out;
 	}
 
-	tablet_handle_xy(tablet, device, &axes.point, &delta);
-
+	tablet_update_xy(tablet, device);
 	tablet_update_pressure(tablet, device, tool);
 	tablet_update_distance(tablet, device);
 	tablet_update_slider(tablet, device);
@@ -614,6 +611,7 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	 * already normalized and set if we have the mouse/lens tool */
 	tablet_update_rotation(tablet, device);
 
+	axes.point = tablet->axes.point;
 	axes.pressure = tablet->axes.pressure;
 	axes.distance = tablet->axes.distance;
 	axes.slider = tablet->axes.slider;
@@ -622,10 +620,7 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	axes.wheel_discrete = tablet->axes.wheel_discrete;
 	axes.rotation = tablet->axes.rotation;
 
-	evdev_transform_absolute(device, &axes.point);
-	evdev_transform_relative(device, &delta);
-
-	axes.delta = tool_process_delta(tool, device, &delta, time);
+	axes.delta = tablet_tool_process_delta(tablet, tool, device, time);
 
 	*axes_out = axes;
 
