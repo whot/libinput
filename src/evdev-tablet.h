@@ -30,6 +30,8 @@
 #define LIBINPUT_TOOL_NONE 0
 #define LIBINPUT_TABLET_TOOL_TYPE_MAX LIBINPUT_TABLET_TOOL_TYPE_LENS
 
+#define TABLET_HISTORY_LENGTH 4
+
 enum tablet_status {
 	TABLET_NONE = 0,
 	TABLET_AXES_UPDATED = 1 << 0,
@@ -54,6 +56,12 @@ struct tablet_dispatch {
 	unsigned int status;
 	unsigned char changed_axes[NCHARS(LIBINPUT_TABLET_TOOL_AXIS_MAX + 1)];
 	struct tablet_axes axes;
+	struct {
+		unsigned int index;
+		unsigned int count;
+		struct tablet_axes samples[TABLET_HISTORY_LENGTH];
+	} history;
+
 	unsigned char axis_caps[NCHARS(LIBINPUT_TABLET_TOOL_AXIS_MAX + 1)];
 	int current_value[LIBINPUT_TABLET_TOOL_AXIS_MAX + 1];
 	int prev_value[LIBINPUT_TABLET_TOOL_AXIS_MAX + 1];

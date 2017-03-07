@@ -76,6 +76,50 @@ tablet_force_button_presses(struct tablet_dispatch *tablet)
 	}
 }
 
+static inline size_t
+tablet_history_size(const struct tablet_dispatch *tablet)
+{
+	return ARRAY_LENGTH(tablet->history.samples);
+}
+
+static inline void
+tablet_history_reset(struct tablet_dispatch *tablet)
+{
+	tablet->history.count = 0;
+}
+
+static inline void
+tablet_history_push(struct tablet_dispatch *tablet,
+		    const struct tablet_axes *axes)
+{
+	unsigned int index = (tablet->history.index + 1) %
+				tablet_history_size(tablet);
+
+	tablet->history.samples[index] = *axes;
+	tablet->history.index = index;
+	tablet->history.count = min(tablet->history.count + 1,
+				    tablet_history_size(tablet));
+
+	if (tablet->history.count < tablet_history_size(tablet))
+		tablet_history_push(tablet, axes);
+}
+
+/**
+ * Return a previous axis state, where index of 0 means "most recent", 1 is
+ * "one before most recent", etc.
+ */
+static inline const struct tablet_axes*
+tablet_history_get(const struct tablet_dispatch *tablet, unsigned int index)
+{
+	size_t sz = tablet_history_size(tablet);
+
+	assert(index < sz);
+	assert(index < tablet->history.count);
+
+	index = (tablet->history.index + sz - index) % sz;
+	return &tablet->history.samples[index];
+}
+
 static bool
 tablet_device_has_axis(struct tablet_dispatch *tablet,
 		       enum libinput_tablet_tool_axis axis)
@@ -542,10 +586,11 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	struct tablet_axes axes = {0};
 	const char tmp[sizeof(tablet->changed_axes)] = {0};
 	struct device_coords delta;
+	bool rc = false;
 
 	if (memcmp(tmp, tablet->changed_axes, sizeof(tmp)) == 0) {
-		*axes_out = tablet->axes;
-		return false;
+		axes = tablet->axes;
+		goto out;
 	}
 
 	tablet_handle_xy(tablet, device, &axes.point, &delta);
@@ -577,9 +622,14 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 
 	*axes_out = axes;
 
-	return true;
-}
+	rc = true;
 
+out:
+	tablet_history_push(tablet, &tablet->axes);
+
+	return rc;
+}
+/**/
 static void
 tablet_update_button(struct tablet_dispatch *tablet,
 		     uint32_t evcode,
@@ -1436,8 +1486,10 @@ tablet_send_events(struct tablet_dispatch *tablet,
 
 	tablet_send_buttons(tablet, tool, device, time);
 
-	if (tablet_send_proximity_out(tablet, tool, device, &axes, time))
+	if (tablet_send_proximity_out(tablet, tool, device, &axes, time)) {
 		tablet_change_to_left_handed(device);
+		tablet_history_reset(tablet);
+	}
 }
 
 static void
