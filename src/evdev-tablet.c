@@ -598,7 +598,6 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	axes.distance = tablet_handle_distance(tablet, device);
 	axes.slider = tablet_handle_slider(tablet, device);
 	axes.tilt = tablet_handle_tilt(tablet, device);
-	axes.delta = tool_process_delta(tool, device, &delta, time);
 
 	/* We must check ROTATION_Z after TILT_X/Y so that the tilt axes are
 	 * already normalized and set if we have the mouse/lens tool */
@@ -619,6 +618,8 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	}
 
 	axes.wheel = tablet_handle_wheel(tablet, device, &axes.wheel_discrete);
+
+	axes.delta = tool_process_delta(tool, device, &delta, time);
 
 	*axes_out = axes;
 
