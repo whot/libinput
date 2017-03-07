@@ -120,6 +120,12 @@ tablet_history_get(const struct tablet_dispatch *tablet, unsigned int index)
 	return &tablet->history.samples[index];
 }
 
+static inline void
+tablet_reset_changed_axes(struct tablet_dispatch *tablet)
+{
+	memset(tablet->changed_axes, 0, sizeof(tablet->changed_axes));
+}
+
 static bool
 tablet_device_has_axis(struct tablet_dispatch *tablet,
 		       enum libinput_tablet_tool_axis axis)
@@ -1354,7 +1360,7 @@ static inline bool
 tablet_send_proximity_in(struct tablet_dispatch *tablet,
 			 struct libinput_tablet_tool *tool,
 			 struct evdev_device *device,
-			 const struct tablet_axes *axes,
+			 struct tablet_axes *axes,
 			 uint64_t time)
 {
 	if (!tablet_has_status(tablet, TABLET_TOOL_ENTERING_PROXIMITY))
@@ -1369,6 +1375,10 @@ tablet_send_proximity_in(struct tablet_dispatch *tablet,
 	tablet_unset_status(tablet, TABLET_TOOL_ENTERING_PROXIMITY);
 	tablet_unset_status(tablet, TABLET_AXES_UPDATED);
 
+	tablet_reset_changed_axes(tablet);
+	axes->delta.x = 0;
+	axes->delta.y = 0;
+
 	return true;
 }
 
@@ -1376,7 +1386,7 @@ static inline bool
 tablet_send_proximity_out(struct tablet_dispatch *tablet,
 			 struct libinput_tablet_tool *tool,
 			 struct evdev_device *device,
-			 const struct tablet_axes *axes,
+			 struct tablet_axes *axes,
 			 uint64_t time)
 {
 	if (!tablet_has_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY))
@@ -1392,6 +1402,10 @@ tablet_send_proximity_out(struct tablet_dispatch *tablet,
 	tablet_set_status(tablet, TABLET_TOOL_OUT_OF_PROXIMITY);
 	tablet_unset_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY);
 
+	tablet_reset_changed_axes(tablet);
+	axes->delta.x = 0;
+	axes->delta.y = 0;
+
 	return true;
 }
 
@@ -1399,7 +1413,7 @@ static inline bool
 tablet_send_tip(struct tablet_dispatch *tablet,
 		struct libinput_tablet_tool *tool,
 		struct evdev_device *device,
-		const struct tablet_axes *axes,
+		struct tablet_axes *axes,
 		uint64_t time)
 {
 	if (tablet_has_status(tablet, TABLET_TOOL_ENTERING_CONTACT)) {
@@ -1412,6 +1426,11 @@ tablet_send_tip(struct tablet_dispatch *tablet,
 		tablet_unset_status(tablet, TABLET_AXES_UPDATED);
 		tablet_unset_status(tablet, TABLET_TOOL_ENTERING_CONTACT);
 		tablet_set_status(tablet, TABLET_TOOL_IN_CONTACT);
+
+		tablet_reset_changed_axes(tablet);
+		axes->delta.x = 0;
+		axes->delta.y = 0;
+
 		return true;
 	}
 
@@ -1425,6 +1444,11 @@ tablet_send_tip(struct tablet_dispatch *tablet,
 		tablet_unset_status(tablet, TABLET_AXES_UPDATED);
 		tablet_unset_status(tablet, TABLET_TOOL_LEAVING_CONTACT);
 		tablet_unset_status(tablet, TABLET_TOOL_IN_CONTACT);
+
+		tablet_reset_changed_axes(tablet);
+		axes->delta.x = 0;
+		axes->delta.y = 0;
+
 		return true;
 	}
 
@@ -1435,7 +1459,7 @@ static inline void
 tablet_send_axes(struct tablet_dispatch *tablet,
 		 struct libinput_tablet_tool *tool,
 		 struct evdev_device *device,
-		 const struct tablet_axes *axes,
+		 struct tablet_axes *axes,
 		 uint64_t time)
 {
 	enum libinput_tablet_tool_tip_state tip_state;
@@ -1456,6 +1480,9 @@ tablet_send_axes(struct tablet_dispatch *tablet,
 			   tablet->changed_axes,
 			   axes);
 	tablet_unset_status(tablet, TABLET_AXES_UPDATED);
+	tablet_reset_changed_axes(tablet);
+	axes->delta.x = 0;
+	axes->delta.y = 0;
 }
 
 static inline void
@@ -1512,8 +1539,8 @@ tablet_send_events(struct tablet_dispatch *tablet,
 	if (!tablet_send_tip(tablet, tool, device, &axes, time))
 		tablet_send_axes(tablet, tool, device, &axes, time);
 
-	memset(tablet->changed_axes, 0, sizeof(tablet->changed_axes));
 	tablet_unset_status(tablet, TABLET_TOOL_ENTERING_CONTACT);
+	tablet_reset_changed_axes(tablet);
 
 	tablet_send_buttons(tablet, tool, device, time);
 
