@@ -448,8 +448,8 @@ tool_process_delta(struct libinput_tablet_tool *tool,
 			       time);
 }
 
-static inline double
-tablet_handle_pressure(struct tablet_dispatch *tablet,
+static inline void
+tablet_update_pressure(struct tablet_dispatch *tablet,
 		       struct evdev_device *device,
 		       struct libinput_tablet_tool *tool)
 {
@@ -460,12 +460,10 @@ tablet_handle_pressure(struct tablet_dispatch *tablet,
 		absinfo = libevdev_get_abs_info(device->evdev, ABS_PRESSURE);
 		tablet->axes.pressure = normalize_pressure(absinfo, tool);
 	}
-
-	return tablet->axes.pressure;
 }
 
-static inline double
-tablet_handle_distance(struct tablet_dispatch *tablet,
+static inline void
+tablet_update_distance(struct tablet_dispatch *tablet,
 		       struct evdev_device *device)
 {
 	const struct input_absinfo *absinfo;
@@ -475,12 +473,10 @@ tablet_handle_distance(struct tablet_dispatch *tablet,
 		absinfo = libevdev_get_abs_info(device->evdev, ABS_DISTANCE);
 		tablet->axes.distance = normalize_distance(absinfo);
 	}
-
-	return tablet->axes.distance;
 }
 
-static inline double
-tablet_handle_slider(struct tablet_dispatch *tablet,
+static inline void
+tablet_update_slider(struct tablet_dispatch *tablet,
 		     struct evdev_device *device)
 {
 	const struct input_absinfo *absinfo;
@@ -490,15 +486,12 @@ tablet_handle_slider(struct tablet_dispatch *tablet,
 		absinfo = libevdev_get_abs_info(device->evdev, ABS_WHEEL);
 		tablet->axes.slider = normalize_slider(absinfo);
 	}
-
-	return tablet->axes.slider;
 }
 
-static inline struct tilt_degrees
-tablet_handle_tilt(struct tablet_dispatch *tablet,
+static inline void
+tablet_update_tilt(struct tablet_dispatch *tablet,
 		   struct evdev_device *device)
 {
-	struct tilt_degrees tilt;
 	const struct input_absinfo *absinfo;
 
 	if (bit_is_set(tablet->changed_axes,
@@ -508,7 +501,6 @@ tablet_handle_tilt(struct tablet_dispatch *tablet,
 		if (device->left_handed.enabled)
 			tablet->axes.tilt.x *= -1;
 	}
-	tilt.x = tablet->axes.tilt.x;
 
 	if (bit_is_set(tablet->changed_axes,
 		       LIBINPUT_TABLET_TOOL_AXIS_TILT_Y)) {
@@ -517,13 +509,10 @@ tablet_handle_tilt(struct tablet_dispatch *tablet,
 		if (device->left_handed.enabled)
 			tablet->axes.tilt.y *= -1;
 	}
-	tilt.y = tablet->axes.tilt.y;
-
-	return tilt;
 }
 
-static inline double
-tablet_handle_artpen_rotation(struct tablet_dispatch *tablet,
+static inline void
+tablet_update_artpen_rotation(struct tablet_dispatch *tablet,
 			      struct evdev_device *device)
 {
 	const struct input_absinfo *absinfo;
@@ -535,12 +524,10 @@ tablet_handle_artpen_rotation(struct tablet_dispatch *tablet,
 		/* artpen has 0 with buttons pointing east */
 		tablet->axes.rotation = convert_to_degrees(absinfo, 90);
 	}
-
-	return tablet->axes.rotation;
 }
 
-static inline double
-tablet_handle_mouse_rotation(struct tablet_dispatch *tablet,
+static inline void
+tablet_update_mouse_rotation(struct tablet_dispatch *tablet,
 			     struct evdev_device *device)
 {
 	if (bit_is_set(tablet->changed_axes,
@@ -549,28 +536,23 @@ tablet_handle_mouse_rotation(struct tablet_dispatch *tablet,
 		       LIBINPUT_TABLET_TOOL_AXIS_TILT_Y)) {
 		convert_tilt_to_rotation(tablet);
 	}
-
-	return tablet->axes.rotation;
 }
 
-static inline double
-tablet_handle_wheel(struct tablet_dispatch *tablet,
-		    struct evdev_device *device,
-		    int *wheel_discrete)
+static inline void
+tablet_update_wheel(struct tablet_dispatch *tablet,
+		    struct evdev_device *device)
 {
 	int a;
 
 	a = LIBINPUT_TABLET_TOOL_AXIS_REL_WHEEL;
 	if (bit_is_set(tablet->changed_axes, a)) {
-		*wheel_discrete = tablet->axes.wheel_discrete;
+		/* tablet->axes.wheel_discrete is already set */
 		tablet->axes.wheel = normalize_wheel(tablet,
 						     tablet->axes.wheel_discrete);
 	} else {
 		tablet->axes.wheel = 0;
-		*wheel_discrete = 0;
+		tablet->axes.wheel_discrete = 0;
 	}
-
-	return tablet->axes.wheel;
 }
 
 static bool
@@ -591,30 +573,39 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	}
 
 	tablet_handle_xy(tablet, device, &axes.point, &delta);
-	axes.pressure = tablet_handle_pressure(tablet, device, tool);
-	axes.distance = tablet_handle_distance(tablet, device);
-	axes.slider = tablet_handle_slider(tablet, device);
-	axes.tilt = tablet_handle_tilt(tablet, device);
+
+	tablet_update_pressure(tablet, device, tool);
+	tablet_update_distance(tablet, device);
+	tablet_update_slider(tablet, device);
+	tablet_update_tilt(tablet, device);
+	tablet_update_wheel(tablet, device);
+
+	axes.pressure = tablet->axes.pressure;
+	axes.distance = tablet->axes.distance;
+	axes.slider = tablet->axes.slider;
+	axes.tilt = tablet->axes.tilt;
+	axes.wheel = tablet->axes.wheel;
+	axes.wheel_discrete = tablet->axes.wheel_discrete;
 
 	/* We must check ROTATION_Z after TILT_X/Y so that the tilt axes are
 	 * already normalized and set if we have the mouse/lens tool */
 	if (tablet->current_tool_type == LIBINPUT_TABLET_TOOL_TYPE_MOUSE ||
 	    tablet->current_tool_type == LIBINPUT_TABLET_TOOL_TYPE_LENS) {
-		axes.rotation = tablet_handle_mouse_rotation(tablet, device);
+		tablet_update_mouse_rotation(tablet, device);
 		clear_bit(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_TILT_X);
 		clear_bit(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_TILT_Y);
 		axes.tilt.x = 0;
 		axes.tilt.y = 0;
+		axes.rotation = tablet->axes.rotation;
 
 		/* tilt is already converted to left-handed, so mouse
 		 * rotation is converted to left-handed automatically */
 	} else {
-		axes.rotation = tablet_handle_artpen_rotation(tablet, device);
+		tablet_update_artpen_rotation(tablet, device);
+		axes.rotation = tablet->axes.rotation;
 		if (device->left_handed.enabled)
 			axes.rotation = fmod(180 + axes.rotation, 360);
 	}
-
-	axes.wheel = tablet_handle_wheel(tablet, device, &axes.wheel_discrete);
 
 	evdev_transform_absolute(device, &axes.point);
 	evdev_transform_relative(device, &delta);
