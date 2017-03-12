@@ -2385,6 +2385,9 @@ tp_init_pressure(struct tp_dispatch *tp,
 	if (device->model_flags & EVDEV_MODEL_ELANTECH_TOUCHPAD) {
 		tp->pressure.high = 24;
 		tp->pressure.low = 10;
+	} else if (device->model_flags & EVDEV_MODEL_CYAPA) {
+		tp->pressure.high = 10;
+		tp->pressure.low = 8;
 	} else {
 		/* Approximately the synaptics defaults */
 		tp->pressure.high = abs->minimum + 0.12 * range;
