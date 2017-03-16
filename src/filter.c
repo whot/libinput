@@ -574,6 +574,7 @@ static bool
 touchpad_accelerator_set_speed(struct motion_filter *filter,
 		      double speed_adjustment)
 {
+	double range;
 	struct pointer_accelerator *accel_filter =
 		(struct pointer_accelerator *)filter;
 
@@ -588,11 +589,17 @@ touchpad_accelerator_set_speed(struct motion_filter *filter,
 	accel_filter->accel = TOUCHPAD_ACCELERATION;
 	accel_filter->incline = TOUCHPAD_INCLINE;
 
-	/* magic is the factor we scale everything by. For unaccelerated
-	 * motion, this is the baseline factor, for accelerated this scales
-	 * down the gain we otherwise calculate. 0.28 is a result of
-	 * trial&error, don't attach any meaning to it. */
-	accel_filter->magic = TP_MAGIC_SLOWDOWN + 0.28 * speed_adjustment;
+	/* Note: This causes a nonlinear scaling of the acceleration speed,
+	 * the range above is greater than the range below. Probably fine
+	 * because we have double precision and on the slowdown you want to
+	 * be more precise to get the real speed anyway
+	 */
+	if (speed_adjustment >= 0.0)
+		range = 0.8 - TP_MAGIC_SLOWDOWN;
+	else
+		range = TP_MAGIC_SLOWDOWN - 0.05;
+
+	accel_filter->magic = TP_MAGIC_SLOWDOWN + range * speed_adjustment;
 
 	filter->speed_adjustment = speed_adjustment;
 
