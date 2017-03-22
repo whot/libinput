@@ -514,4 +514,89 @@ strv_free(char **strv) {
 	free (strv);
 }
 
+struct rthreshold {
+	int vals[4]; /* in device units */
+};
+
+/**
+ * Rotation thresholds are used for measuring the length of a
+ * distance at arbitrary rotation. Doing this properly on every
+ * input event is costly and not required. So instead we pre-calculate
+ * the thresholds.
+ *
+ * We divide the circle into 16 sections and calculate the
+ * conversion rates for vector to get to a physical length
+ * approximation for the each angle. The spokes are thus every 22.5
+ * degrees, but the we calculate for the center of each
+ * section, i.e. at 11.25 degrees, 33.75, etc.
+ *
+ * Rotational symmetry means we only need to calculate one quartant,
+ * the rest are mirror images of that.
+ *
+ * We will get from the hardware: some vector v (major or minor) and angle
+ * θ, i.e. polar coordinates in device units.
+ *
+ *         /|
+ *      v / | a
+ *       /  |
+ *     θ/___|
+ *        b
+ *
+ * where a = v * sin(θ)
+ *       b = v * cos(θ)
+ * and physical lengths are
+ *       a' = a/yres
+ *       b' = b/xres
+ * and thus physical size of v is:
+ *       len(v) = hypot(a', b')
+ *
+ * but we don't care about actual size, only about thresholds.
+ * So with the 4 sections per quadrant we just pre-calculate the
+ * hypothenuse for each thresholds and let the code compare
+ * against that.
+ */
+static inline struct rthreshold
+rthreshold_init(double mm, int xres, int yres)
+{
+	struct rthreshold thr;
+
+	static_assert(ARRAY_LENGTH(thr.vals) == 4, "Invalid array size");
+
+	/* Note that because we start with the threshold in mm, the
+	 * calculation is effectively the reverse of the comment above */
+	for (int i = 0; i < 4; i++) {
+		double angle = (11.25 + i * 22.5);
+		size_t section = angle/22.5;
+		double rad = angle * M_PI/180.0;
+		double cosa = cos(rad),
+		       sina = sin(rad);
+		double au, bu; /* a, b in device units */
+		double cu;
+
+		assert(section < ARRAY_LENGTH(thr.vals));
+
+		/* convert to a/b in device units*/
+		au = mm * sina * yres;
+		bu = mm * cosa * xres;
+
+		/* convert c to device units */
+		cu = hypot(au, bu);
+
+		thr.vals[section] = cu;
+	}
+
+	return thr;
+}
+
+static inline int
+rthreshold_at_angle(const struct rthreshold *thr, int angle)
+{
+	const double section_angle = 90/ARRAY_LENGTH(thr->vals) + 1;
+	size_t idx = (abs(angle) % 90)/section_angle;
+
+	assert(idx < ARRAY_LENGTH(thr->vals));
+
+	return thr->vals[idx]; /* device units */
+}
+
 #endif /* LIBINPUT_UTIL_H */

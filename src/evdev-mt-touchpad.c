@@ -348,6 +348,21 @@ tp_process_absolute(struct tp_dispatch *tp,
 		t->dirty = true;
 		tp->queued |= TOUCHPAD_EVENT_OTHERAXIS;
 		break;
+	case ABS_MT_TOUCH_MAJOR:
+		t->major = e->value;
+		t->dirty = true;
+		tp->queued |= TOUCHPAD_EVENT_OTHERAXIS;
+		break;
+	case ABS_MT_TOUCH_MINOR:
+		t->minor = e->value;
+		t->dirty = true;
+		tp->queued |= TOUCHPAD_EVENT_OTHERAXIS;
+		break;
+	case ABS_MT_ORIENTATION:
+		t->orientation = e->value;
+		t->dirty = true;
+		tp->queued |= TOUCHPAD_EVENT_OTHERAXIS;
+		break;
 	}
 }
 
@@ -946,6 +961,52 @@ tp_unhover_pressure(struct tp_dispatch *tp, uint64_t time)
 }
 
 static void
+tp_unhover_size(struct tp_dispatch *tp, uint64_t time)
+{
+	struct tp_touch *t;
+	const struct rthreshold *low = &tp->touch_size.low,
+				*high = &tp->touch_size.high;
+	int i;
+
+	/* We require 5 slots for size handling, so we don't need to care
+	 * about fake touches here */
+
+	for (i = 0; i < (int)tp->num_slots; i++) {
+		int hi, lo;
+		int angle;
+
+		t = tp_get_touch(tp, i);
+
+		if (t->state == TOUCH_NONE)
+			continue;
+
+		if (!t->dirty)
+			continue;
+
+		angle = t->orientation * tp->touch_size.orientation_to_angle;
+		hi = rthreshold_at_angle(high, angle);
+		lo = rthreshold_at_angle(low, angle);
+
+		if (t->state == TOUCH_HOVERING) {
+			if ((t->major > hi && t->minor > lo) ||
+			    (t->major > lo && t->minor > hi)) {
+				evdev_log_debug(tp->device,
+						"touch-size: begin touch\n");
+				/* avoid jumps when landing a finger */
+				tp_motion_history_reset(t);
+				tp_begin_touch(tp, t, time);
+			}
+		} else {
+			if (t->major < lo || t->minor < lo) {
+				evdev_log_debug(tp->device,
+						"touch-size: end touch\n");
+				tp_end_touch(tp, t, time);
+			}
+		}
+	}
+}
+
+static void
 tp_unhover_fake_touches(struct tp_dispatch *tp, uint64_t time)
 {
 	struct tp_touch *t;
@@ -1007,6 +1068,8 @@ tp_unhover_touches(struct tp_dispatch *tp, uint64_t time)
 {
 	if (tp->pressure.use_pressure)
 		tp_unhover_pressure(tp, time);
+	else if (tp->touch_size.use_touch_size)
+		tp_unhover_size(tp, time);
 	else
 		tp_unhover_fake_touches(tp, time);
 
@@ -1904,6 +1967,18 @@ tp_sync_touch(struct tp_dispatch *tp,
 		t->pressure = libevdev_get_event_value(evdev,
 						       EV_ABS,
 						       ABS_PRESSURE);
+	libevdev_fetch_slot_value(evdev,
+				  slot,
+				  ABS_MT_ORIENTATION,
+				  &t->orientation);
+	libevdev_fetch_slot_value(evdev,
+				  slot,
+				  ABS_MT_TOUCH_MAJOR,
+				  &t->major);
+	libevdev_fetch_slot_value(evdev,
+				  slot,
+				  ABS_MT_TOUCH_MINOR,
+				  &t->minor);
 }
 
 static inline void
@@ -2509,10 +2584,68 @@ tp_init_pressure(struct tp_dispatch *tp,
 			"using pressure-based touch detection\n");
 }
 
+static bool
+tp_init_touch_size(struct tp_dispatch *tp,
+		   struct evdev_device *device)
+{
+	int xres, yres;
+	int omax;
+
+	/* Thresholds are in mm. We want a decent (5mm) touch to start but
+	   once started we don't release until we see something tiny, less
+	   than 1mm. low thresholds higher than that proved to be
+	   unreliable, especially because the large Apple touchpads result
+	   in some finger-tip interaction where the touchpoint is around 2mm
+	   or less.
+	 */
+	const double low = 1, high = 5; /* mm */
+
+	if (!libevdev_has_event_code(device->evdev, EV_ABS,
+				     ABS_MT_TOUCH_MAJOR) ||
+	    !libevdev_has_event_code(device->evdev, EV_ABS,
+				     ABS_MT_TOUCH_MINOR) ||
+	    !libevdev_has_event_code(device->evdev, EV_ABS,
+				     ABS_MT_ORIENTATION)) {
+		tp->touch_size.use_touch_size = false;
+		return false;
+	}
+
+	if (libevdev_get_num_slots(device->evdev) < 5) {
+		evdev_log_bug_libinput(device,
+			       "Expected 5 slots for touch size detection\n");
+		tp->touch_size.use_touch_size = false;
+		return false;
+	}
+
+	omax = libevdev_get_abs_maximum(device->evdev, ABS_MT_ORIENTATION);
+	if (omax == 0) {
+		evdev_log_bug_kernel(device,
+				     "Invalid range for ABS_MT_ORIENTATION\n");
+		return false;
+	}
+
+	xres = device->abs.absinfo_x->resolution;
+	yres = device->abs.absinfo_y->resolution;
+	tp->touch_size.low = rthreshold_init(low, xres, yres);
+	tp->touch_size.high = rthreshold_init(high, xres, yres);
+
+	/* Kernel defines orientation max as 90 degrees */
+	tp->touch_size.orientation_to_angle = 90.0/omax;
+
+	tp->touch_size.use_touch_size = true;
+
+	evdev_log_debug(device,
+			"using size-based touch detection\n");
+
+	return true;
+}
+
 static int
 tp_init(struct tp_dispatch *tp,
 	struct evdev_device *device)
 {
+	bool use_touch_size = false;
+
 	tp->base.dispatch_type = DISPATCH_TOUCHPAD;
 	tp->base.interface = &tp_interface;
 	tp->device = device;
@@ -2527,7 +2660,11 @@ tp_init(struct tp_dispatch *tp,
 
 	evdev_device_init_abs_range_warnings(device);
 
-	tp_init_pressure(tp, device);
+	if (device->model_flags & EVDEV_MODEL_APPLE_TOUCHPAD)
+		use_touch_size = tp_init_touch_size(tp, device);
+
+	if (!use_touch_size)
+		tp_init_pressure(tp, device);
 
 	/* Set the dpi to that of the x axis, because that's what we normalize
 	   to when needed*/

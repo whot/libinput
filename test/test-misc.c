@@ -1054,6 +1054,38 @@ START_TEST(time_conversion)
 }
 END_TEST
 
+START_TEST(rthreshold_helpers)
+{
+	struct rthreshold thr;
+	int xres = 100, yres = 100;
+	int threshold = 50;
+	int val;
+
+	thr = rthreshold_init(threshold, xres, yres);
+
+	/* for even resolutions, the threshold is always the same */
+	for (int angle = 0; angle < 360; angle++) {
+		val = rthreshold_at_angle(&thr, angle);
+
+		/* allow for a bit of rounding error */
+		ck_assert_int_ge(val, threshold * yres - 1);
+		ck_assert_int_le(val, threshold * yres);
+	}
+
+	/* Test some precalculated ones */
+	xres = 100, yres = 200;
+	thr = rthreshold_init(threshold, xres, yres);
+	val = rthreshold_at_angle(&thr, 0);
+	ck_assert_int_eq(val, 5277);
+	val = rthreshold_at_angle(&thr, 30);
+	ck_assert_int_eq(val, 6938);
+	val = rthreshold_at_angle(&thr, 60);
+	ck_assert_int_eq(val, 8766);
+	val = rthreshold_at_angle(&thr, 85);
+	ck_assert_int_eq(val, 9856);
+}
+END_TEST
+
 struct atoi_test {
 	char *str;
 	bool success;
@@ -1312,6 +1344,7 @@ litest_setup_tests_misc(void)
 	litest_add_no_device("misc:parser", safe_atod_test);
 	litest_add_no_device("misc:parser", strsplit_test);
 	litest_add_no_device("misc:time", time_conversion);
+	litest_add_no_device("misc:thresholds", rthreshold_helpers);
 
 	litest_add_no_device("misc:fd", fd_no_event_leak);
 
