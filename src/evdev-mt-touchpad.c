@@ -664,16 +664,11 @@ tp_palm_detect_multifinger(struct tp_dispatch *tp, struct tp_touch *t, uint64_t 
 	return false;
 }
 
-static void
-tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
+static inline bool
+tp_palm_detect_edge(struct tp_dispatch *tp,
+		    struct tp_touch *t,
+		    uint64_t time)
 {
-
-	if (tp_palm_detect_dwt_triggered(tp, t, time))
-		goto out;
-
-	if (tp_palm_detect_trackpoint_triggered(tp, t, time))
-		goto out;
-
 	if (t->palm.state == PALM_EDGE) {
 		if (tp_palm_detect_multifinger(tp, t, time)) {
 			t->palm.state = PALM_NONE;
@@ -689,30 +684,48 @@ tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 			evdev_log_debug(tp->device,
 				  "palm: touch released, out of edge zone\n");
 		}
-		return;
+		return false;
 	} else if (tp_palm_detect_multifinger(tp, t, time)) {
-		return;
+		return false;
 	}
 
 	/* palm must start in exclusion zone, it's ok to move into
 	   the zone without being a palm */
 	if (t->state != TOUCH_BEGIN ||
 	    (t->point.x > tp->palm.left_edge && t->point.x < tp->palm.right_edge))
-		return;
+		return false;
 
 	/* don't detect palm in software button areas, it's
 	   likely that legitimate touches start in the area
 	   covered by the exclusion zone */
 	if (tp->buttons.is_clickpad &&
 	    tp_button_is_inside_softbutton_area(tp, t))
-		return;
+		return false;
 
 	if (tp_touch_get_edge(tp, t) & EDGE_RIGHT)
-		return;
+		return false;
 
 	t->palm.state = PALM_EDGE;
 	t->palm.time = time;
 	t->palm.first = t->point;
+
+	return true;
+}
+
+static void
+tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
+{
+
+	if (tp_palm_detect_dwt_triggered(tp, t, time))
+		goto out;
+
+	if (tp_palm_detect_trackpoint_triggered(tp, t, time))
+		goto out;
+
+	if (tp_palm_detect_edge(tp, t, time))
+		goto out;
+
+	return;
 
 out:
 	evdev_log_debug(tp->device,
