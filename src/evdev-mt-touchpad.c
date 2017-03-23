@@ -715,6 +715,8 @@ tp_palm_detect_edge(struct tp_dispatch *tp,
 static void
 tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 {
+	const char *palm_state;
+	enum touch_palm_state oldstate = t->palm.state;
 
 	if (tp_palm_detect_dwt_triggered(tp, t, time))
 		goto out;
@@ -726,12 +728,28 @@ tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 		goto out;
 
 	return;
-
 out:
+	if (oldstate == t->palm.state)
+		return;
+
+	switch (t->palm.state) {
+	case PALM_EDGE:
+		palm_state = "edge";
+		break;
+	case PALM_TYPING:
+		palm_state = "typing";
+		break;
+	case PALM_TRACKPOINT:
+		palm_state = "trackpoint";
+		break;
+	case PALM_NONE:
+	default:
+		abort();
+		break;
+	}
 	evdev_log_debug(tp->device,
 		  "palm: palm detected (%s)\n",
-		  t->palm.state == PALM_EDGE ? "edge" :
-		  t->palm.state == PALM_TYPING ? "typing" : "trackpoint");
+		  palm_state);
 }
 
 static inline const char*
