@@ -714,6 +714,34 @@ tp_palm_detect_multifinger(struct tp_dispatch *tp, struct tp_touch *t, uint64_t 
 }
 
 static inline bool
+tp_palm_detect_touch_size_triggered(struct tp_dispatch *tp,
+				    struct tp_touch *t,
+				    uint64_t time)
+{
+	const struct rthreshold *thr = &tp->palm.threshold;
+	int angle;
+
+	if (!tp->touch_size.use_touch_size)
+		return false;
+
+	/* If a finger size is large enough for palm, we stick with that and
+	 * force the user to release and reset the finger */
+	if (t->palm.state != PALM_NONE && t->palm.state != PALM_TOUCH_SIZE)
+		return false;
+
+	angle = abs(t->orientation) * tp->touch_size.orientation_to_angle;
+
+	if (angle > 45 && t->major > rthreshold_at_angle(thr, angle)) {
+		evdev_log_debug(tp->device,
+				"palm: touch size exceeded\n");
+		t->palm.state = PALM_TOUCH_SIZE;
+		return true;
+	}
+
+	return false;
+}
+
+static inline bool
 tp_palm_detect_edge(struct tp_dispatch *tp,
 		    struct tp_touch *t,
 		    uint64_t time)
@@ -776,6 +804,9 @@ tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	if (tp_palm_detect_tool_triggered(tp, t, time))
 		goto out;
 
+	if (tp_palm_detect_touch_size_triggered(tp, t, time))
+		goto out;
+
 	if (tp_palm_detect_edge(tp, t, time))
 		goto out;
 
@@ -796,6 +827,9 @@ out:
 		break;
 	case PALM_TOOL_PALM:
 		palm_state = "tool-palm";
+		break;
+	case PALM_TOUCH_SIZE:
+		palm_state = "touch size";
 		break;
 	case PALM_NONE:
 	default:
@@ -2346,10 +2380,22 @@ tp_init_palmdetect_edge(struct tp_dispatch *tp,
 	struct phys_coords mm = { 0.0, 0.0 };
 	struct device_coords edges;
 
+	if (tp->touch_size.use_touch_size) {
+		const int mm = 17;
+		int xres = device->abs.absinfo_x->resolution,
+		    yres = device->abs.absinfo_y->resolution;
+
+		tp->palm.threshold = rthreshold_init(mm, xres, yres);
+	}
+
+	if (device->tags & EVDEV_TAG_EXTERNAL_TOUCHPAD &&
+	    !tp_is_tpkb_combo_below(device))
+		return;
+
 	evdev_device_get_size(device, &width, &height);
 
-	/* Enable palm detection on touchpads >= 70 mm. Anything smaller
-	   probably won't need it, until we find out it does */
+	/* Enable edge palm detection on touchpads >= 70 mm. Anything
+	   smaller probably won't need it, until we find out it does */
 	if (width < 70.0)
 		return;
 
