@@ -1660,6 +1660,8 @@ touch_up(struct litest_device *d, unsigned int slot)
 		{ .type = EV_ABS, .code = ABS_MT_SLOT, .value = LITEST_AUTO_ASSIGN },
 		{ .type = EV_ABS, .code = ABS_MT_TRACKING_ID, .value = -1 },
 		{ .type = EV_ABS, .code = ABS_MT_PRESSURE, .value = 0 },
+		{ .type = EV_ABS, .code = ABS_MT_TOUCH_MAJOR, .value = 0 },
+		{ .type = EV_ABS, .code = ABS_MT_TOUCH_MINOR, .value = 0 },
 		{ .type = EV_SYN, .code = SYN_REPORT, .value = 0 },
 		{ .type = -1, .code = -1 }
 	};
