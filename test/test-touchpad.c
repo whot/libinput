@@ -4955,6 +4955,258 @@ START_TEST(touchpad_pressure_tap_2fg_1fg_light)
 }
 END_TEST
 
+static inline bool
+touchpad_has_touch_size(struct litest_device *dev)
+{
+	struct libevdev *evdev = dev->evdev;
+
+	if (!libevdev_has_event_code(evdev, EV_ABS, ABS_MT_TOUCH_MAJOR) ||
+	    !libevdev_has_event_code(evdev, EV_ABS, ABS_MT_TOUCH_MINOR) ||
+	    !libevdev_has_event_code(evdev, EV_ABS, ABS_MT_ORIENTATION))
+		return false;
+
+	if (libevdev_get_id_vendor(evdev) == VENDOR_ID_APPLE)
+		return true;
+
+	return false;
+}
+
+/* Returns the touch-size thresholds in percent of the major axis. */
+static inline void
+touchpad_get_size_thresholds(struct litest_device *dev,
+			     double *low,
+			     double *high)
+{
+	struct libevdev *evdev = dev->evdev;
+	const struct input_absinfo *x, *major;
+	double lo = 1, hi = 5; /* mm */
+	int resolution;
+	int range;
+
+	/* Thresholds are orientation-dependent on touchpads with different
+	 * resolutions. We use X here because using Y requires extra bits
+	 * for the bcm5974. If future tests fail, this is a good spot to
+	 * investigate.
+	 */
+	x = libevdev_get_abs_info(evdev, ABS_MT_POSITION_X);
+
+	resolution = x->resolution;
+	if (x->resolution == 0) {
+		double w, h;
+		double xrange = x->maximum - x->minimum;
+
+		libinput_device_get_size(dev->libinput_device, &w, &h);
+		resolution = xrange/h;
+	}
+
+	/* convert to device units along y */
+	lo = lo * resolution;
+	hi = hi * resolution;
+
+	/* convert to % of range of major */
+	major = libevdev_get_abs_info(evdev, ABS_MT_TOUCH_MAJOR);
+	range = major->maximum - major->minimum;
+	*low = lo / range * 100;
+	*high = hi / range * 100;
+}
+
+START_TEST(touchpad_touch_size_lo)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct axis_replacement axes[] = {
+		{ ABS_MT_TOUCH_MAJOR, 0 },
+		{ ABS_MT_TOUCH_MINOR, 0 },
+		{ ABS_MT_ORIENTATION, 0 },
+		{ -1, 0 }
+	};
+	double lo, hi;
+
+	if (!touchpad_has_touch_size(dev))
+		return;
+
+	touchpad_get_size_thresholds(dev, &lo, &hi);
+
+	litest_drain_events(li);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MAJOR, lo/2.0);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MINOR, lo/2.0);
+	litest_touch_down_extended(dev, 0, 50, 50, axes);
+	litest_touch_move_to_extended(dev, 0,
+				      50, 50,
+				      80, 80,
+				      axes, 10, 1);
+	litest_touch_up(dev, 0);
+	litest_assert_empty_queue(li);
+}
+END_TEST
+
+START_TEST(touchpad_touch_size_hi)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct axis_replacement axes[] = {
+		{ ABS_MT_TOUCH_MAJOR, 0 },
+		{ ABS_MT_TOUCH_MINOR, 0 },
+		{ ABS_MT_ORIENTATION, 0 },
+		{ -1, 0 }
+	};
+	double lo, hi;
+
+	if (!touchpad_has_touch_size(dev))
+		return;
+
+	touchpad_get_size_thresholds(dev, &lo, &hi);
+
+	litest_drain_events(li);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MAJOR, hi * 1.2);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MINOR, hi * 1.2);
+	litest_touch_down_extended(dev, 0, 50, 50, axes);
+	litest_touch_move_to_extended(dev, 0,
+				      50, 50,
+				      80, 80,
+				      axes, 10, 1);
+	litest_touch_up(dev, 0);
+
+	litest_assert_only_typed_events(li,
+					LIBINPUT_EVENT_POINTER_MOTION);
+}
+END_TEST
+
+START_TEST(touchpad_touch_size_hi_to_medium)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct axis_replacement axes[] = {
+		{ ABS_MT_TOUCH_MAJOR, 0 },
+		{ ABS_MT_TOUCH_MINOR, 0 },
+		{ ABS_MT_ORIENTATION, 0 },
+		{ -1, 0 }
+	};
+	double lo, hi;
+	double halfway;
+
+	if (!touchpad_has_touch_size(dev))
+		return;
+
+	touchpad_get_size_thresholds(dev, &lo, &hi);
+
+	litest_drain_events(li);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MAJOR, hi * 1.2);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MINOR, hi * 1.2);
+	litest_touch_down_extended(dev, 0, 50, 50, axes);
+	litest_touch_move_to_extended(dev, 0,
+				      50, 50,
+				      80, 80,
+				      axes, 10, 1);
+	litest_drain_events(li);
+
+	halfway = lo + (hi - lo)/2;
+
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MAJOR, halfway);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MINOR, halfway);
+	litest_touch_move_to_extended(dev, 0,
+				      80, 80,
+				      50, 50,
+				      axes, 10, 1);
+	litest_assert_only_typed_events(li,
+					LIBINPUT_EVENT_POINTER_MOTION);
+
+	litest_touch_up(dev, 0);
+}
+END_TEST
+
+START_TEST(touchpad_touch_size_hi_to_lo)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct axis_replacement axes[] = {
+		{ ABS_MT_TOUCH_MAJOR, 0 },
+		{ ABS_MT_TOUCH_MINOR, 0 },
+		{ ABS_MT_ORIENTATION, 0 },
+		{ -1, 0 }
+	};
+	double lo, hi;
+
+	if (!touchpad_has_touch_size(dev))
+		return;
+
+	touchpad_get_size_thresholds(dev, &lo, &hi);
+
+	litest_drain_events(li);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MAJOR, hi * 1.2);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MINOR, hi * 1.2);
+	litest_touch_down_extended(dev, 0, 50, 50, axes);
+	litest_touch_move_to_extended(dev, 0,
+				      50, 50,
+				      80, 80,
+				      axes, 10, 1);
+	litest_drain_events(li);
+
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MAJOR, lo/2);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MINOR, lo/2);
+	litest_touch_move_to_extended(dev, 0,
+				      80, 80,
+				      50, 50,
+				      axes, 10, 1);
+	litest_assert_empty_queue(li);
+
+	litest_touch_up(dev, 0);
+}
+END_TEST
+
+START_TEST(touchpad_touch_size_hi_2fg_lo)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct axis_replacement axes[] = {
+		{ ABS_MT_TOUCH_MAJOR, 0 },
+		{ ABS_MT_TOUCH_MINOR, 0 },
+		{ ABS_MT_ORIENTATION, 0 },
+		{ -1, 0 }
+	};
+	double lo, hi;
+
+	if (!touchpad_has_touch_size(dev))
+		return;
+
+	touchpad_get_size_thresholds(dev, &lo, &hi);
+
+	litest_drain_events(li);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MAJOR, hi * 1.2);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MINOR, hi * 1.2);
+	litest_touch_down_extended(dev, 0, 50, 50, axes);
+	litest_touch_move_to_extended(dev, 0,
+				      50, 50,
+				      80, 80,
+				      axes, 10, 1);
+
+	litest_assert_only_typed_events(li,
+					LIBINPUT_EVENT_POINTER_MOTION);
+
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MAJOR, lo/2);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MINOR, lo/2);
+	litest_touch_down_extended(dev, 1, 70, 70, axes);
+	litest_touch_move_to_extended(dev, 1,
+				      70, 70,
+				      80, 90,
+				      axes, 10, 1);
+	litest_assert_empty_queue(li);
+
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MAJOR, hi * 1.2);
+	litest_axis_set_value(axes, ABS_MT_TOUCH_MINOR, hi * 1.2);
+	litest_touch_move_to_extended(dev, 0,
+				      80, 80,
+				      50, 50,
+				      axes, 10, 1);
+
+	litest_assert_only_typed_events(li,
+					LIBINPUT_EVENT_POINTER_MOTION);
+
+	litest_touch_up(dev, 1);
+	litest_touch_up(dev, 0);
+}
+END_TEST
+
 void
 litest_setup_tests_touchpad(void)
 {
@@ -5105,4 +5357,10 @@ litest_setup_tests_touchpad(void)
 	litest_add("touchpad:pressure", touchpad_pressure_tap, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:pressure", touchpad_pressure_tap_2fg, LITEST_TOUCHPAD, LITEST_ANY);
 	litest_add("touchpad:pressure", touchpad_pressure_tap_2fg_1fg_light, LITEST_TOUCHPAD, LITEST_ANY);
+
+	litest_add("touchpad:touch-size", touchpad_touch_size_lo, LITEST_APPLE_CLICKPAD, LITEST_ANY);
+	litest_add("touchpad:touch-size", touchpad_touch_size_hi, LITEST_APPLE_CLICKPAD, LITEST_ANY);
+	litest_add("touchpad:touch-size", touchpad_touch_size_hi_to_lo, LITEST_APPLE_CLICKPAD, LITEST_ANY);
+	litest_add("touchpad:touch-size", touchpad_touch_size_hi_to_medium, LITEST_APPLE_CLICKPAD, LITEST_ANY);
+	litest_add("touchpad:touch-size", touchpad_touch_size_hi_2fg_lo, LITEST_APPLE_CLICKPAD, LITEST_ANY);
 }
