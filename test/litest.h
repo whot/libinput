@@ -303,12 +303,12 @@ struct axis_replacement {
 	double value;
 };
 
+/**
+ * Same as litest_axis_set_value but allows for ranges outside 0..100%
+ */
 static inline void
-litest_axis_set_value(struct axis_replacement *axes, int code, double value)
+litest_axis_set_value_unchecked(struct axis_replacement *axes, int code, double value)
 {
-	litest_assert_double_ge(value, 0.0);
-	litest_assert_double_le(value, 100.0);
-
 	while (axes->evcode != -1) {
 		if (axes->evcode == code) {
 			axes->value = value;
@@ -318,6 +318,18 @@ litest_axis_set_value(struct axis_replacement *axes, int code, double value)
 	}
 
 	litest_abort_msg("Missing axis code %d\n", code);
+}
+
+/**
+ * Takes a value in percent and sets the given axis to that code.
+ */
+static inline void
+litest_axis_set_value(struct axis_replacement *axes, int code, double value)
+{
+	litest_assert_double_ge(value, 0.0);
+	litest_assert_double_le(value, 100.0);
+
+	litest_axis_set_value_unchecked(axes, code, value);
 }
 
 /* A loop range, resolves to:
