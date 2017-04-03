@@ -66,6 +66,7 @@ enum touch_palm_state {
 	PALM_EDGE,
 	PALM_TYPING,
 	PALM_TRACKPOINT,
+	PALM_TOOL_PALM,
 };
 
 enum button_event {
@@ -154,6 +155,7 @@ struct tp_touch {
 	struct device_coords point;
 	uint64_t millis;
 	int pressure;
+	bool is_tool_palm; /* MT_TOOL_PALM */
 
 	bool was_down; /* if distance == 0, false for pure hovering
 			  touches */
@@ -347,6 +349,8 @@ struct tp_dispatch {
 		uint64_t trackpoint_last_event_time;
 		uint32_t trackpoint_event_count;
 		bool monitor_trackpoint;
+
+		bool use_mt_tool;
 	} palm;
 
 	struct {

@@ -341,6 +341,11 @@ tp_process_absolute(struct tp_dispatch *tp,
 		t->dirty = true;
 		tp->queued |= TOUCHPAD_EVENT_OTHERAXIS;
 		break;
+	case ABS_MT_TOOL_TYPE:
+		t->is_tool_palm = e->value == MT_TOOL_PALM;
+		t->dirty = true;
+		tp->queued |= TOUCHPAD_EVENT_OTHERAXIS;
+		break;
 	}
 }
 
@@ -622,6 +627,31 @@ tp_palm_detect_trackpoint_triggered(struct tp_dispatch *tp,
 	return false;
 }
 
+static bool
+tp_palm_detect_tool_triggered(struct tp_dispatch *tp,
+			      struct tp_touch *t,
+			      uint64_t time)
+{
+	if (!tp->palm.use_mt_tool)
+		return false;
+
+	if (t->palm.state != PALM_NONE &&
+	    t->palm.state != PALM_TOOL_PALM)
+		return false;
+
+	if (t->palm.state == PALM_NONE &&
+	    t->is_tool_palm)
+		t->palm.state = PALM_TOOL_PALM;
+	else if (t->palm.state == PALM_TOOL_PALM &&
+		 !t->is_tool_palm)
+		t->palm.state = PALM_NONE;
+
+	if (t->palm.state == PALM_TOOL_PALM)
+		tp_stop_actions(tp, time);
+
+	return t->palm.state == PALM_TOOL_PALM;
+}
+
 static inline bool
 tp_palm_detect_move_out_of_edge(struct tp_dispatch *tp,
 				struct tp_touch *t,
@@ -732,6 +762,9 @@ tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	if (tp_palm_detect_trackpoint_triggered(tp, t, time))
 		goto out;
 
+	if (tp_palm_detect_tool_triggered(tp, t, time))
+		goto out;
+
 	if (tp_palm_detect_edge(tp, t, time))
 		goto out;
 
@@ -749,6 +782,9 @@ out:
 		break;
 	case PALM_TRACKPOINT:
 		palm_state = "trackpoint";
+		break;
+	case PALM_TOOL_PALM:
+		palm_state = "tool-palm";
 		break;
 	case PALM_NONE:
 	default:
@@ -2266,6 +2302,11 @@ tp_init_palmdetect(struct tp_dispatch *tp,
 		return;
 
 	tp->palm.monitor_trackpoint = true;
+
+	if (libevdev_has_event_code(device->evdev,
+				    EV_ABS,
+				    ABS_MT_TOOL_TYPE))
+		tp->palm.use_mt_tool = true;
 
 	tp_init_palmdetect_edge(tp, device);
 }

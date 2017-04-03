@@ -1293,6 +1293,86 @@ START_TEST(touchpad_palm_detect_both_edges)
 }
 END_TEST
 
+static inline bool
+touchpad_has_tool_palm(struct litest_device *dev)
+{
+	return libevdev_has_event_code(dev->evdev, EV_ABS, ABS_MT_TOOL_TYPE);
+}
+
+START_TEST(touchpad_palm_detect_tool_palm)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+
+	if (!touchpad_has_tool_palm(dev))
+		return;
+
+	litest_touch_down(dev, 0, 50, 50);
+	litest_touch_move_to(dev, 0, 50, 50, 70, 70, 10, 1);
+	litest_drain_events(li);
+
+	litest_event(dev, EV_ABS, ABS_MT_TOOL_TYPE, MT_TOOL_PALM);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	litest_touch_move_to(dev, 0, 70, 70, 50, 40, 10, 1);
+	litest_touch_up(dev, 0);
+
+	litest_assert_empty_queue(li);
+}
+END_TEST
+
+START_TEST(touchpad_palm_detect_tool_palm_on_off)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+
+	if (!touchpad_has_tool_palm(dev))
+		return;
+
+	litest_touch_down(dev, 0, 50, 50);
+	litest_touch_move_to(dev, 0, 50, 50, 70, 70, 10, 1);
+	litest_drain_events(li);
+
+	litest_event(dev, EV_ABS, ABS_MT_TOOL_TYPE, MT_TOOL_PALM);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	litest_touch_move_to(dev, 0, 70, 70, 50, 40, 10, 1);
+
+	litest_assert_empty_queue(li);
+
+	litest_event(dev, EV_ABS, ABS_MT_TOOL_TYPE, MT_TOOL_FINGER);
+	litest_event(dev, EV_SYN, SYN_REPORT, 0);
+	litest_touch_move_to(dev, 0, 50, 40, 70, 70, 10, 1);
+	litest_touch_up(dev, 0);
+
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_POINTER_MOTION);
+}
+END_TEST
+
+START_TEST(touchpad_palm_detect_tool_palm_tap)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+
+	if (!touchpad_has_tool_palm(dev))
+		return;
+
+	litest_enable_tap(dev->libinput_device);
+	litest_drain_events(li);
+
+	litest_push_event_frame(dev);
+	litest_event(dev, EV_ABS, ABS_MT_TOOL_TYPE, MT_TOOL_PALM);
+	litest_touch_down(dev, 0, 50, 50);
+	litest_pop_event_frame(dev);
+	libinput_dispatch(li);
+	litest_assert_empty_queue(li);
+
+	litest_touch_up(dev, 0);
+	libinput_dispatch(li);
+	litest_timeout_tap();
+
+	litest_assert_empty_queue(li);
+}
+END_TEST
+
 START_TEST(touchpad_left_handed)
 {
 	struct litest_device *dev = litest_current_device();
@@ -4987,6 +5067,9 @@ litest_setup_tests_touchpad(void)
 	litest_add("touchpad:palm", touchpad_no_palm_detect_at_edge_for_edge_scrolling, LITEST_TOUCHPAD, LITEST_CLICKPAD);
 	litest_add("touchpad:palm", touchpad_no_palm_detect_2fg_scroll, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
 	litest_add("touchpad:palm", touchpad_palm_detect_both_edges, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
+	litest_add("touchpad:palm", touchpad_palm_detect_tool_palm, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
+	litest_add("touchpad:palm", touchpad_palm_detect_tool_palm_on_off, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
+	litest_add("touchpad:palm", touchpad_palm_detect_tool_palm_tap, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH);
 
 	litest_add("touchpad:left-handed", touchpad_left_handed, LITEST_TOUCHPAD|LITEST_BUTTON, LITEST_CLICKPAD);
 	litest_add_for_device("touchpad:left-handed", touchpad_left_handed_appletouch, LITEST_APPLETOUCH);
