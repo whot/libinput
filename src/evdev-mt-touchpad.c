@@ -2224,22 +2224,13 @@ tp_init_dwt(struct tp_dispatch *tp,
 	return;
 }
 
-static void
-tp_init_palmdetect(struct tp_dispatch *tp,
-		   struct evdev_device *device)
+static inline void
+tp_init_palmdetect_edge(struct tp_dispatch *tp,
+			struct evdev_device *device)
 {
 	double width, height;
 	struct phys_coords mm = { 0.0, 0.0 };
 	struct device_coords edges;
-
-	tp->palm.right_edge = INT_MAX;
-	tp->palm.left_edge = INT_MIN;
-
-	if (device->tags & EVDEV_TAG_EXTERNAL_TOUCHPAD &&
-	    !tp_is_tpkb_combo_below(device))
-		return;
-
-	tp->palm.monitor_trackpoint = true;
 
 	evdev_device_get_size(device, &width, &height);
 
@@ -2256,8 +2247,23 @@ tp_init_palmdetect(struct tp_dispatch *tp,
 	mm.x = width * 0.95;
 	edges = evdev_device_mm_to_units(device, &mm);
 	tp->palm.right_edge = edges.x;
+}
+
+static void
+tp_init_palmdetect(struct tp_dispatch *tp,
+		   struct evdev_device *device)
+{
+
+	tp->palm.right_edge = INT_MAX;
+	tp->palm.left_edge = INT_MIN;
+
+	if (device->tags & EVDEV_TAG_EXTERNAL_TOUCHPAD &&
+	    !tp_is_tpkb_combo_below(device))
+		return;
 
 	tp->palm.monitor_trackpoint = true;
+
+	tp_init_palmdetect_edge(tp, device);
 }
 
 static void
