@@ -2239,6 +2239,8 @@ tp_init_palmdetect(struct tp_dispatch *tp,
 	    !tp_is_tpkb_combo_below(device))
 		return;
 
+	tp->palm.monitor_trackpoint = true;
+
 	evdev_device_get_size(device, &width, &height);
 
 	/* Enable palm detection on touchpads >= 70 mm. Anything smaller
