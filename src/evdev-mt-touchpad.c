@@ -276,6 +276,14 @@ tp_end_sequence(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	tp_end_touch(tp, t, time);
 }
 
+static void
+tp_stop_actions(struct tp_dispatch *tp, uint64_t time)
+{
+	tp_edge_scroll_stop_events(tp, time);
+	tp_gesture_cancel(tp, time);
+	tp_tap_suspend(tp, time);
+}
+
 struct normalized_coords
 tp_get_delta(struct tp_touch *t)
 {
@@ -1395,9 +1403,7 @@ tp_trackpoint_event(uint64_t time, struct libinput_event *event, void *data)
 		return;
 
 	if (!tp->palm.trackpoint_active) {
-		tp_edge_scroll_stop_events(tp, time);
-		tp_gesture_cancel(tp, time);
-		tp_tap_suspend(tp, time);
+		tp_stop_actions(tp, time);
 		tp->palm.trackpoint_active = true;
 	}
 
@@ -1510,9 +1516,7 @@ tp_keyboard_event(uint64_t time, struct libinput_event *event, void *data)
 				     ARRAY_LENGTH(tp->dwt.mod_mask)))
 		    return;
 
-		tp_edge_scroll_stop_events(tp, time);
-		tp_gesture_cancel(tp, time);
-		tp_tap_suspend(tp, time);
+		tp_stop_actions(tp, time);
 		tp->dwt.keyboard_active = true;
 		timeout = DEFAULT_KEYBOARD_ACTIVITY_TIMEOUT_1;
 	} else {
