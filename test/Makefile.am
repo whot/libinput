@@ -122,7 +122,7 @@ libinput_test_suite_runner_SOURCES = test-udev.c \
 				     test-keyboard.c \
 				     test-device.c \
 				     test-gestures.c \
-				     test-lid.c
+				     test-switch.c
 
 libinput_test_suite_runner_CFLAGS = $(AM_CFLAGS) -DLIBINPUT_LT_VERSION="\"$(LIBINPUT_LT_VERSION)\""
 libinput_test_suite_runner_LDADD = $(TEST_LIBS)

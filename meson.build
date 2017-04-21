@@ -550,7 +550,7 @@ if get_option('enable-tests')
 		'test/test-keyboard.c',
 		'test/test-device.c',
 		'test/test-gestures.c',
-		'test/test-lid.c'
+		'test/test-switch.c'
 	]
 	def_LT_VERSION = '-DLIBINPUT_LT_VERSION="@0@:@1@:@2@"'.format(libinput_lt_c, libinput_lt_r, libinput_lt_a)
 	libinput_test_runner = executable('libinput-test-suite-runner',
