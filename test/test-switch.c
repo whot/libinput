@@ -31,9 +31,9 @@
 
 START_TEST(lid_switch_has)
 {
-	struct litest_device *sw = litest_current_device();
+	struct litest_device *dev = litest_current_device();
 
-	ck_assert_int_eq(libinput_device_switch_has_switch(sw->libinput_device,
+	ck_assert_int_eq(libinput_device_switch_has_switch(dev->libinput_device,
 							   LIBINPUT_SWITCH_LID),
 			 1);
 }
@@ -41,14 +41,14 @@ END_TEST
 
 START_TEST(lid_switch)
 {
-	struct litest_device *sw = litest_current_device();
-	struct libinput *li = sw->libinput;
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
 	struct libinput_event *event;
 
 	litest_drain_events(li);
 
 	/* lid closed */
-	litest_switch_action(sw,
+	litest_switch_action(dev,
 			     LIBINPUT_SWITCH_LID,
 			     LIBINPUT_SWITCH_STATE_ON);
 	libinput_dispatch(li);
@@ -60,7 +60,7 @@ START_TEST(lid_switch)
 	libinput_event_destroy(event);
 
 	/* lid opened */
-	litest_switch_action(sw,
+	litest_switch_action(dev,
 			     LIBINPUT_SWITCH_LID,
 			     LIBINPUT_SWITCH_STATE_OFF);
 	libinput_dispatch(li);
@@ -77,13 +77,13 @@ END_TEST
 
 START_TEST(lid_switch_double)
 {
-	struct litest_device *sw = litest_current_device();
-	struct libinput *li = sw->libinput;
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
 	struct libinput_event *event;
 
 	litest_drain_events(li);
 
-	litest_switch_action(sw,
+	litest_switch_action(dev,
 			     LIBINPUT_SWITCH_LID,
 			     LIBINPUT_SWITCH_STATE_ON);
 	libinput_dispatch(li);
@@ -96,7 +96,7 @@ START_TEST(lid_switch_double)
 
 	/* This will be filtered by the kernel, so this test is a bit
 	 * useless */
-	litest_switch_action(sw,
+	litest_switch_action(dev,
 			     LIBINPUT_SWITCH_LID,
 			     LIBINPUT_SWITCH_STATE_ON);
 	libinput_dispatch(li);
@@ -124,21 +124,21 @@ lid_switch_is_reliable(struct litest_device *dev)
 
 START_TEST(lid_switch_down_on_init)
 {
-	struct litest_device *sw = litest_current_device();
+	struct litest_device *dev = litest_current_device();
 	struct libinput *li;
 	struct libinput_event *event;
 
-	if (!lid_switch_is_reliable(sw))
+	if (!lid_switch_is_reliable(dev))
 		return;
 
-	litest_switch_action(sw,
+	litest_switch_action(dev,
 			     LIBINPUT_SWITCH_LID,
 			     LIBINPUT_SWITCH_STATE_ON);
 
 	/* need separate context to test */
 	li = litest_create_context();
 	libinput_path_add_device(li,
-				 libevdev_uinput_get_devnode(sw->uinput));
+				 libevdev_uinput_get_devnode(dev->uinput));
 	libinput_dispatch(li);
 
 	litest_wait_for_event_of_type(li, LIBINPUT_EVENT_SWITCH_TOGGLE, -1);
@@ -154,7 +154,7 @@ START_TEST(lid_switch_down_on_init)
 		libinput_event_destroy(event);
 	}
 
-	litest_switch_action(sw,
+	litest_switch_action(dev,
 			     LIBINPUT_SWITCH_LID,
 			     LIBINPUT_SWITCH_STATE_OFF);
 	libinput_dispatch(li);
@@ -172,21 +172,21 @@ END_TEST
 
 START_TEST(lid_switch_not_down_on_init)
 {
-	struct litest_device *sw = litest_current_device();
+	struct litest_device *dev = litest_current_device();
 	struct libinput *li;
 	struct libinput_event *event;
 
-	if (lid_switch_is_reliable(sw))
+	if (lid_switch_is_reliable(dev))
 		return;
 
-	litest_switch_action(sw,
+	litest_switch_action(dev,
 			     LIBINPUT_SWITCH_LID,
 			     LIBINPUT_SWITCH_STATE_ON);
 
 	/* need separate context to test */
 	li = litest_create_context();
 	libinput_path_add_device(li,
-				 libevdev_uinput_get_devnode(sw->uinput));
+				 libevdev_uinput_get_devnode(dev->uinput));
 	libinput_dispatch(li);
 
 	while ((event = libinput_get_event(li)) != NULL) {
@@ -195,7 +195,7 @@ START_TEST(lid_switch_not_down_on_init)
 		libinput_event_destroy(event);
 	}
 
-	litest_switch_action(sw,
+	litest_switch_action(dev,
 			     LIBINPUT_SWITCH_LID,
 			     LIBINPUT_SWITCH_STATE_OFF);
 	litest_assert_empty_queue(li);
