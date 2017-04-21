@@ -29,6 +29,16 @@
 #include "libinput-util.h"
 #include "litest.h"
 
+START_TEST(lid_switch_has)
+{
+	struct litest_device *sw = litest_current_device();
+
+	ck_assert_int_eq(libinput_device_switch_has_switch(sw->libinput_device,
+							   LIBINPUT_SWITCH_LID),
+			 1);
+}
+END_TEST
+
 START_TEST(lid_switch)
 {
 	struct litest_device *sw = litest_current_device();
@@ -549,6 +559,7 @@ END_TEST
 void
 litest_setup_tests_lid(void)
 {
+	litest_add("lid:switch", lid_switch_has, LITEST_SWITCH, LITEST_ANY);
 	litest_add("lid:switch", lid_switch, LITEST_SWITCH, LITEST_ANY);
 	litest_add("lid:switch", lid_switch_double, LITEST_SWITCH, LITEST_ANY);
 	litest_add("lid:switch", lid_switch_down_on_init, LITEST_SWITCH, LITEST_ANY);
