@@ -29,9 +29,12 @@
 #include "libinput-util.h"
 #include "litest.h"
 
-START_TEST(lid_switch_has)
+START_TEST(switch_has_lid_switch)
 {
 	struct litest_device *dev = litest_current_device();
+
+	if (!libevdev_has_event_code(dev->evdev, EV_SW, SW_LID))
+		return;
 
 	ck_assert_int_eq(libinput_device_switch_has_switch(dev->libinput_device,
 							   LIBINPUT_SWITCH_LID),
@@ -39,66 +42,52 @@ START_TEST(lid_switch_has)
 }
 END_TEST
 
-START_TEST(lid_switch)
+START_TEST(switch_toggle)
 {
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
 	struct libinput_event *event;
+	enum libinput_switch sw = LIBINPUT_SWITCH_LID;
 
 	litest_drain_events(li);
 
-	/* lid closed */
-	litest_switch_action(dev,
-			     LIBINPUT_SWITCH_LID,
-			     LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(dev, sw, LIBINPUT_SWITCH_STATE_ON);
 	libinput_dispatch(li);
 
 	event = libinput_get_event(li);
-	litest_is_switch_event(event,
-			       LIBINPUT_SWITCH_LID,
-			       LIBINPUT_SWITCH_STATE_ON);
+	litest_is_switch_event(event, sw, LIBINPUT_SWITCH_STATE_ON);
 	libinput_event_destroy(event);
 
-	/* lid opened */
-	litest_switch_action(dev,
-			     LIBINPUT_SWITCH_LID,
-			     LIBINPUT_SWITCH_STATE_OFF);
+	litest_switch_action(dev, sw, LIBINPUT_SWITCH_STATE_OFF);
 	libinput_dispatch(li);
 
 	event = libinput_get_event(li);
-	litest_is_switch_event(event,
-			       LIBINPUT_SWITCH_LID,
-			       LIBINPUT_SWITCH_STATE_OFF);
+	litest_is_switch_event(event, sw, LIBINPUT_SWITCH_STATE_OFF);
 	libinput_event_destroy(event);
 
 	litest_assert_empty_queue(li);
 }
 END_TEST
 
-START_TEST(lid_switch_double)
+START_TEST(switch_toggle_double)
 {
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
 	struct libinput_event *event;
+	enum libinput_switch sw = LIBINPUT_SWITCH_LID;
 
 	litest_drain_events(li);
 
-	litest_switch_action(dev,
-			     LIBINPUT_SWITCH_LID,
-			     LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(dev, sw, LIBINPUT_SWITCH_STATE_ON);
 	libinput_dispatch(li);
 
 	event = libinput_get_event(li);
-	litest_is_switch_event(event,
-			       LIBINPUT_SWITCH_LID,
-			       LIBINPUT_SWITCH_STATE_ON);
+	litest_is_switch_event(event, sw, LIBINPUT_SWITCH_STATE_ON);
 	libinput_event_destroy(event);
 
 	/* This will be filtered by the kernel, so this test is a bit
 	 * useless */
-	litest_switch_action(dev,
-			     LIBINPUT_SWITCH_LID,
-			     LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(dev, sw, LIBINPUT_SWITCH_STATE_ON);
 	libinput_dispatch(li);
 
 	litest_assert_empty_queue(li);
@@ -122,18 +111,17 @@ lid_switch_is_reliable(struct litest_device *dev)
 	return is_reliable;
 }
 
-START_TEST(lid_switch_down_on_init)
+START_TEST(switch_down_on_init)
 {
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li;
 	struct libinput_event *event;
+	enum libinput_switch sw = LIBINPUT_SWITCH_LID;
 
 	if (!lid_switch_is_reliable(dev))
 		return;
 
-	litest_switch_action(dev,
-			     LIBINPUT_SWITCH_LID,
-			     LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(dev, sw, LIBINPUT_SWITCH_STATE_ON);
 
 	/* need separate context to test */
 	li = litest_create_context();
@@ -143,9 +131,7 @@ START_TEST(lid_switch_down_on_init)
 
 	litest_wait_for_event_of_type(li, LIBINPUT_EVENT_SWITCH_TOGGLE, -1);
 	event = libinput_get_event(li);
-	litest_is_switch_event(event,
-			       LIBINPUT_SWITCH_LID,
-			       LIBINPUT_SWITCH_STATE_ON);
+	litest_is_switch_event(event, sw, LIBINPUT_SWITCH_STATE_ON);
 	libinput_event_destroy(event);
 
 	while ((event = libinput_get_event(li))) {
@@ -154,14 +140,10 @@ START_TEST(lid_switch_down_on_init)
 		libinput_event_destroy(event);
 	}
 
-	litest_switch_action(dev,
-			     LIBINPUT_SWITCH_LID,
-			     LIBINPUT_SWITCH_STATE_OFF);
+	litest_switch_action(dev, sw, LIBINPUT_SWITCH_STATE_OFF);
 	libinput_dispatch(li);
 	event = libinput_get_event(li);
-	litest_is_switch_event(event,
-			       LIBINPUT_SWITCH_LID,
-			       LIBINPUT_SWITCH_STATE_OFF);
+	litest_is_switch_event(event, sw, LIBINPUT_SWITCH_STATE_OFF);
 	libinput_event_destroy(event);
 	litest_assert_empty_queue(li);
 
@@ -170,18 +152,17 @@ START_TEST(lid_switch_down_on_init)
 }
 END_TEST
 
-START_TEST(lid_switch_not_down_on_init)
+START_TEST(switch_not_down_on_init)
 {
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li;
 	struct libinput_event *event;
+	enum libinput_switch sw = LIBINPUT_SWITCH_LID;
 
 	if (lid_switch_is_reliable(dev))
 		return;
 
-	litest_switch_action(dev,
-			     LIBINPUT_SWITCH_LID,
-			     LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(dev, sw, LIBINPUT_SWITCH_STATE_ON);
 
 	/* need separate context to test */
 	li = litest_create_context();
@@ -195,9 +176,7 @@ START_TEST(lid_switch_not_down_on_init)
 		libinput_event_destroy(event);
 	}
 
-	litest_switch_action(dev,
-			     LIBINPUT_SWITCH_LID,
-			     LIBINPUT_SWITCH_STATE_OFF);
+	litest_switch_action(dev, sw, LIBINPUT_SWITCH_STATE_OFF);
 	litest_assert_empty_queue(li);
 	libinput_unref(li);
 }
@@ -559,11 +538,11 @@ END_TEST
 void
 litest_setup_tests_lid(void)
 {
-	litest_add("lid:switch", lid_switch_has, LITEST_SWITCH, LITEST_ANY);
-	litest_add("lid:switch", lid_switch, LITEST_SWITCH, LITEST_ANY);
-	litest_add("lid:switch", lid_switch_double, LITEST_SWITCH, LITEST_ANY);
-	litest_add("lid:switch", lid_switch_down_on_init, LITEST_SWITCH, LITEST_ANY);
-	litest_add("lid:switch", lid_switch_not_down_on_init, LITEST_SWITCH, LITEST_ANY);
+	litest_add("switch:has", switch_has_lid_switch, LITEST_SWITCH, LITEST_ANY);
+	litest_add("switch:toggle", switch_toggle, LITEST_SWITCH, LITEST_ANY);
+	litest_add("switch:toggle", switch_toggle_double, LITEST_SWITCH, LITEST_ANY);
+	litest_add("switch:toggle", switch_down_on_init, LITEST_SWITCH, LITEST_ANY);
+	litest_add("switch:toggle", switch_not_down_on_init, LITEST_SWITCH, LITEST_ANY);
 	litest_add("lid:disable_touchpad", lid_disable_touchpad, LITEST_SWITCH, LITEST_ANY);
 	litest_add("lid:disable_touchpad", lid_disable_touchpad_during_touch, LITEST_SWITCH, LITEST_ANY);
 	litest_add("lid:disable_touchpad", lid_disable_touchpad_edge_scroll, LITEST_SWITCH, LITEST_ANY);
