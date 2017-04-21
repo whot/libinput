@@ -417,6 +417,7 @@ extern struct litest_test_device litest_appletouch_device;
 extern struct litest_test_device litest_gpio_keys_device;
 extern struct litest_test_device litest_ignored_mouse_device;
 extern struct litest_test_device litest_wacom_mobilestudio_13hdt_pad_device;
+extern struct litest_test_device litest_thinkpad_extrabuttons_device;
 
 struct litest_test_device* devices[] = {
 	&litest_synaptics_clickpad_device,
@@ -485,6 +486,7 @@ struct litest_test_device* devices[] = {
 	&litest_gpio_keys_device,
 	&litest_ignored_mouse_device,
 	&litest_wacom_mobilestudio_13hdt_pad_device,
+	&litest_thinkpad_extrabuttons_device,
 	NULL,
 };
 
@@ -2188,6 +2190,9 @@ litest_switch_action(struct litest_device *dev,
 	switch (sw) {
 	case LIBINPUT_SWITCH_LID:
 		code = SW_LID;
+		break;
+	case LIBINPUT_SWITCH_TABLET_MODE:
+		code = SW_TABLET_MODE;
 		break;
 	default:
 		litest_abort_msg("Invalid switch %d", sw);

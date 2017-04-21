@@ -29,6 +29,13 @@
 #include "libinput-util.h"
 #include "litest.h"
 
+static inline bool
+switch_has_lid(struct litest_device *dev)
+{
+	return libinput_device_switch_has_switch(dev->libinput_device,
+						 LIBINPUT_SWITCH_LID);
+}
+
 START_TEST(switch_has_cap)
 {
 	struct litest_device *dev = litest_current_device();
@@ -39,12 +46,28 @@ START_TEST(switch_has_cap)
 }
 END_TEST
 
-START_TEST(switch_has)
+START_TEST(switch_has_lid_switch)
 {
 	struct litest_device *dev = litest_current_device();
 
+	if (!libevdev_has_event_code(dev->evdev, EV_SW, SW_LID))
+		return;
+
 	ck_assert_int_eq(libinput_device_switch_has_switch(dev->libinput_device,
 							   LIBINPUT_SWITCH_LID),
+			 1);
+}
+END_TEST
+
+START_TEST(switch_has_tablet_mode_switch)
+{
+	struct litest_device *dev = litest_current_device();
+
+	if (!libevdev_has_event_code(dev->evdev, EV_SW, SW_TABLET_MODE))
+		return;
+
+	ck_assert_int_eq(libinput_device_switch_has_switch(dev->libinput_device,
+							   LIBINPUT_SWITCH_TABLET_MODE),
 			 1);
 }
 END_TEST
@@ -54,23 +77,29 @@ START_TEST(switch_toggle)
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
 	struct libinput_event *event;
-	enum libinput_switch sw = LIBINPUT_SWITCH_LID;
+	enum libinput_switch sw = _i; /* ranged test */
 
 	litest_drain_events(li);
 
 	litest_switch_action(dev, sw, LIBINPUT_SWITCH_STATE_ON);
 	libinput_dispatch(li);
 
-	event = libinput_get_event(li);
-	litest_is_switch_event(event, sw, LIBINPUT_SWITCH_STATE_ON);
-	libinput_event_destroy(event);
+	if (libinput_device_switch_has_switch(dev->libinput_device, sw)) {
+		event = libinput_get_event(li);
+		litest_is_switch_event(event, sw, LIBINPUT_SWITCH_STATE_ON);
+		libinput_event_destroy(event);
+	} else {
+		litest_assert_empty_queue(li);
+	}
 
 	litest_switch_action(dev, sw, LIBINPUT_SWITCH_STATE_OFF);
 	libinput_dispatch(li);
 
-	event = libinput_get_event(li);
-	litest_is_switch_event(event, sw, LIBINPUT_SWITCH_STATE_OFF);
-	libinput_event_destroy(event);
+	if (libinput_device_switch_has_switch(dev->libinput_device, sw)) {
+		event = libinput_get_event(li);
+		litest_is_switch_event(event, sw, LIBINPUT_SWITCH_STATE_OFF);
+		libinput_event_destroy(event);
+	}
 
 	litest_assert_empty_queue(li);
 }
@@ -81,7 +110,10 @@ START_TEST(switch_toggle_double)
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
 	struct libinput_event *event;
-	enum libinput_switch sw = LIBINPUT_SWITCH_LID;
+	enum libinput_switch sw = _i; /* ranged test */
+
+	if (!libinput_device_switch_has_switch(dev->libinput_device, sw))
+		return;
 
 	litest_drain_events(li);
 
@@ -123,9 +155,12 @@ START_TEST(switch_down_on_init)
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li;
 	struct libinput_event *event;
-	enum libinput_switch sw = LIBINPUT_SWITCH_LID;
+	enum libinput_switch sw = _i; /* ranged test */
 
-	if (!lid_switch_is_reliable(dev))
+	if (!libinput_device_switch_has_switch(dev->libinput_device, sw))
+		return;
+
+	if (sw == LIBINPUT_SWITCH_LID && !lid_switch_is_reliable(dev))
 		return;
 
 	litest_switch_action(dev, sw, LIBINPUT_SWITCH_STATE_ON);
@@ -166,7 +201,10 @@ START_TEST(switch_not_down_on_init)
 	struct libinput_event *event;
 	enum libinput_switch sw = LIBINPUT_SWITCH_LID;
 
-	if (lid_switch_is_reliable(dev))
+	if (!libinput_device_switch_has_switch(dev->libinput_device, sw))
+		return;
+
+	if (sw == LIBINPUT_SWITCH_LID && lid_switch_is_reliable(dev))
 		return;
 
 	litest_switch_action(dev, sw, LIBINPUT_SWITCH_STATE_ON);
@@ -202,6 +240,9 @@ START_TEST(lid_disable_touchpad)
 	struct litest_device *sw = litest_current_device();
 	struct litest_device *touchpad;
 	struct libinput *li = sw->libinput;
+
+	if (!switch_has_lid(sw))
+		return;
 
 	touchpad = lid_init_paired_touchpad(li);
 	litest_disable_tap(touchpad->libinput_device);
@@ -239,6 +280,9 @@ START_TEST(lid_disable_touchpad_during_touch)
 	struct litest_device *touchpad;
 	struct libinput *li = sw->libinput;
 
+	if (!switch_has_lid(sw))
+		return;
+
 	touchpad = lid_init_paired_touchpad(li);
 	litest_disable_tap(touchpad->libinput_device);
 	litest_drain_events(li);
@@ -265,6 +309,9 @@ START_TEST(lid_disable_touchpad_edge_scroll)
 	struct litest_device *sw = litest_current_device();
 	struct litest_device *touchpad;
 	struct libinput *li = sw->libinput;
+
+	if (!switch_has_lid(sw))
+		return;
 
 	touchpad = lid_init_paired_touchpad(li);
 	litest_enable_edge_scroll(touchpad);
@@ -301,6 +348,9 @@ START_TEST(lid_disable_touchpad_edge_scroll_interrupt)
 	struct litest_device *touchpad;
 	struct libinput *li = sw->libinput;
 	struct libinput_event *event;
+
+	if (!switch_has_lid(sw))
+		return;
 
 	touchpad = lid_init_paired_touchpad(li);
 	litest_enable_edge_scroll(touchpad);
@@ -341,6 +391,9 @@ START_TEST(lid_disable_touchpad_already_open)
 	struct litest_device *touchpad;
 	struct libinput *li = sw->libinput;
 
+	if (!switch_has_lid(sw))
+		return;
+
 	touchpad = lid_init_paired_touchpad(li);
 	litest_disable_tap(touchpad->libinput_device);
 	litest_drain_events(li);
@@ -372,6 +425,9 @@ START_TEST(lid_open_on_key)
 	struct litest_device *keyboard;
 	struct libinput *li = sw->libinput;
 	struct libinput_event *event;
+
+	if (!switch_has_lid(sw))
+		return;
 
 	keyboard = litest_add_device(li, LITEST_KEYBOARD);
 
@@ -408,6 +464,9 @@ START_TEST(lid_open_on_key_touchpad_enabled)
 	struct litest_device *sw = litest_current_device();
 	struct litest_device *keyboard, *touchpad;
 	struct libinput *li = sw->libinput;
+
+	if (!switch_has_lid(sw))
+		return;
 
 	keyboard = litest_add_device(li, LITEST_KEYBOARD);
 	touchpad = litest_add_device(li, LITEST_SYNAPTICS_I2C);
@@ -500,6 +559,9 @@ START_TEST(lid_update_hw_on_key)
 	struct libinput *li2;
 	struct litest_device *keyboard;
 	struct libinput_event *event;
+
+	if (!switch_has_lid(sw))
+		return;
 
 	sleep(5);
 	keyboard = litest_add_device(li, LITEST_KEYBOARD);
@@ -612,11 +674,15 @@ END_TEST
 void
 litest_setup_tests_lid(void)
 {
+	struct range switches = { LIBINPUT_SWITCH_LID,
+				  LIBINPUT_SWITCH_TABLET_MODE + 1};
+
 	litest_add("switch:has", switch_has_cap, LITEST_SWITCH, LITEST_ANY);
-	litest_add("switch:has", switch_has, LITEST_SWITCH, LITEST_ANY);
-	litest_add("switch:toggle", switch_toggle, LITEST_SWITCH, LITEST_ANY);
-	litest_add("switch:toggle", switch_toggle_double, LITEST_SWITCH, LITEST_ANY);
-	litest_add("switch:toggle", switch_down_on_init, LITEST_SWITCH, LITEST_ANY);
+	litest_add("switch:has", switch_has_lid_switch, LITEST_SWITCH, LITEST_ANY);
+	litest_add("switch:has", switch_has_tablet_mode_switch, LITEST_SWITCH, LITEST_ANY);
+	litest_add_ranged("switch:toggle", switch_toggle, LITEST_SWITCH, LITEST_ANY, &switches);
+	litest_add_ranged("switch:toggle", switch_toggle_double, LITEST_SWITCH, LITEST_ANY, &switches);
+	litest_add_ranged("switch:toggle", switch_down_on_init, LITEST_SWITCH, LITEST_ANY, &switches);
 	litest_add("switch:toggle", switch_not_down_on_init, LITEST_SWITCH, LITEST_ANY);
 	litest_add("lid:disable_touchpad", lid_disable_touchpad, LITEST_SWITCH, LITEST_ANY);
 	litest_add("lid:disable_touchpad", lid_disable_touchpad_during_touch, LITEST_SWITCH, LITEST_ANY);

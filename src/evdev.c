@@ -1161,6 +1161,7 @@ fallback_process_switch(struct fallback_dispatch *dispatch,
 			struct input_event *e,
 			uint64_t time)
 {
+	enum libinput_switch_state state;
 	bool is_closed;
 
 	switch (e->code) {
@@ -1173,6 +1174,20 @@ fallback_process_switch(struct fallback_dispatch *dispatch,
 
 		dispatch->lid.is_closed = is_closed;
 		fallback_lid_notify_toggle(dispatch, device, time);
+		break;
+	case SW_TABLET_MODE:
+		if (dispatch->tablet_mode.state == e->value)
+			return;
+
+		dispatch->tablet_mode.state = e->value;
+		if (e->value)
+			state = LIBINPUT_SWITCH_STATE_ON;
+		else
+			state = LIBINPUT_SWITCH_STATE_OFF;
+		switch_notify_toggle(&device->base,
+				     time,
+				     LIBINPUT_SWITCH_TABLET_MODE,
+				     state);
 		break;
 	}
 }
@@ -1381,12 +1396,6 @@ evdev_tag_keyboard(struct evdev_device *device,
 }
 
 static void
-evdev_tag_lid_switch(struct evdev_device *device)
-{
-	device->tags |= EVDEV_TAG_LID_SWITCH;
-}
-
-static void
 fallback_process(struct evdev_dispatch *evdev_dispatch,
 		 struct evdev_device *device,
 		 struct input_event *event,
@@ -1565,6 +1574,13 @@ fallback_sync_initial_state(struct evdev_device *device,
 		    dispatch->lid.reliability == RELIABILITY_RELIABLE) {
 			fallback_lid_notify_toggle(dispatch, device, time);
 		}
+	}
+
+	if (dispatch->tablet_mode.state) {
+		switch_notify_toggle(&device->base,
+				     time,
+				     LIBINPUT_SWITCH_TABLET_MODE,
+				     LIBINPUT_SWITCH_STATE_ON);
 	}
 }
 
@@ -2197,10 +2213,19 @@ static inline void
 fallback_dispatch_init_switch(struct fallback_dispatch *dispatch,
 			      struct evdev_device *device)
 {
+	int val;
+
 	if (device->tags & EVDEV_TAG_LID_SWITCH) {
 		libinput_device_init_event_listener(&dispatch->lid.listener);
 		dispatch->lid.reliability = evdev_read_switch_reliability_prop(device);
 		dispatch->lid.is_closed = false;
+	}
+
+	if (device->tags & EVDEV_TAG_TABLET_MODE_SWITCH) {
+		val = libevdev_get_event_value(device->evdev,
+					       EV_SW,
+					       SW_TABLET_MODE);
+		dispatch->tablet_mode.state = val;
 	}
 }
 
@@ -3115,11 +3140,18 @@ evdev_configure_device(struct evdev_device *device)
 		evdev_log_info(device, "device is a touch device\n");
 	}
 
-	if (udev_tags & EVDEV_UDEV_TAG_SWITCH &&
-	    libevdev_has_event_code(evdev, EV_SW, SW_LID)) {
-		device->seat_caps |= EVDEV_DEVICE_SWITCH;
-		evdev_tag_lid_switch(device);
-		evdev_log_info(device, "device is a switch device\n");
+	if (udev_tags & EVDEV_UDEV_TAG_SWITCH) {
+		if (libevdev_has_event_code(evdev, EV_SW, SW_LID)) {
+			device->seat_caps |= EVDEV_DEVICE_SWITCH;
+			device->tags |= EVDEV_TAG_LID_SWITCH;
+			evdev_log_info(device, "device is a switch device\n");
+		}
+
+		if (libevdev_has_event_code(evdev, EV_SW, SW_TABLET_MODE)) {
+			device->seat_caps |= EVDEV_DEVICE_SWITCH;
+			device->tags |= EVDEV_TAG_TABLET_MODE_SWITCH;
+			evdev_log_info(device, "device is a switch device\n");
+		}
 	}
 
 	if (device->seat_caps & EVDEV_DEVICE_POINTER &&
@@ -3650,6 +3682,9 @@ evdev_device_has_switch(struct evdev_device *device,
 	switch (sw) {
 	case LIBINPUT_SWITCH_LID:
 		code = SW_LID;
+		break;
+	case LIBINPUT_SWITCH_TABLET_MODE:
+		code = SW_TABLET_MODE;
 		break;
 	default:
 		return -1;

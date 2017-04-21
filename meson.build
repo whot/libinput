@@ -565,6 +565,7 @@ if get_option('tests')
 		'test/litest-device-synaptics-st.c',
 		'test/litest-device-synaptics-t440.c',
 		'test/litest-device-synaptics-x1-carbon-3rd.c',
+		'test/litest-device-thinkpad-extrabuttons.c',
 		'test/litest-device-trackpoint.c',
 		'test/litest-device-touch-screen.c',
 		'test/litest-device-touchscreen-fuzz.c',

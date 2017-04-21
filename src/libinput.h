@@ -624,6 +624,22 @@ enum libinput_switch {
 	 * LIBINPUT_SWITCH_STATE_OFF.
 	 */
 	LIBINPUT_SWITCH_LID = 1,
+
+	/**
+	 * This switch indicates whether the device is in normal laptop mode
+	 * or behaves like a tablet-like device where the primary
+	 * interaction is usually a touch screen. When in tablet mode, the
+	 * keyboard and touchpad are usually inaccessible.
+	 *
+	 * If the switch is in state @ref LIBINPUT_SWITCH_STATE_OFF, the
+	 * device is in laptop mode. If the switch is in state @ref
+	 * LIBINPUT_SWITCH_STATE_ON, the device is in tablet mode and the
+	 * keyboard or touchpad may not be  accessible.
+	 *
+	 * It is up to the caller to identify which devices are inaccessible
+	 * in tablet mode.
+	 */
+	LIBINPUT_SWITCH_TABLET_MODE,
 };
 
 /**

@@ -75,6 +75,7 @@ enum evdev_device_tags {
 	EVDEV_TAG_LID_SWITCH = (1 << 5),
 	EVDEV_TAG_INTERNAL_KEYBOARD = (1 << 6),
 	EVDEV_TAG_EXTERNAL_KEYBOARD = (1 << 7),
+	EVDEV_TAG_TABLET_MODE_SWITCH = (1 << 8),
 };
 
 enum evdev_middlebutton_state {
@@ -375,6 +376,10 @@ struct fallback_dispatch {
 	} mt;
 
 	struct device_coords rel;
+
+	struct {
+		int state;
+	} tablet_mode;
 
 	/* Bitmask of pressed keys used to ignore initial release events from
 	 * the kernel. */
