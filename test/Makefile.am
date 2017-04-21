@@ -54,6 +54,7 @@ liblitest_la_SOURCES = \
 	litest-device-synaptics-st.c \
 	litest-device-synaptics-t440.c \
 	litest-device-synaptics-x1-carbon-3rd.c \
+	litest-device-thinkpad-extrabuttons.c \
 	litest-device-trackpoint.c \
 	litest-device-touch-screen.c \
 	litest-device-touchscreen-fuzz.c \

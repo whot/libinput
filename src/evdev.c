@@ -935,6 +935,32 @@ fallback_process_absolute_motion(struct fallback_dispatch *dispatch,
 	}
 }
 
+static inline void
+fallback_process_switch(struct fallback_dispatch *dispatch,
+			struct evdev_device *device,
+			struct input_event *e,
+			uint64_t time)
+{
+	enum libinput_switch_state state;
+
+	switch (e->code) {
+	case SW_RFKILL_ALL:
+		if (dispatch->sw.rfkill_all_state == e->value)
+			return;
+
+		dispatch->sw.rfkill_all_state = e->value;
+		if (e->value)
+			state = LIBINPUT_SWITCH_STATE_ON;
+		else
+			state = LIBINPUT_SWITCH_STATE_OFF;
+		switch_notify_toggle(&device->base,
+				     time,
+				     LIBINPUT_SWITCH_RF_DISABLED,
+				     state);
+		break;
+	}
+}
+
 void
 evdev_notify_axis(struct evdev_device *device,
 		  uint64_t time,
@@ -1137,6 +1163,9 @@ fallback_process(struct evdev_dispatch *evdev_dispatch,
 	case EV_KEY:
 		fallback_process_key(dispatch, device, event, time);
 		break;
+	case EV_SW:
+		fallback_process_switch(dispatch, device, event, time);
+		break;
 	case EV_SYN:
 		sent = fallback_flush_pending_event(dispatch, device, time);
 		switch (sent) {
@@ -1255,6 +1284,21 @@ fallback_suspend(struct evdev_dispatch *evdev_dispatch,
 }
 
 static void
+fallback_sync_initial_state(struct evdev_device *device,
+			    struct evdev_dispatch *evdev_dispatch)
+{
+	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
+
+	if (dispatch->sw.rfkill_all_state) {
+		uint64_t time = libinput_now(evdev_libinput_context(device));
+		switch_notify_toggle(&device->base,
+				     time,
+				     LIBINPUT_SWITCH_RF_DISABLED,
+				     LIBINPUT_SWITCH_STATE_ON);
+	}
+}
+
+static void
 fallback_toggle_touch(struct evdev_dispatch *evdev_dispatch,
 		      struct evdev_device *device,
 		      bool enable)
@@ -1330,7 +1374,7 @@ struct evdev_dispatch_interface fallback_interface = {
 	NULL, /* device_removed */
 	NULL, /* device_suspended */
 	NULL, /* device_resumed */
-	NULL, /* post_added */
+	fallback_sync_initial_state, /* post_added */
 	fallback_toggle_touch, /* toggle_touch */
 };
 
@@ -1797,6 +1841,19 @@ fallback_dispatch_init_abs(struct fallback_dispatch *dispatch,
 	evdev_device_init_abs_range_warnings(device);
 }
 
+static inline void
+fallback_dispatch_init_switch(struct fallback_dispatch *dispatch,
+			      struct evdev_device *device)
+{
+	if (!libevdev_has_event_code(device->evdev, EV_SW, SW_RFKILL_ALL))
+		return;
+
+	dispatch->sw.rfkill_all_state = libevdev_get_event_value(device->evdev,
+								 EV_SW,
+								 SW_RFKILL_ALL);
+	device->seat_caps |= EVDEV_DEVICE_SWITCH;
+}
+
 static struct evdev_dispatch *
 fallback_dispatch_create(struct libinput_device *libinput_device)
 {
@@ -1816,6 +1873,8 @@ fallback_dispatch_create(struct libinput_device *libinput_device)
 		free(dispatch);
 		return NULL;
 	}
+
+	fallback_dispatch_init_switch(dispatch, device);
 
 	if (device->left_handed.want_enabled)
 		evdev_init_left_handed(device,
@@ -3151,6 +3210,9 @@ evdev_device_has_switch(struct evdev_device *device,
 	switch (sw) {
 	case LIBINPUT_SWITCH_LID:
 		code = SW_LID;
+		break;
+	case LIBINPUT_SWITCH_RF_DISABLED:
+		code = SW_RFKILL_ALL;
 		break;
 	default:
 		return -1;

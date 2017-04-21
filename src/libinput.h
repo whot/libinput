@@ -624,6 +624,21 @@ enum libinput_switch {
 	 * LIBINPUT_SWITCH_STATE_OFF.
 	 */
 	LIBINPUT_SWITCH_LID = 1,
+
+	/**
+	 * All wireless devices on this system should be disabled when the
+	 * switch state is in @ref LIBINPUT_SWITCH_STATE_ON, or should be
+	 * enabled when in @ref LIBINPUT_SWITCH_STATE_OFF.
+	 *
+	 * This switch only represents the physical switch on the system, it
+	 * does not define how other devices react to a toggling of the
+	 * switch. On some systems, the hardware may change state
+	 * automatically. It is up to the caller to
+	 * a) identify any wireless devices on this system, and
+	 * b) verify the state of these devices, and
+	 * c) toggle the state to match the switch state (if required)
+	 */
+	LIBINPUT_SWITCH_RF_DISABLED,
 };
 
 /**

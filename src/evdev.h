@@ -357,6 +357,10 @@ struct fallback_dispatch {
 
 	struct device_coords rel;
 
+	struct {
+		int rfkill_all_state;
+	} sw;
+
 	/* Bitmask of pressed keys used to ignore initial release events from
 	 * the kernel. */
 	unsigned long hw_key_mask[NLONGS(KEY_CNT)];
