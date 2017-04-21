@@ -2937,6 +2937,13 @@ libinput_device_keyboard_has_key(struct libinput_device *device, uint32_t code)
 }
 
 LIBINPUT_EXPORT int
+libinput_device_switch_has_switch(struct libinput_device *device,
+				  enum libinput_switch sw)
+{
+	return evdev_device_has_switch((struct evdev_device *)device, sw);
+}
+
+LIBINPUT_EXPORT int
 libinput_device_tablet_pad_get_num_buttons(struct libinput_device *device)
 {
 	return evdev_device_tablet_pad_get_num_buttons((struct evdev_device *)device);

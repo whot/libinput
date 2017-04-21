@@ -3417,6 +3417,26 @@ evdev_device_has_key(struct evdev_device *device, uint32_t code)
 	return libevdev_has_event_code(device->evdev, EV_KEY, code);
 }
 
+int
+evdev_device_has_switch(struct evdev_device *device,
+			enum libinput_switch sw)
+{
+	unsigned int code;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_SWITCH))
+		return -1;
+
+	switch (sw) {
+	case LIBINPUT_SWITCH_LID:
+		code = SW_LID;
+		break;
+	default:
+		return -1;
+	}
+
+	return libevdev_has_event_code(device->evdev, EV_SW, code);
+}
+
 static inline bool
 evdev_is_scrolling(const struct evdev_device *device,
 		   enum libinput_pointer_axis axis)

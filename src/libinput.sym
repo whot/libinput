@@ -289,3 +289,7 @@ LIBINPUT_1.7 {
 	libinput_event_switch_get_time;
 	libinput_event_switch_get_time_usec;
 } LIBINPUT_1.5;
+
+LIBINPUT_1.9 {
+	libinput_device_switch_has_switch;
+} LIBINPUT_1.7;

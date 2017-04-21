@@ -490,6 +490,10 @@ int
 evdev_device_has_key(struct evdev_device *device, uint32_t code);
 
 int
+evdev_device_has_switch(struct evdev_device *device,
+			enum libinput_switch sw);
+
+int
 evdev_device_tablet_pad_get_num_buttons(struct evdev_device *device);
 
 int

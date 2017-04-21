@@ -3699,6 +3699,22 @@ libinput_device_keyboard_has_key(struct libinput_device *device,
 /**
  * @ingroup device
  *
+ * Check if a @ref LIBINPUT_DEVICE_CAP_SWITCH device has a switch of the
+ * given type.
+ *
+ * @param device A current input device
+ * @param sw Switch to check for
+ *
+ * @return 1 if the device supports this switch, 0 if it does not, -1
+ * on error.
+ */
+int
+libinput_device_switch_has_switch(struct libinput_device *device,
+				  enum libinput_switch sw);
+
+/**
+ * @ingroup device
+ *
  * Return the number of buttons on a device with the
  * @ref LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
  * Buttons on a pad device are numbered sequentially, see @ref
