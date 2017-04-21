@@ -557,8 +557,9 @@ litest_keyboard_key(struct litest_device *d,
 		    unsigned int key,
 		    bool is_press);
 
-void litest_lid_action(struct litest_device *d,
-		       enum libinput_switch_state state);
+void litest_switch_action(struct litest_device *d,
+			  enum libinput_switch sw,
+			  enum libinput_switch_state state);
 
 void
 litest_wait_for_event(struct libinput *li);

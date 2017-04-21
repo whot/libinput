@@ -2163,10 +2163,21 @@ litest_keyboard_key(struct litest_device *d, unsigned int key, bool is_press)
 }
 
 void
-litest_lid_action(struct litest_device *dev,
-		  enum libinput_switch_state state)
+litest_switch_action(struct litest_device *dev,
+		     enum libinput_switch sw,
+		     enum libinput_switch_state state)
 {
-	litest_event(dev, EV_SW, SW_LID, state);
+	unsigned int code;
+
+	switch (sw) {
+	case LIBINPUT_SWITCH_LID:
+		code = SW_LID;
+		break;
+	default:
+		litest_abort_msg("Invalid switch %d", sw);
+		break;
+	}
+	litest_event(dev, EV_SW, code, state);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 }
 

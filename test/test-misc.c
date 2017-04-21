@@ -501,8 +501,12 @@ START_TEST(event_conversion_switch)
 	struct libinput_event *event;
 	int sw = 0;
 
-	litest_lid_action(dev, LIBINPUT_SWITCH_STATE_ON);
-	litest_lid_action(dev, LIBINPUT_SWITCH_STATE_OFF);
+	litest_switch_action(dev,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(dev,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_OFF);
 	libinput_dispatch(li);
 
 	while ((event = libinput_get_event(li))) {

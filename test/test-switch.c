@@ -38,7 +38,9 @@ START_TEST(lid_switch)
 	litest_drain_events(li);
 
 	/* lid closed */
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 	libinput_dispatch(li);
 
 	event = libinput_get_event(li);
@@ -48,7 +50,9 @@ START_TEST(lid_switch)
 	libinput_event_destroy(event);
 
 	/* lid opened */
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_OFF);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_OFF);
 	libinput_dispatch(li);
 
 	event = libinput_get_event(li);
@@ -69,7 +73,9 @@ START_TEST(lid_switch_double)
 
 	litest_drain_events(li);
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 	libinput_dispatch(li);
 
 	event = libinput_get_event(li);
@@ -80,7 +86,9 @@ START_TEST(lid_switch_double)
 
 	/* This will be filtered by the kernel, so this test is a bit
 	 * useless */
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 	libinput_dispatch(li);
 
 	litest_assert_empty_queue(li);
@@ -113,7 +121,9 @@ START_TEST(lid_switch_down_on_init)
 	if (!lid_switch_is_reliable(sw))
 		return;
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 
 	/* need separate context to test */
 	li = litest_create_context();
@@ -134,7 +144,9 @@ START_TEST(lid_switch_down_on_init)
 		libinput_event_destroy(event);
 	}
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_OFF);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_OFF);
 	libinput_dispatch(li);
 	event = libinput_get_event(li);
 	litest_is_switch_event(event,
@@ -157,7 +169,9 @@ START_TEST(lid_switch_not_down_on_init)
 	if (lid_switch_is_reliable(sw))
 		return;
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 
 	/* need separate context to test */
 	li = litest_create_context();
@@ -171,7 +185,9 @@ START_TEST(lid_switch_not_down_on_init)
 		libinput_event_destroy(event);
 	}
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_OFF);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_OFF);
 	litest_assert_empty_queue(li);
 	libinput_unref(li);
 }
@@ -196,7 +212,9 @@ START_TEST(lid_disable_touchpad)
 	litest_drain_events(li);
 
 	/* lid is down - no events */
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_SWITCH_TOGGLE);
 
 	litest_touch_down(touchpad, 0, 50, 50);
@@ -205,7 +223,9 @@ START_TEST(lid_disable_touchpad)
 	litest_assert_empty_queue(li);
 
 	/* lid is up - motion events */
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_OFF);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_OFF);
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_SWITCH_TOGGLE);
 
 	litest_touch_down(touchpad, 0, 50, 50);
@@ -231,7 +251,9 @@ START_TEST(lid_disable_touchpad_during_touch)
 	litest_touch_move_to(touchpad, 0, 50, 50, 70, 50, 5, 1);
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_POINTER_MOTION);
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_SWITCH_TOGGLE);
 
 	litest_touch_move_to(touchpad, 0, 70, 50, 50, 50, 5, 1);
@@ -253,7 +275,9 @@ START_TEST(lid_disable_touchpad_edge_scroll)
 
 	litest_drain_events(li);
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_SWITCH_TOGGLE);
 
 	litest_touch_down(touchpad, 0, 99, 20);
@@ -294,7 +318,9 @@ START_TEST(lid_disable_touchpad_edge_scroll_interrupt)
 	libinput_dispatch(li);
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_POINTER_AXIS);
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 	libinput_dispatch(li);
 
 	event = libinput_get_event(li);
@@ -330,7 +356,9 @@ START_TEST(lid_disable_touchpad_already_open)
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_POINTER_MOTION);
 
 	/* open lid - motion events */
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_OFF);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_OFF);
 	litest_assert_empty_queue(li);
 
 	litest_touch_down(touchpad, 0, 50, 50);
@@ -351,7 +379,9 @@ START_TEST(lid_open_on_key)
 
 	keyboard = litest_add_device(li, LITEST_KEYBOARD);
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 	litest_drain_events(li);
 
 	litest_event(keyboard, EV_KEY, KEY_A, 1);
@@ -368,7 +398,9 @@ START_TEST(lid_open_on_key)
 
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_KEYBOARD_KEY);
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_OFF);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_OFF);
 	litest_assert_empty_queue(li);
 
 	libinput_event_destroy(event);
@@ -385,7 +417,9 @@ START_TEST(lid_open_on_key_touchpad_enabled)
 	keyboard = litest_add_device(li, LITEST_KEYBOARD);
 	touchpad = litest_add_device(li, LITEST_SYNAPTICS_I2C);
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 	litest_drain_events(li);
 
 	litest_event(keyboard, EV_KEY, KEY_A, 1);
@@ -421,9 +455,13 @@ START_TEST(lid_suspend_with_keyboard)
 	keyboard = litest_add_device(li, LITEST_KEYBOARD);
 	libinput_dispatch(li);
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 	litest_drain_events(li);
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_OFF);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_OFF);
 	litest_drain_events(li);
 
 	litest_delete_device(keyboard);
@@ -477,7 +515,9 @@ START_TEST(lid_update_hw_on_key)
 				 libevdev_uinput_get_devnode(sw->uinput));
 	litest_drain_events(li2);
 
-	litest_lid_action(sw, LIBINPUT_SWITCH_STATE_ON);
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
 	litest_drain_events(li);
 
 	libinput_dispatch(li2);
