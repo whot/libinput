@@ -42,6 +42,16 @@ START_TEST(switch_has_lid_switch)
 }
 END_TEST
 
+START_TEST(switch_has_cap)
+{
+	struct litest_device *dev = litest_current_device();
+
+	ck_assert(libinput_device_has_capability(dev->libinput_device,
+						 LIBINPUT_DEVICE_CAP_SWITCH));
+
+}
+END_TEST
+
 START_TEST(switch_toggle)
 {
 	struct litest_device *dev = litest_current_device();
@@ -539,6 +549,7 @@ void
 litest_setup_tests_lid(void)
 {
 	litest_add("switch:has", switch_has_lid_switch, LITEST_SWITCH, LITEST_ANY);
+	litest_add("switch:has", switch_has_cap, LITEST_SWITCH, LITEST_ANY);
 	litest_add("switch:toggle", switch_toggle, LITEST_SWITCH, LITEST_ANY);
 	litest_add("switch:toggle", switch_toggle_double, LITEST_SWITCH, LITEST_ANY);
 	litest_add("switch:toggle", switch_down_on_init, LITEST_SWITCH, LITEST_ANY);
