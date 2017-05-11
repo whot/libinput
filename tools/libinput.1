@@ -1,0 +1,76 @@
+.TH LIBINPUT "1"
+.SH NAME
+libinput \- tool to interface with libinput
+.SH SYNOPSIS
+.B libinput [GLOBAL OPTIONS] [COMMAND] [ARGS]
+.SH DESCRIPTION
+.PP
+The
+.I libinput
+tool creates a libinput context on the default seat "seat0" and interacts
+with that libinput context.
+.PP
+This tool usually needs to be run as root to have access to the
+/dev/input/eventX nodes.
+.PP
+The context created by this tool is a new libinput context and independent
+of that created by the X.Org libinput driver, the Wayland compositor or any
+other process that utilizes libinput (henceforth called "the caller").
+Configuration options set in this context do not affect any other libinput
+contexts.
+.SH GLOBAL OPTIONS
+These options are independent of any
+.B COMMAND
+.TP 8
+.B --help
+Print help and exit
+.TP 8
+.B --version
+Print the version and exit
+.TP 8
+.B --verbose
+Enable verbose mode. In verbose mode, libinput will print a number of
+debug messages to stdout. The exact behavior of verbose mode depends on the
+.B COMMAND.
+.TP 8
+.B --quiet
+Enable quiet mode. In quiet mode, most messages normally printed to stdout
+will be omitted. The exact behavior of quiet mode depends on the
+.B COMMAND.
+
+.SH COMMANDS
+All commands support a
+.B --help
+argument that prints command-specific usage
+information
+.TP 8
+.B list-devices
+List all devices recognized by libinput. See section
+.B list-devices
+
+.SS list-devices
+List all devices recognized by libinput. Each device shows available
+configurations the respective
+.B default
+configuration setting.
+.PP
+For configuration options that allow multiple different settings (e.g.
+scrolling), all available settings are listed. The default setting is
+prefixed by an asterisk (*).
+.PP
+Note that some specific feature may still be available on a device even when
+no configuration is exposed, a lack of a configuration option does not
+necessarily mean that this feature does not work.
+.PP
+Note that this command only lists
+.B default
+configuration settings, settings modified in other contextx by the caller
+are not reflected in this tool.
+.SH NOTES
+.PP
+A device may be recognized by this libinput context but not handled by the
+X.Org libinput driver or the Wayland compositor.
+.PP
+.SH SEE ALSO
+.PP
+libinput(4)
