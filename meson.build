@@ -344,6 +344,7 @@ executable('event-debug',
 	   event_debug_sources,
 	   dependencies : dep_libinput,
 	   include_directories : include_directories('src'),
+	   c_args : [ '-DTOOLS_BUILD_STANDALONE=1' ],
 	   install : false
 	   )
 
@@ -352,6 +353,7 @@ executable('libinput-debug-events',
 	   libinput_debug_events_sources,
 	   dependencies : dep_libinput,
 	   include_directories : include_directories('src'),
+	   c_args : [ '-DTOOLS_BUILD_STANDALONE=1' ],
 	   install : true
 	   )
 
@@ -360,11 +362,12 @@ executable('libinput-list-devices',
 	   libinput_list_devices_sources,
 	   dependencies : [ dep_libinput ],
 	   include_directories : include_directories('src'),
-	   c_args : [ '-DTOOLS_BUILD_STANDALONE=1' ]
+	   c_args : [ '-DTOOLS_BUILD_STANDALONE=1' ],
 	   install : true,
 	   )
 
-libinput_sources = [ 'tools/libinput-tool.c' ] + libinput_list_devices_sources
+libinput_sources = [ 'tools/libinput-tool.c' ] + libinput_list_devices_sources + libinput_debug_events_sources
+
 executable('libinput',
 	   libinput_sources,
 	   dependencies : dep_libinput,

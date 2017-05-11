@@ -42,11 +42,69 @@ will be omitted. The exact behavior of quiet mode depends on the
 All commands support a
 .B --help
 argument that prints command-specific usage
-information
+information (e.g.
+.B libinput debug-events --help)
+.TP 8
+.B debug-events [ARGS]
+Print all events as seen by libinput. See section
+.B debug-events
 .TP 8
 .B list-devices
 List all devices recognized by libinput. See section
 .B list-devices
+
+.SS debug-events [...]
+Print all events from these devices.
+.PP
+This is a debugging tool only, its output may change at any time. Do not
+rely on the output.
+.PP
+.B --device /path/to/device
+.IP
+Use a path backend for the device for the given path. This option is
+mutually exclusive with the
+.B --udev
+option.
+.PP
+.B --grab
+.IP
+Exclusively grab all devices. This will prevent events from being sent to
+any other caller. It is recommended this option is only used together with
+the
+.B --device
+option, otherwise a user may not be able to terminate this tool.
+.PP
+.B --udev <name>
+.IP
+Use a udev backend for this context with the given seat name. This option is
+mutually exclusive with the
+.B --device
+option.
+.PP
+.B --show-keycodes
+.IP
+Print all keycodes as-is. Without this argument, most key events shown by
+this tool are obfuscated to avoid passwords and other sensitive
+information showing up in the output.
+.PP
+.B --enable-<feature>
+or
+.B --disable-<feature>
+.IP
+Enable or disable the given feature. For a full list of features, see the
+.B --help
+output. Requests to enable or disable a feature on a device that does
+not provide that feature, or where that feature is already enabled or
+disabled will be silently ignored.
+.PP
+.B --set-<feature>=<value>
+.IP
+Set the given feature to the given value. For a full list of features, see
+the
+.B --help
+output. Requests to set a feature on a device that does not provide that
+feature, or where that feature is already set to that value, or where the
+value is not available on that device will be silently ignored
 
 .SS list-devices
 List all devices recognized by libinput. Each device shows available
