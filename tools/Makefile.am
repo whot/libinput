@@ -40,6 +40,7 @@ dist_man1_MANS += libinput-debug-events.1
 libinput_SOURCES = \
 		   libinput-tool.c \
 		   libinput-tool.h \
+		   libinput-analyze-trackpoint.c \
 		   $(libinput_list_devices_SOURCES) \
 		   $(libinput_debug_events_SOURCES)
 libinput_LDADD = ../src/libinput.la libshared.la $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS)

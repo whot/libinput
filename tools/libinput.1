@@ -45,6 +45,10 @@ argument that prints command-specific usage
 information (e.g.
 .B libinput debug-events --help)
 .TP 8
+.B analyze-trackpoint [ARGS]
+Analyze various properties of the trackpoint device. See section
+.B analyze-trackpoint
+.TP 8
 .B debug-events [ARGS]
 Print all events as seen by libinput. See section
 .B debug-events
@@ -52,6 +56,16 @@ Print all events as seen by libinput. See section
 .B list-devices
 List all devices recognized by libinput. See section
 .B list-devices
+
+.SS analyze-trackpoint [...]
+Analyze various properties of the trackpoint device.
+.PP
+This is a debugging tool only, its output may change at any time. Do not
+rely on the output.
+.PP
+.B --device /path/to/device
+If a path to a device is given, this tool will look at the given device
+only. Otherwise, it will attempt to guess the trackpoint device.
 
 .SS debug-events [...]
 Print all events from these devices.
