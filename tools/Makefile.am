@@ -37,6 +37,7 @@ dist_man1_MANS += libinput-debug-events.1
 libinput_SOURCES = \
 		   libinput-tool.c \
 		   libinput-tool.h \
+		   libinput-analyze-trackpoint.c \
 		   libinput-debug-events.c \
 		   libinput-list-devices.c \
 		   $(shared_sources)

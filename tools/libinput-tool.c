@@ -60,6 +60,9 @@ libinput_tool_usage(void)
 	       "\n"
 	       "  debug-events\n"
 	       "	Print events to stdout\n"
+	       "\n"
+	       "  analyze-trackpoint\n"
+	       "	Analyze various properties of a trackpoint device\n"
 	       "\n");
 }
 
@@ -67,6 +70,7 @@ enum command {
 	COMMAND_NONE,
 	COMMAND_LIST_DEVICES,
 	COMMAND_DEBUG_EVENTS,
+	COMMAND_ANALYZE_TRACKPOINT,
 };
 
 enum global_opts {
@@ -90,6 +94,8 @@ parse_args_cmd(enum command cmd,
 		return libinput_list_devices(global_options, argc, argv);
 	case COMMAND_DEBUG_EVENTS:
 		return libinput_debug_events(global_options, argc, argv);
+	case COMMAND_ANALYZE_TRACKPOINT:
+		return libinput_analyze_trackpoint(global_options, argc, argv);
 	}
 	return true;
 }
@@ -152,6 +158,8 @@ main(int argc, char **argv)
 		cmd = COMMAND_LIST_DEVICES;
 	} else if (streq(command, "debug-events")) {
 		cmd = COMMAND_DEBUG_EVENTS;
+	} else if (streq(command, "analyze-trackpoint")) {
+		cmd = COMMAND_ANALYZE_TRACKPOINT;
 	} else {
 		fprintf(stderr, "Invalid command '%s'\n", command);
 		return EXIT_FAILURE;

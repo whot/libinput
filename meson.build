@@ -366,7 +366,9 @@ executable('libinput-list-devices',
 	   install : true,
 	   )
 
-libinput_sources = [ 'tools/libinput-tool.c' ] + libinput_list_devices_sources + libinput_debug_events_sources
+libinput_sources = [ 'tools/libinput-tool.c',
+		     'tools/libinput-analyze-trackpoint.c',
+	] + libinput_list_devices_sources + libinput_debug_events_sources
 
 executable('libinput',
 	   libinput_sources,
