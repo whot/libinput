@@ -34,6 +34,7 @@
 #include <libinput-util.h>
 #include <libinput-version.h>
 
+#include "libinput-tool.h"
 #include "shared.h"
 
 static const char *
@@ -354,39 +355,38 @@ print_device_notify(struct libinput_event *ev)
 static inline void
 usage(void)
 {
-	printf("Usage: %s [--help|--version]\n"
-	       "\n"
+#if TOOLS_BUILD_STANDALONE
+	printf("Usage: %s [--help|--version]\n", program_invocation_short_name);
+#else
+	printf("Usage: libinput list-devices [--help]\n");
+#endif
+	printf("\n"
 	       "This tool creates a libinput context on the default seat \"seat0\"\n"
 	       "and lists all devices recognized by libinput and the configuration options.\n"
 	       "Where multiple options are possible, the default is prefixed with \"*\".\n"
 	       "\n"
 	       "Options:\n"
 	       "--help ...... show this help\n"
+#if TOOLS_BUILD_STANDALONE
 	       "--version ... show version information\n"
+#endif
 	       "\n"
-	       "This tool requires access to the /dev/input/eventX nodes.\n",
-	       program_invocation_short_name);
+	       "This tool requires access to the /dev/input/eventX nodes.\n");
 }
 
 int
-main(int argc, char **argv)
+libinput_list_devices(struct global_options *opts, int argc, char **argv)
 {
 	struct libinput *li;
 	struct tools_context context;
 	struct libinput_event *ev;
 
+#if !TOOLS_BUILD_STANDALONE
 	if (argc > 1) {
-		if (streq(argv[1], "--help")) {
-			usage();
-			return 0;
-		} else if (streq(argv[1], "--version")) {
-			printf("%s\n", LIBINPUT_VERSION);
-			return 0;
-		} else {
-			usage();
-			return 1;
-		}
+		usage();
+		return streq(argv[1], "--help") ? EXIT_SUCCESS : EXIT_FAILURE;
 	}
+#endif
 
 	tools_init_context(&context);
 
@@ -406,5 +406,29 @@ main(int argc, char **argv)
 
 	libinput_unref(li);
 
-	return 0;
+	return EXIT_SUCCESS;
 }
+
+#if TOOLS_BUILD_STANDALONE
+int
+main(int argc, char **argv)
+{
+	struct global_options options = {0};
+
+	if (argc > 1) {
+		if (streq(argv[1], "--help")) {
+			usage();
+			return 0;
+		} else if (streq(argv[1], "--version")) {
+			printf("%s\n", LIBINPUT_VERSION);
+			return 0;
+		} else {
+			usage();
+			return 1;
+		}
+	}
+
+	return libinput_list_devices(&options, argc - optind, &argv[optind]);
+}
+
+#endif /* TOOLS_BUILD_STANDALONE */
