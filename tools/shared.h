@@ -28,20 +28,21 @@
 
 #include <libinput.h>
 
+#include "libinput-tool.h"
+
 enum tools_backend {
 	BACKEND_DEVICE,
 	BACKEND_UDEV
 };
 
 struct tools_options {
+	struct global_options global_options;
 	enum tools_backend backend;
 	const char *device; /* if backend is BACKEND_DEVICE */
 	const char *seat; /* if backend is BACKEND_UDEV */
 	int grab; /* EVIOCGRAB */
 	bool show_keycodes; /* show keycodes */
-	bool quiet; /* only print libinput messages */
 
-	int verbose;
 	int tapping;
 	int drag;
 	int drag_lock;

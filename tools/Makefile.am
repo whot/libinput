@@ -17,7 +17,8 @@ libshared_la_LIBADD = $(LIBEVDEV_LIBS)
 event_debug_SOURCES = libinput-debug-events.c
 event_debug_LDADD = ../src/libinput.la libshared.la $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS)
 event_debug_LDFLAGS = -no-install
-event_debug_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS)
+event_debug_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS) \
+		     -DTOOLS_BUILD_STANDALONE=1
 
 ptraccel_debug_SOURCES = ptraccel-debug.c
 ptraccel_debug_LDADD = ../src/libfilter.la ../src/libinput.la
@@ -32,15 +33,17 @@ dist_man1_MANS = libinput-list-devices.1
 
 libinput_debug_events_SOURCES = $(event_debug_SOURCES)
 libinput_debug_events_LDADD = $(event_debug_LDADD)
-libinput_debug_events_CFLAGS = $(AM_CFLAGS) $(event_debug_CFLAGS)
+libinput_debug_events_CFLAGS = $(AM_CFLAGS) $(event_debug_CFLAGS) \
+			       -DTOOLS_BUILD_STANDALONE=1
 dist_man1_MANS += libinput-debug-events.1
 
 libinput_SOURCES = \
 		   libinput-tool.c \
 		   libinput-tool.h \
-		   $(libinput_list_devices_SOURCES)
-libinput_LDADD = ../src/libinput.la libshared.la $(LIBUDEV_LIBS)
-libinput_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS)
+		   $(libinput_list_devices_SOURCES) \
+		   $(libinput_debug_events_SOURCES)
+libinput_LDADD = ../src/libinput.la libshared.la $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS)
+libinput_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS)
 dist_man1_MANS += libinput.1
 
 if BUILD_EVENTGUI

@@ -57,12 +57,16 @@ libinput_tool_usage(void)
 	       "Commands:\n"
 	       "  list-devices\n"
 	       "	List all devices with their default configuration options\n"
+	       "\n"
+	       "  debug-events\n"
+	       "	Print events to stdout\n"
 	       "\n");
 }
 
 enum command {
 	COMMAND_NONE,
 	COMMAND_LIST_DEVICES,
+	COMMAND_DEBUG_EVENTS,
 };
 
 enum global_opts {
@@ -84,6 +88,8 @@ parse_args_cmd(enum command cmd,
 		break;
 	case COMMAND_LIST_DEVICES:
 		return libinput_list_devices(global_options, argc, argv);
+	case COMMAND_DEBUG_EVENTS:
+		return libinput_debug_events(global_options, argc, argv);
 	}
 	return true;
 }
@@ -144,6 +150,8 @@ main(int argc, char **argv)
 
 	if (streq(command, "list-devices")) {
 		cmd = COMMAND_LIST_DEVICES;
+	} else if (streq(command, "debug-events")) {
+		cmd = COMMAND_DEBUG_EVENTS;
 	} else {
 		fprintf(stderr, "Invalid command '%s'\n", command);
 		return EXIT_FAILURE;
