@@ -53,6 +53,13 @@ libinput_measure_touchpad_tap_LDADD = ../src/libinput.la libshared.la $(LIBUDEV_
 libinput_measure_touchpad_tap_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS)
 dist_man1_MANS += libinput-measure-touchpad-tap.1
 
+tools_PROGRAMS += libinput-measure-trackpoint-range
+libinput_measure_trackpoint_range_SOURCES = \
+		     libinput-measure-trackpoint-range.c
+libinput_measure_trackpoint_range_LDADD = ../src/libinput.la libshared.la $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS)
+libinput_measure_trackpoint_range_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS)
+dist_man1_MANS += libinput-measure-trackpoint-range.1
+
 if BUILD_DEBUG_GUI
 tools_PROGRAMS += libinput-debug-gui
 libinput_debug_gui_SOURCES = libinput-debug-gui.c

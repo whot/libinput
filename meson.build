@@ -393,6 +393,16 @@ executable('libinput-measure-touchpad-tap',
 	   )
 install_man('tools/libinput-measure-touchpad-tap.1')
 
+libinput_measure_trackpoint_range_sources = [ 'tools/libinput-measure-trackpoint-range.c' ]
+executable('libinput-measure-trackpoint-range',
+	   libinput_measure_trackpoint_range_sources,
+	   dependencies : deps_tools,
+	   include_directories : include_directories ('src'),
+	   install_dir : libinput_tool_path,
+	   install : true
+	   )
+install_man('tools/libinput-measure-trackpoint-range.1')
+
 if get_option('debug-gui')
 	dep_gtk = dependency('gtk+-3.0')
 	dep_cairo = dependency('cairo')

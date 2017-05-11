@@ -606,12 +606,25 @@ find_touchpad_device(char *path, size_t path_len)
 }
 
 bool
-is_touchpad_device(const char *devnode)
+find_trackpoint_device(char *path, size_t path_len)
+{
+	char *devnode = find_device("ID_INPUT_POINTINGSTICK");
+
+	if (devnode) {
+		snprintf(path, path_len, "%s", devnode);
+		free(devnode);
+	}
+
+	return devnode != NULL;
+}
+
+static inline bool
+device_has_prop(const char *devnode, const char *property)
 {
 	struct udev *udev;
 	struct udev_device *dev = NULL;
 	struct stat st;
-	bool is_touchpad = false;
+	bool has_prop = false;
 
 	if (stat(devnode, &st) < 0)
 		return false;
@@ -621,13 +634,25 @@ is_touchpad_device(const char *devnode)
 	if (!dev)
 		goto out;
 
-	is_touchpad = udev_device_get_property_value(dev, "ID_INPUT_TOUCHPAD");
+	has_prop = udev_device_get_property_value(dev, property);
 out:
 	if (dev)
 		udev_device_unref(dev);
 	udev_unref(udev);
 
-	return is_touchpad;
+	return has_prop;
+}
+
+bool
+is_touchpad_device(const char *devnode)
+{
+	return device_has_prop(devnode, "ID_INPUT_TOUCHPAD");
+}
+
+bool
+is_trackpoint_device(const char *devnode)
+{
+	return device_has_prop(devnode, "ID_INPUT_POINTINGSTICK");
 }
 
 static inline void

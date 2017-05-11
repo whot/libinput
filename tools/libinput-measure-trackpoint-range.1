@@ -1,0 +1,63 @@
+.TH LIBINPUT-MEASURE-TRACKPOINT-RANGE "1"
+.SH NAME
+libinput\-measure\-trackpoint\-range \- measure the delta range of a trackpoint
+.SH SYNOPSIS
+.B libinput measure trackpoint\-range [\-\-help] [\-\-format=<format>] [/dev/input/event0]
+.SH DESCRIPTION
+.PP
+The
+.B "libinput measure trackpoint\-range"
+tool measures the delta range of a trackpoint. This is
+an interactive tool. When executed, the tool will prompt the user to
+interact with the trackpoint. On termination, the tool prints a summary of
+the tap interactions seen. This data should be attached to any bug report
+relating to the trackpoint's speed.
+.PP
+This is a debugging tool only, its output may change at any time. Do not
+rely on the output.
+.PP
+This tool usually needs to be run as root to have access to the
+/dev/input/eventX nodes.
+.SH OPTIONS
+If a device node is given, this tool opens that device node. Otherwise, this
+tool searches for the first node that looks like a trackpoint and uses that
+node.
+.TP 8
+.B \-\-help
+Print help
+.TP 8
+.B \-\-format=summary|dat
+Specify the data format to be printed. The default (or if
+.B \-\-format
+is omitted) is "summary". See section
+.B DATA FORMATS
+
+.SH DATA FORMATS
+This section describes the data formats printed with the
+.B \-\-format
+commandline argument. Note that any of the output may change at any time.
+.RE
+.PP
+summary
+.RS 4
+The
+.I summary
+format prints a summary of the data collected. This format is useful to
+get a quick overview of a trackpoint's behavior.
+.RE
+.PP
+dat
+.RS 4
+The
+.I dat
+format prints the touch sequence data (raw and processed) in column-style
+format, suitable for processing by other tools such as
+.B gnuplot(1).
+The data is aligned in one row per touch with each column containing a
+separate data entry.
+.B libinput\-measure\-trackpoint\-range
+prints comments at the top of the file to describe each column.
+.SH LIBINPUT
+Part of the
+.B libinput(1)
+suite

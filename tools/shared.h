@@ -83,5 +83,7 @@ bool tools_generic_event_loop(const char *path,
 
 bool find_touchpad_device(char *path, size_t path_len);
 bool is_touchpad_device(const char *devnode);
+bool find_trackpoint_device(char *path, size_t path_len);
+bool is_trackpoint_device(const char *devnode);
 
 #endif
