@@ -339,7 +339,7 @@ endif
 ############ tools ############
 tools_shared_sources = [ 'tools/shared.c',
 			 'tools/shared.h' ]
-event_debug_sources = [ 'tools/event-debug.c' ] + tools_shared_sources
+event_debug_sources = [ 'tools/libinput-debug-events.c' ] + tools_shared_sources
 executable('event-debug',
 	   event_debug_sources,
 	   dependencies : dep_libinput,

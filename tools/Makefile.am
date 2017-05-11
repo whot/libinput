@@ -11,7 +11,7 @@ shared_sources = \
 		 shared.c \
 		 shared.h
 
-event_debug_SOURCES = event-debug.c $(shared_sources)
+event_debug_SOURCES = libinput-debug-events.c $(shared_sources)
 event_debug_LDADD = ../src/libinput.la $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS)
 event_debug_LDFLAGS = -no-install
 event_debug_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS)
