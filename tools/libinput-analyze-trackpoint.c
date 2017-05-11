@@ -22,10 +22,14 @@
  */
 
 #include "config.h"
+
 #include <sys/types.h>
+#include <sys/signalfd.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <poll.h>
+#include <signal.h>
 #include <unistd.h>
 
 #include <libudev.h>
@@ -42,6 +46,10 @@
 #define EVENT_DEV_NAME "event"
 
 static bool use_color = true;
+
+struct dimensions {
+	int top, bottom, left, right;
+};
 
 static int
 is_event_device(const struct dirent *dir) {
@@ -258,6 +266,94 @@ check_attrs(const char *devnode)
 	udev_unref(udev);
 }
 
+static int
+print_current_values(const struct dimensions *d)
+{
+	static int progress;
+	char status = 0;
+
+	switch (progress) {
+		case 0: status = '|'; break;
+		case 1: status = '/'; break;
+		case 2: status = '-'; break;
+		case 3: status = '\\'; break;
+	}
+
+	progress = (progress + 1) % 4;
+
+	printf("\rTrackpoint sends:	x [%3d..%3d], y [%3d..%3d] %c",
+			d->left, d->right, d->top, d->bottom, status);
+	return 0;
+}
+
+static int
+handle_event(struct dimensions *d, const struct input_event *ev)
+{
+	if (ev->type == EV_SYN) {
+		return print_current_values(d);
+	} else if (ev->type != EV_REL)
+		return 0;
+
+	switch(ev->code) {
+		case REL_X:
+			d->left = min(d->left, ev->value);
+			d->right = max(d->right, ev->value);
+			break;
+		case REL_Y:
+			d->top = min(d->top, ev->value);
+			d->bottom = max(d->bottom, ev->value);
+			break;
+	}
+
+	return 0;
+}
+
+static void
+read_range(struct libevdev *dev)
+{
+	struct dimensions dim = {0};
+	struct pollfd fds[2];
+	sigset_t mask;
+
+	fds[0].fd = libevdev_get_fd(dev);
+	fds[0].events = POLLIN;
+
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGINT);
+	fds[1].fd = signalfd(-1, &mask, SFD_NONBLOCK);
+	fds[1].events = POLLIN;
+
+	sigprocmask(SIG_BLOCK, &mask, NULL);
+
+	printf("\n"
+	       "Push the trackpoint in all four cardinal directions.\n"
+	       "Movements should emulate the fastest reasonable pointer movement on the screen.\n"
+	       "Do not hold the trackpoint down in one direction for longer than two seconds\n");
+
+	while (poll(fds, 2, -1)) {
+		struct input_event ev;
+		int rc;
+
+		if (fds[1].revents)
+			break;
+
+		do {
+			rc = libevdev_next_event(dev, LIBEVDEV_READ_FLAG_NORMAL, &ev);
+			if (rc == LIBEVDEV_READ_STATUS_SYNC) {
+				fprintf(stderr, "Error: cannot keep up\n");
+				return;
+			} else if (rc != -EAGAIN && rc < 0) {
+				fprintf(stderr, "Error: %s\n", strerror(-rc));
+				return;
+			} else if (rc == LIBEVDEV_READ_STATUS_SUCCESS) {
+				handle_event(&dim, &ev);
+			}
+		} while (rc != -EAGAIN);
+	}
+
+	printf("\n");
+}
+
 int
 libinput_analyze_trackpoint(struct global_options *opts,
 			    int argc,
@@ -296,6 +392,8 @@ libinput_analyze_trackpoint(struct global_options *opts,
 	check_evdev_device(evdev);
 	check_udev_device(device);
 	check_attrs(device);
+
+	read_range(evdev);
 
 	printf("\nItems highlighed indicate unexpected or user-set values\n");
 
