@@ -109,9 +109,16 @@ The image above shows the touchpad acceleration profile in comparison to the
 
 @section ptraccel-trackpoint Pointer acceleration on trackpoints
 
-Trackpoint hardware is quite varied in how it reacts to user pressure and
-unlike other devices it cannot easily be normalized for physical properties.
-Measuring pressure objectively across a variety of hardware is nontrivial.
+The main difference between trackpoint hardware and mice or touchpads is
+that trackpoint speed is a function of pressure rather than moving speed.
+But trackpoint hardware is quite varied in how it reacts to user pressure
+and unlike other devices it cannot easily be normalized for physical
+properties. Measuring pressure objectively across a variety of hardware is
+nontrivial.
+
+libinput's pointer acceleration is a function of the total available
+pressure range on a device.
+
 libinput relies on some sytem-wide configured properties, specifically the
 @ref udev_config. The two properties that influence trackpoint acceleration
 ````POINTINGSTICK_CONST_ACCEL```` which is a constant factor applied to the
@@ -124,9 +131,6 @@ hardware by modifying a sysfs file on the serio node. The udev property
 builtin is expected to apply this to the device, i.e.  libinput does not
 handle this property. Once applied, the sensitivity adjusts the deltas
 coming out of the hardware.
-
-Trackpoint pointer acceleration uses the @ref ptraccel-low-dpi profile, with a
-constant acceleration factor taking the place of the DPI settings.
 
 @image html ptraccel-trackpoint.svg "Pointer acceleration curves for trackpoints"
 

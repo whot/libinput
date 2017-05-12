@@ -1987,7 +1987,7 @@ evdev_init_accel(struct evdev_device *device,
 	if (which == LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT)
 		filter = create_pointer_accelerator_filter_flat(device->dpi);
 	else if (device->tags & EVDEV_TAG_TRACKPOINT)
-		filter = create_pointer_accelerator_filter_trackpoint(device->dpi);
+		filter = create_pointer_accelerator_filter_trackpoint(device->trackpoint_range);
 	else if (device->dpi < DEFAULT_MOUSE_DPI)
 		filter = create_pointer_accelerator_filter_linear_low_dpi(device->dpi);
 	else
@@ -2210,6 +2210,10 @@ evdev_get_trackpoint_dpi(struct evdev_device *device)
 	const char *trackpoint_accel;
 	double accel = DEFAULT_TRACKPOINT_ACCEL;
 
+	/*
+	 * parse the sensitivity property, and undo whatever it does.
+	 */
+
 	trackpoint_accel = udev_device_get_property_value(
 				device->udev_device, "POINTINGSTICK_CONST_ACCEL");
 	if (trackpoint_accel) {
@@ -2223,6 +2227,8 @@ evdev_get_trackpoint_dpi(struct evdev_device *device)
 		}
 		evdev_log_info(device, "set to const accel %.2f\n", accel);
 	}
+
+	device->trackpoint_range = 20; /* FIXME */
 
 	return DEFAULT_MOUSE_DPI / accel;
 }
