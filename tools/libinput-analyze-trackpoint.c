@@ -51,6 +51,9 @@ static bool use_color = true;
 
 struct dimensions {
 	int top, bottom, left, right;
+	unsigned int xs[256], /* count of each x value, offset by 128 */
+		     ys[256]; /* count of each y value, offset by 128 */
+	size_t xcount, ycount;
 };
 
 static int
@@ -329,8 +332,10 @@ print_current_values(const struct dimensions *d)
 
 	progress = (progress + 1) % 4;
 
-	printf("\rTrackpoint sends:	x [%3d..%3d], y [%3d..%3d] %c",
-			d->left, d->right, d->top, d->bottom, status);
+	printf("\rTrackpoint sends:	x [%3d..%3d], y [%3d..%3d] count [%zd, %zd]%c",
+			d->left, d->right, d->top, d->bottom,
+			d->xcount, d->ycount,
+			status);
 	return 0;
 }
 
@@ -346,14 +351,89 @@ handle_event(struct dimensions *d, const struct input_event *ev)
 		case REL_X:
 			d->left = min(d->left, ev->value);
 			d->right = max(d->right, ev->value);
+			assert((size_t)(ev->value + 128) < ARRAY_LENGTH(d->xs));
+			d->xs[ev->value + 128] += 1;
+			d->xcount++;
 			break;
 		case REL_Y:
 			d->top = min(d->top, ev->value);
 			d->bottom = max(d->bottom, ev->value);
+			assert((size_t)(ev->value + 128) < ARRAY_LENGTH(d->ys));
+			d->ys[ev->value + 128] += 1;
+			d->ycount++;
 			break;
 	}
 
 	return 0;
+}
+
+static void
+print_histogram(const struct dimensions *dim)
+{
+	size_t i;
+	bool more_left;
+	size_t start = 0, end = 0;
+	const unsigned int *data;
+	const size_t sz = ARRAY_LENGTH(dim->xs);
+
+	if (dim->xcount < 1000 || dim->ycount < 1000) {
+		print_highlighted(true,
+				  "WARNING: insufficient events for analysis."
+				  "Skipping histogram\n");
+		return;
+	}
+
+	/* Find min(xs, ys) and max(xs, ys) */
+	for (i = 0; i < sz; i++) {
+		if (dim->xs[i] > 0 || dim->ys[i] > 0) {
+			start = i;
+			break;
+		}
+	}
+
+	for (i = sz - 1; i > 0; i--) {
+		if (dim->xs[i] > 0 || dim->ys[i] > 0) {
+			end = i;
+			break;
+		}
+	}
+
+	/* we want the next smaller/bigger multiple of 10 for the header */
+	start = 128 - (abs((int)start - 128) + 9)/10 * 10;
+	end = 128 + (end - 128 + 9)/10 * 10;
+
+	printf("Histogram for x/y in counts of 5:\n");
+	data = dim->xs;
+
+	for (int axis = 0; axis < 2; axis++) {
+		unsigned int count = 0;
+
+		/* Header bar */
+		for (i = start; i <= end; i += 10) {
+			int val = i - 128;
+			if (abs(val) % 10 == 0)
+				printf("%-10d", val);
+		}
+		printf("\n");
+
+		do {
+			more_left = false;
+			for (i = start; i <= end; i++) {
+				int val = i - 128;
+				if (val == 0) {
+					printf("|");
+					continue;
+				}
+				printf("%s", (data[i] > count) ? "+" : " ");
+				if (data[i] > count)
+					more_left = true;
+			}
+			printf("\n");
+			count += 5;
+		} while (more_left);
+
+		data = dim->ys;
+	}
 }
 
 static void
@@ -404,6 +484,15 @@ read_range(struct libevdev *dev)
 	}
 
 	printf("\n");
+
+	if (dim.left >= 0 || dim.right <= 0 ||
+	    dim.top >= 0 || dim.bottom <= 0 ||
+	    dim.left >= dim.right ||
+	    dim.top >= dim.bottom) {
+		fprintf(stderr, "Error: invalid ranges, please run again\n");
+	}
+
+	print_histogram(&dim);
 }
 
 static void
