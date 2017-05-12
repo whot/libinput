@@ -147,6 +147,12 @@ filter_get_type(struct motion_filter *filter)
 #define X230_MAGIC_SLOWDOWN 0.4			/* unitless */
 #define X230_TP_MAGIC_LOW_RES_FACTOR 4.0	/* unitless */
 
+/* Trackpoint acceleration */
+#define TRACKPOINT_DEFAULT_MAX_ACCEL 2.0	/* in units/us */
+#define TRACKPOINT_DEFAULT_MAX_DELTA 60
+/* As measured on a Lenovo T440 at kernel-default sensitivity 128 */
+#define TRACKPOINT_DEFAULT_RANGE 20		/* max value */
+
 /*
  * Pointer acceleration filter constants
  */
@@ -193,6 +199,20 @@ struct tablet_accelerator_flat {
 	int xres, yres;
 	double xres_scale, /* 1000dpi : tablet res */
 	       yres_scale; /* 1000dpi : tablet res */
+};
+
+struct trackpoint_accelerator {
+	struct motion_filter base;
+
+	struct device_float_coords history[4];
+	size_t history_size;
+
+	double scale_factor;
+	double max_accel;
+	double max_delta;
+
+	double incline; /* incline of the function */
+	double offset; /* offset of the function */
 };
 
 static void
@@ -904,38 +924,6 @@ touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
 	return factor * X230_MAGIC_SLOWDOWN / X230_TP_MAGIC_LOW_RES_FACTOR;
 }
 
-double
-trackpoint_accel_profile(struct motion_filter *filter,
-				void *data,
-				double speed_in, /* device units/µs */
-				uint64_t time)
-{
-	struct pointer_accelerator *accel_filter =
-		(struct pointer_accelerator *)filter;
-	double max_accel = accel_filter->accel; /* unitless factor */
-	double threshold = accel_filter->threshold; /* units/ms */
-	const double incline = accel_filter->incline;
-	double dpi_factor = accel_filter->dpi/(double)DEFAULT_MOUSE_DPI;
-	double factor;
-
-	/* dpi_factor is always < 1.0, increase max_accel, reduce
-	   the threshold so it kicks in earlier */
-	max_accel /= dpi_factor;
-	threshold *= dpi_factor;
-
-	/* see pointer_accel_profile_linear for a long description */
-	if (v_us2ms(speed_in) < 0.07)
-		factor = 10 * v_us2ms(speed_in) + 0.3;
-	else if (speed_in < threshold)
-		factor = 1;
-	else
-		factor = incline * v_us2ms(speed_in - threshold) + 1;
-
-	factor = min(max_accel, factor);
-
-	return factor;
-}
-
 struct motion_filter_interface accelerator_interface = {
 	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
 	.filter = accelerator_filter_pre_normalized,
@@ -1069,30 +1057,250 @@ create_pointer_accelerator_filter_lenovo_x230(int dpi)
 	return &filter->base;
 }
 
+double
+trackpoint_accel_profile(struct motion_filter *filter,
+			 void *data,
+			 double delta)
+{
+	struct trackpoint_accelerator *accel_filter =
+		(struct trackpoint_accelerator *)filter;
+	const double max_accel = accel_filter->max_accel;
+	double factor;
+
+	delta = fabs(delta);
+
+	/* This is almost the equivalent of the xserver acceleration
+	   at sensitivity 128 and speed 0.0 */
+	factor = delta * accel_filter->incline + accel_filter->offset;
+	factor = min(factor, max_accel);
+
+	return factor;
+}
+
+/**
+ * Average the deltas, they are messy and can provide sequences like 7, 7,
+ * 9, 8, 14, 7, 9, 8 ... The outliers cause unpredictable jumps, so average
+ * them out.
+ */
+static inline struct device_float_coords
+trackpoint_average_delta(struct trackpoint_accelerator *filter,
+			 const struct device_float_coords *unaccelerated)
+{
+	size_t i;
+	struct device_float_coords avg;
+
+	memmove(&filter->history[1],
+		&filter->history[0],
+		sizeof(*filter->history) * (filter->history_size - 1));
+	filter->history[0] = *unaccelerated;
+
+	for (i = 0; i < filter->history_size; i++) {
+		avg.x += filter->history[i].x;
+		avg.y += filter->history[i].y;
+	}
+	avg.x /= filter->history_size;
+	avg.y /= filter->history_size;
+
+	return avg;
+}
+
+/**
+ * Undo any system-wide magic scaling, so we're behaving the same regardless
+ * of the trackpoint hardware. This way we can apply our profile independent
+ * of any other configuration that messes with things.
+ */
+static inline struct device_float_coords
+trackpoint_normalize_deltas(const struct trackpoint_accelerator *accel_filter,
+			    const struct device_float_coords *delta)
+{
+	struct device_float_coords scaled = *delta;
+
+	scaled.x *= accel_filter->scale_factor;
+	scaled.y *= accel_filter->scale_factor;
+
+	return scaled;
+}
+
+/**
+ * We set a max delta per event, to avoid extreme jumps once we exceed the
+ * expected pressure. Trackpoint hardware is inconsistent once the pressure
+ * gets high, so we can expect sequences like 30, 40, 35, 55, etc. This may
+ * be caused by difficulty keeping up high consistent pressures or just
+ * measuring errors in the hardware. Either way, we cap to a max delta so
+ * once we hit the high pressures, movement is capped and consistent.
+ */
+static inline struct normalized_coords
+trackpoint_clip_to_max_delta(const struct trackpoint_accelerator *accel_filter,
+			     struct normalized_coords coords)
+{
+	const double max_delta = accel_filter->max_delta;
+
+	if (abs(coords.x) > max_delta)
+		coords.x = copysign(max_delta, coords.x);
+	if (abs(coords.y) > max_delta)
+		coords.y = copysign(max_delta, coords.y);
+
+	return coords;
+}
+
+static struct normalized_coords
+trackpoint_accelerator_filter(struct motion_filter *filter,
+			      const struct device_float_coords *unaccelerated,
+			      void *data, uint64_t time)
+{
+	struct trackpoint_accelerator *accel_filter =
+		(struct trackpoint_accelerator *)filter;
+	struct device_float_coords scaled;
+	struct device_float_coords avg;
+	struct normalized_coords coords;
+	double fx, fy;
+
+	scaled = trackpoint_normalize_deltas(accel_filter, unaccelerated);
+	avg = trackpoint_average_delta(accel_filter, &scaled);
+
+	fx = trackpoint_accel_profile(filter, data, avg.x);
+	fy = trackpoint_accel_profile(filter, data, avg.y);
+
+	coords.x = avg.x * fx;
+	coords.y = avg.y * fy;
+
+	coords = trackpoint_clip_to_max_delta(accel_filter, coords);
+
+	return coords;
+}
+
+static struct normalized_coords
+trackpoint_accelerator_filter_noop(struct motion_filter *filter,
+				   const struct device_float_coords *unaccelerated,
+				   void *data, uint64_t time)
+{
+
+	struct trackpoint_accelerator *accel_filter =
+		(struct trackpoint_accelerator *)filter;
+	struct device_float_coords scaled;
+	struct device_float_coords avg;
+	struct normalized_coords coords;
+
+	scaled = trackpoint_normalize_deltas(accel_filter, unaccelerated);
+	avg = trackpoint_average_delta(accel_filter, &scaled);
+
+	coords.x = avg.x;
+	coords.y = avg.y;
+
+	coords = trackpoint_clip_to_max_delta(accel_filter, coords);
+
+	return coords;
+}
+
+static bool
+trackpoint_accelerator_set_speed(struct motion_filter *filter,
+				 double speed_adjustment)
+{
+	struct trackpoint_accelerator *accel_filter =
+		(struct trackpoint_accelerator*)filter;
+	double incline, offset;
+
+	assert(speed_adjustment >= -1.0 && speed_adjustment <= 1.0);
+
+	accel_filter->max_accel = max(TRACKPOINT_DEFAULT_MAX_ACCEL,
+				      2.0 + speed_adjustment * 8);
+
+	/* Helloooo, magic numbers.
+
+	   These numbers were obtained by finding an acceleration curve that
+	   matches the xorg acceleration at speed setting 0.0 (the default).
+	   That function is
+		factor = 0.2 * delta + 0.8.
+	   Then some trial and error to get a multiplication factor for
+	   different speed settings. Which was
+		factor = (0.1 * delta + 0.4) * (speed_setting + 1.0);
+	   That gives us a set of points where we hit the max accel (above)
+	   for each speed setting
+		0.0: (6,2), 0.25: (12,4), 0.5: (16, 6), ...
+
+	   Problem: for speed settings greater than 0.0, this also
+	   accelerates deltas of 1.0 and we don't want that, it can make
+	   some pixels inaccessible. We need delta 1 to have a factor 1. For
+	   each of our speed settings we now have two points:
+		0.0: (1, 1) and (6, 2)	-> y = 0.2x + 0.8
+		0.5: (1, 1) and (16, 6) -> y = 0.333x + 0.667
+		...
+
+	   Since we have a relationship between speed factor and our incline
+	   and offset, we can feed the incline/offset numbers separately
+	   into a linear regression tool like http://www.xuru.org/rt/LR.asp:
+	       (0.0, 0.2)	(0.0, 0.8)
+	       (0.5, 0.33)	(0.5, 0.667)
+	       ...
+
+	   And we get two functions to map continuous speed settings into an
+	   incline and and offset.
+	 */
+
+	if (speed_adjustment >= 0.0) {
+		offset = -0.286 * speed_adjustment + 0.8;
+		incline = 0.246 * speed_adjustment + 0.2;
+	} else {
+		/* For speed settings < 0, the 0.2/0.8 function works fine,
+		 * we just multiply it with the speed adjustment to scale it
+		 * down.
+		 */
+		incline = 0.2 * speed_adjustment + 0.2;
+		offset = 0.8 * speed_adjustment + 0.8;
+	}
+
+	incline = max(0.1, incline);
+	offset = max(0.1, offset);
+
+	accel_filter->incline = incline;
+	accel_filter->offset = offset;
+	filter->speed_adjustment = speed_adjustment;
+
+	return true;
+}
+
+static void
+trackpoint_accelerator_destroy(struct motion_filter *filter)
+{
+	struct trackpoint_accelerator *accel_filter =
+		(struct trackpoint_accelerator *)filter;
+
+	free(accel_filter);
+}
+
 struct motion_filter_interface accelerator_interface_trackpoint = {
 	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
-	.filter = accelerator_filter_unnormalized,
-	.filter_constant = accelerator_filter_noop,
-	.restart = accelerator_restart,
-	.destroy = accelerator_destroy,
-	.set_speed = accelerator_set_speed,
+	.filter = trackpoint_accelerator_filter,
+	.filter_constant = trackpoint_accelerator_filter_noop,
+	.restart = NULL,
+	.destroy = trackpoint_accelerator_destroy,
+	.set_speed = trackpoint_accelerator_set_speed,
 };
 
 struct motion_filter *
-create_pointer_accelerator_filter_trackpoint(int dpi)
+create_pointer_accelerator_filter_trackpoint(int max_hw_delta)
 {
-	struct pointer_accelerator *filter;
+	struct trackpoint_accelerator *filter;
 
-	filter = create_default_filter(dpi);
+	/* Trackpoints are special. They don't have a movement speed like a
+	 * mouse or a finger, instead they send a constant stream of events
+	 * based on the pressure applied.
+	 *
+	 * Physical ranges on a trackpoint are the max values for relative
+	 * deltas, but these are highly device-specific.
+	 *
+	 */
+
+	filter = zalloc(sizeof *filter);
 	if (!filter)
 		return NULL;
 
+	filter->history_size = ARRAY_LENGTH(filter->history);
+	filter->scale_factor = 1.0 * TRACKPOINT_DEFAULT_RANGE / max_hw_delta;
+	filter->max_accel = TRACKPOINT_DEFAULT_MAX_ACCEL;
+	filter->max_delta = TRACKPOINT_DEFAULT_MAX_DELTA;
+
 	filter->base.interface = &accelerator_interface_trackpoint;
-	filter->profile = trackpoint_accel_profile;
-	filter->threshold = DEFAULT_THRESHOLD;
-	filter->accel = DEFAULT_ACCELERATION;
-	filter->incline = DEFAULT_INCLINE;
-	filter->dpi = dpi;
 
 	return &filter->base;
 }

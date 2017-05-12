@@ -158,6 +158,7 @@ struct evdev_device {
 	bool is_mt;
 	bool is_suspended;
 	int dpi; /* HW resolution */
+	int trackpoint_range; /* trackpoint max delta */
 	struct ratelimit syn_drop_limit; /* ratelimit for SYN_DROPPED logging */
 	struct ratelimit nonpointer_rel_limit; /* ratelimit for REL_* events from non-pointer devices */
 	uint32_t model_flags;
