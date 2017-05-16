@@ -2214,6 +2214,21 @@ evdev_get_trackpoint_range(struct evdev_device *device)
 		return DEFAULT_TRACKPOINT_RANGE;
 
 	prop = udev_device_get_property_value(device->udev_device,
+					      "LIBINPUT_ATTR_TRACKPOINT_RANGE");
+	if (prop) {
+		if (!safe_atoi(prop, &range) ||
+		    (range < 0.0 || range > 100)) {
+			evdev_log_error(device,
+					"trackpoint range property is present but invalid, "
+					"using %d instead\n",
+					DEFAULT_TRACKPOINT_RANGE);
+			range = DEFAULT_TRACKPOINT_RANGE;
+		}
+		evdev_log_info(device, "trackpoint device set to range %d\n", range);
+		goto out;
+	}
+
+	prop = udev_device_get_property_value(device->udev_device,
 					      "POINTINGSTICK_SENSITIVITY");
 	if (prop) {
 		int sensitivity;
@@ -2230,6 +2245,7 @@ evdev_get_trackpoint_range(struct evdev_device *device)
 			sensitivity/DEFAULT_TRACKPOINT_SENSITIVITY;
 	}
 
+out:
 	return range;
 }
 
