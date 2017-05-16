@@ -2205,32 +2205,32 @@ evdev_read_wheel_tilt_props(struct evdev_device *device)
 }
 
 static inline int
-evdev_get_trackpoint_dpi(struct evdev_device *device)
+evdev_get_trackpoint_range(struct evdev_device *device)
 {
-	const char *trackpoint_accel;
-	double accel = DEFAULT_TRACKPOINT_ACCEL;
+	const char *prop;
+	int range = DEFAULT_TRACKPOINT_RANGE;
 
-	/*
-	 * parse the sensitivity property, and undo whatever it does.
-	 */
+	if (!(device->tags & EVDEV_TAG_TRACKPOINT))
+		return DEFAULT_TRACKPOINT_RANGE;
 
-	trackpoint_accel = udev_device_get_property_value(
-				device->udev_device, "POINTINGSTICK_CONST_ACCEL");
-	if (trackpoint_accel) {
-		accel = parse_trackpoint_accel_property(trackpoint_accel);
-		if (accel == 0.0) {
+	prop = udev_device_get_property_value(device->udev_device,
+					      "POINTINGSTICK_SENSITIVITY");
+	if (prop) {
+		int sensitivity;
+
+		if (!safe_atoi(prop, &sensitivity) ||
+		    (sensitivity < 0.0 || sensitivity > 255)) {
 			evdev_log_error(device,
-					"trackpoint accel property is present but invalid, "
-					"using %.2f instead\n",
-					DEFAULT_TRACKPOINT_ACCEL);
-			accel = DEFAULT_TRACKPOINT_ACCEL;
+					"trackpoint sensitivity property is present but invalid, "
+					"using %d instead\n",
+					DEFAULT_TRACKPOINT_SENSITIVITY);
+			sensitivity = DEFAULT_TRACKPOINT_SENSITIVITY;
 		}
-		evdev_log_info(device, "set to const accel %.2f\n", accel);
+		range = 1.0 * DEFAULT_TRACKPOINT_RANGE *
+			sensitivity/DEFAULT_TRACKPOINT_SENSITIVITY;
 	}
 
-	device->trackpoint_range = 20; /* FIXME */
-
-	return DEFAULT_MOUSE_DPI / accel;
+	return range;
 }
 
 static inline int
@@ -2239,13 +2239,8 @@ evdev_read_dpi_prop(struct evdev_device *device)
 	const char *mouse_dpi;
 	int dpi = DEFAULT_MOUSE_DPI;
 
-	/*
-	 * Trackpoints do not have dpi, instead hwdb may contain a
-	 * POINTINGSTICK_CONST_ACCEL value to compensate for sensitivity
-	 * differences between models, we translate this to a fake dpi.
-	 */
 	if (device->tags & EVDEV_TAG_TRACKPOINT)
-		return evdev_get_trackpoint_dpi(device);
+		return DEFAULT_MOUSE_DPI;
 
 	mouse_dpi = udev_device_get_property_value(device->udev_device,
 						   "MOUSE_DPI");
@@ -2663,6 +2658,7 @@ evdev_configure_device(struct evdev_device *device)
 		evdev_tag_external_mouse(device, device->udev_device);
 		evdev_tag_trackpoint(device, device->udev_device);
 		device->dpi = evdev_read_dpi_prop(device);
+		device->trackpoint_range = evdev_get_trackpoint_range(device);
 
 		device->seat_caps |= EVDEV_DEVICE_POINTER;
 
