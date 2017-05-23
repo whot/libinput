@@ -14,7 +14,8 @@ AM_CXXFLAGS = $(GCC_CXXFLAGS)
 libshared_la_SOURCES = \
 		       shared.c \
 		       shared.h
-libshared_la_CFLAGS = $(AM_CFLAGS) $(LIBEVDEV_CFLAGS)
+libshared_la_CFLAGS = $(AM_CFLAGS) $(LIBEVDEV_CFLAGS) \
+		      -DLIBINPUT_TOOL_PATH="\"@libexecdir@/libinput\""
 libshared_la_LIBADD = $(LIBEVDEV_LIBS)
 
 ptraccel_debug_SOURCES = ptraccel-debug.c
@@ -23,8 +24,7 @@ ptraccel_debug_LDFLAGS = -no-install
 
 libinput_SOURCES = libinput-tool.c
 libinput_LDADD = ../src/libinput.la libshared.la $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS)
-libinput_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS) \
-		  -DLIBINPUT_TOOL_PATH="\"@libexecdir@/libinput\""
+libinput_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS)
 dist_man1_MANS = libinput.1
 
 tools_PROGRAMS += libinput-list-devices
@@ -38,6 +38,20 @@ libinput_debug_events_SOURCES = libinput-debug-events.c $(shared_sources)
 libinput_debug_events_LDADD = ../src/libinput.la libshared.la $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS)
 libinput_debug_events_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS)
 dist_man1_MANS += libinput-debug-events.1
+
+tools_PROGRAMS += libinput-measure
+libinput_measure_SOURCES = libinput-measure.c $(shared_sources)
+libinput_measure_LDADD = ../src/libinput.la libshared.la $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS)
+libinput_measure_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS) \
+		  -DLIBINPUT_TOOL_PATH="\"@libexecdir@/libinput\""
+dist_man1_MANS += libinput-measure.1
+
+tools_PROGRAMS += libinput-measure-touchpad-tap
+libinput_measure_touchpad_tap_SOURCES = \
+		     libinput-measure-touchpad-tap.c
+libinput_measure_touchpad_tap_LDADD = ../src/libinput.la libshared.la $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS)
+libinput_measure_touchpad_tap_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS)
+dist_man1_MANS += libinput-measure-touchpad-tap.1
 
 if BUILD_DEBUG_GUI
 tools_PROGRAMS += libinput-debug-gui

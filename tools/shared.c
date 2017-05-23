@@ -23,12 +23,15 @@
 
 #include <config.h>
 
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <libudev.h>
 
 #include <libevdev/libevdev.h>
@@ -545,4 +548,134 @@ tools_device_apply_config(struct libinput_device *device,
 			libinput_device_config_accel_set_profile(device,
 								 options->profile);
 	}
+}
+
+static char*
+find_device(const char *udev_tag)
+{
+	struct udev *udev;
+	struct udev_enumerate *e;
+	struct udev_list_entry *entry;
+	struct udev_device *device;
+	const char *path, *sysname;
+	char *device_node = NULL;
+
+	udev = udev_new();
+	e = udev_enumerate_new(udev);
+	udev_enumerate_add_match_subsystem(e, "input");
+	udev_enumerate_scan_devices(e);
+
+	udev_list_entry_foreach(entry, udev_enumerate_get_list_entry(e)) {
+		path = udev_list_entry_get_name(entry);
+		device = udev_device_new_from_syspath(udev, path);
+		if (!device)
+			continue;
+
+		sysname = udev_device_get_sysname(device);
+		if (strncmp("event", sysname, 5) != 0) {
+			udev_device_unref(device);
+			continue;
+		}
+
+		if (udev_device_get_property_value(device, udev_tag))
+			device_node = strdup(udev_device_get_devnode(device));
+
+		udev_device_unref(device);
+
+		if (device_node)
+			break;
+	}
+	udev_enumerate_unref(e);
+	udev_unref(udev);
+
+	return device_node;
+}
+
+bool
+find_touchpad_device(char *path, size_t path_len)
+{
+	char *devnode = find_device("ID_INPUT_TOUCHPAD");
+
+	if (devnode) {
+		snprintf(path, path_len, "%s", devnode);
+		free(devnode);
+	}
+
+	return devnode != NULL;
+}
+
+bool
+is_touchpad_device(const char *devnode)
+{
+	struct udev *udev;
+	struct udev_device *dev = NULL;
+	struct stat st;
+	bool is_touchpad = false;
+
+	if (stat(devnode, &st) < 0)
+		return false;
+
+	udev = udev_new();
+	dev = udev_device_new_from_devnum(udev, 'c', st.st_rdev);
+	if (!dev)
+		goto out;
+
+	is_touchpad = udev_device_get_property_value(dev, "ID_INPUT_TOUCHPAD");
+out:
+	if (dev)
+		udev_device_unref(dev);
+	udev_unref(udev);
+
+	return is_touchpad;
+}
+
+static inline void
+setup_path(void)
+{
+	const char *path = getenv("PATH");
+	char new_path[PATH_MAX];
+
+	snprintf(new_path,
+		 sizeof(new_path),
+		 "%s:%s",
+		 LIBINPUT_TOOL_PATH,
+		 path ? path : "");
+	setenv("PATH", new_path, 1);
+}
+
+int
+tools_exec_command(const char *prefix, int real_argc, char **real_argv)
+{
+	char *argv[64] = {NULL};
+	char executable[128];
+	const char *command;
+	int rc;
+
+	assert((size_t)real_argc < ARRAY_LENGTH(argv));
+
+	command = real_argv[0];
+
+	rc = snprintf(executable,
+		      sizeof(executable),
+		      "%s-%s",
+		      prefix,
+		      command);
+	if (rc >= (int)sizeof(executable)) {
+		fprintf(stderr, "Failed to assemble command.\n");
+		return EXIT_FAILURE;
+	}
+
+	argv[0] = executable;
+	for (int i = 1; i < real_argc; i++)
+		argv[i] = real_argv[i];
+
+	setup_path();
+
+	rc = execvp(executable, argv);
+	fprintf(stderr,
+		"Failed to execute '%s' (%s)\n",
+		command,
+		strerror(errno));
+
+	return EXIT_FAILURE;
 }

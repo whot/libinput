@@ -71,5 +71,9 @@ struct libinput* tools_open_backend(struct tools_context *context);
 void tools_device_apply_config(struct libinput_device *device,
 			       struct tools_options *options);
 void tools_usage(const char *command);
+int tools_exec_command(const char *prefix, int argc, char **argv);
+
+bool find_touchpad_device(char *path, size_t path_len);
+bool is_touchpad_device(const char *devnode);
 
 #endif

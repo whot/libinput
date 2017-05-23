@@ -31,47 +31,28 @@
 #include <unistd.h>
 #include <libudev.h>
 
-#include <libinput.h>
 #include <libinput-util.h>
-#include <libinput-version.h>
 
 #include "shared.h"
-static void
+
+static inline void
 usage(void)
 {
-	printf("Usage: libinput [GLOBAL OPTIONS] [COMMAND] [ARGS]\n"
+	printf("Usage: libinput measure [--help] FEATURE [/dev/input/event0]\n");
+	printf("\n"
+	       "Collect measurements related to FEATURE on the given device.\n"
 	       "\n"
-	       "This tool creates a libinput context and interacts with that context.\n"
-	       "For detailed information about the options below, see the"
-	       "libinput(1) man page.\n"
+	       "Options:\n"
+	       "--help ...... show this help\n"
 	       "\n"
-	       "This tool usually requires access to the /dev/input/eventX nodes.\n"
+	       "Available features are:\n"
+	       "  touchpad-tap-time\n"
+	       "	Measures the time for tap-to-click interactions\n"
+	       "     "
+	       "For information about each feature, see the --help output for that feature.\n"
 	       "\n"
-	       "Global options:\n"
-	       "  --help ...... show this help\n"
-	       "  --version ... show version information\n"
-	       "  --verbose ... enable verbose output for debugging\n"
-	       "  --quiet ..... reduce output (may be used with --verbose)\n"
-	       "\n"
-	       "Commands:\n"
-	       "  list-devices\n"
-	       "	List all devices with their default configuration options\n"
-	       "\n"
-	       "  debug-events\n"
-	       "	Print events to stdout\n"
-	       "\n"
-	       "  debug-gui\n"
-	       "	Display a simple GUI to visualize libinput's events.\n"
-	       "\n"
-	       "  measure\n"
-	       "	Measure various device properties. See the --help output for more info\n"
-	       "\n");
+	       "This tool requires access to the /dev/input/eventX nodes.\n");
 }
-
-enum global_opts {
-	GOPT_HELP = 1,
-	GOPT_VERSION,
-};
 
 int
 main(int argc, char **argv)
@@ -81,22 +62,17 @@ main(int argc, char **argv)
 	while (1) {
 		int c;
 		static struct option opts[] = {
-			{ "help",	no_argument,	0, GOPT_HELP },
-			{ "version",	no_argument,	0, GOPT_VERSION },
+			{ "help",	no_argument,	0, 'h' },
 			{ 0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "+h", opts, &option_index);
+		c = getopt_long(argc, argv, "h", opts, &option_index);
 		if (c == -1)
 			break;
 
 		switch(c) {
 		case 'h':
-		case GOPT_HELP:
 			usage();
-			return EXIT_SUCCESS;
-		case GOPT_VERSION:
-			printf("%s\n", LIBINPUT_VERSION);
 			return EXIT_SUCCESS;
 		default:
 			usage();
@@ -109,8 +85,8 @@ main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	argv += optind;
-	argc -= optind;
+	argc--;
+	argv++;
 
-	return tools_exec_command("libinput-", argc, argv);
+	return tools_exec_command("libinput-measure", argc, argv);
 }

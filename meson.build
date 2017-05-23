@@ -373,7 +373,27 @@ executable('libinput-list-devices',
 	   )
 install_man('tools/libinput-list-devices.1')
 
-if get_option('event-gui')
+libinput_measure_sources = [ 'tools/libinput-measure.c' ]
+executable('libinput-measure',
+	   libinput_measure_sources,
+	   dependencies : deps_tools,
+	   include_directories : include_directories('src'),
+	   install_dir : libinput_tool_path,
+	   install : true,
+	   )
+install_man('tools/libinput-measure.1')
+
+libinput_measure_touchpad_tap_sources = [ 'tools/libinput-measure-touchpad-tap.c' ]
+executable('libinput-measure-touchpad-tap',
+	   libinput_measure_touchpad_tap_sources,
+	   dependencies : deps_tools,
+	   include_directories : include_directories('src'),
+	   install_dir : libinput_tool_path,
+	   install : true,
+	   )
+install_man('tools/libinput-measure-touchpad-tap.1')
+
+if get_option('debug-gui')
 	dep_gtk = dependency('gtk+-3.0')
 	dep_cairo = dependency('cairo')
 	dep_glib = dependency('glib-2.0')
