@@ -6,10 +6,10 @@ option('libwacom',
        type: 'boolean',
        default: true,
        description: 'Use libwacom for tablet identification (default=true)')
-option('event-gui',
+option('debug-gui',
        type: 'boolean',
        default: true,
-       description: 'Build the GUI event viewer [default=true]')
+       description: 'Enable the "debug-gui" feature in the libinput tool [default=true]')
 option('enable-tests',
        type: 'boolean',
        default: true,

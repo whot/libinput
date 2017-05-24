@@ -39,15 +39,12 @@ libinput_debug_events_LDADD = ../src/libinput.la $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS
 libinput_debug_events_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS)
 dist_man1_MANS += libinput-debug-events.1
 
-if BUILD_EVENTGUI
-noinst_PROGRAMS += event-gui
-
-event_gui_SOURCES = event-gui.c $(shared_sources)
-event_gui_LDADD = ../src/libinput.la $(CAIRO_LIBS) $(GTK_LIBS) \
-		  $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS)
-event_gui_CFLAGS = $(CAIRO_CFLAGS) $(GTK_CFLAGS) \
-		   $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS) $(AM_CFLAGS)
-event_gui_LDFLAGS = -no-install
+if BUILD_DEBUG_GUI
+tools_PROGRAMS += libinput-debug-gui
+libinput_debug_gui_SOURCES = libinput-debug-gui.c $(shared_sources)
+libinput_debug_gui_LDADD = ../src/libinput.la $(CAIRO_LIBS) $(GTK_LIBS) $(LIBEVDEV_LIBS)
+libinput_debug_gui_CFLAGS = $(AM_CFLAGS) $(CAIRO_CFLAGS) $(GTK_CFLAGS) $(LIBEVDEV_CFLAGS)
+dist_man1_MANS += libinput-debug-gui.1
 endif
 
 EXTRA_DIST = make-ptraccel-graphs.sh $(bin_SCRIPTS)

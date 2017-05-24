@@ -134,18 +134,20 @@ if test "x$build_documentation" = "xyes"; then
 	fi
 fi
 
-###########################################
-# enable/disable event gui debugging tool #
-###########################################
-AC_ARG_ENABLE(event-gui,
-	      AS_HELP_STRING([--enable-event-gui], [Build the GUI event viewer (default=yes)]),
-	      [build_eventgui="$enableval"],
-	      [build_eventgui="yes"])
+########################################
+# enable/disable the debug-gui feature #
+########################################
+AC_ARG_ENABLE(debug-gui,
+	      AS_HELP_STRING([--enable-debug-gui], [Enable the 'debug-gui' feature in the libinput tool (default=yes)]),
+	      [build_debug_gui="$enableval"],
+	      [build_debug_gui="yes"])
 
-if test "x$build_eventgui" = "xyes"; then
+if test "x$build_debug_gui" = "xyes"; then
 	PKG_CHECK_MODULES(CAIRO, [cairo])
 	PKG_CHECK_MODULES(GTK, [glib-2.0 gtk+-3.0])
+	AC_DEFINE(BUILD_DEBUG_GUI, 1, [Build debug-gui support])
 fi
+
 
 ########################
 # enable/disable tests #
@@ -247,7 +249,7 @@ AM_CONDITIONAL(BUILD_TESTS, [test "x$build_tests" = "xyes"])
 AM_CONDITIONAL(RUN_TESTS, [test "x$run_tests" = "xyes"])
 AM_CONDITIONAL(BUILD_DOCS, [test "x$build_documentation" = "xyes"])
 AM_CONDITIONAL(HAVE_LIBUNWIND, [test "x$HAVE_LIBUNWIND" = "xyes"])
-AM_CONDITIONAL(BUILD_EVENTGUI, [test "x$build_eventgui" = "xyes"])
+AM_CONDITIONAL(BUILD_DEBUG_GUI, [test "x$build_debug_gui" = "xyes"])
 
 AC_CONFIG_FILES([Makefile
 		 doc/Makefile
@@ -274,6 +276,6 @@ AC_MSG_RESULT([
 	Build tests		${build_tests}
 	Tests use valgrind	${VALGRIND}
 	Tests use libunwind	${HAVE_LIBUNWIND}
-	Build GUI event tool	${build_eventgui}
+	Build GUI event tool	${build_debug_gui}
 	Enable gcov profiling	${enable_gcov}
 	])

@@ -362,6 +362,32 @@ executable('libinput-list-devices',
 	   install : true,
 	   )
 
+if get_option('event-gui')
+	dep_gtk = dependency('gtk+-3.0')
+	dep_cairo = dependency('cairo')
+	dep_glib = dependency('glib-2.0')
+
+	debug_gui_sources = [ 'tools/libinput-debug-gui.c' ] + tools_shared_sources
+	deps_debug_gui = [
+			dep_gtk,
+			dep_cairo,
+			dep_glib,
+			dep_libevdev,
+			dep_libinput
+			]
+	executable('libinput-debug-gui',
+		   debug_gui_sources,
+		   dependencies : deps_debug_gui,
+		   include_directories : include_directories('src'),
+		   install_dir : libinput_tool_path,
+		   install : false
+		   )
+	install_man('tools/libinput-debug-gui.1')
+endif
+
+install_man('tools/libinput-list-devices.1',
+	    'tools/libinput-debug-events.1')
+
 libinput_sources = [ 'tools/libinput-tool.c' ]
 
 executable('libinput',
@@ -372,6 +398,8 @@ executable('libinput',
 	   )
 install_man('tools/libinput.1')
 
+meson.add_install_script('tools/install-compat-scripts.sh')
+
 ptraccel_debug_sources = [ 'tools/ptraccel-debug.c' ]
 executable('ptraccel-debug',
 	   ptraccel_debug_sources,
@@ -379,32 +407,6 @@ executable('ptraccel-debug',
 	   include_directories : include_directories('src'),
 	   install : false
 	   )
-
-if get_option('event-gui')
-	dep_gtk = dependency('gtk+-3.0')
-	dep_cairo = dependency('cairo')
-	dep_glib = dependency('glib-2.0')
-
-	event_gui_sources = [ 'tools/event-gui.c' ] + tools_shared_sources
-	deps_event_gui = [
-			dep_gtk,
-			dep_cairo,
-			dep_glib,
-			dep_libevdev,
-			dep_libinput
-			]
-	executable('event-gui',
-		   event_gui_sources,
-		   dependencies : deps_event_gui,
-		   include_directories : include_directories('src'),
-		   install : false
-		   )
-endif
-
-install_man('tools/libinput-list-devices.1',
-	    'tools/libinput-debug-events.1')
-
-meson.add_install_script('tools/install-compat-scripts.sh')
 
 ############ tests ############
 

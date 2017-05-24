@@ -60,6 +60,9 @@ libinput_tool_usage(void)
 	       "\n"
 	       "  debug-events\n"
 	       "	Print events to stdout\n"
+	       "\n"
+	       "  debug-gui\n"
+	       "	Display a simple GUI to visualize libinput's events.\n"
 	       "\n");
 }
 

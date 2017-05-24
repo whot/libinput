@@ -867,7 +867,7 @@ sockets_init(struct libinput *li)
 }
 
 int
-main(int argc, char *argv[])
+main(int argc, char **argv)
 {
 	struct window w;
 	struct libinput *li;

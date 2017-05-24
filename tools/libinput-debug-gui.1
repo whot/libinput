@@ -1,0 +1,32 @@
+.TH LIBINPUT-DEBUG-GUI "1"
+.SH NAME
+libinput-debug-gui \- visual debug helper for libinput
+.SH SYNOPSIS
+.B libinput debug-gui [--help]
+.SH DESCRIPTION
+.PP
+The
+.B "libinput debug-gui"
+tool creates a libinput context and a full-screen GTK window to visualize
+events processed by libinput.
+.PP
+This is a debugging tool only, its output or behavior may change at any
+time. Do not rely on the output or the behavior.
+.PP
+This tool usually needs to be run as root to have access to the
+/dev/input/eventX nodes.
+.SH OPTIONS
+.TP 8
+.B --help
+Print help
+.PP
+For all other options, see the output from --help. Options may be added or
+removed at any time.
+.SH NOTES
+.PP
+Events shown by this tool may not correspond to the events seen by a
+different user of libinput. This tool initializes a separate context.
+.SH LIBINPUT
+Part of the
+.B libinput(1)
+suite
