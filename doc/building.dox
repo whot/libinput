@@ -162,25 +162,23 @@ environment where tablet support is not required. libinput provides tablet
 support even without libwacom, but some features may be missing or working
 differently.
 
-@subsection buildling_event-gui Building without the graphical helper tool
+@subsection buildling_debug-gui Building without the graphical helper tool
 
-Only the commandline @ref tools are installed by distributions. The
-@ref event-gui graphical helper tools is only available in the source
-repository.
-
-The graphical helper tool is enabled by default but requires extra libraries
-to build. If these libraries are not available, the build will fail.
-If the tool is not required, use the ``--disable-event-gui`` argument
-when @ref building.
+The @ref tools provide commandline features as well as graphical debugging
+features. To keep dependencies in check on some builds, the graphical
+features of the @ref tools can be disabled. By default, the `debug-gui`
+feature of the `libinput` tool is enabled and if the required libraries are
+not available, the build will fail. If the feature is not required, use the
+``--disable-debug-gui`` argument when @ref building.
 
 @code
-$> meson --prefix=/usr -Devent-gui=false builddir
+$> meson --prefix=/usr -Ddebug-gui=false builddir
 @endcode
 
 or when building with autotools:
 
 @code
-$> ./autogen.sh --disable-event-gui --prefix=/usr --libdir=/usr/lib64
+$> ./autogen.sh --disable-debug-gui --prefix=/usr --libdir=/usr/lib64
 @endcode
 
 @section building_against Building against libinput

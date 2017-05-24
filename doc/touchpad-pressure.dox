@@ -128,7 +128,7 @@ device's event node (see @ref faq_hwdb_changes):
 
 If the pressure range property shows up correctly, restart X or the
 Wayland compositor and libinput should now use the correct pressure
-thresholds. The @ref developer_tools can be used to verify the correct
+thresholds. The @ref tools can be used to verify the correct
 functionality first without the need for a restart.
 
 Once the pressure ranges are deemed correct,
