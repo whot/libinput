@@ -342,16 +342,7 @@ endif
 ############ tools ############
 tools_shared_sources = [ 'tools/shared.c',
 			 'tools/shared.h' ]
-event_debug_sources = [ 'tools/libinput-debug-events.c' ] + tools_shared_sources
-executable('event-debug',
-	   event_debug_sources,
-	   dependencies : dep_libinput,
-	   include_directories : include_directories('src'),
-	   c_args : [ '-DTOOLS_BUILD_STANDALONE=1' ],
-	   install : false
-	   )
-
-libinput_debug_events_sources = event_debug_sources
+libinput_debug_events_sources = [ 'tools/libinput-debug-events.c' ] + tools_shared_sources
 executable('libinput-debug-events',
 	   libinput_debug_events_sources,
 	   dependencies : dep_libinput,
