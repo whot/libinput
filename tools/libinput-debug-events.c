@@ -907,7 +907,7 @@ main(int argc, char **argv)
 
 	tools_init_context(&context);
 
-	if (tools_parse_args(argc, argv, &context))
+	if (tools_parse_args("debug-events", argc, argv, &context))
 		return 1;
 
 	be_quiet = context.options.quiet;

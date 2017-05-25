@@ -877,7 +877,7 @@ main(int argc, char **argv)
 
 	tools_init_context(&context);
 
-	if (tools_parse_args(argc, argv, &context) != 0)
+	if (tools_parse_args("debug-gui", argc, argv, &context) != 0)
 		return 1;
 
 	udev = udev_new();

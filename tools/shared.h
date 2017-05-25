@@ -65,10 +65,13 @@ struct tools_context {
 };
 
 void tools_init_context(struct tools_context *context);
-int tools_parse_args(int argc, char **argv, struct tools_context *context);
+int tools_parse_args(const char *command,
+		     int argc,
+		     char **argv,
+		     struct tools_context *context);
 struct libinput* tools_open_backend(struct tools_context *context);
 void tools_device_apply_config(struct libinput_device *device,
 			       struct tools_options *options);
-void tools_usage(void);
+void tools_usage(const char *command);
 
 #endif

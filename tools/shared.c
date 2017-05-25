@@ -93,9 +93,10 @@ log_handler(struct libinput *li,
 }
 
 void
-tools_usage(void)
+tools_usage(const char *command)
 {
-	printf("Usage: libinput debug-events [options] [--udev [<seat>]|--device /dev/input/event0]\n");
+	printf("Usage: libinput %s [options] [--udev [<seat>]|--device /dev/input/event0]\n",
+	       command);
 	printf("--udev <seat>.... Use udev device discovery (default).\n"
 	       "		  Specifying a seat ID is optional.\n"
 	       "--device /path/to/device .... open the given device only\n"
@@ -160,7 +161,10 @@ tools_init_context(struct tools_context *context)
 }
 
 int
-tools_parse_args(int argc, char **argv, struct tools_context *context)
+tools_parse_args(const char *command,
+		 int argc,
+		 char **argv,
+		 struct tools_context *context)
 {
 	struct tools_options *options = &context->options;
 
@@ -205,12 +209,12 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 		switch(c) {
 		case 'h':
 		case OPT_HELP:
-			tools_usage();
+			tools_usage(command);
 			exit(0);
 		case OPT_DEVICE:
 			options->backend = BACKEND_DEVICE;
 			if (!optarg) {
-				tools_usage();
+				tools_usage(command);
 				return 1;
 			}
 			options->device = optarg;
@@ -234,7 +238,7 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 			break;
 		case OPT_TAP_MAP:
 			if (!optarg) {
-				tools_usage();
+				tools_usage(command);
 				return 1;
 			}
 			if (streq(optarg, "lrm")) {
@@ -242,7 +246,7 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 			} else if (streq(optarg, "lmr")) {
 				options->tap_map = LIBINPUT_CONFIG_TAP_MAP_LMR;
 			} else {
-				tools_usage();
+				tools_usage(command);
 				return 1;
 			}
 			break;
@@ -284,7 +288,7 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 			break;
 		case OPT_CLICK_METHOD:
 			if (!optarg) {
-				tools_usage();
+				tools_usage(command);
 				return 1;
 			}
 			if (streq(optarg, "none")) {
@@ -297,13 +301,13 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 				options->click_method =
 				LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
 			} else {
-				tools_usage();
+				tools_usage(command);
 				return 1;
 			}
 			break;
 		case OPT_SCROLL_METHOD:
 			if (!optarg) {
-				tools_usage();
+				tools_usage(command);
 				return 1;
 			}
 			if (streq(optarg, "none")) {
@@ -319,13 +323,13 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 				options->scroll_method =
 				LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN;
 			} else {
-				tools_usage();
+				tools_usage(command);
 				return 1;
 			}
 			break;
 		case OPT_SCROLL_BUTTON:
 			if (!optarg) {
-				tools_usage();
+				tools_usage(command);
 				return 1;
 			}
 			options->scroll_button =
@@ -340,14 +344,14 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 			break;
 		case OPT_SPEED:
 			if (!optarg) {
-				tools_usage();
+				tools_usage(command);
 				return 1;
 			}
 			options->speed = atof(optarg);
 			break;
 		case OPT_PROFILE:
 			if (!optarg) {
-				tools_usage();
+				tools_usage(command);
 				return 1;
 			}
 			if (streq(optarg, "adaptive")) {
@@ -355,7 +359,7 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 			} else if (streq(optarg, "flat")) {
 				options->profile = LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT;
 			} else {
-				tools_usage();
+				tools_usage(command);
 				return 1;
 			}
 			break;
@@ -366,14 +370,14 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 			options->quiet = true;
 			break;
 		default:
-			tools_usage();
+			tools_usage(command);
 			return 1;
 		}
 
 	}
 
 	if (optind < argc) {
-		tools_usage();
+		tools_usage(command);
 		return 1;
 	}
 
