@@ -440,6 +440,12 @@ us2ms(uint64_t us)
 	return (uint32_t)(us / 1000);
 }
 
+static inline uint64_t
+tv2us(const struct timeval *tv)
+{
+	return s2us(tv->tv_sec) + tv->tv_usec;
+}
+
 static inline bool
 safe_atoi(const char *str, int *val)
 {

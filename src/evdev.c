@@ -1857,7 +1857,7 @@ static inline void
 evdev_process_event(struct evdev_device *device, struct input_event *e)
 {
 	struct evdev_dispatch *dispatch = device->dispatch;
-	uint64_t time = s2us(e->time.tv_sec) + e->time.tv_usec;
+	uint64_t time = tv2us(&e->time);
 
 #if 0
 	if (libevdev_event_is_code(e, EV_SYN, SYN_REPORT))
