@@ -35,10 +35,8 @@
 #include <libinput-util.h>
 #include <libinput-version.h>
 
-#include "libinput-tool.h"
-
-void
-libinput_tool_usage(void)
+static void
+usage(void)
 {
 	printf("Usage: libinput [GLOBAL OPTIONS] [COMMAND] [ARGS]\n"
 	       "\n"
@@ -99,7 +97,7 @@ exec_command(int real_argc, char **real_argv)
 
 	rc = snprintf(executable, sizeof(executable), "libinput-%s", command);
 	if (rc >= (int)sizeof(executable)) {
-		libinput_tool_usage();
+		usage();
 		return EXIT_FAILURE;
 	}
 
@@ -137,19 +135,19 @@ main(int argc, char **argv)
 		switch(c) {
 		case 'h':
 		case GOPT_HELP:
-			libinput_tool_usage();
+			usage();
 			return EXIT_SUCCESS;
 		case GOPT_VERSION:
 			printf("%s\n", LIBINPUT_VERSION);
 			return EXIT_SUCCESS;
 		default:
-			libinput_tool_usage();
+			usage();
 			return EXIT_FAILURE;
 		}
 	}
 
 	if (optind >= argc) {
-		libinput_tool_usage();
+		usage();
 		return EXIT_FAILURE;
 	}
 

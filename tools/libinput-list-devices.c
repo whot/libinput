@@ -34,7 +34,6 @@
 #include <libinput-util.h>
 #include <libinput-version.h>
 
-#include "libinput-tool.h"
 #include "shared.h"
 
 static const char *

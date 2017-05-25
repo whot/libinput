@@ -28,8 +28,6 @@
 
 #include <libinput.h>
 
-#include "libinput-tool.h"
-
 enum tools_backend {
 	BACKEND_DEVICE,
 	BACKEND_UDEV

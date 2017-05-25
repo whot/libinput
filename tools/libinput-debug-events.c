@@ -39,7 +39,6 @@
 #include <libinput.h>
 #include <libevdev/libevdev.h>
 
-#include "libinput-tool.h"
 #include "shared.h"
 
 uint32_t start_time;

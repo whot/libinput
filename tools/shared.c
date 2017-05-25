@@ -34,7 +34,6 @@
 #include <libevdev/libevdev.h>
 #include <libinput-util.h>
 
-#include "libinput-tool.h"
 #include "shared.h"
 
 enum options {

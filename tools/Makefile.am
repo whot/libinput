@@ -21,9 +21,7 @@ ptraccel_debug_SOURCES = ptraccel-debug.c
 ptraccel_debug_LDADD = ../src/libfilter.la ../src/libinput.la
 ptraccel_debug_LDFLAGS = -no-install
 
-libinput_SOURCES = \
-		   libinput-tool.c \
-		   libinput-tool.h
+libinput_SOURCES = libinput-tool.c
 libinput_LDADD = ../src/libinput.la libshared.la $(LIBUDEV_LIBS) $(LIBEVDEV_LIBS)
 libinput_CFLAGS = $(AM_CFLAGS) $(LIBUDEV_CFLAGS) $(LIBEVDEV_CFLAGS) \
 		  -DLIBINPUT_TOOL_PATH="\"@libexecdir@/libinput\""
