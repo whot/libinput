@@ -361,6 +361,7 @@ executable('libinput-debug-events',
 	   install_dir : libinput_tool_path,
 	   install : true
 	   )
+install_man('tools/libinput-debug-events.1')
 
 libinput_list_devices_sources = [ 'tools/libinput-list-devices.c' ]
 executable('libinput-list-devices',
@@ -370,6 +371,7 @@ executable('libinput-list-devices',
 	   install_dir : libinput_tool_path,
 	   install : true,
 	   )
+install_man('tools/libinput-list-devices.1')
 
 if get_option('event-gui')
 	dep_gtk = dependency('gtk+-3.0')
@@ -391,9 +393,6 @@ if get_option('event-gui')
 		   )
 	install_man('tools/libinput-debug-gui.1')
 endif
-
-install_man('tools/libinput-list-devices.1',
-	    'tools/libinput-debug-events.1')
 
 libinput_sources = [ 'tools/libinput-tool.c' ]
 
