@@ -344,19 +344,28 @@ libinput_tool_path = join_paths(get_option('prefix'), get_option('libexecdir'), 
 config_h.set_quoted('LIBINPUT_TOOL_PATH', libinput_tool_path)
 tools_shared_sources = [ 'tools/shared.c',
 			 'tools/shared.h' ]
-libinput_debug_events_sources = [ 'tools/libinput-debug-events.c' ] + tools_shared_sources
+deps_tools_shared = [ dep_libinput, dep_libevdev ]
+lib_tools_shared = static_library('tools_shared',
+				  tools_shared_sources,
+				  include_directories : include_directories('src'),
+				  dependencies : deps_tools_shared)
+dep_tools_shared = declare_dependency(link_with : lib_tools_shared,
+				      dependencies : deps_tools_shared)
+
+deps_tools = [ dep_libinput,  dep_tools_shared ]
+libinput_debug_events_sources = [ 'tools/libinput-debug-events.c' ]
 executable('libinput-debug-events',
 	   libinput_debug_events_sources,
-	   dependencies : dep_libinput,
+	   dependencies : deps_tools,
 	   include_directories : include_directories('src'),
 	   install_dir : libinput_tool_path,
 	   install : true
 	   )
 
-libinput_list_devices_sources = [ 'tools/libinput-list-devices.c' ] + tools_shared_sources
+libinput_list_devices_sources = [ 'tools/libinput-list-devices.c' ]
 executable('libinput-list-devices',
 	   libinput_list_devices_sources,
-	   dependencies : [ dep_libinput ],
+	   dependencies : deps_tools,
 	   include_directories : include_directories('src'),
 	   install_dir : libinput_tool_path,
 	   install : true,
@@ -367,14 +376,12 @@ if get_option('event-gui')
 	dep_cairo = dependency('cairo')
 	dep_glib = dependency('glib-2.0')
 
-	debug_gui_sources = [ 'tools/libinput-debug-gui.c' ] + tools_shared_sources
+	debug_gui_sources = [ 'tools/libinput-debug-gui.c' ]
 	deps_debug_gui = [
 			dep_gtk,
 			dep_cairo,
 			dep_glib,
-			dep_libevdev,
-			dep_libinput
-			]
+			] + deps_tools
 	executable('libinput-debug-gui',
 		   debug_gui_sources,
 		   dependencies : deps_debug_gui,
@@ -392,7 +399,7 @@ libinput_sources = [ 'tools/libinput-tool.c' ]
 
 executable('libinput',
 	   libinput_sources,
-	   dependencies : dep_libinput,
+	   dependencies : deps_tools,
 	   include_directories : include_directories ('src'),
 	   install : true
 	   )
