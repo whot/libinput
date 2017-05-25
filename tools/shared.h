@@ -36,7 +36,8 @@ enum tools_backend {
 };
 
 struct tools_options {
-	struct global_options global_options;
+	bool verbose;
+	bool quiet;
 	enum tools_backend backend;
 	const char *device; /* if backend is BACKEND_DEVICE */
 	const char *seat; /* if backend is BACKEND_UDEV */

@@ -63,58 +63,67 @@ libinput_tool_usage(void)
 	       "\n");
 }
 
-enum command {
-	COMMAND_NONE,
-	COMMAND_LIST_DEVICES,
-	COMMAND_DEBUG_EVENTS,
-};
-
 enum global_opts {
 	GOPT_HELP = 1,
 	GOPT_VERSION,
-	GOPT_QUIET,
-	GOPT_VERBOSE,
 };
 
-static int
-run_args_cmd(enum command cmd,
-	       struct global_options *global_options,
-	       int argc, char *argv[])
+static inline void
+setup_path(void)
 {
-	optind = 0;
+	const char *path = getenv("PATH");
+	char new_path[PATH_MAX];
 
-	switch (cmd) {
-	case COMMAND_NONE:
-		break;
-	case COMMAND_LIST_DEVICES:
-		return libinput_list_devices(global_options, argc, argv);
-	case COMMAND_DEBUG_EVENTS:
-		return libinput_debug_events(global_options, argc, argv);
+	snprintf(new_path,
+		 sizeof(new_path),
+		 "%s:%s",
+		 LIBINPUT_TOOL_PATH,
+		 path ? path : "");
+	setenv("PATH", new_path, 1);
+}
+
+static int
+exec_command(int real_argc, char **real_argv)
+{
+	char *argv[64] = {NULL};
+	char executable[128];
+	const char *command;
+	int rc;
+
+	assert((size_t)real_argc < ARRAY_LENGTH(argv));
+
+	command = real_argv[0];
+
+	rc = snprintf(executable, sizeof(executable), "libinput-%s", command);
+	if (rc >= (int)sizeof(executable)) {
+		libinput_tool_usage();
+		return EXIT_FAILURE;
 	}
 
+	argv[0] = executable;
+	for (int i = 1; i < real_argc; i++)
+		argv[i] = real_argv[i];
+
+	setup_path();
+
+	rc = execvp(executable, argv);
+	fprintf(stderr,
+		"Failed to execute '%s' (%s)\n",
+		command,
+		strerror(errno));
 	return EXIT_FAILURE;
 }
 
 int
 main(int argc, char **argv)
 {
-	enum command cmd = COMMAND_NONE;
-	const char *command;
 	int option_index = 0;
-	struct global_options global_options = {0};
-
-	if (argc == 1) {
-		libinput_tool_usage();
-		return EXIT_FAILURE;
-	}
 
 	while (1) {
 		int c;
 		static struct option opts[] = {
 			{ "help",	no_argument,	0, GOPT_HELP },
 			{ "version",	no_argument,	0, GOPT_VERSION },
-			{ "quiet",	no_argument,	0, GOPT_QUIET },
-			{ "verbose",	no_argument,	0, GOPT_VERBOSE },
 			{ 0, 0, 0, 0}
 		};
 
@@ -130,33 +139,19 @@ main(int argc, char **argv)
 		case GOPT_VERSION:
 			printf("%s\n", LIBINPUT_VERSION);
 			return EXIT_SUCCESS;
-		case GOPT_VERBOSE:
-			global_options.verbose = true;
-			break;
-		case GOPT_QUIET:
-			global_options.quiet = true;
-			break;
 		default:
 			libinput_tool_usage();
 			return EXIT_FAILURE;
 		}
 	}
 
-	if (optind > argc) {
+	if (optind >= argc) {
 		libinput_tool_usage();
 		return EXIT_FAILURE;
 	}
 
-	command = argv[optind];
+	argv += optind;
+	argc -= optind;
 
-	if (streq(command, "list-devices")) {
-		cmd = COMMAND_LIST_DEVICES;
-	} else if (streq(command, "debug-events")) {
-		cmd = COMMAND_DEBUG_EVENTS;
-	} else {
-		fprintf(stderr, "Invalid command '%s'\n", command);
-		return EXIT_FAILURE;
-	}
-
-	return run_args_cmd(cmd, &global_options, argc - optind, &argv[optind]);
+	return exec_command(argc, argv);
 }

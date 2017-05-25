@@ -897,7 +897,7 @@ mainloop(struct libinput *li)
 }
 
 int
-libinput_debug_events(struct global_options *opts, int argc, char **argv)
+main(int argc, char **argv)
 {
 	struct libinput *li;
 	struct timespec tp;
@@ -910,7 +910,7 @@ libinput_debug_events(struct global_options *opts, int argc, char **argv)
 	if (tools_parse_args(argc, argv, &context))
 		return 1;
 
-	be_quiet = context.options.global_options.quiet;
+	be_quiet = context.options.quiet;
 
 	li = tools_open_backend(&context);
 	if (!li)
@@ -922,13 +922,3 @@ libinput_debug_events(struct global_options *opts, int argc, char **argv)
 
 	return 0;
 }
-
-#if TOOLS_BUILD_STANDALONE
-int
-main(int argc, char **argv)
-{
-	struct global_options opts = {0};
-
-	return libinput_debug_events(&opts, argc, argv);
-}
-#endif

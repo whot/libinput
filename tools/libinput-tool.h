@@ -28,13 +28,6 @@
 
 #include <stdbool.h>
 
-struct global_options {
-	bool verbose;
-	bool quiet;
-};
-
 void libinput_tool_usage(void);
-int libinput_list_devices(struct global_options *opts, int argc, char **argv);
-int libinput_debug_events(struct global_options *opts, int argc, char **argv);
 
 #endif

@@ -95,12 +95,7 @@ log_handler(struct libinput *li,
 void
 tools_usage(void)
 {
-#if TOOLS_BUILD_STANDALONE
-	printf("Usage: %s [options] [--udev [<seat>]|--device /dev/input/event0]\n",
-		program_invocation_short_name);
-#else
 	printf("Usage: libinput debug-events [options] [--udev [<seat>]|--device /dev/input/event0]\n");
-#endif
 	printf("--udev <seat>.... Use udev device discovery (default).\n"
 	       "		  Specifying a seat ID is optional.\n"
 	       "--device /path/to/device .... open the given device only\n"
@@ -134,11 +129,8 @@ tools_usage(void)
 	       "Other options:\n"
 	       "--grab .......... Exclusively grab all openend devices\n"
 	       "--help .......... Print this help.\n"
-	       );
-#if TOOLS_BUILD_STANDALONE
-	printf("--verbose ....... Print debugging output.\n"
+	       "--verbose ....... Print debugging output.\n"
 	       "--quiet ......... Only print libinput messages, useful in combination with --verbose.\n");
-#endif
 }
 
 void
@@ -180,10 +172,8 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 			{ "udev",                      no_argument,       0, OPT_UDEV },
 			{ "grab",                      no_argument,       0, OPT_GRAB },
 			{ "help",                      no_argument,       0, OPT_HELP },
-#if TOOLS_BUILD_STANDALONE
 			{ "verbose",                   no_argument,       0, OPT_VERBOSE },
 			{ "quiet",                     no_argument,       0, OPT_QUIET },
-#endif
 			{ "enable-tap",                no_argument,       0, OPT_TAP_ENABLE },
 			{ "disable-tap",               no_argument,       0, OPT_TAP_DISABLE },
 			{ "enable-drag",               no_argument,       0, OPT_DRAG_ENABLE },
@@ -234,7 +224,7 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 			options->grab = 1;
 			break;
 		case OPT_VERBOSE:
-			options->global_options.verbose = 1;
+			options->verbose = 1;
 			break;
 		case OPT_TAP_ENABLE:
 			options->tapping = 1;
@@ -373,7 +363,7 @@ tools_parse_args(int argc, char **argv, struct tools_context *context)
 			options->show_keycodes = true;
 			break;
 		case OPT_QUIET:
-			options->global_options.quiet = true;
+			options->quiet = true;
 			break;
 		default:
 			tools_usage();
@@ -495,12 +485,12 @@ tools_open_backend(struct tools_context *context)
 		li = open_udev(&interface,
 			       context,
 			       options->seat,
-			       options->global_options.verbose);
+			       options->verbose);
 	} else if (options->backend == BACKEND_DEVICE) {
 		li = open_device(&interface,
 				 context,
 				 options->device,
-				 options->global_options.verbose);
+				 options->verbose);
 	} else {
 		abort();
 	}

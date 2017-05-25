@@ -2,11 +2,11 @@
 .SH NAME
 libinput-debug-events \- debug helper for libinput
 .SH SYNOPSIS
-.B libinput-debug-events [--help] [--show-keycodes]
+.B libinput debug-events [--help] [--show-keycodes]
 .SH DESCRIPTION
 .PP
 The
-.I libinput-debug-events
+.B "libinput debug-events"
 tool creates a libinput context and prints all events from these devices.
 .PP
 This is a debugging tool only, its output may change at any time. Do not
@@ -31,3 +31,7 @@ removed at any time.
 .PP
 Events shown by this tool may not correspond to the events seen by a
 different user of libinput. This tool initializes a separate context.
+.SH LIBINPUT
+Part of the
+.B libinput(1)
+suite

@@ -340,6 +340,8 @@ if doxygen.found()
 endif
 
 ############ tools ############
+libinput_tool_path = join_paths(get_option('prefix'), get_option('libexecdir'), 'libinput')
+config_h.set_quoted('LIBINPUT_TOOL_PATH', libinput_tool_path)
 tools_shared_sources = [ 'tools/shared.c',
 			 'tools/shared.h' ]
 libinput_debug_events_sources = [ 'tools/libinput-debug-events.c' ] + tools_shared_sources
@@ -347,7 +349,7 @@ executable('libinput-debug-events',
 	   libinput_debug_events_sources,
 	   dependencies : dep_libinput,
 	   include_directories : include_directories('src'),
-	   c_args : [ '-DTOOLS_BUILD_STANDALONE=1' ],
+	   install_dir : libinput_tool_path,
 	   install : true
 	   )
 
@@ -356,11 +358,11 @@ executable('libinput-list-devices',
 	   libinput_list_devices_sources,
 	   dependencies : [ dep_libinput ],
 	   include_directories : include_directories('src'),
-	   c_args : [ '-DTOOLS_BUILD_STANDALONE=1' ],
+	   install_dir : libinput_tool_path,
 	   install : true,
 	   )
 
-libinput_sources = [ 'tools/libinput-tool.c' ] + libinput_list_devices_sources + libinput_debug_events_sources
+libinput_sources = [ 'tools/libinput-tool.c' ]
 
 executable('libinput',
 	   libinput_sources,
@@ -402,6 +404,7 @@ endif
 install_man('tools/libinput-list-devices.1',
 	    'tools/libinput-debug-events.1')
 
+meson.add_install_script('tools/install-compat-scripts.sh')
 
 ############ tests ############
 
