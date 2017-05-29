@@ -26,10 +26,13 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <poll.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/signalfd.h>
 #include <libudev.h>
 
 #include <libevdev/libevdev.h>
@@ -676,4 +679,74 @@ tools_exec_command(const char *prefix, int real_argc, char **real_argv)
 		strerror(errno));
 
 	return EXIT_FAILURE;
+}
+
+bool
+tools_generic_event_loop(const char *path,
+			 bool (*handle_event)(struct libevdev *evdev,
+					      const struct input_event *ev,
+					      void *userdata),
+			 void *userdata)
+{
+	struct libevdev *evdev;
+	struct pollfd fds[2];
+	sigset_t mask;
+	int fd;
+	int rc;
+
+	fd = open(path, O_RDONLY|O_NONBLOCK);
+	if (fd < 0) {
+		fprintf(stderr, "Failed to open device: %s\n", strerror(errno));
+		return EXIT_FAILURE;
+	}
+
+	rc = libevdev_new_from_fd(fd, &evdev);
+	if (rc < 0) {
+		fprintf(stderr, "Failed to init device: %s\n", strerror(-rc));
+		close(fd);
+		return EXIT_FAILURE;
+	}
+	libevdev_set_clock_id(evdev, CLOCK_MONOTONIC);
+
+	fds[0].fd = fd;
+	fds[0].events = POLLIN;
+
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGINT);
+	fds[1].fd = signalfd(-1, &mask, SFD_NONBLOCK);
+	fds[1].events = POLLIN;
+
+	sigprocmask(SIG_BLOCK, &mask, NULL);
+
+	rc = EXIT_FAILURE;
+
+	while (poll(fds, 2, -1)) {
+		struct input_event ev;
+		int rc;
+
+		if (fds[1].revents)
+			break;
+
+		do {
+			rc = libevdev_next_event(evdev, LIBEVDEV_READ_FLAG_NORMAL, &ev);
+			if (rc == LIBEVDEV_READ_STATUS_SYNC) {
+				fprintf(stderr, "Error: cannot keep up\n");
+				goto out;
+			} else if (rc == LIBEVDEV_READ_STATUS_SUCCESS) {
+				if (!handle_event(evdev, &ev, userdata))
+					goto out;
+			} else if (rc != -EAGAIN && rc < 0) {
+				fprintf(stderr, "Error: %s\n", strerror(-rc));
+				goto out;
+			}
+		} while (rc != -EAGAIN);
+	}
+
+	rc = EXIT_SUCCESS;
+out:
+	close(fd);
+	if (evdev)
+		libevdev_free(evdev);
+
+	return rc;
 }

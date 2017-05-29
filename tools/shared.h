@@ -25,6 +25,8 @@
 #define _SHARED_H_
 
 #include <stdbool.h>
+#include <linux/input.h>
+#include <libevdev/libevdev.h>
 
 #include <libinput.h>
 
@@ -72,6 +74,12 @@ void tools_device_apply_config(struct libinput_device *device,
 			       struct tools_options *options);
 void tools_usage(const char *command);
 int tools_exec_command(const char *prefix, int argc, char **argv);
+
+bool tools_generic_event_loop(const char *path,
+			      bool (*handle_event)(struct libevdev *evdev,
+						   const struct input_event *ev,
+						   void *userdata),
+			      void *userdata);
 
 bool find_touchpad_device(char *path, size_t path_len);
 bool is_touchpad_device(const char *devnode);

@@ -26,13 +26,10 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
-#include <poll.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/signalfd.h>
 
 #include <libudev.h>
 #include <libevdev/libevdev.h>
@@ -310,10 +307,11 @@ handle_abs(struct tap_data *tap_data,
 }
 
 static inline bool
-handle_event(struct tap_data *tap_data,
-	     struct libevdev *evdev,
-	     const struct input_event *ev)
+handle_event(struct libevdev *evdev,
+	     const struct input_event *ev,
+	     void *userdata)
 {
+	struct tap_data *tap_data = userdata;
 	bool rc = true;
 
 	if (tap_data->toffset == 0)
@@ -337,79 +335,6 @@ handle_event(struct tap_data *tap_data,
 		rc = true;
 		break;
 	}
-
-	return rc;
-}
-
-static int
-loop(struct tap_data *data, const char *path)
-{
-	struct libevdev *evdev;
-	struct pollfd fds[2];
-	sigset_t mask;
-	int fd;
-	int rc;
-
-	fd = open(path, O_RDONLY|O_NONBLOCK);
-	if (fd < 0) {
-		error("Failed to open device: %s\n", strerror(errno));
-		return EXIT_FAILURE;
-	}
-
-	rc = libevdev_new_from_fd(fd, &evdev);
-	if (rc < 0) {
-		error("Failed to init device: %s\n", strerror(-rc));
-		close(fd);
-		return EXIT_FAILURE;
-	}
-	libevdev_set_clock_id(evdev, CLOCK_MONOTONIC);
-
-	fds[0].fd = fd;
-	fds[0].events = POLLIN;
-
-	sigemptyset(&mask);
-	sigaddset(&mask, SIGINT);
-	fds[1].fd = signalfd(-1, &mask, SFD_NONBLOCK);
-	fds[1].events = POLLIN;
-
-	sigprocmask(SIG_BLOCK, &mask, NULL);
-
-	rc = EXIT_FAILURE;
-
-	error("Ready for recording data.\n"
-	      "Tap the touchpad multiple times with a single finger only.\n"
-	      "For useful data we recommend at least 20 taps.\n"
-	      "Ctrl+C to exit\n");
-
-	while (poll(fds, 2, -1)) {
-		struct input_event ev;
-		int rc;
-
-		if (fds[1].revents)
-			break;
-
-		do {
-			rc = libevdev_next_event(evdev, LIBEVDEV_READ_FLAG_NORMAL, &ev);
-			if (rc == LIBEVDEV_READ_STATUS_SYNC) {
-				error("Error: cannot keep up\n");
-				goto out;
-			} else if (rc == LIBEVDEV_READ_STATUS_SUCCESS) {
-				if (!handle_event(data, evdev, &ev))
-					goto out;
-			} else if (rc != -EAGAIN && rc < 0) {
-				error("Error: %s\n", strerror(-rc));
-				goto out;
-			}
-		} while (rc != -EAGAIN);
-	}
-
-	rc = EXIT_SUCCESS;
-out:
-	close(fd);
-	if (evdev)
-		libevdev_free(evdev);
-
-	printf("\n");
 
 	return rc;
 }
@@ -496,11 +421,19 @@ main(int argc, char **argv)
 		setbuf(stdout, NULL);
 	}
 
-	tap_data = tap_data_new();
-	rc = loop(tap_data, path);
+	msg("Ready for recording data.\n"
+	      "Tap the touchpad multiple times with a single finger only.\n"
+	      "For useful data we recommend at least 20 taps.\n"
+	      "Ctrl+C to exit\n");
 
+	tap_data = tap_data_new();
+	rc = tools_generic_event_loop(path,
+				      handle_event,
+				      tap_data);
 	if (rc != EXIT_SUCCESS)
 		goto out;
+
+	printf("\n");
 
 	if (print_dat_file)
 		print_dat(tap_data);
