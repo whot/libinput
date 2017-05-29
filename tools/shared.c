@@ -724,8 +724,12 @@ tools_generic_event_loop(const char *path,
 		struct input_event ev;
 		int rc;
 
-		if (fds[1].revents)
+		if (fds[1].revents) {
+			struct signalfd_siginfo si;
+
+			read(fds[1].fd, &si, sizeof(si));
 			break;
+		}
 
 		do {
 			rc = libevdev_next_event(evdev, LIBEVDEV_READ_FLAG_NORMAL, &ev);
@@ -741,6 +745,7 @@ tools_generic_event_loop(const char *path,
 			}
 		} while (rc != -EAGAIN);
 	}
+	sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
 	rc = EXIT_SUCCESS;
 out:
