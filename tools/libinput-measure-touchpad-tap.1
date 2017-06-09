@@ -2,7 +2,7 @@
 .SH NAME
 libinput\-measure\-touchpad\-tap \- measure tap-to-click properities of devices
 .SH SYNOPSIS
-.B libinput measure touchpad\-tap [\-\-help] [\-\-format=<format>] [/dev/input/event0]
+.B libinput measure touchpad\-tap [\-\-help] [\-\-tap-count=N] [\-\-format=<format>] [/dev/input/event0]
 .SH DESCRIPTION
 .PP
 The
@@ -26,6 +26,10 @@ This tool usually needs to be run as root to have access to the
 .TP 8
 .B \-\-help
 Print help
+.TP 8
+.B \-\-tap-count=N
+Measure the time across the given number of taps. Defaults to a single-tap
+(N=1), 2 means double-tap, etc.
 .TP 8
 .B \-\-format=summary|dat
 Specify the data format to be printed. The default (or if
@@ -71,6 +75,11 @@ different touch points and result in invalid analysis.
 This tool does not take finger pressure into account. The tap it detects may
 be different to those detected by libinput if libinput's pressure thresholds
 differ significantly to the kernel's pressure thresholds.
+.PP
+Measuring multitap statistics is not fully implemented for anything but
+doubletap (i.e.
+.B --tap-count=2
+).
 .SH LIBINPUT
 Part of the
 .B libinput(1)
