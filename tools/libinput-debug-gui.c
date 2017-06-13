@@ -383,6 +383,7 @@ map_event_cb(GtkWidget *widget, GdkEvent *event, gpointer data)
 {
 	struct window *w = data;
 	GdkDisplay *display;
+	GdkSeat *seat;
 	GdkWindow *window;
 
 	gtk_window_get_size(GTK_WINDOW(widget), &w->width, &w->height);
@@ -410,6 +411,17 @@ map_event_cb(GtkWidget *widget, GdkEvent *event, gpointer data)
 	gdk_window_set_cursor(gtk_widget_get_window(w->win),
 			      gdk_cursor_new_for_display(display,
 							 GDK_BLANK_CURSOR));
+
+	seat = gdk_display_get_default_seat(display);
+	gdk_seat_grab(seat,
+		      window,
+		      GDK_SEAT_CAPABILITY_ALL_POINTING,
+		      FALSE, /* owner-events */
+		      NULL, /* cursor */
+		      NULL, /* triggering event */
+		      NULL, /* prepare_func */
+		      NULL /* prepare_func_data */
+		     );
 }
 
 static void
