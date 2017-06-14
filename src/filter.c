@@ -1153,18 +1153,21 @@ trackpoint_accelerator_filter(struct motion_filter *filter,
 	struct device_float_coords scaled;
 	struct device_float_coords avg;
 	struct normalized_coords coords;
-	double fx, fy;
+	double f;
 
 	scaled = trackpoint_normalize_deltas(accel_filter, unaccelerated);
 	avg = trackpoint_average_delta(accel_filter, &scaled);
 
-	fx = trackpoint_accel_profile(filter, data, hypot(avg.x, avg.y));
-	fy = fx;//trackpoint_accel_profile(filter, data, avg.y);
+	f = trackpoint_accel_profile(filter, data, hypot(avg.x, avg.y));
 
-	coords.x = avg.x * fx;
-	coords.y = avg.y * fy;
+	coords.x = avg.x * f;
+	coords.y = avg.y * f;
 
 	coords = trackpoint_clip_to_max_delta(accel_filter, coords);
+
+	printf("Accelerated %f/%f to %f/%f (factor is %f)\n",
+	       unaccelerated->x, unaccelerated->y,
+	       coords.x, coords.y, f);
 
 	return coords;
 }
@@ -1292,6 +1295,8 @@ create_pointer_accelerator_filter_trackpoint(int max_hw_delta)
 	filter->scale_factor = 1.0 * TRACKPOINT_DEFAULT_RANGE / max_hw_delta;
 	filter->max_accel = TRACKPOINT_DEFAULT_MAX_ACCEL;
 	filter->max_delta = TRACKPOINT_DEFAULT_MAX_DELTA;
+
+	printf("HW range is %d\n", max_hw_delta);
 
 	filter->base.interface = &accelerator_interface_trackpoint;
 
