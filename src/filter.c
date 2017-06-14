@@ -1198,60 +1198,53 @@ trackpoint_accelerator_set_speed(struct motion_filter *filter,
 {
 	struct trackpoint_accelerator *accel_filter =
 		(struct trackpoint_accelerator*)filter;
-	double incline, offset;
+	double incline, offset, max;
 
 	assert(speed_adjustment >= -1.0 && speed_adjustment <= 1.0);
-
-	accel_filter->max_accel = max(TRACKPOINT_DEFAULT_MAX_ACCEL,
-				      2.0 + speed_adjustment * 8);
 
 	/* Helloooo, magic numbers.
 
 	   These numbers were obtained by finding an acceleration curve that
-	   matches the xorg acceleration at speed setting 0.0 (the default).
-	   That function is
-		factor = 0.2 * delta + 0.8.
-	   Then some trial and error to get a multiplication factor for
-	   different speed settings. Which was
-		factor = (0.1 * delta + 0.4) * (speed_setting + 1.0);
-	   That gives us a set of points where we hit the max accel (above)
-	   for each speed setting
-		0.0: (6,2), 0.25: (12,4), 0.5: (16, 6), ...
+	   provides precision at slow speeds but still provides a good
+	   acceleration at higher pressure - and a quick ramp-up to that
+	   acceleration.
 
-	   Problem: for speed settings greater than 0.0, this also
-	   accelerates deltas of 1.0 and we don't want that, it can make
-	   some pixels inaccessible. We need delta 1 to have a factor 1. For
-	   each of our speed settings we now have two points:
-		0.0: (1, 1) and (6, 2)	-> y = 0.2x + 0.8
-		0.5: (1, 1) and (16, 6) -> y = 0.333x + 0.667
-		...
+	   Trackpoints have built-in acceleration curves already, so we
+	   don't put a new function on top, we merely scale the output from
+	   those curves (re-calculating the pressure values from the
+	   firmware-defined curve and applying a new curve is unreliable).
 
-	   Since we have a relationship between speed factor and our incline
-	   and offset, we can feed the incline/offset numbers separately
-	   into a linear regression tool like http://www.xuru.org/rt/LR.asp:
-	       (0.0, 0.2)	(0.0, 0.8)
-	       (0.5, 0.33)	(0.5, 0.667)
-	       ...
+	   For that basic scaling, we assume a constant factor f based on
+	   the speed setting together with a maximum factor m (for this
+	   speed setting). Delta acceleration is thus:
+	      factor = max(m, f)
+	      accelerated_delta = delta * factor;
 
-	   And we get two functions to map continuous speed settings into an
-	   incline and and offset.
-	 */
+	   Trial and error showed a couple of pairs that work well for the
+	   various speed settings (Lenovo T440, sensitivity 128):
 
-	if (speed_adjustment >= 0.0) {
-		offset = -0.286 * speed_adjustment + 0.8;
-		incline = 0.246 * speed_adjustment + 0.2;
-	} else {
-		/* For speed settings < 0, the 0.2/0.8 function works fine,
-		 * we just multiply it with the speed adjustment to scale it
-		 * down.
-		 */
-		incline = 0.2 * speed_adjustment + 0.2;
-		offset = 0.8 * speed_adjustment + 0.8;
-	}
+	       -1.0: f = 0.3, m = 1
+	       -0.5: f = 0.6, m = 2
+	        0.0: f = 1.0, m = 6
+	        0.5: f = 1.4, m = 8
+	        1.0: f = 1.9, m = 15
 
-	incline = max(0.1, incline);
-	offset = max(0.1, offset);
+	   Note: if f >= 2.0, some pixels are unaddressable
 
+	   Those pairs were fed into the linear/exponential regression tool
+	   at http://www.xuru.org/rt/LR.asp and show two functions that map
+	   speed settings to the respective f and m.
+	   Given a speed setting s in [-1.0, 1.0]
+		   f(s) = 0.8 * s + 1.04
+		   m(s) = 4.6 * e**(1.2 * s)
+	   These are close enough to the tested pairs.
+	*/
+
+	max = 4.6 * pow(M_E, 1.2 * speed_adjustment);
+	incline = 0.8 * speed_adjustment + 1.04;
+	offset = 0;
+
+	accel_filter->max_accel = max;
 	accel_filter->incline = incline;
 	accel_filter->offset = offset;
 	filter->speed_adjustment = speed_adjustment;
