@@ -1066,13 +1066,60 @@ trackpoint_accel_profile(struct motion_filter *filter,
 		(struct trackpoint_accelerator *)filter;
 	const double max_accel = accel_filter->max_accel;
 	double factor;
+	double max;
 
 	delta = fabs(delta);
 
+#if 0
+#if 1
+	/* good default */
+	//factor = 0.6 * delta + 0.8;
+	factor = 1 * delta;
+	max = 6;
+#endif
+
+#if 1
+	/* slow, good for -1.0 */
+	//factor = 0.6 * delta + 0.8; /* This doesn't really take effect
+	//			       anyway because max is too low */
+	factor = 0.3 * delta;
+	max = 1;
+#endif
+
+#if 0
+	/* slow, maybe good for -0.5 */
+	//factor = 0.6 * delta + 0.8;
+	factor = 0.6 * delta;
+	max = 2.0;
+#endif
+
+#if 0
+	/* ok, maybe for 0.5 */
+	//factor = 0.7 * delta + 0.8;
+	factor = 1.4 * delta;
+	max = 8;
+#endif
+
+#if 0
+	/* ok for 1.0 */
+	factor = 1.9 * delta;
+	max = 15;
+#endif
+
+	factor = min(max, factor);
+
+	printf("factor %.2f %s\n", factor,
+	       factor == max ? "capped" : "");
+
+	return factor;
+
+#endif
 	/* This is almost the equivalent of the xserver acceleration
 	   at sensitivity 128 and speed 0.0 */
 	factor = delta * accel_filter->incline + accel_filter->offset;
 	factor = min(factor, max_accel);
+	printf("factor %.2f %s\n", factor,
+	       factor == max_accel ? "capped" : "");
 
 	return factor;
 }
