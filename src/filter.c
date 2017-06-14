@@ -1153,16 +1153,18 @@ trackpoint_accelerator_filter(struct motion_filter *filter,
 	struct device_float_coords scaled;
 	struct device_float_coords avg;
 	struct normalized_coords coords;
-	double fx, fy;
+	double f;
+	double delta;
 
 	scaled = trackpoint_normalize_deltas(accel_filter, unaccelerated);
 	avg = trackpoint_average_delta(accel_filter, &scaled);
 
-	fx = trackpoint_accel_profile(filter, data, avg.x);
-	fy = trackpoint_accel_profile(filter, data, avg.y);
+	delta = hypot(avg.x, avg.y);
 
-	coords.x = avg.x * fx;
-	coords.y = avg.y * fy;
+	f = trackpoint_accel_profile(filter, data, delta);
+
+	coords.x = avg.x * f;
+	coords.y = avg.y * f;
 
 	coords = trackpoint_clip_to_max_delta(accel_filter, coords);
 
