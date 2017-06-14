@@ -293,3 +293,7 @@ LIBINPUT_1.7 {
 LIBINPUT_1.9 {
 	libinput_device_switch_has_switch;
 } LIBINPUT_1.7;
+
+LIBINPUT_1.11 {
+	libinput_device_config_accel_set_curve_point;
+} LIBINPUT_1.9;

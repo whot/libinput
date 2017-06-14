@@ -95,6 +95,9 @@ filter_set_speed(struct motion_filter *filter,
 double
 filter_get_speed(struct motion_filter *filter);
 
+bool
+filter_set_curve_point(struct motion_filter *filter, double a, double fa);
+
 enum libinput_config_accel_profile
 filter_get_type(struct motion_filter *filter);
 
@@ -104,6 +107,9 @@ typedef double (*accel_profile_func_t)(struct motion_filter *filter,
 				       uint64_t time);
 
 /* Pointer acceleration types */
+struct motion_filter *
+create_pointer_accelerator_filter_custom_device_speed(void);
+
 struct motion_filter *
 create_pointer_accelerator_filter_flat(int dpi);
 
@@ -151,6 +157,12 @@ touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
 				      void *data,
 				      double speed_in,
 				      uint64_t time);
+double
+custom_accel_profile(struct motion_filter *filter,
+		     void *data,
+		     double speed_in,
+		     uint64_t time);
+
 double
 trackpoint_accel_profile(struct motion_filter *filter,
 			 void *data,

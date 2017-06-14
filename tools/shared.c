@@ -218,6 +218,17 @@ tools_parse_option(int option,
 			 "%s",
 			 optarg);
 		break;
+	case OPT_CURVE_POINTS:
+		if (!optarg)
+			return 1;
+
+		options->ncurve_points = kv_double_from_string(
+						optarg,
+						";", ":",
+						&options->curve_points);
+		if (options->ncurve_points < 0)
+			return 1;
+		break;
 	}
 
 	return 0;
@@ -385,6 +396,16 @@ tools_device_apply_config(struct libinput_device *device,
 		   0) !=  FNM_NOMATCH) {
 		libinput_device_config_send_events_set_mode(device,
 					    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED);
+	}
+
+	if (libinput_device_config_accel_get_profile(device) ==
+		    LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM_DEVICE_SPEED) {
+		for (ssize_t idx = 0; idx < options->ncurve_points; idx++) {
+			double x = options->curve_points[idx].key,
+			       fx = options->curve_points[idx].value;
+
+			libinput_device_config_accel_set_curve_point(device, x, fx);
+		}
 	}
 }
 

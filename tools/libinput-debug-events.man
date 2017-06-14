@@ -68,6 +68,11 @@ Enable or disable middle button emulation
 .B \-\-enable\-dwt|\-\-disable\-dwt
 Enable or disable disable-while-typing
 .TP 8
+.B \-\-set\-accel-curve-points="x1:y1;x2:y2"
+Sets the curve points for the \fIcustom-speed\fR acceleration profile. The
+set of curve points is a semicolon-separate lists of key-value pairs, each
+separated by a colon. Each value is a non-negative double.
+.TP 8
 .B \-\-set\-click\-method=[none|clickfinger|buttonareas]
 Set the desired click method
 .TP 8
@@ -77,8 +82,9 @@ Set the desired scroll method
 .B \-\-set\-scroll\-button=BTN_MIDDLE
 Set the button to the given button code
 .TP 8
-.B \-\-set\-profile=[adaptive|flat]
-Set pointer acceleration profile
+.B \-\-set\-profile=[adaptive|flat|custom-speed]
+Set pointer acceleration profile. If the \fIcustom-speed\fR profile is
+selected, use \fB\-\-set-accel-curve-points\fR to specify the curve points.
 .TP 8
 .B \-\-set\-speed=<value>
 Set pointer acceleration speed. The allowed range is [-1, 1].

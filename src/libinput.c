@@ -3673,6 +3673,19 @@ libinput_device_config_accel_get_default_speed(struct libinput_device *device)
 	return device->config.accel->get_default_speed(device);
 }
 
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_accel_set_curve_point(
+				struct libinput_device *device,
+				double a, double fa)
+{
+	if (libinput_device_config_accel_get_profile(device) !=
+		    LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM_DEVICE_SPEED) {
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+	}
+
+	return device->config.accel->set_curve_point(device, a, fa);
+}
+
 LIBINPUT_EXPORT uint32_t
 libinput_device_config_accel_get_profiles(struct libinput_device *device)
 {
@@ -3707,6 +3720,7 @@ libinput_device_config_accel_set_profile(struct libinput_device *device,
 	switch (profile) {
 	case LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT:
 	case LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE:
+	case LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM_DEVICE_SPEED:
 		break;
 	default:
 		return LIBINPUT_CONFIG_STATUS_INVALID;

@@ -4480,6 +4480,12 @@ libinput_device_config_accel_is_available(struct libinput_device *device);
  * range. libinput picks the semantically closest acceleration step if the
  * requested value does not match a discrete setting.
  *
+ * If the current acceleration profile is @ref
+ * LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM_DEVICE_SPEED, the behavior of the
+ * device will not change but future calls to
+ * libinput_device_config_accel_get_speed() will reflect the updated speed
+ * setting.
+ *
  * @param device The device to configure
  * @param speed The normalized speed, in a range of [-1, 1]
  *
@@ -4530,6 +4536,44 @@ libinput_device_config_accel_get_default_speed(struct libinput_device *device);
 
 /**
  * @ingroup config
+ *
+ * Sets a curve point on the custom acceleration function for this device.
+ * This function must be called after setting the type of the acceleration
+ * to @ref LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM_DEVICE_SPEED and sets
+ * exactly one point on the device's acceleration curve.
+ *
+ * This function must be called multiple times to define a full acceleration
+ * curve. libinput uses linear interpolation between each defined curve
+ * point to calculate the appropriate factor. Any speed below or above the
+ * lowest or highest point defined is capped to the factor at the lowest or
+ * highest point, respectively. See @ref ptraccel-custom-speed for a
+ * detailed explanation on this behavior.
+ *
+ * The behavior of the acceleration function depends on the type of the
+ * profile:
+ * - @ref LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM_DEVICE_SPEED : the input data
+ *   a is velocity in device units per millisecond, f(a) is a unitless
+ *   factor. This factor is applied to the incoming delta so that a delta
+ *   (x, y) is  accelerated to the delta (f(a) * x, f(a) *y). The velocity
+ *   is calculated by libinput based on the current and previous deltas and
+ *   their timestamps. See @ref ptraccel-custom-speed for details.
+ *
+ * @note libinput has a maximum limit for how many curve points may be set
+ * and will quietly drop curve points exceeding this limit. This limit is
+ * not expected to be hit by any reasonable caller.
+ *
+ * Submitting a curve point with the same value as a previous curve point
+ * overwrites that value. There is no facility to remove curve points,
+ * switch the device to a different profile and back again to reset.
+ *
+ * @return 0 on success or nonzero otherwise
+ */
+enum libinput_config_status
+libinput_device_config_accel_set_curve_point(struct libinput_device *device,
+					     double a, double fa);
+
+/**
+ * @ingroup config
  */
 enum libinput_config_accel_profile {
 	/**
@@ -4551,6 +4595,11 @@ enum libinput_config_accel_profile {
 	 * on the input speed. This is the default profile for most devices.
 	 */
 	LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE = (1 << 1),
+	/**
+	 * A custom user-provided profile. See
+	 * libinput_acceleration_profile_set_curve_point() for details.
+	 */
+	LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM_DEVICE_SPEED = (1 << 2),
 };
 
 /**
@@ -4571,6 +4620,13 @@ libinput_device_config_accel_get_profiles(struct libinput_device *device);
  *
  * Set the pointer acceleration profile of this pointer device to the given
  * mode.
+ *
+ * If the given profile is
+ * @ref LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM_DEVICE_SPEED and it is
+ * different to the current profile, the acceleration curve is reset to an
+ * implementation-defined curve. The caller should call
+ * libinput_device_config_accel_set_curve_point() to
+ * define the curve points of the acceleration profile.
  *
  * @param device The device to configure
  * @param mode The mode to set the device to.

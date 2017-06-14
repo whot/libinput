@@ -161,11 +161,12 @@ print_accel_func(struct motion_filter *filter,
 	printf("# set style data lines\n");
 	printf("# plot \"gnuplot.data\" using 1:2 title 'accel factor'\n");
 	printf("#\n");
-	printf("# data: velocity(mm/s) factor velocity(units/us)\n");
+	printf("# data: velocity(mm/s) factor velocity(units/us) velocity(units/ms)\n");
 	for (mmps = 0.0; mmps < 1000.0; mmps += 1) {
 		double units_per_us = mmps_to_upus(mmps, dpi);
+		double units_per_ms = units_per_us * 1000;
 		double result = profile(filter, NULL, units_per_us, 0 /* time */);
-		printf("%.8f\t%.4f\t%.8f\n", mmps, result, units_per_us);
+		printf("%.8f\t%.4f\t%.8f\t%.8f\n", mmps, result, units_per_us, units_per_ms);
 	}
 }
 
@@ -239,6 +240,7 @@ main(int argc, char **argv)
 	const char *filter_type = "linear";
 	accel_profile_func_t profile = NULL;
 	int tp_range_max = 20;
+	const char *curve_points = NULL;
 
 	enum {
 		OPT_HELP = 1,
@@ -250,6 +252,7 @@ main(int argc, char **argv)
 		OPT_DPI,
 		OPT_FILTER,
 		OPT_TRACKPOINT_RANGE,
+		OPT_CURVE_POINTS,
 	};
 
 	while (1) {
@@ -265,6 +268,7 @@ main(int argc, char **argv)
 			{"dpi", 1, 0, OPT_DPI },
 			{"filter", 1, 0, OPT_FILTER },
 			{"trackpoint-range", 1, 0, OPT_TRACKPOINT_RANGE },
+			{"curve-points", 1, 0, OPT_CURVE_POINTS },
 			{0, 0, 0, 0}
 		};
 
@@ -325,6 +329,9 @@ main(int argc, char **argv)
 		case OPT_TRACKPOINT_RANGE:
 			tp_range_max = strtod(optarg, NULL);
 			break;
+		case OPT_CURVE_POINTS:
+			curve_points = optarg;
+			break;
 		default:
 			usage();
 			exit(1);
@@ -347,6 +354,24 @@ main(int argc, char **argv)
 	} else if (streq(filter_type, "trackpoint")) {
 		filter = create_pointer_accelerator_filter_trackpoint(tp_range_max);
 		profile = NULL; /* trackpoint is special */
+	} else if (streq(filter_type, "custom-speed")) {
+		struct key_value_double *points;
+		ssize_t npoints;
+
+		filter = create_pointer_accelerator_filter_custom_device_speed();
+		profile = custom_accel_profile;
+
+		npoints = kv_double_from_string(curve_points, ";", ":", &points);
+		if (npoints <= 0)
+			return 1;
+
+		for (ssize_t idx = 0; idx < npoints; idx++){
+			filter_set_curve_point(filter,
+					       points[idx].key,
+					       points[idx].value);
+		}
+
+		free(points);
 	} else {
 		fprintf(stderr, "Invalid filter type %s\n", filter_type);
 		return 1;

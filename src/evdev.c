@@ -943,7 +943,9 @@ evdev_init_accel(struct evdev_device *device,
 {
 	struct motion_filter *filter;
 
-	if (which == LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT)
+	if (which == LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM_DEVICE_SPEED)
+		filter = create_pointer_accelerator_filter_custom_device_speed();
+	else if (which == LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT)
 		filter = create_pointer_accelerator_filter_flat(device->dpi);
 	else if (device->tags & EVDEV_TAG_TRACKPOINT)
 		filter = create_pointer_accelerator_filter_trackpoint(device->trackpoint_range);
@@ -1002,7 +1004,8 @@ evdev_accel_config_get_profiles(struct libinput_device *libinput_device)
 		return LIBINPUT_CONFIG_ACCEL_PROFILE_NONE;
 
 	return LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE |
-		LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT;
+		LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT |
+		LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM_DEVICE_SPEED;
 }
 
 static enum libinput_config_status
@@ -1051,6 +1054,27 @@ evdev_accel_config_get_default_profile(struct libinput_device *libinput_device)
 	return LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
 }
 
+static enum libinput_config_status
+evdev_accel_config_set_curve_point(struct libinput_device *libinput_device,
+				   double a,
+				   double fa)
+{
+	struct evdev_device *device = evdev_device(libinput_device);
+	struct motion_filter *filter = device->pointer.filter;
+
+	if (evdev_accel_config_get_profile(libinput_device) !=
+	    LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM_DEVICE_SPEED)
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+
+	if (a < 0 || a > 50000)
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+
+	if (!filter_set_curve_point(filter, a, fa))
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
 void
 evdev_device_init_pointer_acceleration(struct evdev_device *device,
 				       struct motion_filter *filter)
@@ -1068,6 +1092,7 @@ evdev_device_init_pointer_acceleration(struct evdev_device *device,
 		device->pointer.config.set_profile = evdev_accel_config_set_profile;
 		device->pointer.config.get_profile = evdev_accel_config_get_profile;
 		device->pointer.config.get_default_profile = evdev_accel_config_get_default_profile;
+		device->pointer.config.set_curve_point = evdev_accel_config_set_curve_point;
 		device->base.config.accel = &device->pointer.config;
 
 		default_speed = evdev_accel_config_get_default_speed(&device->base);

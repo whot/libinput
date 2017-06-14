@@ -90,6 +90,15 @@ filter_get_type(struct motion_filter *filter)
 	return filter->interface->type;
 }
 
+bool
+filter_set_curve_point(struct motion_filter *filter, double a, double fa)
+{
+	if (!filter->interface->set_curve_point)
+		return false;
+
+	return filter->interface->set_curve_point(filter, a, fa);
+}
+
 void
 trackers_init(struct pointer_trackers *trackers)
 {
