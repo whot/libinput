@@ -154,4 +154,49 @@ Pointer acceleration for relative motion on tablet devices is a flat
 acceleration, with the speed seeting slowing down or speeding up the pointer
 motion by a constant factor. Tablets do not allow for switchable profiles.
 
+@section ptraccel-custom Custom acceleration functions for devices
+
+libinput provides the ability to load custom acceleration function for
+devices with the @ref LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM profile. If this
+profile is selected, it is the caller's responsibility to load an
+acceleration profile into the device that maps the device's movement into an
+accelerated movement.
+
+Only one such profile can be active on a device at any time and the
+behavior of the device depends on the type of the profile, see
+libinput_acceleration_profile_set_type(). If the @ref
+LIBINPUT_ACCEL_PROFILE_TYPE_DELTA_TO_FACTOR type is selected, libinput
+calculates the distance the device deltas and applies it to the custom
+acceleration function. That function is expected to return a unitless factor
+that is then applied to the current delta.
+
+For example, assume the current delta is (2, 4) which may be a movement of
+2mm based on the device's resolution. libinput looks up the custom
+acceleration function for 2 which may return 3. The accelerated delta thus
+becomes (6, 12).
+
+Given an acceleration function f(x) for an input x. and a caller de
+libinput puts some constraints on the acceleration function. Given an
+acceleration function f(x) and a curve defined by the caller for the points
+f(a) and f(b) where a < b:
+- f(x) for x < a = f(a)
+- f(x) for x > b = f(b)
+- f(x) for a < x < b = the the linear interpolation value between f(a) and
+  f(b)
+
+The behavior of an acceleration function is implementation-defined until
+the caller sets curve points
+
+The following illustration shows the acceleration curve defined for the
+points (200, 1) and (700, 8).
+
+@image html ptraccel-curve-example.svg "Custom acceleration curve for two defined points"
+
+The use of custom acceleration functions requires the following steps:
+- get a reference to the profile with libinput_device_get_acceleration_profile()
+- set the type of the profile with libinput_acceleration_profile_set_type()
+- set the curve points libinput_acceleration_profile_set_curve_point()
+- apply the acceleration profile with libinput_acceleration_profile_apply()
+- change the device's profile to @ref LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM
+
 */

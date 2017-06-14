@@ -105,6 +105,12 @@ typedef double (*accel_profile_func_t)(struct motion_filter *filter,
 
 /* Pointer acceleration types */
 struct motion_filter *
+create_pointer_accelerator_filter_custom(
+				 int dpi,
+				 enum libinput_acceleration_profile_type type,
+				 struct list *points);
+
+struct motion_filter *
 create_pointer_accelerator_filter_flat(int dpi);
 
 struct motion_filter *

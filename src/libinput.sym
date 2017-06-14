@@ -293,3 +293,12 @@ LIBINPUT_1.7 {
 LIBINPUT_1.9 {
 	libinput_device_switch_has_switch;
 } LIBINPUT_1.7;
+
+LIBINPUT_1.10 {
+	libinput_device_get_acceleration_profile;
+	libinput_acceleration_profile_ref;
+	libinput_acceleration_profile_unref;
+	libinput_acceleration_profile_set_type;
+	libinput_acceleration_profile_set_curve_point;
+	libinput_acceleration_profile_apply;
+} LIBINPUT_1.9;

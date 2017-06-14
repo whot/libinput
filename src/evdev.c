@@ -937,7 +937,12 @@ evdev_init_accel(struct evdev_device *device,
 {
 	struct motion_filter *filter;
 
-	if (which == LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT)
+	if (which == LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM)
+		filter = create_pointer_accelerator_filter_custom(
+						device->dpi,
+						device->pointer.config.type,
+						&device->pointer.config.curve_points);
+	else if (which == LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT)
 		filter = create_pointer_accelerator_filter_flat(device->dpi);
 	else if (device->tags & EVDEV_TAG_TRACKPOINT)
 		filter = create_pointer_accelerator_filter_trackpoint(device->trackpoint_range);
@@ -1044,6 +1049,34 @@ evdev_accel_config_get_default_profile(struct libinput_device *libinput_device)
 	return LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
 }
 
+static enum libinput_config_status
+evdev_accel_config_apply_curve(struct libinput_acceleration_profile *profile)
+{
+	struct evdev_device *device = evdev_device(profile->device);
+	struct libinput_device_config_accel *config = &device->pointer.config;
+	struct acceleration_curve_point *p, *tmp;
+
+	/* Copy the profile points into the device. We need to cache this
+	 * because the new motion filter isn't enabled yet
+	 */
+
+	list_for_each_safe(p, tmp, &config->curve_points, link)
+		free(p);
+
+	config->type = profile->type;
+
+	list_init(&config->curve_points);
+	list_for_each(p, &profile->curve_points, link) {
+		tmp = zalloc(sizeof(*tmp));
+
+		tmp->x = p->x;
+		tmp->fx = p->fx;
+		list_append(&config->curve_points, &tmp->link);
+	}
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
 void
 evdev_device_init_pointer_acceleration(struct evdev_device *device,
 				       struct motion_filter *filter)
@@ -1059,10 +1092,13 @@ evdev_device_init_pointer_acceleration(struct evdev_device *device,
 		device->pointer.config.set_profile = evdev_accel_config_set_profile;
 		device->pointer.config.get_profile = evdev_accel_config_get_profile;
 		device->pointer.config.get_default_profile = evdev_accel_config_get_default_profile;
+		device->pointer.config.apply_curve = evdev_accel_config_apply_curve;
 		device->base.config.accel = &device->pointer.config;
 
 		evdev_accel_config_set_speed(&device->base,
 			     evdev_accel_config_get_default_speed(&device->base));
+
+		list_init(&device->pointer.config.curve_points);
 	}
 }
 

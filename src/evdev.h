@@ -240,6 +240,8 @@ struct evdev_device {
 	struct {
 		struct libinput_device_config_accel config;
 		struct motion_filter *filter;
+
+		struct libinput_acceleration_profile curve;
 	} pointer;
 
 	/* Key counter used for multiplexing button events internally in

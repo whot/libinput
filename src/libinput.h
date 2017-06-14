@@ -4479,6 +4479,12 @@ libinput_device_config_accel_is_available(struct libinput_device *device);
  * range. libinput picks the semantically closest acceleration step if the
  * requested value does not match a discrete setting.
  *
+ * If the current acceleration profile is @ref
+ * LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM, the behavior of the device will
+ * not change but future calls to
+ * libinput_device_config_accel_get_speed() will reflect the updated speed
+ * setting.
+ *
  * @param device The device to configure
  * @param speed The normalized speed, in a range of [-1, 1]
  *
@@ -4529,6 +4535,134 @@ libinput_device_config_accel_get_default_speed(struct libinput_device *device);
 
 /**
  * @ingroup config
+ *
+ * A handle for accessing a pointer acceleration profile. This profile is
+ * only used if the acceleration profile is @ref
+ * LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM.
+ */
+struct libinput_acceleration_profile;
+
+/**
+ * @ingroup config
+ *
+ * Returns the acceleration profile for this device. This profile is write
+ * only and cannot be used to query the current profile information. It's
+ * initial state is implementation-defined, a caller must set all desired
+ * acceleration curve points before applying.
+ *
+ * Changes to the profile do not take effect immediately, a caller must call
+ * libinput_acceleration_profile_apply().
+ *
+ * The profile returned has a refcount of 1, a caller must call
+ * libinput_acceleration_profile_unref() to free the associated memory.
+ */
+struct libinput_acceleration_profile *
+libinput_device_get_acceleration_profile(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Increase the refcount of the acceleration profile. An acceleration
+ * profile will be freed whenever the refcount reaches 0.
+ *
+ * @param profile A previously obtained profile
+ * @return The passed profile
+ */
+struct libinput_acceleration_profile *
+libinput_acceleration_profile_ref(struct libinput_acceleration_profile *profile);
+
+/**
+ * @ingroup config
+ *
+ * Decrease the refcount of the acceleration profile. An acceleration
+ * profile will be freed whenever the refcount reaches 0.
+ *
+ * @param profile A previously obtained profile
+ * @return NULL if the profile was destroyed, otherwise the passed profile
+ */
+struct libinput_acceleration_profile *
+libinput_acceleration_profile_unref(struct libinput_acceleration_profile *profile);
+
+/**
+ * @ingroup config
+ *
+ * Defines the type of the acceleration profile. This type specifies how the
+ * curve applies to the input data and thus affects the output deltas.
+ *
+ * See @see libinput_acceleration_profile_set_curve_point for a detailed
+ * description of the types and their behavior.
+ */
+enum libinput_acceleration_profile_type {
+	/**
+	 */
+	LIBINPUT_ACCEL_PROFILE_TYPE_DELTA_TO_FACTOR = 1,
+};
+
+/**
+ * @ingroup config
+ *
+ * Set the type of this profile. Calling this function <b>always</b> resets
+ * the profile to an undefined state, even if the current type of the
+ * profile matches the given type.
+ *
+ * The type limits which functions may be called on this acceleration
+ * profile later.
+ *
+ * See libinput_acceleration_profile_set_curve_point() for a detailed
+ * description of the types and their behavior.
+ *
+ * @return 0 on success or nonzero otherwise
+ */
+enum libinput_config_status
+libinput_acceleration_profile_set_type(struct libinput_acceleration_profile *profile,
+				       enum libinput_acceleration_profile_type type);
+
+/**
+ * @ingroup config
+ *
+ * Define a custom acceleration function data point for this device.
+ * This function must be called multiple times to define a full acceleration
+ * curve. libinput uses linear interpolation between each defined curve
+ * point to calculate the appropriate factor. Any speed below or above the
+ * lowest or highest point defined is capped to the factor at the lowest or
+ * highest point, respectively. See @ref ptraccel-custom for a detailed
+ * explanation on this behavior.
+ *
+ * The behavior of the acceleration function depends on the type of the
+ * profile:
+ * - @ref LIBINPUT_ACCEL_PROFILE_TYPE_DELTA_TO_FACTOR : the input data a is
+ * motion delta in mm, f(a) is a unitless factor. This factor is applied to
+ * the incoming delta so that a delta (x, y) is accelerated to the delta
+ * (f(a) * x, f(a) *y).
+ *
+ * @note libinput has a maximum limit for how many curve points may be set
+ * and will quietly drop curve points exceeding this limit.
+ *
+ * @return 0 on success or nonzero otherwise
+ */
+int
+libinput_acceleration_profile_set_curve_point(
+				struct libinput_acceleration_profile *profile,
+				double a, double fa);
+
+/**
+ * @ingroup config
+ *
+ * Applies this profile to the device as the custom acceleration profile.
+ * This does not activate the custom profile, use
+ * libinput_device_config_accel_set_profile() after calling this function.
+ *
+ * Once applied, the caller should should call
+ * libinput_acceleration_profile_unref() on the profile. A caller may keep a
+ * reference to the profile if the profile needs tweaking later.
+ *
+ * @param profile the fully configured acceleration profile
+ */
+enum libinput_config_status
+libinput_acceleration_profile_apply(struct libinput_acceleration_profile *profile);
+
+/**
+ * @ingroup config
  */
 enum libinput_config_accel_profile {
 	/**
@@ -4550,6 +4684,12 @@ enum libinput_config_accel_profile {
 	 * on the input speed. This is the default profile for most devices.
 	 */
 	LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE = (1 << 1),
+	/**
+	 * A custom user-provided profile. This profile's behavior is
+	 * undefined unless previously set with
+	 * libinput_device_config_accel_set_custom_profile().
+	 */
+	LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM = (1 << 2),
 };
 
 /**
@@ -4570,6 +4710,11 @@ libinput_device_config_accel_get_profiles(struct libinput_device *device);
  *
  * Set the pointer acceleration profile of this pointer device to the given
  * mode.
+ *
+ * If the profile is @ref LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM and the
+ * caller has not yet set the acceleration profile with
+ * libinput_acceleration_profile_apply(), the behavior of the device is
+ * implementation-defined.
  *
  * @param device The device to configure
  * @param mode The mode to set the device to.

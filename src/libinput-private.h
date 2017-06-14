@@ -99,6 +99,24 @@ struct wheel_tilt_flags {
 	bool vertical, horizontal;
 };
 
+struct acceleration_curve_point {
+	struct list link;
+	double x, fx;
+};
+
+struct libinput_acceleration_profile {
+	int refcount;
+	struct libinput_device *device;
+
+	enum libinput_acceleration_profile_type type;
+	struct list curve_points;
+
+#if 0
+	struct acceleration_curve_point points[30];
+	size_t npoints;
+#endif
+};
+
 struct libinput_interface_backend {
 	int (*resume)(struct libinput *libinput);
 	void (*suspend)(struct libinput *libinput);
@@ -212,6 +230,11 @@ struct libinput_device_config_accel {
 						   enum libinput_config_accel_profile);
 	enum libinput_config_accel_profile (*get_profile)(struct libinput_device *device);
 	enum libinput_config_accel_profile (*get_default_profile)(struct libinput_device *device);
+	enum libinput_config_status (*apply_curve)(struct libinput_acceleration_profile *profile);
+
+	/* For the custom acceleration */
+	enum libinput_acceleration_profile_type type;
+	struct list curve_points;
 };
 
 struct libinput_device_config_natural_scroll {

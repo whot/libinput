@@ -4059,3 +4059,121 @@ libinput_device_config_rotation_get_default_angle(struct libinput_device *device
 
 	return device->config.rotation->get_default_angle(device);
 }
+
+LIBINPUT_EXPORT struct libinput_acceleration_profile *
+libinput_device_get_acceleration_profile(struct libinput_device *device)
+{
+	struct libinput_acceleration_profile *p;
+
+	p = zalloc(sizeof(*p));
+	p->refcount = 1;
+	p->device = libinput_device_ref(device);
+	p->type = LIBINPUT_ACCEL_PROFILE_TYPE_DELTA_TO_FACTOR;
+	list_init(&p->curve_points);
+
+	return p;
+}
+
+LIBINPUT_EXPORT struct libinput_acceleration_profile *
+libinput_acceleration_profile_ref(struct libinput_acceleration_profile *profile)
+{
+	profile->refcount++;
+	return profile;
+}
+
+static void
+libinput_acceleration_profile_destroy(struct libinput_acceleration_profile *profile)
+{
+	struct acceleration_curve_point *p, *tmp;
+
+	list_for_each_safe(p, tmp, &profile->curve_points, link)
+		free(p);
+
+	libinput_device_unref(profile->device);
+	free(profile);
+}
+
+LIBINPUT_EXPORT struct libinput_acceleration_profile *
+libinput_acceleration_profile_unref(struct libinput_acceleration_profile *profile)
+{
+	assert(profile->refcount > 0);
+	profile->refcount--;
+	if (profile->refcount == 0) {
+		libinput_acceleration_profile_destroy(profile);
+		return NULL;
+	} else {
+		return profile;
+	}
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_acceleration_profile_set_type(struct libinput_acceleration_profile *profile,
+				       enum libinput_acceleration_profile_type type)
+{
+	struct libinput *libinput;
+	struct acceleration_curve_point *p, *tmp;
+
+	libinput = libinput_device_get_context(profile->device);
+
+	switch(type) {
+	case LIBINPUT_ACCEL_PROFILE_TYPE_DELTA_TO_FACTOR:
+		break;
+	default:
+		log_bug_client(libinput,
+			       "Invalid acceleration profile type %d\n",
+			       type);
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+	}
+
+	list_for_each_safe(p, tmp, &profile->curve_points, link)
+		free(p);
+
+	profile->type = type;
+	list_init(&profile->curve_points);
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+LIBINPUT_EXPORT int
+libinput_acceleration_profile_set_curve_point(
+				struct libinput_acceleration_profile *profile,
+				double a, double fa)
+{
+	struct list *where_to_insert = &profile->curve_points;
+	struct acceleration_curve_point *p;
+
+	/* inserted in ascending order */
+	list_for_each(p, &profile->curve_points, link) {
+		if (p->x == a) {
+			p->x = fa;
+			return 0;
+		}
+
+		if (p->x > a) {
+			where_to_insert = &p->link;
+			break;
+		}
+	}
+
+	p = zalloc(sizeof(*p));
+	p->x = a;
+	p->fx = fa;
+	list_append(where_to_insert, &p->link);
+
+	return 0;
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_acceleration_profile_apply(struct libinput_acceleration_profile *profile)
+{
+	struct libinput_device *device = profile->device;
+
+	if (list_empty(&profile->curve_points))
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+
+	if (device->config.accel == NULL ||
+	    device->config.accel->apply_curve)
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+
+	return device->config.accel->apply_curve(profile);
+}

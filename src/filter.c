@@ -224,6 +224,13 @@ struct trackpoint_accelerator {
 	double offset; /* offset of the function */
 };
 
+struct custom_accelerator {
+	struct motion_filter base;
+	struct acceleration_curve_point *points;
+	size_t npoints;
+	int dpi;
+};
+
 static void
 init_trackers(struct pointer_trackers *trackers,
 	      size_t ntrackers)
@@ -1523,6 +1530,142 @@ create_pointer_accelerator_filter_tablet(int xres, int yres)
 		return NULL;
 
 	filter->base.interface = &accelerator_interface_tablet;
+
+	return &filter->base;
+}
+
+static struct normalized_coords
+custom_accelerator_filter(struct motion_filter *filter,
+			  const struct device_float_coords *units,
+			  void *data, uint64_t time)
+{
+	struct custom_accelerator *f =
+		(struct custom_accelerator*)filter;
+	struct normalized_coords coords;
+	double dist;
+	double fx = 1;
+
+	/* units are in units/inch, change to mm */
+	coords.x = units->x/f->dpi * 25.4;
+	coords.y = units->y/f->dpi * 25.4;
+
+	dist = hypot(coords.x, coords.y);
+
+	for (size_t i = 0; i < f->npoints - 1; i++) {
+		double a, b, fa, fb;
+		double k, d;
+
+		if (f->points[i + 1].x < dist)
+			continue;
+
+		/*
+		   We haves points f(i), f(i+1), defining two points on the
+		   curve. linear function in the form y = kx+d:
+
+		   y = kx + d
+
+		   y1 = kx1 + d -> d = y1 - kx1
+		   y2 = kx2 + d -> d = y2 - kx2
+
+		   y1 - kx1 = y2 - kx2
+		   y1 - y2 = kx1 - kx2
+		   k = y1-y2/(x1 - x2)
+
+		 */
+		a  = f->points[i].x;
+		fa = f->points[i].fx;
+		b  = f->points[i+1].x;
+		fb = f->points[i+1].fx;
+
+		k = (fa - fb)/(a - b);
+		d = fa - k * a;
+
+		fx = k * dist + d;
+
+		break;
+	}
+
+	coords.x *= fx;
+	coords.y *= fx;
+
+	return coords;
+}
+
+static bool
+custom_accelerator_set_speed(struct motion_filter *filter,
+			     double speed_adjustment)
+{
+	assert(speed_adjustment >= -1.0 && speed_adjustment <= 1.0);
+
+	/* noop, this function has no effect in the custom interface */
+
+	return true;
+}
+
+static void
+custom_accelerator_destroy(struct motion_filter *filter)
+{
+	struct custom_accelerator *accel_filter =
+		(struct custom_accelerator*)filter;
+
+	free(accel_filter->points);
+	free(accel_filter);
+}
+
+struct motion_filter_interface accelerator_interface_custom = {
+	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM,
+	.filter = custom_accelerator_filter,
+	.filter_constant = NULL,
+	.restart = NULL,
+	.destroy = custom_accelerator_destroy,
+	.set_speed = custom_accelerator_set_speed,
+};
+
+static struct custom_accelerator*
+create_custom_filter(int dpi,
+		     enum libinput_acceleration_profile_type type,
+		     struct list *points)
+{
+	struct custom_accelerator *filter;
+	struct acceleration_curve_point *p;
+	size_t count = 0;
+
+	list_for_each(p, points, link) {
+		count++;
+	}
+
+	assert(count > 0);
+
+	filter = zalloc(sizeof *filter);
+	filter->points = zalloc(sizeof(*points) * count);
+	filter->npoints = count;
+	filter->dpi = dpi;
+
+	count = 0;
+	list_for_each(p, points, link) {
+		struct acceleration_curve_point *fp;
+
+		fp = &filter->points[count++];
+		*fp = *p;
+		list_init(&fp->link);
+	}
+
+	return filter;
+}
+
+struct motion_filter *
+create_pointer_accelerator_filter_custom(
+				 int dpi,
+				 enum libinput_acceleration_profile_type type,
+				 struct list *points)
+{
+	struct custom_accelerator *filter;
+
+	filter = create_custom_filter(dpi, type, points);
+	if (!filter)
+		return NULL;
+
+	filter->base.interface = &accelerator_interface_custom;
 
 	return &filter->base;
 }
