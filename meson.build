@@ -421,6 +421,15 @@ configure_file(input : 'tools/libinput-measure-touchpad-tap.man',
 	       install_dir : join_paths(get_option('mandir'), 'man1')
 	       )
 
+install_data('tools/libinput-measure-touchpad-pressure',
+	     install_dir : libinput_tool_path)
+configure_file(input : 'tools/libinput-measure-touchpad-pressure.man',
+	       output : 'libinput-measure-touchpad-pressure.1',
+	       configuration : man_config,
+	       install : true,
+	       install_dir : join_paths(get_option('mandir'), 'man1')
+	       )
+
 if get_option('debug-gui')
 	dep_gtk = dependency('gtk+-3.0')
 	dep_cairo = dependency('cairo')

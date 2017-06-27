@@ -47,62 +47,44 @@ locally. Note that the hwdb entry is **not public API** and **may change at
 any time**. Users are advised to @ref reporting_bugs "report a bug" with the
 updated pressure ranges when testing has completed.
 
-First, install the "evemu" package providing the ```evemu-record``` tool.
-Run ```evemu-record``` as root (without arguments) to see a list of devices
-and select the touchpad device. Pipe the actual output of the tool into a
-file for later analysis. For example:
+Use the ```libinput measure touchpad-pressure``` tool provided by libinput.
+This tool will search for your touchpad device and print some pressure
+statistics, including whether a touch is/was considered logically down.
+Example output of the tool is below:
 
 <pre>
-$ sudo evemu-record > touchpad-pressure.txt
-Available devices:
-/dev/input/event0:	Lid Switch
-/dev/input/event1:	Sleep Button
-/dev/input/event2:	Power Button
-/dev/input/event3:	AT Translated Set 2 keyboard
-/dev/input/event4:	SynPS/2 Synaptics TouchPad
-/dev/input/event5:	ELAN Touchscreen
-[...]
-Select the device event number [0-19]: 4
-#     Ctrl+C to quit, the output will be in touchpad-pressure.txt
+$ sudo libinput measure touchpad-pressure
+Ready for recording data.
+Pressure range used: 8:10
+Palm pressure range used: 65535
+Place a single finger on the touchpad to measure pressure values.
+Ctrl+C to exit
+&nbsp;
+Sequence 1190 pressure: min:  39 max:  48 avg:  43 median:  44 tags: down
+Sequence 1191 pressure: min:  49 max:  65 avg:  62 median:  64 tags: down
+Sequence 1192 pressure: min:  40 max:  78 avg:  64 median:  66 tags: down
+Sequence 1193 pressure: min:  36 max:  83 avg:  70 median:  73 tags: down
+Sequence 1194 pressure: min:  43 max:  76 avg:  72 median:  74 tags: down
+Touchpad pressure:  47 min:  47 max:  86 tags: down
 </pre>
 
-Now move a finger at **normal pressure** several times around the touchpad,
-as if moving the cursor normally around the screen. Avoid any accidental
-palm touches or any excessive or light pressure.
+The example output shows five completed touch sequences and one ongoing one.
+For each, the respective minimum and maximum pressure values are printed as
+well as some statistics. The ```tags``` show that sequence was considered
+logically down at some point. This is an interactive tool and its output may
+change frequently. Refer to the <i>libinput-measure-touchpad-pressure(1)</i> man
+page for more details.
 
-The event recording is then filtered for pressure information, which is
-sorted and exported to a new file:
+By default, this tool uses the udev hwdb entries for the pressure range. To
+narrow down on the best values for your device, specify the 'logically down'
+and 'logically up' pressure thresholds with the  ```--touch-thresholds``
+argument:
 <pre>
-$ grep --only-matching "ABS_MT_PRESSURE[ ]*[0-9]*" touchpad-pressure.txt | \
-	sed -e "s/ABS_MT_PRESSURE[ ]*//" | \
-	sort -n | uniq -c > touchpad-pressure-statistics.txt
+$ sudo libinput measure touchpad-pressure --touch-thresholds=10:8
 </pre>
 
-The file contains a list of (count, pressure-value) tuples which can be
-visualized with gnuplot. Copy the following into a file named
-```touchpad-pressure-statistics.gnuplot```:
-
-<pre>
-set style data lines
-plot 'touchpad-pressure-statistics.txt' using 2:1
-pause -1
-</pre>
-
-Now, you can visualize the touchpad pressure curve with the following
-command:
-<pre>
-$ gnuplot  touchpad-pressure-statistics.gnuplot
-</pre>
-
-The visualization will show a curve with the various pressure ranges, see
-[this bugzilla attachment](https://bugs.freedesktop.org/attachment.cgi?id=130659).
-In most cases, the thresholds can be guessed based on this curve. libinput
-employes a [Schmitt trigger](https://en.wikipedia.org/wiki/Schmitt_trigger)
-with an upper threshold and a lower threshold. A touch is detected when the
-pressure goes above the high threshold, a release is detected when the
-pressure fallse below the low threshold. Thus, an ideal threshold
-combination is with a high threshold slightly above the minimum threshold, a
-low threshold on the minimum threshold.
+Interact with the touchpad and check if the output of this tool matches your
+expectations.
 
 Once the thresholds are decided on (e.g. 10 and 8), they can be enabled with
 the following hwdb file:
