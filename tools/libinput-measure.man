@@ -1,4 +1,4 @@
-.TH libinput-measure "1"
+.TH libinput-measure "1" "" "libinput @LIBINPUT_VERSION@" "libinput Manual"
 .SH NAME
 libinput\-measure \- measure properties of devices
 .SH SYNOPSIS

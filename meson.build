@@ -357,6 +357,9 @@ lib_tools_shared = static_library('tools_shared',
 dep_tools_shared = declare_dependency(link_with : lib_tools_shared,
 				      dependencies : deps_tools_shared)
 
+man_config = configuration_data()
+man_config.set('LIBINPUT_VERSION', meson.project_version())
+
 deps_tools = [ dep_tools_shared, dep_libinput ]
 libinput_debug_events_sources = [ 'tools/libinput-debug-events.c' ]
 executable('libinput-debug-events',
@@ -366,7 +369,12 @@ executable('libinput-debug-events',
 	   install_dir : libinput_tool_path,
 	   install : true
 	   )
-install_man('tools/libinput-debug-events.1')
+configure_file(input : 'tools/libinput-debug-events.man',
+	       output : 'libinput-debug-events.1',
+	       configuration : man_config,
+	       install : true,
+	       install_dir : join_paths(get_option('mandir'), 'man1')
+	       )
 
 libinput_list_devices_sources = [ 'tools/libinput-list-devices.c' ]
 executable('libinput-list-devices',
@@ -376,7 +384,12 @@ executable('libinput-list-devices',
 	   install_dir : libinput_tool_path,
 	   install : true,
 	   )
-install_man('tools/libinput-list-devices.1')
+configure_file(input : 'tools/libinput-list-devices.man',
+	       output : 'libinput-list-devices.1',
+	       configuration : man_config,
+	       install : true,
+	       install_dir : join_paths(get_option('mandir'), 'man1')
+	       )
 
 libinput_measure_sources = [ 'tools/libinput-measure.c' ]
 executable('libinput-measure',
@@ -386,7 +399,12 @@ executable('libinput-measure',
 	   install_dir : libinput_tool_path,
 	   install : true,
 	   )
-install_man('tools/libinput-measure.1')
+configure_file(input : 'tools/libinput-measure.man',
+	       output : 'libinput-measure.1',
+	       configuration : man_config,
+	       install : true,
+	       install_dir : join_paths(get_option('mandir'), 'man1')
+	       )
 
 libinput_measure_touchpad_tap_sources = [ 'tools/libinput-measure-touchpad-tap.c' ]
 executable('libinput-measure-touchpad-tap',
@@ -396,7 +414,12 @@ executable('libinput-measure-touchpad-tap',
 	   install_dir : libinput_tool_path,
 	   install : true,
 	   )
-install_man('tools/libinput-measure-touchpad-tap.1')
+configure_file(input : 'tools/libinput-measure-touchpad-tap.man',
+	       output : 'libinput-measure-touchpad-tap.1',
+	       configuration : man_config,
+	       install : true,
+	       install_dir : join_paths(get_option('mandir'), 'man1')
+	       )
 
 if get_option('debug-gui')
 	dep_gtk = dependency('gtk+-3.0')
@@ -416,7 +439,12 @@ if get_option('debug-gui')
 		   install_dir : libinput_tool_path,
 		   install : true
 		   )
-	install_man('tools/libinput-debug-gui.1')
+	configure_file(input : 'tools/libinput-debug-gui.man',
+		       output : 'libinput-debug-gui.1',
+		       configuration : man_config,
+		       install : true,
+		       install_dir : join_paths(get_option('mandir'), 'man1')
+		       )
 endif
 
 libinput_sources = [ 'tools/libinput-tool.c' ]
@@ -427,7 +455,12 @@ executable('libinput',
 	   include_directories : include_directories ('src'),
 	   install : true
 	   )
-install_man('tools/libinput.1')
+configure_file(input : 'tools/libinput.man',
+	       output : 'libinput.1',
+	       configuration : man_config,
+	       install : true,
+	       install_dir : join_paths(get_option('mandir'), 'man1')
+	       )
 
 meson.add_install_script('tools/install-compat-scripts.sh')
 

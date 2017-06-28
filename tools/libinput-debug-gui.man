@@ -1,4 +1,4 @@
-.TH libinput-debug-gui "1"
+.TH libinput-debug-gui "1" "" "libinput @LIBINPUT_VERSION@" "libinput Manual"
 .SH NAME
 libinput\-debug\-gui \- visual debug helper for libinput
 .SH SYNOPSIS

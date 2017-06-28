@@ -46,6 +46,7 @@ AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC_C99
 AC_PROG_CXX # Only used by build C++ test
 AC_PROG_GREP
+AC_PROG_SED
 
 # Only used for testing the hwdb
 AM_PATH_PYTHON([3.0],, [:])

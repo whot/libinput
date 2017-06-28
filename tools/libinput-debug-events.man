@@ -1,4 +1,4 @@
-.TH libinput-debug-events "1"
+.TH libinput-debug-events "1" "" "libinput @LIBINPUT_VERSION@" "libinput Manual"
 .SH NAME
 libinput\-debug\-events \- debug helper for libinput
 .SH SYNOPSIS

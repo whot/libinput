@@ -1,4 +1,4 @@
-.TH libinput "1"
+.TH libinput "1" "" "libinput @LIBINPUT_VERSION@" "libinput Manual"
 .SH NAME
 libinput \- tool to interface with libinput
 .SH SYNOPSIS

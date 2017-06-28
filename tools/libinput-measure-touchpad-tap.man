@@ -1,4 +1,4 @@
-.TH libinput-measure-touchpad-tap "1"
+.TH libinput-measure-touchpad-tap "1" "" "libinput @LIBINPUT_VERSION@" "libinput Manual"
 .SH NAME
 libinput\-measure\-touchpad\-tap \- measure tap-to-click properities of devices
 .SH SYNOPSIS
