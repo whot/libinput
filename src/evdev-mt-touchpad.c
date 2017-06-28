@@ -746,11 +746,32 @@ tp_palm_detect_edge(struct tp_dispatch *tp,
 	return true;
 }
 
+static bool
+tp_palm_detect_pressure_triggered(struct tp_dispatch *tp,
+				  struct tp_touch *t,
+				  uint64_t time)
+{
+	if (!tp->palm.use_pressure)
+		return false;
+
+	if (t->palm.state != PALM_NONE &&
+	    t->palm.state != PALM_PRESSURE)
+		return false;
+
+	if (t->pressure > tp->palm.pressure_threshold)
+		t->palm.state = PALM_PRESSURE;
+
+	return t->palm.state == PALM_PRESSURE;
+}
+
 static void
 tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 {
 	const char *palm_state;
 	enum touch_palm_state oldstate = t->palm.state;
+
+	if (tp_palm_detect_pressure_triggered(tp, t, time))
+		goto out;
 
 	if (tp_palm_detect_dwt_triggered(tp, t, time))
 		goto out;
@@ -764,8 +785,18 @@ tp_palm_detect(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	if (tp_palm_detect_edge(tp, t, time))
 		goto out;
 
+	/* Pressure is highest priority because it cannot be released and
+	 * overrides all other checks. So we check once before anything else
+	 * in case pressure triggers on a non-palm touch. And again after
+	 * everything in case one of the others released but we have a
+	 * pressure trigger now.
+	 */
+	if (tp_palm_detect_pressure_triggered(tp, t, time))
+		goto out;
+
 	return;
 out:
+
 	if (oldstate == t->palm.state)
 		return;
 
@@ -781,6 +812,9 @@ out:
 		break;
 	case PALM_TOOL_PALM:
 		palm_state = "tool-palm";
+		break;
+	case PALM_PRESSURE:
+		palm_state = "pressure";
 		break;
 	case PALM_NONE:
 	default:
@@ -2288,6 +2322,42 @@ tp_init_palmdetect_edge(struct tp_dispatch *tp,
 	tp->palm.right_edge = edges.x;
 }
 
+static int
+tp_read_palm_pressure_prop(struct tp_dispatch *tp,
+			   const struct evdev_device *device)
+{
+	struct udev_device *udev_device = device->udev_device;
+	const char *prop;
+	int threshold;
+	const int default_palm_threshold = 130;
+
+	prop = udev_device_get_property_value(udev_device,
+			      "LIBINPUT_ATTR_PALM_PRESSURE_THRESHOLD");
+	if (!prop)
+		return default_palm_threshold;
+
+	threshold = parse_palm_pressure_property(prop);
+
+	return threshold > 0 ? threshold : default_palm_threshold;
+}
+
+static inline void
+tp_init_palmdetect_pressure(struct tp_dispatch *tp,
+			    struct evdev_device *device)
+{
+	if (!libevdev_has_event_code(device->evdev, EV_ABS, ABS_MT_PRESSURE)) {
+		tp->palm.use_pressure = false;
+		return;
+	}
+
+	tp->palm.pressure_threshold = tp_read_palm_pressure_prop(tp, device);
+	tp->palm.use_pressure = true;
+
+	evdev_log_debug(device,
+			"palm: pressure threshold is %d\n",
+			tp->palm.pressure_threshold);
+}
+
 static void
 tp_init_palmdetect(struct tp_dispatch *tp,
 		   struct evdev_device *device)
@@ -2308,6 +2378,7 @@ tp_init_palmdetect(struct tp_dispatch *tp,
 		tp->palm.use_mt_tool = true;
 
 	tp_init_palmdetect_edge(tp, device);
+	tp_init_palmdetect_pressure(tp, device);
 }
 
 static void

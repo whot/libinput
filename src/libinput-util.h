@@ -392,6 +392,7 @@ double parse_trackpoint_accel_property(const char *prop);
 bool parse_dimension_property(const char *prop, size_t *width, size_t *height);
 bool parse_calibration_property(const char *prop, float calibration[6]);
 bool parse_pressure_range_property(const char *prop, int *hi, int *lo);
+int parse_palm_pressure_property(const char *prop);
 
 enum tpkbcombo_layout {
 	TPKBCOMBO_LAYOUT_UNKNOWN,

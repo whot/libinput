@@ -405,6 +405,33 @@ parse_pressure_range_property(const char *prop, int *hi, int *lo)
 }
 
 /**
+ * Helper function to parse the LIBINPUT_ATTR_PALM_PRESSURE_THRESHOLD
+ * property from udev. Property is of the form:
+ * LIBINPUT_ATTR_PALM_PRESSURE_THRESHOLD=<integer>
+ * Where the number indicates the minimum threshold to consider a touch to
+ * be a palm.
+ *
+ * @param prop The value of the udev property (without the *
+ * LIBINPUT_ATTR_PALM_PRESSURE_THRESHOLD=)
+ * @return The pressure threshold or 0 on error
+ */
+int
+parse_palm_pressure_property(const char *prop)
+{
+	int threshold = 0;
+
+	if (!prop)
+		return 0;
+
+	if (!safe_atoi(prop, &threshold) ||
+	    threshold < 0 ||
+	    threshold > 255) /* No touchpad device has pressure > 255 */
+		return 0;
+
+        return threshold;
+}
+
+/**
  * Return the next word in a string pointed to by state before the first
  * separator character. Call repeatedly to tokenize a whole string.
  *

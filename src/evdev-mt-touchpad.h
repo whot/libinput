@@ -58,6 +58,7 @@ enum touch_palm_state {
 	PALM_TYPING,
 	PALM_TRACKPOINT,
 	PALM_TOOL_PALM,
+	PALM_PRESSURE,
 };
 
 enum button_event {
@@ -343,6 +344,9 @@ struct tp_dispatch {
 		bool monitor_trackpoint;
 
 		bool use_mt_tool;
+
+		bool use_pressure;
+		int pressure_threshold;
 	} palm;
 
 	struct {

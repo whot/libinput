@@ -1044,6 +1044,34 @@ START_TEST(pressure_range_prop_parser)
 }
 END_TEST
 
+START_TEST(palm_pressure_parser)
+{
+	struct parser_test tests[] = {
+		{ "1", 1 },
+		{ "10", 10 },
+		{ "255", 255 },
+
+		{ "-12", 0 },
+		{ "360", 0 },
+		{ "0", 0 },
+		{ "-0", 0 },
+		{ "a", 0 },
+		{ "10a", 0 },
+		{ "10-", 0 },
+		{ "sadfasfd", 0 },
+		{ "361", 0 },
+		{ NULL, 0 }
+	};
+
+	int i, angle;
+
+	for (i = 0; tests[i].tag != NULL; i++) {
+		angle = parse_palm_pressure_property(tests[i].tag);
+		ck_assert_int_eq(angle, tests[i].expected_value);
+	}
+}
+END_TEST
+
 START_TEST(time_conversion)
 {
 	ck_assert_int_eq(us(10), 10);
@@ -1308,6 +1336,7 @@ litest_setup_tests_misc(void)
 	litest_add_no_device("misc:parser", reliability_prop_parser);
 	litest_add_no_device("misc:parser", calibration_prop_parser);
 	litest_add_no_device("misc:parser", pressure_range_prop_parser);
+	litest_add_no_device("misc:parser", palm_pressure_parser);
 	litest_add_no_device("misc:parser", safe_atoi_test);
 	litest_add_no_device("misc:parser", safe_atod_test);
 	litest_add_no_device("misc:parser", strsplit_test);

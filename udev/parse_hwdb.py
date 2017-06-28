@@ -122,8 +122,12 @@ def property_grammar():
                          Suppress('=') -
                          kbintegration_tags('VALUE')]
 
+    palm_prop = [Literal('LIBINPUT_ATTR_PALM_PRESSURE_THRESHOLD')('NAME') -
+                        Suppress('=') -
+                        INTEGER('X')]
+
     grammar = Or(model_props + size_props + reliability + tpkbcombo +
-                 pressure_prop + kbintegration)
+                 pressure_prop + kbintegration + palm_prop)
 
     return grammar
 

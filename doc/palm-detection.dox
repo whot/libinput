@@ -13,6 +13,18 @@ Lenovo T440 happened in the left-most and right-most 5% of the touchpad. The
 T440 series has one of the largest touchpads, other touchpads are less
 affected by palm touches.
 
+@section palm_pressure Palm detection based on pressure
+
+The simplest form of palm detection labels a touch as palm when the pressure
+value goes above a certain threshold. This threshold is usually high enough
+that it cannot be triggered by a finger movement. One a touch is labelled as
+palm based on pressure, it will remain so even if the pressure drops below
+the threshold again. This ensures that a palm remains a palm even when the
+pressure changes as the user is typing.
+
+For some information on how to detect pressure on a touch and debug the
+pressure ranges, see @ref touchpad_pressure.
+
 @section palm_exclusion_zones Palm exclusion zones
 
 libinput enables palm detection on the edge of the touchpad. Two exclusion
