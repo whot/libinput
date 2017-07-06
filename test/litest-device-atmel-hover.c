@@ -148,8 +148,9 @@ struct litest_test_device litest_atmel_hover_device = {
 static void
 atmel_hover_create(struct litest_device *d)
 {
-	struct litest_semi_mt *semi_mt = zalloc(sizeof(*semi_mt));
-	assert(semi_mt);
+	struct litest_semi_mt *semi_mt;
+
+	semi_mt = zalloc(sizeof(*semi_mt));
 
 	d->private = semi_mt;
 

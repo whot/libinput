@@ -71,8 +71,9 @@ touch_tdelta_ms(const struct touch *t)
 static inline struct tap_data *
 tap_data_new(void)
 {
-	struct tap_data *tap_data = zalloc(sizeof(struct tap_data));
-	assert(tap_data);
+	struct tap_data *tap_data;
+
+	tap_data = zalloc(sizeof(struct tap_data));
 
 	return tap_data;
 }
@@ -122,7 +123,6 @@ tap_data_duplicate_sorted(const struct tap_data *src,
 	dest->toffset = src->toffset;
 	dest->touches_sz = dest->count;
 	dest->touches = zalloc(dest->count * sizeof(*dest->touches));
-	assert(dest->touches);
 
 	memcpy(dest->touches,
 	       src->touches,

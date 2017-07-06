@@ -1035,8 +1035,7 @@ tablet_get_tool(struct tablet_dispatch *tablet,
 		const struct input_absinfo *pressure;
 
 		tool = zalloc(sizeof *tool);
-		if (!tool)
-			return NULL;
+
 		*tool = (struct libinput_tablet_tool) {
 			.type = type,
 			.serial = serial,
@@ -1932,8 +1931,6 @@ evdev_tablet_create(struct evdev_device *device)
 	struct tablet_dispatch *tablet;
 
 	tablet = zalloc(sizeof *tablet);
-	if (!tablet)
-		return NULL;
 
 	if (tablet_init(tablet, device) != 0) {
 		tablet_destroy(&tablet->base);

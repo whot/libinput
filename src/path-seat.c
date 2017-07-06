@@ -83,8 +83,6 @@ path_seat_create(struct path_input *input,
 	struct path_seat *seat;
 
 	seat = zalloc(sizeof(*seat));
-	if (!seat)
-		return NULL;
 
 	libinput_seat_init(&seat->base, &input->base, seat_name,
 			   seat_logical_name, path_seat_destroy);
@@ -226,9 +224,6 @@ path_create_device(struct libinput *libinput,
 	struct libinput_device *device;
 
 	dev = zalloc(sizeof *dev);
-	if (!dev)
-		return NULL;
-
 	dev->udev_device = udev_device_ref(udev_device);
 
 	list_insert(&input->path_list, &dev->link);
@@ -285,8 +280,7 @@ libinput_path_create_context(const struct libinput_interface *interface,
 		return NULL;
 
 	input = zalloc(sizeof *input);
-	if (!input ||
-	    libinput_init(&input->base, interface,
+	if (libinput_init(&input->base, interface,
 			  &interface_backend, user_data) != 0) {
 		udev_unref(udev);
 		free(input);

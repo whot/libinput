@@ -494,8 +494,6 @@ strv_from_string(const char *in, const char *separators)
 
 	nelems++; /* NULL-terminated */
 	strv = zalloc(nelems * sizeof *strv);
-	if (!strv)
-		return NULL;
 
 	idx = 0;
 

@@ -297,11 +297,9 @@ struct evdev_dispatch_interface lid_switch_interface = {
 struct evdev_dispatch *
 evdev_lid_switch_dispatch_create(struct evdev_device *lid_device)
 {
-	struct lid_switch_dispatch *dispatch = zalloc(sizeof *dispatch);
+	struct lid_switch_dispatch *dispatch;
 
-	if (dispatch == NULL)
-		return NULL;
-
+	dispatch = zalloc(sizeof *dispatch);
 	dispatch->base.dispatch_type = DISPATCH_LID_SWITCH;
 	dispatch->base.interface = &lid_switch_interface;
 	dispatch->device = lid_device;

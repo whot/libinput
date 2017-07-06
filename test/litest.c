@@ -524,7 +524,6 @@ litest_add_tcase_for_device(struct suite *suite,
 	struct test *t;
 
 	t = zalloc(sizeof(*t));
-	assert(t != NULL);
 	t->name = strdup(funcname);
 	t->devname = strdup(dev->shortname);
 	t->func = func;
@@ -550,7 +549,6 @@ litest_add_tcase_no_device(struct suite *suite,
 		return;
 
 	t = zalloc(sizeof(*t));
-	assert(t != NULL);
 	t->name = strdup(test_name);
 	t->devname = strdup("no device");
 	t->func = func;
@@ -573,7 +571,6 @@ get_suite(const char *name)
 	}
 
 	s = zalloc(sizeof(*s));
-	assert(s != NULL);
 	s->name = strdup(name);
 
 	list_init(&s->tests);
@@ -831,7 +828,6 @@ litest_init_all_device_udev_rules(struct list *created_files)
 		udev_file = litest_init_device_udev_rules(*dev);
 		if (udev_file) {
 			struct created_file *file = zalloc(sizeof(*file));
-			litest_assert(file);
 			file->path = udev_file;
 			list_insert(created_files, &file->link);
 		}
@@ -952,7 +948,6 @@ litest_run_suite(struct list *tests, int which, int max)
 				  t->devname);
 			litest_assert(sname != NULL);
 			n = zalloc(sizeof(*n));
-			litest_assert_notnull(n);
 			n->name = sname;
 			list_insert(&testnames, &n->node);
 
@@ -962,7 +957,6 @@ litest_run_suite(struct list *tests, int which, int max)
 				  t->devname);
 			litest_assert(tname != NULL);
 			n = zalloc(sizeof(*n));
-			litest_assert_notnull(n);
 			n->name = tname;
 			list_insert(&testnames, &n->node);
 
@@ -1139,7 +1133,6 @@ litest_copy_file(const char *dest, const char *src, const char *header)
 	int suffixlen;
 
 	file = zalloc(sizeof(*file));
-	litest_assert(file);
 	file->path = strdup(dest);
 	litest_assert(file->path);
 
@@ -1295,7 +1288,6 @@ litest_create(enum litest_device_type which,
 		ck_abort_msg("Invalid device type %d\n", which);
 
 	d = zalloc(sizeof(*d));
-	litest_assert(d != NULL);
 
 	/* device has custom create method */
 	if ((*dev)->create) {

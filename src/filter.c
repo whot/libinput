@@ -951,9 +951,6 @@ create_default_filter(int dpi)
 	struct pointer_accelerator *filter;
 
 	filter = zalloc(sizeof *filter);
-	if (filter == NULL)
-		return NULL;
-
 	filter->last_velocity = 0.0;
 
 	filter->trackers =
@@ -1050,9 +1047,6 @@ create_pointer_accelerator_filter_lenovo_x230(int dpi)
 	struct pointer_accelerator *filter;
 
 	filter = zalloc(sizeof *filter);
-	if (filter == NULL)
-		return NULL;
-
 	filter->base.interface = &accelerator_interface_x230;
 	filter->profile = touchpad_lenovo_x230_accel_profile;
 	filter->last_velocity = 0.0;
@@ -1160,9 +1154,6 @@ create_pointer_accelerator_filter_flat(int dpi)
 	struct pointer_accelerator_flat *filter;
 
 	filter = zalloc(sizeof *filter);
-	if (filter == NULL)
-		return NULL;
-
 	filter->base.interface = &accelerator_interface_flat;
 	filter->dpi = dpi;
 
@@ -1284,9 +1275,6 @@ create_tablet_filter_flat(int xres, int yres)
 	struct tablet_accelerator_flat *filter;
 
 	filter = zalloc(sizeof *filter);
-	if (filter == NULL)
-		return NULL;
-
 	filter->factor = 1.0;
 	filter->xres = xres;
 	filter->yres = yres;

@@ -2727,8 +2727,6 @@ evdev_mt_touchpad_create(struct evdev_device *device)
 	evdev_tag_touchpad(device, device->udev_device);
 
 	tp = zalloc(sizeof *tp);
-	if (!tp)
-		return NULL;
 
 	if (!tp_init(tp, device)) {
 		tp_interface_destroy(&tp->base);

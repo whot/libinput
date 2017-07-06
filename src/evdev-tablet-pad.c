@@ -628,8 +628,6 @@ evdev_tablet_pad_create(struct evdev_device *device)
 	struct pad_dispatch *pad;
 
 	pad = zalloc(sizeof *pad);
-	if (!pad)
-		return NULL;
 
 	if (pad_init(pad, device) != 0) {
 		pad_destroy(&pad->base);

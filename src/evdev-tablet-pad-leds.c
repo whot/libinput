@@ -59,9 +59,6 @@ pad_mode_toggle_button_new(struct pad_dispatch *pad,
 	struct pad_mode_toggle_button *button;
 
 	button = zalloc(sizeof *button);
-	if (!button)
-		return NULL;
-
 	button->button_index = button_index;
 
 	return button;
@@ -121,9 +118,6 @@ pad_led_new(struct libinput *libinput, const char *prefix, int group, int mode)
 	int rc, fd;
 
 	led = zalloc(sizeof *led);
-	if (!led)
-		return NULL;
-
 	led->brightness_fd = -1;
 	led->mode_idx = mode;
 	list_init(&led->link);
@@ -178,9 +172,6 @@ pad_group_new_basic(struct pad_dispatch *pad,
 	struct pad_led_group *group;
 
 	group = zalloc(sizeof *group);
-	if (!group)
-		return NULL;
-
 	group->base.device = &pad->device->base;
 	group->base.refcount = 1;
 	group->base.index = group_index;

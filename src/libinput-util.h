@@ -136,7 +136,13 @@ bool list_empty(const struct list *list);
 static inline void *
 zalloc(size_t size)
 {
-	return calloc(1, size);
+	void *p;
+
+	p = calloc(1, size);
+	if (!p)
+		abort();
+
+	return p;
 }
 
 /* This bitfield helper implementation is taken from from libevdev-util.h,

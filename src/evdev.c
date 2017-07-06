@@ -1830,12 +1830,10 @@ fallback_dispatch_init_abs(struct fallback_dispatch *dispatch,
 static struct evdev_dispatch *
 fallback_dispatch_create(struct libinput_device *libinput_device)
 {
-	struct fallback_dispatch *dispatch = zalloc(sizeof *dispatch);
 	struct evdev_device *device = evdev_device(libinput_device);
+	struct fallback_dispatch *dispatch;
 
-	if (dispatch == NULL)
-		return NULL;
-
+	dispatch = zalloc(sizeof *dispatch);
 	dispatch->base.dispatch_type = DISPATCH_FALLBACK;
 	dispatch->base.interface = &fallback_interface;
 	dispatch->pending_event = EVDEV_NONE;
@@ -2929,8 +2927,6 @@ evdev_device_create(struct libinput_seat *seat,
 		goto err;
 
 	device = zalloc(sizeof *device);
-	if (device == NULL)
-		goto err;
 
 	libinput_device_init(&device->base, seat);
 	libinput_seat_ref(seat);
