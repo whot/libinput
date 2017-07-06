@@ -625,6 +625,8 @@ if get_option('tests')
 	     args : [ meson.current_source_dir() ])
 
 	libinput_test_runner_sources = [
+		'src/libinput-util.h',
+		'src/libinput-util.c',
 		'test/test-udev.c',
 		'test/test-path.c',
 		'test/test-pointer.c',

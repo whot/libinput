@@ -32,6 +32,7 @@
 #include <unistd.h>
 
 #include "litest.h"
+#include "libinput-util.h"
 
 struct counter {
 	int open_func_count;
@@ -393,7 +394,7 @@ START_TEST(path_add_device)
 	ck_assert_int_eq(type, LIBINPUT_EVENT_DEVICE_ADDED);
 	device = libinput_event_get_device(event);
 	ck_assert_notnull(device);
-	sysname1 = strdup(libinput_device_get_sysname(device));
+	sysname1 = safe_strdup(libinput_device_get_sysname(device));
 	libinput_event_destroy(event);
 
 	litest_assert_empty_queue(li);
@@ -410,7 +411,7 @@ START_TEST(path_add_device)
 	ck_assert_int_eq(type, LIBINPUT_EVENT_DEVICE_ADDED);
 	device = libinput_event_get_device(event);
 	ck_assert_notnull(device);
-	sysname2 = strdup(libinput_device_get_sysname(device));
+	sysname2 = safe_strdup(libinput_device_get_sysname(device));
 	libinput_event_destroy(event);
 
 	ck_assert_str_eq(sysname1, sysname2);

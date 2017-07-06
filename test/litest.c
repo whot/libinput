@@ -524,8 +524,8 @@ litest_add_tcase_for_device(struct suite *suite,
 	struct test *t;
 
 	t = zalloc(sizeof(*t));
-	t->name = strdup(funcname);
-	t->devname = strdup(dev->shortname);
+	t->name = safe_strdup(funcname);
+	t->devname = safe_strdup(dev->shortname);
 	t->func = func;
 	t->setup = dev->setup;
 	t->teardown = dev->teardown ?
@@ -549,8 +549,8 @@ litest_add_tcase_no_device(struct suite *suite,
 		return;
 
 	t = zalloc(sizeof(*t));
-	t->name = strdup(test_name);
-	t->devname = strdup("no device");
+	t->name = safe_strdup(test_name);
+	t->devname = safe_strdup("no device");
 	t->func = func;
 	if (range)
 		t->range = *range;
@@ -571,7 +571,7 @@ get_suite(const char *name)
 	}
 
 	s = zalloc(sizeof(*s));
-	s->name = strdup(name);
+	s->name = safe_strdup(name);
 
 	list_init(&s->tests);
 	list_insert(&all_tests, &s->node);
@@ -1133,8 +1133,7 @@ litest_copy_file(const char *dest, const char *src, const char *header)
 	int suffixlen;
 
 	file = zalloc(sizeof(*file));
-	file->path = strdup(dest);
-	litest_assert(file->path);
+	file->path = safe_strdup(dest);
 
 	suffixlen = file->path + strlen(file->path)  - rindex(file->path, '.');
 	out = mkstemps(file->path, suffixlen);

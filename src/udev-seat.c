@@ -102,8 +102,7 @@ device_added(struct udev_device *udev_device,
 	evdev_read_calibration_prop(device);
 
 	output_name = udev_device_get_property_value(udev_device, "WL_OUTPUT");
-	if (output_name)
-		device->output_name = strdup(output_name);
+	device->output_name = strdup(output_name);
 
 	return 0;
 }

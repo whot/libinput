@@ -121,10 +121,10 @@ path_device_enable(struct path_input *input,
 	sysname = udev_device_get_sysname(udev_device);
 
 	seat_prop = udev_device_get_property_value(udev_device, "ID_SEAT");
-	seat_name = strdup(seat_prop ? seat_prop : default_seat);
+	seat_name = safe_strdup(seat_prop ? seat_prop : default_seat);
 
 	if (seat_logical_name_override) {
-		seat_logical_name = strdup(seat_logical_name_override);
+		seat_logical_name = safe_strdup(seat_logical_name_override);
 	} else {
 		seat_prop = udev_device_get_property_value(udev_device, "WL_SEAT");
 		seat_logical_name = strdup(seat_prop ? seat_prop : default_seat_name);
@@ -173,8 +173,7 @@ path_device_enable(struct path_input *input,
 
 	evdev_read_calibration_prop(device);
 	output_name = udev_device_get_property_value(udev_device, "WL_OUTPUT");
-	if (output_name)
-		device->output_name = strdup(output_name);
+	device->output_name = safe_strdup(output_name);
 
 out:
 	free(seat_name);

@@ -145,6 +145,25 @@ zalloc(size_t size)
 	return p;
 }
 
+/**
+ * strdup guaranteed to succeed. If the input string is NULL, the output
+ * string is NULL. If the input string is a string pointer, we strdup or
+ * abort on failure.
+ */
+static inline char*
+safe_strdup(const char *str)
+{
+	char *s;
+
+	if (!str)
+		return NULL;
+
+	s = strdup(str);
+	if (!s)
+		abort();
+	return s;
+}
+
 /* This bitfield helper implementation is taken from from libevdev-util.h,
  * except that it has been modified to work with arrays of unsigned chars
  */

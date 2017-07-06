@@ -397,7 +397,7 @@ find_device(const char *udev_tag)
 		}
 
 		if (udev_device_get_property_value(device, udev_tag))
-			device_node = strdup(udev_device_get_devnode(device));
+			device_node = safe_strdup(udev_device_get_devnode(device));
 
 		udev_device_unref(device);
 

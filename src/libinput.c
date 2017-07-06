@@ -1861,8 +1861,8 @@ libinput_seat_init(struct libinput_seat *seat,
 {
 	seat->refcount = 1;
 	seat->libinput = libinput;
-	seat->physical_name = strdup(physical_name);
-	seat->logical_name = strdup(logical_name);
+	seat->physical_name = safe_strdup(physical_name);
+	seat->logical_name = safe_strdup(logical_name);
 	seat->destroy = destroy;
 	list_init(&seat->devices_list);
 	list_insert(&libinput->seat_list, &seat->link);
@@ -3319,13 +3319,7 @@ libinput_device_group_create(struct libinput *libinput,
 
 	group = zalloc(sizeof *group);
 	group->refcount = 1;
-	if (identifier) {
-		group->identifier = strdup(identifier);
-		if (!group->identifier) {
-			free(group);
-			return NULL;
-		}
-	}
+	group->identifier = safe_strdup(identifier);
 
 	list_init(&group->link);
 	list_insert(&libinput->device_group_list, &group->link);
