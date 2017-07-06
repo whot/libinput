@@ -855,9 +855,9 @@ START_TEST(touchpad_edge_scroll_buttonareas_click_stops_scroll)
 	libinput_event_destroy(event);
 
 	event = libinput_get_event(li);
-	ptrev = litest_is_button_event(event,
-				       BTN_RIGHT,
-				       LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_is_button_event(event,
+			       BTN_RIGHT,
+			       LIBINPUT_BUTTON_STATE_PRESSED);
 
 	libinput_event_destroy(event);
 
@@ -905,9 +905,9 @@ START_TEST(touchpad_edge_scroll_clickfinger_click_stops_scroll)
 	libinput_event_destroy(event);
 
 	event = libinput_get_event(li);
-	ptrev = litest_is_button_event(event,
-				       BTN_LEFT,
-				       LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_is_button_event(event,
+			       BTN_LEFT,
+			       LIBINPUT_BUTTON_STATE_PRESSED);
 
 	libinput_event_destroy(event);
 

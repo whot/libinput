@@ -651,8 +651,7 @@ START_TEST(path_add_device_suspend_resume)
 	device = libinput_path_add_device(li,
 					  libevdev_uinput_get_devnode(uinput1));
 	ck_assert(device != NULL);
-	device = libinput_path_add_device(li,
-					  libevdev_uinput_get_devnode(uinput2));
+	libinput_path_add_device(li, libevdev_uinput_get_devnode(uinput2));
 
 	libinput_dispatch(li);
 

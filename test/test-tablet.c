@@ -907,7 +907,7 @@ START_TEST(proximity_out_clear_buttons)
 	 */
 	for (button = BTN_TOUCH + 1; button <= BTN_STYLUS2; button++) {
 		bool button_released = false;
-		uint32_t event_button;
+		uint32_t event_button = 0;
 		enum libinput_button_state state;
 
 		if (!libevdev_has_event_code(dev->evdev, EV_KEY, button))
@@ -1504,8 +1504,6 @@ START_TEST(left_handed)
 	event = libinput_get_event(li);
 	tablet_event = litest_is_tablet_event(event,
 				LIBINPUT_EVENT_TABLET_TOOL_AXIS);
-
-	tablet_event = libinput_event_get_tablet_tool_event(event);
 
 	x = libinput_event_tablet_tool_get_x(tablet_event);
 	y = libinput_event_tablet_tool_get_y(tablet_event);
@@ -2368,7 +2366,6 @@ START_TEST(tool_capabilities)
 	event = libinput_get_event(li);
 	t = litest_is_tablet_event(event, LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
 	tool = libinput_event_tablet_tool_get_tool(t);
-	tool = libinput_event_tablet_tool_get_tool(t);
 
 	ck_assert(libinput_tablet_tool_has_pressure(tool));
 	ck_assert(libinput_tablet_tool_has_distance(tool));
@@ -3036,8 +3033,7 @@ START_TEST(tablet_calibration_set_matrix_delta)
 	libinput_event_destroy(event);
 
 	event = libinput_get_event(li);
-	tablet_event = litest_is_tablet_event(event,
-					      LIBINPUT_EVENT_TABLET_TOOL_TIP);
+	litest_is_tablet_event(event, LIBINPUT_EVENT_TABLET_TOOL_TIP);
 	libinput_event_destroy(event);
 
 	litest_tablet_motion(dev, 80, 80, axes);
@@ -3067,8 +3063,7 @@ START_TEST(tablet_calibration_set_matrix_delta)
 	libinput_event_destroy(event);
 
 	event = libinput_get_event(li);
-	tablet_event = litest_is_tablet_event(event,
-					      LIBINPUT_EVENT_TABLET_TOOL_TIP);
+	litest_is_tablet_event(event, LIBINPUT_EVENT_TABLET_TOOL_TIP);
 	libinput_event_destroy(event);
 
 	litest_tablet_motion(dev, 80, 80, axes);
@@ -3433,7 +3428,6 @@ START_TEST(tablet_pressure_range)
 
 		event = libinput_get_event(li);
 		tev = litest_is_tablet_event(event, LIBINPUT_EVENT_TABLET_TOOL_AXIS);
-		p = libinput_event_tablet_tool_get_pressure(tev);
 		p = libinput_event_tablet_tool_get_pressure(tev);
 		ck_assert_double_ge(p, 0.0);
 		ck_assert_double_le(p, 1.0);

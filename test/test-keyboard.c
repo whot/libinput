@@ -213,9 +213,9 @@ START_TEST(keyboard_key_auto_release)
 		libinput_dispatch(libinput);
 
 		event = libinput_get_event(libinput);
-		kevent = litest_is_keyboard_event(event,
-						  key,
-						  LIBINPUT_KEY_STATE_PRESSED);
+		litest_is_keyboard_event(event,
+					 key,
+					 LIBINPUT_KEY_STATE_PRESSED);
 		libinput_event_destroy(event);
 	}
 

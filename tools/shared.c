@@ -491,10 +491,11 @@ tools_exec_command(const char *prefix, int real_argc, char **real_argv)
 	setup_path();
 
 	rc = execvp(executable, argv);
-	fprintf(stderr,
-		"Failed to execute '%s' (%s)\n",
-		command,
-		strerror(errno));
+	if (rc)
+		fprintf(stderr,
+			"Failed to execute '%s' (%s)\n",
+			command,
+			strerror(errno));
 
 	return EXIT_FAILURE;
 }
