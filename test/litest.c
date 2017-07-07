@@ -1067,7 +1067,7 @@ merge_absinfo(const struct input_absinfo *orig,
 	if (!orig)
 		return NULL;
 
-	abs = calloc(sz, sizeof(*abs));
+	abs = zalloc(sz * sizeof(*abs));
 	litest_assert(abs != NULL);
 
 	nelem = 0;
@@ -1101,7 +1101,7 @@ merge_events(const int *orig, const int *override)
 	if (!orig)
 		return NULL;
 
-	events = calloc(sz, sizeof(int));
+	events = zalloc(sz * sizeof(int));
 	litest_assert(events != NULL);
 
 	nelem = 0;

@@ -954,7 +954,7 @@ create_default_filter(int dpi)
 	filter->last_velocity = 0.0;
 
 	filter->trackers =
-		calloc(NUM_POINTER_TRACKERS, sizeof *filter->trackers);
+		zalloc(NUM_POINTER_TRACKERS * sizeof *filter->trackers);
 	filter->cur_tracker = 0;
 
 	filter->threshold = DEFAULT_THRESHOLD;
@@ -1052,7 +1052,7 @@ create_pointer_accelerator_filter_lenovo_x230(int dpi)
 	filter->last_velocity = 0.0;
 
 	filter->trackers =
-		calloc(NUM_POINTER_TRACKERS, sizeof *filter->trackers);
+		zalloc(NUM_POINTER_TRACKERS * sizeof *filter->trackers);
 	filter->cur_tracker = 0;
 
 	filter->threshold = X230_THRESHOLD;

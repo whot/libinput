@@ -2018,9 +2018,7 @@ tp_init_slots(struct tp_dispatch *tp,
 	}
 
 	tp->ntouches = max(tp->num_slots, n_btn_tool_touches);
-	tp->touches = calloc(tp->ntouches, sizeof(struct tp_touch));
-	if (!tp->touches)
-		return false;
+	tp->touches = zalloc(tp->ntouches * sizeof(struct tp_touch));
 
 	for (i = 0; i < tp->ntouches; i++)
 		tp_init_touch(tp, &tp->touches[i]);

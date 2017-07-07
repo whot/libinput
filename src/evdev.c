@@ -1775,9 +1775,7 @@ fallback_dispatch_init_slots(struct fallback_dispatch *dispatch,
 		active_slot = libevdev_get_current_slot(evdev);
 	}
 
-	slots = calloc(num_slots, sizeof(struct mt_slot));
-	if (!slots)
-		return -1;
+	slots = zalloc(num_slots * sizeof(struct mt_slot));
 
 	for (slot = 0; slot < num_slots; ++slot) {
 		slots[slot].seat_slot = -1;
