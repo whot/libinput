@@ -125,7 +125,7 @@ scan_build_run: &scan_build_run
     - *export_logs
     - run:
         name: Check scan-build results
-        command: test $(find ~/libinput/build/meson-logs/scanbuild -maxdepth 0 ! -empty -exec echo "not empty" \; | wc -l) -eq 0 || echo "Check scan-build results" && false
+        command: test ! -d ~/libinput/build/meson-logs/scanbuild || test $(find ~/libinput/build/meson-logs/scanbuild -maxdepth 0 ! -empty -exec echo "not empty" \; | wc -l) -eq 0 || (echo "Check scan-build results" && false)
 
 version: 2
 jobs:
