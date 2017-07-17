@@ -3195,9 +3195,12 @@ void
 litest_assert_touch_sequence(struct libinput *li)
 {
 	struct libinput_event *event;
+	struct libinput_event_touch *tev;
+	int slot;
 
 	event = libinput_get_event(li);
-	litest_is_touch_event(event, LIBINPUT_EVENT_TOUCH_DOWN);
+	tev = litest_is_touch_event(event, LIBINPUT_EVENT_TOUCH_DOWN);
+	slot = libinput_event_touch_get_slot(tev);
 	libinput_event_destroy(event);
 
 	event = libinput_get_event(li);
@@ -3206,7 +3209,8 @@ litest_assert_touch_sequence(struct libinput *li)
 
 	event = libinput_get_event(li);
 	do {
-		litest_is_touch_event(event, LIBINPUT_EVENT_TOUCH_MOTION);
+		tev = litest_is_touch_event(event, LIBINPUT_EVENT_TOUCH_MOTION);
+		litest_assert_int_eq(slot, libinput_event_touch_get_slot(tev));
 		libinput_event_destroy(event);
 
 		event = libinput_get_event(li);
@@ -3217,7 +3221,8 @@ litest_assert_touch_sequence(struct libinput *li)
 		litest_assert_notnull(event);
 	} while (libinput_event_get_type(event) != LIBINPUT_EVENT_TOUCH_UP);
 
-	litest_is_touch_event(event, LIBINPUT_EVENT_TOUCH_UP);
+	tev = litest_is_touch_event(event, LIBINPUT_EVENT_TOUCH_UP);
+	litest_assert_int_eq(slot, libinput_event_touch_get_slot(tev));
 	libinput_event_destroy(event);
 	event = libinput_get_event(li);
 	litest_is_touch_event(event, LIBINPUT_EVENT_TOUCH_FRAME);
