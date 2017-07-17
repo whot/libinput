@@ -879,6 +879,9 @@ fallback_process_touch(struct fallback_dispatch *dispatch,
 		       struct input_event *e,
 		       uint64_t time)
 {
+	unsigned int slot = dispatch->mt.slot;
+	struct mt_slot *slots = dispatch->mt.slots;
+
 	switch (e->code) {
 	case ABS_MT_SLOT:
 		if ((size_t)e->value >= dispatch->mt.slots_len) {
@@ -902,13 +905,13 @@ fallback_process_touch(struct fallback_dispatch *dispatch,
 		break;
 	case ABS_MT_POSITION_X:
 		evdev_device_check_abs_axis_range(device, e->code, e->value);
-		dispatch->mt.slots[dispatch->mt.slot].point.x = e->value;
+		slots[slot].point.x = e->value;
 		if (dispatch->pending_event == EVDEV_NONE)
 			dispatch->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
 		break;
 	case ABS_MT_POSITION_Y:
 		evdev_device_check_abs_axis_range(device, e->code, e->value);
-		dispatch->mt.slots[dispatch->mt.slot].point.y = e->value;
+		slots[slot].point.y = e->value;
 		if (dispatch->pending_event == EVDEV_NONE)
 			dispatch->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
 		break;
