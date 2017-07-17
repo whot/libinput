@@ -53,6 +53,7 @@ enum evdev_event_type {
 	EVDEV_ABSOLUTE_MT_DOWN,
 	EVDEV_ABSOLUTE_MT_MOTION,
 	EVDEV_ABSOLUTE_MT_UP,
+	EVDEV_ABSOLUTE_MT_CANCEL,
 	EVDEV_RELATIVE_MOTION,
 };
 
@@ -139,6 +140,7 @@ struct mt_slot {
 	int32_t seat_slot;
 	struct device_coords point;
 	struct device_coords hysteresis_center;
+	bool is_palm;
 };
 
 struct evdev_device {

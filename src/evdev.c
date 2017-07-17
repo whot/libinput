@@ -597,6 +597,7 @@ fallback_flush_mt_up(struct fallback_dispatch *dispatch,
 	slot = &dispatch->mt.slots[slot_idx];
 	seat_slot = slot->seat_slot;
 	slot->seat_slot = -1;
+	slot->is_palm = false;
 
 	if (seat_slot == -1)
 		return false;
@@ -604,6 +605,35 @@ fallback_flush_mt_up(struct fallback_dispatch *dispatch,
 	seat->slot_map &= ~(1 << seat_slot);
 
 	touch_notify_touch_up(base, time, slot_idx, seat_slot);
+
+	return true;
+}
+
+static bool
+fallback_flush_mt_cancel(struct fallback_dispatch *dispatch,
+			 struct evdev_device *device,
+			 int slot_idx,
+			 uint64_t time)
+{
+	struct libinput_device *base = &device->base;
+	struct libinput_seat *seat = base->seat;
+	struct mt_slot *slot;
+	int seat_slot;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_TOUCH))
+		return false;
+
+	slot = &dispatch->mt.slots[slot_idx];
+	seat_slot = slot->seat_slot;
+	slot->seat_slot = -1;
+	slot->is_palm = false;
+
+	if (seat_slot == -1)
+		return false;
+
+	seat->slot_map &= ~(1 << seat_slot);
+
+	touch_notify_touch_cancel(base, time, slot_idx, seat_slot);
 
 	return true;
 }
@@ -728,6 +758,14 @@ fallback_flush_pending_event(struct fallback_dispatch *dispatch,
 					  device,
 					  slot_idx,
 					  time))
+			sent_event = EVDEV_NONE;
+		break;
+	case EVDEV_ABSOLUTE_MT_CANCEL:
+		slot_idx = dispatch->mt.slot;
+		if (!fallback_flush_mt_cancel(dispatch,
+					      device,
+					      slot_idx,
+					      time))
 			sent_event = EVDEV_NONE;
 		break;
 	case EVDEV_ABSOLUTE_TOUCH_DOWN:
@@ -914,6 +952,12 @@ fallback_process_touch(struct fallback_dispatch *dispatch,
 		slots[slot].point.y = e->value;
 		if (dispatch->pending_event == EVDEV_NONE)
 			dispatch->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
+		break;
+	case ABS_MT_TOOL_TYPE:
+		if (!slots[slot].is_palm && e->value == MT_TOOL_PALM) {
+			slots[slot].is_palm = true;
+			dispatch->pending_event = EVDEV_ABSOLUTE_MT_CANCEL;
+		}
 		break;
 	}
 }
@@ -1178,6 +1222,7 @@ fallback_process(struct evdev_dispatch *evdev_dispatch,
 		case EVDEV_ABSOLUTE_MT_DOWN:
 		case EVDEV_ABSOLUTE_MT_MOTION:
 		case EVDEV_ABSOLUTE_MT_UP:
+		case EVDEV_ABSOLUTE_MT_CANCEL:
 			touch_notify_frame(&device->base, time);
 			break;
 		case EVDEV_ABSOLUTE_MOTION:

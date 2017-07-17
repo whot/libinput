@@ -2381,6 +2381,30 @@ touch_notify_touch_up(struct libinput_device *device,
 }
 
 void
+touch_notify_touch_cancel(struct libinput_device *device,
+			  uint64_t time,
+			  int32_t slot,
+			  int32_t seat_slot)
+{
+	struct libinput_event_touch *touch_event;
+
+	if (!device_has_cap(device, LIBINPUT_DEVICE_CAP_TOUCH))
+		return;
+
+	touch_event = zalloc(sizeof *touch_event);
+
+	*touch_event = (struct libinput_event_touch) {
+		.time = time,
+		.slot = slot,
+		.seat_slot = seat_slot,
+	};
+
+	post_device_event(device, time,
+			  LIBINPUT_EVENT_TOUCH_CANCEL,
+			  &touch_event->base);
+}
+
+void
 touch_notify_frame(struct libinput_device *device,
 		   uint64_t time)
 {

@@ -541,6 +541,12 @@ touch_notify_touch_up(struct libinput_device *device,
 		      int32_t seat_slot);
 
 void
+touch_notify_touch_cancel(struct libinput_device *device,
+			  uint64_t time,
+			  int32_t slot,
+			  int32_t seat_slot);
+
+void
 touch_notify_frame(struct libinput_device *device,
 		   uint64_t time);
 
