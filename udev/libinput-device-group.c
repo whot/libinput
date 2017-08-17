@@ -32,12 +32,14 @@
 
 #if HAVE_LIBWACOM_GET_PAIRED_DEVICE
 #include <libwacom/libwacom.h>
+#endif
 
 static void
 wacom_handle_paired(struct udev_device *device,
 		    int *vendor_id,
 		    int *product_id)
 {
+#if HAVE_LIBWACOM_GET_PAIRED_DEVICE
 	WacomDeviceDatabase *db = NULL;
 	WacomDevice *tablet = NULL;
 	const WacomMatch *paired;
@@ -61,8 +63,8 @@ out:
 		libwacom_destroy(tablet);
 	if (db)
 		libwacom_database_destroy(db);
-}
 #endif
+}
 
 int main(int argc, char **argv)
 {
@@ -122,10 +124,19 @@ int main(int argc, char **argv)
 		   &version) != 4) {
 		snprintf(group, sizeof(group), "%s:%s", product, phys);
 	} else {
-#if HAVE_LIBWACOM_GET_PAIRED_DEVICE
-	    if (vendor_id == VENDOR_ID_WACOM)
-		    wacom_handle_paired(device, &vendor_id, &product_id);
-#endif
+	    if (vendor_id == VENDOR_ID_WACOM) {
+		    /* We force the ExpressKey remote to be in the same
+		     * device group as the 27QHDT touch device to have them
+		     * paired automatically. 27QHD (no touch) users need a
+		     * custom udev rule, so do those that need to use the
+		     * EKR with another tablet.
+		     */
+		    if (product_id == 0x331) /* ExpressKey Remote */
+			    product_id = 0x32c; /* 27QHT */
+		    else
+			    wacom_handle_paired(device, &vendor_id, &product_id);
+	    }
+
 	    snprintf(group,
 		     sizeof(group),
 		     "%x/%x/%x/%x:%s",
