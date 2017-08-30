@@ -64,6 +64,71 @@ out:
 }
 #endif
 
+static void
+wacom_handle_ekr(struct udev_device *device,
+		 int *vendor_id,
+		 int *product_id)
+{
+	struct udev_device *parent;
+	struct udev *udev;
+	struct udev_enumerate *e;
+	struct udev_list_entry *entry;
+
+	/* Search for the parent that is the cintiq, then search down for the
+	 * inputXX node on that parent. Grab the product ID from there and
+	 * overwrite our id with that one, this puts the EKR into the same
+	 * device group the Cintiq is it's plugged into.
+	 */
+
+	parent = udev_device_get_parent_with_subsystem_devtype(device,
+							       "usb",
+							       "usb_device");
+	if (!parent)
+		return;
+
+	udev = udev_device_get_udev(device);
+	e = udev_enumerate_new(udev);
+	udev_enumerate_add_match_subsystem(e, "input");
+	udev_enumerate_add_match_sysname(e, "input*");
+	udev_enumerate_add_match_parent(e, parent);
+	udev_enumerate_scan_devices(e);
+	udev_list_entry_foreach(entry, udev_enumerate_get_list_entry(e)) {
+		struct udev_device *d;
+		const char *path;
+		const char *pidstr, *vidstr;
+		int pid, vid;
+
+		/* This list contain the two input nodes for the
+		 * Cintiq pen and the touch, where applicable.
+		 * We pick the first one (usually the pen), relying on
+		 * wacom_handle_paired() to fix our ID later if needed.
+		 *
+		 * Note: we don't do anything if the parent we find isn't a
+		 * Wacom device.
+		 */
+		path = udev_list_entry_get_name(entry);
+		d = udev_device_new_from_syspath(udev, path);
+		if (!d)
+			continue;
+
+		vidstr = udev_device_get_property_value(d, "ID_VENDOR_ID");
+		pidstr = udev_device_get_property_value(d, "ID_MODEL_ID");
+
+		if (vidstr && pidstr &&
+		    safe_atoi_base(vidstr, &vid, 16) &&
+		    safe_atoi_base(pidstr, &pid, 16) &&
+		    vid == VENDOR_ID_WACOM) {
+			*product_id = pid;
+			udev_device_unref(d);
+			break;
+		}
+
+		udev_device_unref(d);
+	}
+
+	udev_enumerate_unref(e);
+}
+
 int main(int argc, char **argv)
 {
 	int rc = 1;
@@ -123,8 +188,16 @@ int main(int argc, char **argv)
 		snprintf(group, sizeof(group), "%s:%s", product, phys);
 	} else {
 #if HAVE_LIBWACOM_GET_PAIRED_DEVICE
-	    if (vendor_id == VENDOR_ID_WACOM)
-		    wacom_handle_paired(device, &vendor_id, &product_id);
+	    if (vendor_id == VENDOR_ID_WACOM) {
+		    if (product_id == PRODUCT_ID_WACOM_EKR)
+			    wacom_handle_ekr(device,
+					     &vendor_id,
+					     &product_id);
+		    /* This is called for the EKR as well */
+		    wacom_handle_paired(device,
+					&vendor_id,
+					&product_id);
+	    }
 #endif
 	    snprintf(group,
 		     sizeof(group),
