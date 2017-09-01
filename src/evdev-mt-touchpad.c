@@ -1479,6 +1479,10 @@ tp_remove_sendevents(struct tp_dispatch *tp)
 	if (tp->lid_switch.lid_switch)
 		libinput_device_remove_event_listener(
 					&tp->lid_switch.listener);
+
+	if (tp->tablet_mode_switch.tablet_mode_switch)
+		libinput_device_remove_event_listener(
+					&tp->tablet_mode_switch.listener);
 }
 
 static void
@@ -1861,23 +1865,34 @@ tp_pair_trackpoint(struct evdev_device *touchpad,
 }
 
 static void
-tp_lid_switch_event(uint64_t time, struct libinput_event *event, void *data)
+tp_switch_event(uint64_t time, struct libinput_event *event, void *data)
 {
 	struct tp_dispatch *tp = data;
 	struct libinput_event_switch *swev;
+	const char *which = NULL;
 
 	if (libinput_event_get_type(event) != LIBINPUT_EVENT_SWITCH_TOGGLE)
 		return;
 
 	swev = libinput_event_get_switch_event(event);
+
+	switch (libinput_event_switch_get_switch(swev)) {
+	case LIBINPUT_SWITCH_LID:
+		which = "lid";
+		break;
+	case LIBINPUT_SWITCH_TABLET_MODE:
+		which = "tablet-mode";
+		break;
+	}
+
 	switch (libinput_event_switch_get_switch_state(swev)) {
 	case LIBINPUT_SWITCH_STATE_OFF:
 		tp_resume(tp, tp->device);
-		evdev_log_debug(tp->device, "lid: resume touchpad\n");
+		evdev_log_debug(tp->device, "%s: resume touchpad\n", which);
 		break;
 	case LIBINPUT_SWITCH_STATE_ON:
 		tp_suspend(tp, tp->device);
-		evdev_log_debug(tp->device, "lid: suspend touchpad\n");
+		evdev_log_debug(tp->device, "%s: suspend touchpad\n", which);
 		break;
 	}
 }
@@ -1899,8 +1914,36 @@ tp_pair_lid_switch(struct evdev_device *touchpad,
 
 		libinput_device_add_event_listener(&lid_switch->base,
 						   &tp->lid_switch.listener,
-						   tp_lid_switch_event, tp);
+						   tp_switch_event, tp);
 		tp->lid_switch.lid_switch = lid_switch;
+	}
+}
+
+static void
+tp_pair_tablet_mode_switch(struct evdev_device *touchpad,
+			   struct evdev_device *tablet_mode_switch)
+{
+	struct tp_dispatch *tp = (struct tp_dispatch*)touchpad->dispatch;
+
+	if ((tablet_mode_switch->tags & EVDEV_TAG_TABLET_MODE_SWITCH) == 0)
+		return;
+
+	if (tp->tablet_mode_switch.tablet_mode_switch == NULL) {
+		evdev_log_debug(touchpad,
+				"tablet_mode_switch: activated for %s<->%s\n",
+				touchpad->devname,
+				tablet_mode_switch->devname);
+
+		libinput_device_add_event_listener(&tablet_mode_switch->base,
+					&tp->tablet_mode_switch.listener,
+					tp_switch_event, tp);
+		tp->tablet_mode_switch.tablet_mode_switch = tablet_mode_switch;
+
+		if (evdev_device_switch_get_state(tablet_mode_switch,
+						  LIBINPUT_SWITCH_TABLET_MODE)
+			    == LIBINPUT_SWITCH_STATE_ON) {
+			tp_suspend(tp, touchpad);
+		}
 	}
 }
 
@@ -1913,6 +1956,7 @@ tp_interface_device_added(struct evdev_device *device,
 	tp_pair_trackpoint(device, added_device);
 	tp_dwt_pair_keyboard(device, added_device);
 	tp_pair_lid_switch(device, added_device);
+	tp_pair_tablet_mode_switch(device, added_device);
 
 	if (tp->sendevents.current_mode !=
 	    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE)
@@ -1952,6 +1996,12 @@ tp_interface_device_removed(struct evdev_device *device,
 		libinput_device_remove_event_listener(
 					&tp->lid_switch.listener);
 		tp->lid_switch.lid_switch = NULL;
+	}
+
+	if (removed_device == tp->tablet_mode_switch.tablet_mode_switch) {
+		libinput_device_remove_event_listener(
+					&tp->tablet_mode_switch.listener);
+		tp->tablet_mode_switch.tablet_mode_switch = NULL;
 	}
 
 	if (tp->sendevents.current_mode !=

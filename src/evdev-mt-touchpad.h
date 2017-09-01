@@ -407,6 +407,11 @@ struct tp_dispatch {
 		struct libinput_event_listener listener;
 		struct evdev_device *lid_switch;
 	} lid_switch;
+
+	struct {
+		struct libinput_event_listener listener;
+		struct evdev_device *tablet_mode_switch;
+	} tablet_mode_switch;
 };
 
 static inline struct tp_dispatch*

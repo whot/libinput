@@ -524,6 +524,10 @@ struct libinput_tablet_pad_mode_group *
 evdev_device_tablet_pad_get_mode_group(struct evdev_device *device,
 				       unsigned int index);
 
+enum libinput_switch_state
+evdev_device_switch_get_state(struct evdev_device *device,
+			      enum libinput_switch sw);
+
 double
 evdev_device_transform_x(struct evdev_device *device,
 			 double x,

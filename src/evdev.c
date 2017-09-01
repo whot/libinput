@@ -185,6 +185,25 @@ fallback_lid_notify_toggle(struct fallback_dispatch *dispatch,
 	}
 }
 
+enum libinput_switch_state
+evdev_device_switch_get_state(struct evdev_device *device,
+			      enum libinput_switch sw)
+{
+	struct fallback_dispatch *dispatch = fallback_dispatch(device->dispatch);
+
+	switch (sw) {
+	case LIBINPUT_SWITCH_TABLET_MODE:
+		break;
+	default:
+		/* Internal function only, so we can abort here */
+		abort();
+	}
+
+	return dispatch->tablet_mode.state ?
+			LIBINPUT_SWITCH_STATE_ON :
+			LIBINPUT_SWITCH_STATE_OFF;
+}
+
 void
 evdev_pointer_notify_physical_button(struct evdev_device *device,
 				     uint64_t time,
