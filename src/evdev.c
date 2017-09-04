@@ -1,7 +1,8 @@
 /*
  * Copyright © 2010 Intel Corporation
  * Copyright © 2013 Jonas Ådahl
- * Copyright © 2013-2015 Red Hat, Inc.
+ * Copyright © 2013-2017 Red Hat, Inc.
+ * Copyright © 2017 James Ye <jye836@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -168,6 +169,20 @@ fallback_keyboard_notify_key(struct fallback_dispatch *dispatch,
 	if ((state == LIBINPUT_KEY_STATE_PRESSED && down_count == 1) ||
 	    (state == LIBINPUT_KEY_STATE_RELEASED && down_count == 0))
 		keyboard_notify_key(&device->base, time, key, state);
+}
+
+static void
+fallback_lid_notify_toggle(struct fallback_dispatch *dispatch,
+			   struct evdev_device *device,
+			   uint64_t time)
+{
+	if (dispatch->lid.is_closed ^ dispatch->lid.is_closed_client_state) {
+		switch_notify_toggle(&device->base,
+				     time,
+				     LIBINPUT_SWITCH_LID,
+				     dispatch->lid.is_closed);
+		dispatch->lid.is_closed_client_state = dispatch->lid.is_closed;
+	}
 }
 
 void
@@ -1086,6 +1101,82 @@ fallback_process_absolute_motion(struct fallback_dispatch *dispatch,
 	}
 }
 
+static void
+fallback_lid_keyboard_event(uint64_t time,
+			    struct libinput_event *event,
+			    void *data)
+{
+	struct fallback_dispatch *dispatch = fallback_dispatch(data);
+
+	if (!dispatch->lid.is_closed)
+		return;
+
+	if (event->type != LIBINPUT_EVENT_KEYBOARD_KEY)
+		return;
+
+	if (dispatch->lid.reliability == RELIABILITY_WRITE_OPEN) {
+		int fd = libevdev_get_fd(dispatch->device->evdev);
+		struct input_event ev[2] = {
+			{{ 0, 0 }, EV_SW, SW_LID, 0 },
+			{{ 0, 0 }, EV_SYN, SYN_REPORT, 0 },
+		};
+
+		(void)write(fd, ev, sizeof(ev));
+		/* In case write() fails, we sync the lid state manually
+		 * regardless. */
+	}
+
+	/* Posting the event here means we preempt the keyboard events that
+	 * caused us to wake up, so the lid event is always passed on before
+	 * the key event.
+	 */
+	dispatch->lid.is_closed = false;
+	fallback_lid_notify_toggle(dispatch, dispatch->device, time);
+}
+
+static void
+fallback_lid_toggle_keyboard_listener(struct fallback_dispatch *dispatch,
+				      bool is_closed)
+{
+	if (!dispatch->lid.keyboard)
+		return;
+
+	if (is_closed) {
+		libinput_device_add_event_listener(
+					&dispatch->lid.keyboard->base,
+					&dispatch->lid.listener,
+					fallback_lid_keyboard_event,
+					dispatch);
+	} else {
+		libinput_device_remove_event_listener(
+					&dispatch->lid.listener);
+		libinput_device_init_event_listener(
+					&dispatch->lid.listener);
+	}
+}
+
+static inline void
+fallback_process_switch(struct fallback_dispatch *dispatch,
+			struct evdev_device *device,
+			struct input_event *e,
+			uint64_t time)
+{
+	bool is_closed;
+
+	switch (e->code) {
+	case SW_LID:
+		is_closed = !!e->value;
+
+		if (dispatch->lid.is_closed == is_closed)
+			return;
+		fallback_lid_toggle_keyboard_listener(dispatch, is_closed);
+
+		dispatch->lid.is_closed = is_closed;
+		fallback_lid_notify_toggle(dispatch, device, time);
+		break;
+	}
+}
+
 void
 evdev_notify_axis(struct evdev_device *device,
 		  uint64_t time,
@@ -1317,6 +1408,9 @@ fallback_process(struct evdev_dispatch *evdev_dispatch,
 	case EV_KEY:
 		fallback_process_key(dispatch, device, event, time);
 		break;
+	case EV_SW:
+		fallback_process_switch(dispatch, device, event, time);
+		break;
 	case EV_SYN:
 		sent = fallback_flush_pending_event(dispatch, device, time);
 		switch (sent) {
@@ -1435,6 +1529,46 @@ fallback_suspend(struct evdev_dispatch *evdev_dispatch,
 }
 
 static void
+fallback_remove(struct evdev_dispatch *evdev_dispatch)
+{
+	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
+
+	if (!dispatch->lid.keyboard)
+		return;
+
+	libinput_device_remove_event_listener(&dispatch->lid.listener);
+}
+
+static void
+fallback_sync_initial_state(struct evdev_device *device,
+			    struct evdev_dispatch *evdev_dispatch)
+{
+	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
+	uint64_t time = libinput_now(evdev_libinput_context(device));
+
+	if (device->tags & EVDEV_TAG_LID_SWITCH) {
+		struct libevdev *evdev = device->evdev;
+
+		dispatch->lid.is_closed = libevdev_get_event_value(evdev,
+								   EV_SW,
+								   SW_LID);
+		dispatch->lid.is_closed_client_state = false;
+
+		/* For the initial state sync, we depend on whether the lid switch
+		 * is reliable. If we know it's reliable, we sync as expected.
+		 * If we're not sure, we ignore the initial state and only sync on
+		 * the first future lid close event. Laptops with a broken switch
+		 * that always have the switch in 'on' state thus don't mess up our
+		 * touchpad.
+		 */
+		if (dispatch->lid.is_closed &&
+		    dispatch->lid.reliability == RELIABILITY_RELIABLE) {
+			fallback_lid_notify_toggle(dispatch, device, time);
+		}
+	}
+}
+
+static void
 fallback_toggle_touch(struct evdev_dispatch *evdev_dispatch,
 		      struct evdev_device *device,
 		      bool enable)
@@ -1503,16 +1637,68 @@ evdev_calibration_get_default_matrix(struct libinput_device *libinput_device,
 	return !matrix_is_identity(&device->abs.default_calibration);
 }
 
+static void
+fallback_lid_pair_keyboard(struct evdev_device *lid_switch,
+			   struct evdev_device *keyboard)
+{
+	struct fallback_dispatch *dispatch =
+		fallback_dispatch(lid_switch->dispatch);
+
+	if ((keyboard->tags & EVDEV_TAG_KEYBOARD) == 0 ||
+	    (lid_switch->tags & EVDEV_TAG_LID_SWITCH) == 0)
+		return;
+
+	if (dispatch->lid.keyboard)
+		return;
+
+	if (keyboard->tags & EVDEV_TAG_INTERNAL_KEYBOARD) {
+		dispatch->lid.keyboard = keyboard;
+		evdev_log_debug(lid_switch,
+				"lid: keyboard paired with %s<->%s\n",
+				lid_switch->devname,
+				keyboard->devname);
+
+		/* We need to init the event listener now only if the reported state
+		 * is closed. */
+		if (dispatch->lid.is_closed)
+			fallback_lid_toggle_keyboard_listener(dispatch,
+						    dispatch->lid.is_closed);
+	}
+}
+
+static void
+fallback_interface_device_added(struct evdev_device *device,
+				struct evdev_device *added_device)
+{
+	fallback_lid_pair_keyboard(device, added_device);
+}
+
+static void
+fallback_interface_device_removed(struct evdev_device *device,
+				  struct evdev_device *removed_device)
+{
+	struct fallback_dispatch *dispatch =
+			fallback_dispatch(device->dispatch);
+
+	if (removed_device == dispatch->lid.keyboard) {
+		libinput_device_remove_event_listener(
+					&dispatch->lid.listener);
+		libinput_device_init_event_listener(
+					&dispatch->lid.listener);
+		dispatch->lid.keyboard = NULL;
+	}
+}
+
 struct evdev_dispatch_interface fallback_interface = {
 	fallback_process,
 	fallback_suspend,
-	NULL, /* remove */
+	fallback_remove,
 	fallback_destroy,
-	NULL, /* device_added */
-	NULL, /* device_removed */
-	NULL, /* device_suspended */
-	NULL, /* device_resumed */
-	NULL, /* post_added */
+	fallback_interface_device_added,
+	fallback_interface_device_removed,
+	fallback_interface_device_removed, /* device_suspended, treat as remove */
+	fallback_interface_device_added,   /* device_resumed, treat as add */
+	fallback_sync_initial_state, /* post_added */
 	fallback_toggle_touch, /* toggle_touch */
 };
 
@@ -1984,6 +2170,40 @@ fallback_dispatch_init_abs(struct fallback_dispatch *dispatch,
 	evdev_device_init_abs_range_warnings(device);
 }
 
+static inline enum switch_reliability
+evdev_read_switch_reliability_prop(struct evdev_device *device)
+{
+	const char *prop;
+	enum switch_reliability r;
+
+	prop = udev_device_get_property_value(device->udev_device,
+					      "LIBINPUT_ATTR_LID_SWITCH_RELIABILITY");
+	if (!parse_switch_reliability_property(prop, &r)) {
+		evdev_log_error(device,
+				"%s: switch reliability set to unknown value '%s'\n",
+				device->devname,
+				prop);
+		r =  RELIABILITY_UNKNOWN;
+	} else if (r == RELIABILITY_WRITE_OPEN) {
+		evdev_log_info(device,
+			       "%s: will write switch open events\n",
+			       device->devname);
+	}
+
+	return r;
+}
+
+static inline void
+fallback_dispatch_init_switch(struct fallback_dispatch *dispatch,
+			      struct evdev_device *device)
+{
+	if (device->tags & EVDEV_TAG_LID_SWITCH) {
+		libinput_device_init_event_listener(&dispatch->lid.listener);
+		dispatch->lid.reliability = evdev_read_switch_reliability_prop(device);
+		dispatch->lid.is_closed = false;
+	}
+}
+
 static struct evdev_dispatch *
 fallback_dispatch_create(struct libinput_device *libinput_device)
 {
@@ -1992,6 +2212,7 @@ fallback_dispatch_create(struct libinput_device *libinput_device)
 	char timer_name[64];
 
 	dispatch = zalloc(sizeof *dispatch);
+	dispatch->device = evdev_device(libinput_device);
 	dispatch->base.dispatch_type = DISPATCH_FALLBACK;
 	dispatch->base.interface = &fallback_interface;
 	dispatch->pending_event = EVDEV_NONE;
@@ -2002,6 +2223,8 @@ fallback_dispatch_create(struct libinput_device *libinput_device)
 		free(dispatch);
 		return NULL;
 	}
+
+	fallback_dispatch_init_switch(dispatch, device);
 
 	if (device->left_handed.want_enabled)
 		evdev_init_left_handed(device,
@@ -2894,11 +3117,9 @@ evdev_configure_device(struct evdev_device *device)
 
 	if (udev_tags & EVDEV_UDEV_TAG_SWITCH &&
 	    libevdev_has_event_code(evdev, EV_SW, SW_LID)) {
-		dispatch = evdev_lid_switch_dispatch_create(device);
 		device->seat_caps |= EVDEV_DEVICE_SWITCH;
 		evdev_tag_lid_switch(device);
 		evdev_log_info(device, "device is a switch device\n");
-		return dispatch;
 	}
 
 	if (device->seat_caps & EVDEV_DEVICE_POINTER &&

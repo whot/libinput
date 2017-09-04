@@ -345,6 +345,7 @@ evdev_verify_dispatch_type(struct evdev_dispatch *dispatch,
 
 struct fallback_dispatch {
 	struct evdev_dispatch base;
+	struct evdev_device *device;
 
 	struct libinput_device_config_calibration calibration;
 
@@ -391,6 +392,15 @@ struct fallback_dispatch {
 		uint64_t button_up_time;
 		struct libinput_timer timer;
 	} debounce;
+
+	struct {
+		enum switch_reliability reliability;
+
+		bool is_closed;
+		bool is_closed_client_state;
+		struct evdev_device *keyboard;
+		struct libinput_event_listener listener;
+	} lid;
 };
 
 static inline struct fallback_dispatch*

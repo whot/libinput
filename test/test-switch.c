@@ -604,10 +604,8 @@ START_TEST(lid_key_press)
 	litest_keyboard_key(sw, KEY_POWER, false);
 	libinput_dispatch(li);
 
-	/* We should route the key events correctly, but for now we just
-	 * ignore them. This test will fail once the key events are handled
-	 * correctly. */
-	litest_assert_empty_queue(li);
+	/* Check that we're routing key events from a lid device too */
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_KEYBOARD_KEY);
 }
 END_TEST
 

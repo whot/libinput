@@ -156,7 +156,6 @@ src_libinput = [
 	'src/libinput-private.h',
 	'src/evdev.c',
 	'src/evdev.h',
-	'src/evdev-lid.c',
 	'src/evdev-middle-button.c',
 	'src/evdev-mt-touchpad.c',
 	'src/evdev-mt-touchpad.h',
