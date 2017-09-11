@@ -1975,7 +1975,8 @@ tablet_reject_device(struct evdev_device *device)
 	    !libevdev_has_event_code(evdev, EV_ABS, ABS_Y))
 		goto out;
 
-	if (!libevdev_has_event_code(evdev, EV_KEY, BTN_TOOL_PEN))
+	if (!libevdev_has_event_code(evdev, EV_KEY, BTN_TOOL_PEN) &&
+	    !libevdev_has_event_code(evdev, EV_KEY, BTN_STYLUS))
 		goto out;
 
 	if (evdev_device_get_size(device, &w, &h) != 0)
@@ -1996,7 +1997,9 @@ static int
 tablet_init(struct tablet_dispatch *tablet,
 	    struct evdev_device *device)
 {
+	struct libevdev *evdev = device->evdev;
 	enum libinput_tablet_tool_axis axis;
+	bool want_proximity_quirk = false;
 	int rc;
 
 	tablet->base.dispatch_type = DISPATCH_TABLET;
@@ -2026,7 +2029,16 @@ tablet_init(struct tablet_dispatch *tablet,
 
 	tablet_set_status(tablet, TABLET_TOOL_OUT_OF_PROXIMITY);
 
-	if (device->model_flags & EVDEV_MODEL_HUION_TABLET_NO_PROXIMITY_OUT) {
+	if (!libevdev_has_event_code(evdev, EV_KEY, BTN_TOOL_PEN)) {
+		libevdev_enable_event_code(evdev, EV_KEY, BTN_TOOL_PEN, NULL);
+		want_proximity_quirk = true;
+		tablet->quirks.proximity_out_forced = true;
+	}
+
+	if (device->model_flags & EVDEV_MODEL_HUION_TABLET_NO_PROXIMITY_OUT)
+		want_proximity_quirk = true;
+
+	if (want_proximity_quirk) {
 		tablet->quirks.need_to_force_prox_out = true;
 		libinput_timer_init(&tablet->quirks.prox_out_timer,
 				    tablet_libinput_context(tablet),

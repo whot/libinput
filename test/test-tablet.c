@@ -260,6 +260,9 @@ tablet_has_proxout_quirk(struct litest_device *dev)
 
 	has_quirk = !!udev_device_get_property_value(udev_device,
 			   "LIBINPUT_MODEL_HUION_TABLET_NO_PROXIMITY_OUT");
+	if (!has_quirk)
+		has_quirk = !libevdev_has_event_code(dev->evdev, EV_KEY, BTN_TOOL_PEN);
+
 	udev_device_unref(udev_device);
 
 	return has_quirk;

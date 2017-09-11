@@ -569,6 +569,7 @@ if get_option('tests')
 		'test/litest-device-trackpoint.c',
 		'test/litest-device-touch-screen.c',
 		'test/litest-device-touchscreen-fuzz.c',
+		'test/litest-device-uclogic-tablet.c',
 		'test/litest-device-wacom-bamboo-16fg-pen.c',
 		'test/litest-device-wacom-cintiq-12wx-pen.c',
 		'test/litest-device-wacom-cintiq-13hdt-finger.c',
