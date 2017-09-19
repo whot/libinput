@@ -1793,7 +1793,7 @@ evdev_left_handed_has(struct libinput_device *device)
 }
 
 static void
-evdev_change_to_left_handed(struct evdev_device *device)
+fallback_change_to_left_handed(struct evdev_device *device)
 {
 	struct fallback_dispatch *dispatch = fallback_dispatch(device->dispatch);
 
@@ -1855,7 +1855,7 @@ evdev_scroll_get_methods(struct libinput_device *device)
 }
 
 static void
-evdev_change_scroll_method(struct evdev_device *device)
+fallback_change_scroll_method(struct evdev_device *device)
 {
 	struct fallback_dispatch *dispatch = fallback_dispatch(device->dispatch);
 
@@ -2051,14 +2051,14 @@ evdev_init_natural_scroll(struct evdev_device *device)
 }
 
 static int
-evdev_rotation_config_is_available(struct libinput_device *device)
+fallback_rotation_config_is_available(struct libinput_device *device)
 {
 	/* This function only gets called when we support rotation */
 	return 1;
 }
 
 static enum libinput_config_status
-evdev_rotation_config_set_angle(struct libinput_device *libinput_device,
+fallback_rotation_config_set_angle(struct libinput_device *libinput_device,
 				unsigned int degrees_cw)
 {
 	struct evdev_device *device = evdev_device(libinput_device);
@@ -2071,7 +2071,7 @@ evdev_rotation_config_set_angle(struct libinput_device *libinput_device,
 }
 
 static unsigned int
-evdev_rotation_config_get_angle(struct libinput_device *libinput_device)
+fallback_rotation_config_get_angle(struct libinput_device *libinput_device)
 {
 	struct evdev_device *device = evdev_device(libinput_device);
 	struct fallback_dispatch *dispatch = fallback_dispatch(device->dispatch);
@@ -2080,22 +2080,22 @@ evdev_rotation_config_get_angle(struct libinput_device *libinput_device)
 }
 
 static unsigned int
-evdev_rotation_config_get_default_angle(struct libinput_device *device)
+fallback_rotation_config_get_default_angle(struct libinput_device *device)
 {
 	return 0;
 }
 
 static void
-evdev_init_rotation(struct evdev_device *device,
-		    struct fallback_dispatch *dispatch)
+fallback_init_rotation(struct fallback_dispatch *dispatch,
+		       struct evdev_device *device)
 {
 	if ((device->model_flags & EVDEV_MODEL_TRACKBALL) == 0)
 		return;
 
-	dispatch->rotation.config.is_available = evdev_rotation_config_is_available;
-	dispatch->rotation.config.set_angle = evdev_rotation_config_set_angle;
-	dispatch->rotation.config.get_angle = evdev_rotation_config_get_angle;
-	dispatch->rotation.config.get_default_angle = evdev_rotation_config_get_default_angle;
+	dispatch->rotation.config.is_available = fallback_rotation_config_is_available;
+	dispatch->rotation.config.set_angle = fallback_rotation_config_set_angle;
+	dispatch->rotation.config.get_angle = fallback_rotation_config_get_angle;
+	dispatch->rotation.config.get_default_angle = fallback_rotation_config_get_default_angle;
 	dispatch->rotation.is_enabled = false;
 	matrix_init_identity(&dispatch->rotation.matrix);
 	device->base.config.rotation = &dispatch->rotation.config;
@@ -2270,18 +2270,18 @@ fallback_dispatch_create(struct libinput_device *libinput_device)
 
 	if (device->left_handed.want_enabled)
 		evdev_init_left_handed(device,
-				       evdev_change_to_left_handed);
+				       fallback_change_to_left_handed);
 
 	if (device->scroll.want_button)
 		evdev_init_button_scroll(device,
-					 evdev_change_scroll_method);
+					 fallback_change_scroll_method);
 
 	if (device->scroll.natural_scrolling_enabled)
 		evdev_init_natural_scroll(device);
 
 	evdev_init_calibration(device, &dispatch->calibration);
 	evdev_init_sendevents(device, &dispatch->base);
-	evdev_init_rotation(device, dispatch);
+	fallback_init_rotation(dispatch, device);
 
 	/* BTN_MIDDLE is set on mice even when it's not present. So
 	 * we can only use the absence of BTN_MIDDLE to mean something, i.e.
