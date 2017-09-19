@@ -2251,16 +2251,16 @@ tp_interface_toggle_touch(struct evdev_dispatch *dispatch,
 }
 
 static struct evdev_dispatch_interface tp_interface = {
-	tp_interface_process,
-	tp_interface_suspend,
-	tp_interface_remove,
-	tp_interface_destroy,
-	tp_interface_device_added,
-	tp_interface_device_removed,
-	tp_interface_device_removed, /* device_suspended, treat as remove */
-	tp_interface_device_added,   /* device_resumed, treat as add */
-	NULL,                        /* post_added */
-	tp_interface_toggle_touch,
+	.process = tp_interface_process,
+	.suspend = tp_interface_suspend,
+	.remove = tp_interface_remove,
+	.destroy = tp_interface_destroy,
+	.device_added = tp_interface_device_added,
+	.device_removed = tp_interface_device_removed,
+	.device_suspended = tp_interface_device_removed, /* treat as remove */
+	.device_resumed = tp_interface_device_added,   /* treat as add */
+	.post_added = NULL,
+	.toggle_touch = tp_interface_toggle_touch,
 };
 
 static void

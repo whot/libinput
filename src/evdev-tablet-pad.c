@@ -504,16 +504,16 @@ pad_destroy(struct evdev_dispatch *dispatch)
 }
 
 static struct evdev_dispatch_interface pad_interface = {
-	pad_process,
-	pad_suspend, /* suspend */
-	NULL, /* remove */
-	pad_destroy,
-	NULL, /* device_added */
-	NULL, /* device_removed */
-	NULL, /* device_suspended */
-	NULL, /* device_resumed */
-	NULL, /* post_added */
-	NULL, /* toggle_touch */
+	.process = pad_process,
+	.suspend = pad_suspend,
+	.remove = NULL,
+	.destroy = pad_destroy,
+	.device_added = NULL,
+	.device_removed = NULL,
+	.device_suspended = NULL,
+	.device_resumed = NULL,
+	.post_added = NULL,
+	.toggle_touch = NULL,
 };
 
 static void

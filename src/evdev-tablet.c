@@ -1861,16 +1861,16 @@ tablet_check_initial_proximity(struct evdev_device *device,
 }
 
 static struct evdev_dispatch_interface tablet_interface = {
-	tablet_process,
-	tablet_suspend,
-	NULL, /* remove */
-	tablet_destroy,
-	tablet_device_added,
-	tablet_device_removed,
-	NULL, /* device_suspended */
-	NULL, /* device_resumed */
-	tablet_check_initial_proximity,
-	NULL, /* toggle_touch */
+	.process = tablet_process,
+	.suspend = tablet_suspend,
+	.remove = NULL,
+	.destroy = tablet_destroy,
+	.device_added = tablet_device_added,
+	.device_removed = tablet_device_removed,
+	.device_suspended = NULL,
+	.device_resumed = NULL,
+	.post_added = tablet_check_initial_proximity,
+	.toggle_touch = NULL,
 };
 
 static void

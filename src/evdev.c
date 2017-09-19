@@ -1725,16 +1725,16 @@ fallback_interface_device_removed(struct evdev_device *device,
 }
 
 struct evdev_dispatch_interface fallback_interface = {
-	fallback_process,
-	fallback_suspend,
-	fallback_remove,
-	fallback_destroy,
-	fallback_interface_device_added,
-	fallback_interface_device_removed,
-	fallback_interface_device_removed, /* device_suspended, treat as remove */
-	fallback_interface_device_added,   /* device_resumed, treat as add */
-	fallback_sync_initial_state, /* post_added */
-	fallback_toggle_touch,
+	.process = fallback_process,
+	.suspend = fallback_suspend,
+	.remove = fallback_remove,
+	.destroy = fallback_destroy,
+	.device_added = fallback_interface_device_added,
+	.device_removed = fallback_interface_device_removed,
+	.device_suspended = fallback_interface_device_removed, /* treat as remove */
+	.device_resumed = fallback_interface_device_added,   /* treat as add */
+	.post_added = fallback_sync_initial_state,
+	.toggle_touch = fallback_toggle_touch,
 };
 
 static uint32_t
