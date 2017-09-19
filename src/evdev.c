@@ -52,10 +52,10 @@
 #define DEFAULT_BUTTON_SCROLL_TIMEOUT ms2us(200)
 #define	DEBOUNCE_TIME ms2us(12)
 
-enum evdev_key_type {
-	EVDEV_KEY_TYPE_NONE,
-	EVDEV_KEY_TYPE_KEY,
-	EVDEV_KEY_TYPE_BUTTON,
+enum key_type {
+	KEY_TYPE_NONE,
+	KEY_TYPE_KEY,
+	KEY_TYPE_BUTTON,
 };
 
 enum evdev_device_udev_tags {
@@ -808,7 +808,7 @@ fallback_flush_pending_event(struct fallback_dispatch *dispatch,
 	return sent_event;
 }
 
-static enum evdev_key_type
+static enum key_type
 get_key_type(uint16_t code)
 {
 	switch (code) {
@@ -825,22 +825,22 @@ get_key_type(uint16_t code)
 	case BTN_TOOL_QUADTAP:
 	case BTN_TOOL_FINGER:
 	case BTN_TOUCH:
-		return EVDEV_KEY_TYPE_NONE;
+		return KEY_TYPE_NONE;
 	}
 
 	if (code >= KEY_ESC && code <= KEY_MICMUTE)
-		return EVDEV_KEY_TYPE_KEY;
+		return KEY_TYPE_KEY;
 	if (code >= BTN_MISC && code <= BTN_GEAR_UP)
-		return EVDEV_KEY_TYPE_BUTTON;
+		return KEY_TYPE_BUTTON;
 	if (code >= KEY_OK && code <= KEY_LIGHTS_TOGGLE)
-		return EVDEV_KEY_TYPE_KEY;
+		return KEY_TYPE_KEY;
 	if (code >= BTN_DPAD_UP && code <= BTN_DPAD_RIGHT)
-		return EVDEV_KEY_TYPE_BUTTON;
+		return KEY_TYPE_BUTTON;
 	if (code >= KEY_ALS_TOGGLE && code <= KEY_ONSCREEN_KEYBOARD)
-		return EVDEV_KEY_TYPE_KEY;
+		return KEY_TYPE_KEY;
 	if (code >= BTN_TRIGGER_HAPPY && code <= BTN_TRIGGER_HAPPY40)
-		return EVDEV_KEY_TYPE_BUTTON;
-	return EVDEV_KEY_TYPE_NONE;
+		return KEY_TYPE_BUTTON;
+	return KEY_TYPE_NONE;
 }
 
 static void
@@ -1004,7 +1004,7 @@ fallback_process_key(struct fallback_dispatch *dispatch,
 		     struct evdev_device *device,
 		     struct input_event *e, uint64_t time)
 {
-	enum evdev_key_type type;
+	enum key_type type;
 
 	/* ignore kernel key repeat */
 	if (e->value == 2)
@@ -1027,14 +1027,14 @@ fallback_process_key(struct fallback_dispatch *dispatch,
 	 * never got a pressed event for or key presses for keys that we
 	 * think are still down */
 	switch (type) {
-	case EVDEV_KEY_TYPE_NONE:
+	case KEY_TYPE_NONE:
 		break;
-	case EVDEV_KEY_TYPE_KEY:
+	case KEY_TYPE_KEY:
 		if ((e->value && hw_is_key_down(dispatch, e->code)) ||
 		    (e->value == 0 && !hw_is_key_down(dispatch, e->code)))
 			return;
 		break;
-	case EVDEV_KEY_TYPE_BUTTON:
+	case KEY_TYPE_BUTTON:
 		if (fallback_filter_debounce(dispatch, device, e, time))
 			return;
 
@@ -1047,9 +1047,9 @@ fallback_process_key(struct fallback_dispatch *dispatch,
 	hw_set_key_down(dispatch, e->code, e->value);
 
 	switch (type) {
-	case EVDEV_KEY_TYPE_NONE:
+	case KEY_TYPE_NONE:
 		break;
-	case EVDEV_KEY_TYPE_KEY:
+	case KEY_TYPE_KEY:
 		fallback_keyboard_notify_key(
 			dispatch,
 			device,
@@ -1058,7 +1058,7 @@ fallback_process_key(struct fallback_dispatch *dispatch,
 			e->value ? LIBINPUT_KEY_STATE_PRESSED :
 				   LIBINPUT_KEY_STATE_RELEASED);
 		break;
-	case EVDEV_KEY_TYPE_BUTTON:
+	case KEY_TYPE_BUTTON:
 		evdev_pointer_notify_physical_button(
 			device,
 			time,
@@ -1514,9 +1514,9 @@ release_pressed_keys(struct fallback_dispatch *dispatch,
 		}
 
 		switch (get_key_type(code)) {
-		case EVDEV_KEY_TYPE_NONE:
+		case KEY_TYPE_NONE:
 			break;
-		case EVDEV_KEY_TYPE_KEY:
+		case KEY_TYPE_KEY:
 			fallback_keyboard_notify_key(
 				dispatch,
 				device,
@@ -1524,7 +1524,7 @@ release_pressed_keys(struct fallback_dispatch *dispatch,
 				code,
 				LIBINPUT_KEY_STATE_RELEASED);
 			break;
-		case EVDEV_KEY_TYPE_BUTTON:
+		case KEY_TYPE_BUTTON:
 			evdev_pointer_notify_physical_button(
 				device,
 				time,
