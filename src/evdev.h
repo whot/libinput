@@ -345,78 +345,6 @@ evdev_verify_dispatch_type(struct evdev_dispatch *dispatch,
 		abort();
 }
 
-struct fallback_dispatch {
-	struct evdev_dispatch base;
-	struct evdev_device *device;
-
-	struct libinput_device_config_calibration calibration;
-
-	struct {
-		bool is_enabled;
-		int angle;
-		struct matrix matrix;
-		struct libinput_device_config_rotation config;
-	} rotation;
-
-	struct {
-		struct device_coords point;
-		int32_t seat_slot;
-
-		struct {
-			struct device_coords min, max;
-			struct ratelimit range_warn_limit;
-		} warning_range;
-	} abs;
-
-	struct {
-		int slot;
-		struct mt_slot *slots;
-		size_t slots_len;
-		bool want_hysteresis;
-		struct device_coords hysteresis_margin;
-	} mt;
-
-	struct device_coords rel;
-
-	struct {
-		int state;
-	} tablet_mode;
-
-	/* Bitmask of pressed keys used to ignore initial release events from
-	 * the kernel. */
-	unsigned long hw_key_mask[NLONGS(KEY_CNT)];
-
-	enum evdev_event_type pending_event;
-
-	/* true if we're reading events (i.e. not suspended) but we're
-	   ignoring them */
-	bool ignore_events;
-
-	struct {
-		enum evdev_debounce_state state;
-		unsigned int button_code;
-		uint64_t button_up_time;
-		struct libinput_timer timer;
-	} debounce;
-
-	struct {
-		enum switch_reliability reliability;
-
-		bool is_closed;
-		bool is_closed_client_state;
-		struct evdev_device *keyboard;
-		struct libinput_event_listener listener;
-	} lid;
-};
-
-static inline struct fallback_dispatch*
-fallback_dispatch(struct evdev_dispatch *dispatch)
-{
-	evdev_verify_dispatch_type(dispatch, DISPATCH_FALLBACK);
-
-	return container_of(dispatch, struct fallback_dispatch, base);
-}
-
 struct evdev_device *
 evdev_device_create(struct libinput_seat *seat,
 		    struct udev_device *device);
@@ -435,6 +363,9 @@ evdev_init_calibration(struct evdev_device *device,
 
 void
 evdev_read_calibration_prop(struct evdev_device *device);
+
+enum switch_reliability
+evdev_read_switch_reliability_prop(struct evdev_device *device);
 
 void
 evdev_init_sendevents(struct evdev_device *device,
@@ -458,6 +389,15 @@ evdev_tablet_pad_create(struct evdev_device *device);
 
 struct evdev_dispatch *
 evdev_lid_switch_dispatch_create(struct evdev_device *device);
+
+struct evdev_dispatch *
+fallback_dispatch_create(struct libinput_device *libinput_device);
+
+bool
+evdev_is_fake_mt_device(struct evdev_device *device);
+
+int
+evdev_need_mtdev(struct evdev_device *device);
 
 void
 evdev_device_led_update(struct evdev_device *device, enum libinput_led leds);
@@ -563,6 +503,15 @@ evdev_pointer_notify_physical_button(struct evdev_device *device,
 
 void
 evdev_init_natural_scroll(struct evdev_device *device);
+
+void
+evdev_init_button_scroll(struct evdev_device *device,
+			 void (*change_scroll_method)(struct evdev_device *));
+
+int
+evdev_update_key_down_count(struct evdev_device *device,
+			    int code,
+			    int pressed);
 
 void
 evdev_notify_axis(struct evdev_device *device,
