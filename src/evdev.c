@@ -189,7 +189,18 @@ enum libinput_switch_state
 evdev_device_switch_get_state(struct evdev_device *device,
 			      enum libinput_switch sw)
 {
-	struct fallback_dispatch *dispatch = fallback_dispatch(device->dispatch);
+	struct evdev_dispatch *dispatch = device->dispatch;
+
+	assert(dispatch->interface->get_switch_state);
+
+	return dispatch->interface->get_switch_state(dispatch, sw);
+}
+
+static enum libinput_switch_state
+fallback_get_switch_state(struct evdev_dispatch *evdev_dispatch,
+			  enum libinput_switch sw)
+{
+	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
 
 	switch (sw) {
 	case LIBINPUT_SWITCH_TABLET_MODE:
@@ -1735,6 +1746,7 @@ struct evdev_dispatch_interface fallback_interface = {
 	.device_resumed = fallback_interface_device_added,   /* treat as add */
 	.post_added = fallback_sync_initial_state,
 	.toggle_touch = fallback_toggle_touch,
+	.get_switch_state = fallback_get_switch_state,
 };
 
 static uint32_t

@@ -313,6 +313,11 @@ struct evdev_dispatch_interface {
 	void (*toggle_touch)(struct evdev_dispatch *dispatch,
 			     struct evdev_device *device,
 			     bool enable);
+
+	/* Return the state of the given switch */
+	enum libinput_switch_state
+		(*get_switch_state)(struct evdev_dispatch *dispatch,
+				    enum libinput_switch which);
 };
 
 enum evdev_dispatch_type {

@@ -1871,6 +1871,7 @@ static struct evdev_dispatch_interface tablet_interface = {
 	.device_resumed = NULL,
 	.post_added = tablet_check_initial_proximity,
 	.toggle_touch = NULL,
+	.get_switch_state = NULL,
 };
 
 static void

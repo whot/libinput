@@ -2261,6 +2261,7 @@ static struct evdev_dispatch_interface tp_interface = {
 	.device_resumed = tp_interface_device_added,   /* treat as add */
 	.post_added = NULL,
 	.toggle_touch = tp_interface_toggle_touch,
+	.get_switch_state = NULL,
 };
 
 static void
