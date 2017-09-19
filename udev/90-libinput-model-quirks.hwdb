@@ -212,6 +212,15 @@ libinput:name:*Microsoft Surface Type Cover Keyboard*:dmi:*svnMicrosoftCorporati
  LIBINPUT_ATTR_KEYBOARD_INTEGRATION=internal
 
 ##########################################
+# Razer
+##########################################
+libinput:keyboard:input:b0003v1532p0220*
+ LIBINPUT_ATTR_KEYBOARD_INTEGRATION=internal
+
+libinput:name:*Lid Switch*:dmi:*svnRazer:pnBlade*
+ LIBINPUT_ATTR_LID_SWITCH_RELIABILITY=write_open
+
+##########################################
 # Synaptics
 ##########################################
 libinput:touchpad:input:b0011v0002p0007*

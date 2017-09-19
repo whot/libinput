@@ -403,8 +403,18 @@ struct fallback_dispatch {
 
 		bool is_closed;
 		bool is_closed_client_state;
-		struct evdev_device *keyboard;
-		struct libinput_event_listener listener;
+
+		/* We allow up to 3 paired keyboards for the lid switch
+		 * listener. Only one keyboard should exist, but that can
+		 * have more than one event node.
+		 *
+		 * Note: this is a sparse list, any element may have a
+		 * non-NULL device.
+		 */
+		struct paired_keyboard {
+			struct evdev_device *device;
+			struct libinput_event_listener listener;
+		} paired_keyboard[3];
 	} lid;
 };
 

@@ -754,6 +754,62 @@ START_TEST(lid_update_hw_on_key_closed_on_init)
 }
 END_TEST
 
+START_TEST(lid_update_hw_on_key_multiple_keyboards)
+{
+	struct litest_device *sw = litest_current_device();
+	struct libinput *li = sw->libinput;
+	struct libinput *li2;
+	struct litest_device *keyboard1, *keyboard2;
+	struct libinput_event *event;
+
+	if (!switch_has_lid(sw))
+		return;
+
+	keyboard1 = litest_add_device(li,
+				LITEST_KEYBOARD_BLADE_STEALTH_VIDEOSWITCH);
+	libinput_dispatch(li);
+
+	keyboard2 = litest_add_device(li, LITEST_KEYBOARD_BLADE_STEALTH);
+	libinput_dispatch(li);
+
+	/* separate context to listen to the fake hw event */
+	li2 = litest_create_context();
+	libinput_path_add_device(li2,
+				 libevdev_uinput_get_devnode(sw->uinput));
+	litest_drain_events(li2);
+
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_LID,
+			     LIBINPUT_SWITCH_STATE_ON);
+	litest_drain_events(li);
+
+	libinput_dispatch(li2);
+	event = libinput_get_event(li2);
+	litest_is_switch_event(event,
+			       LIBINPUT_SWITCH_LID,
+			       LIBINPUT_SWITCH_STATE_ON);
+	libinput_event_destroy(event);
+
+	litest_event(keyboard2, EV_KEY, KEY_A, 1);
+	litest_event(keyboard2, EV_SYN, SYN_REPORT, 0);
+	litest_event(keyboard2, EV_KEY, KEY_A, 0);
+	litest_event(keyboard2, EV_SYN, SYN_REPORT, 0);
+	litest_drain_events(li);
+
+	libinput_dispatch(li2);
+	event = libinput_get_event(li2);
+	litest_is_switch_event(event,
+			       LIBINPUT_SWITCH_LID,
+			       LIBINPUT_SWITCH_STATE_OFF);
+	libinput_event_destroy(event);
+	litest_assert_empty_queue(li2);
+
+	libinput_unref(li2);
+	litest_delete_device(keyboard1);
+	litest_delete_device(keyboard2);
+}
+END_TEST
+
 START_TEST(lid_key_press)
 {
 	struct litest_device *sw = litest_current_device();
@@ -836,6 +892,7 @@ litest_setup_tests_lid(void)
 	litest_add("lid:keyboard", lid_open_on_key_touchpad_enabled, LITEST_SWITCH, LITEST_ANY);
 	litest_add_for_device("lid:buggy", lid_update_hw_on_key, LITEST_LID_SWITCH_SURFACE3);
 	litest_add_for_device("lid:buggy", lid_update_hw_on_key_closed_on_init, LITEST_LID_SWITCH_SURFACE3);
+	litest_add_for_device("lid:buggy", lid_update_hw_on_key_multiple_keyboards, LITEST_LID_SWITCH_SURFACE3);
 	litest_add_for_device("lid:keypress", lid_key_press, LITEST_GPIO_KEYS);
 
 	litest_add("tablet-mode:touchpad", tablet_mode_disable_touchpad_on_init, LITEST_SWITCH, LITEST_ANY);
