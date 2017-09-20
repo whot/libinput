@@ -66,7 +66,16 @@ struct fallback_dispatch {
 	struct device_coords rel;
 
 	struct {
-		int state;
+		/* The struct for the tablet mode switch device itself */
+		struct {
+			int state;
+		} sw;
+		/* The struct for other devices listening to the tablet mode
+		   switch */
+		struct {
+			struct evdev_device *sw_device;
+			struct libinput_event_listener listener;
+		} other;
 	} tablet_mode;
 
 	/* Bitmask of pressed keys used to ignore initial release events from
@@ -171,7 +180,7 @@ fallback_interface_get_switch_state(struct evdev_dispatch *evdev_dispatch,
 		abort();
 	}
 
-	return dispatch->tablet_mode.state ?
+	return dispatch->tablet_mode.sw.state ?
 			LIBINPUT_SWITCH_STATE_ON :
 			LIBINPUT_SWITCH_STATE_OFF;
 }
@@ -965,10 +974,10 @@ fallback_process_switch(struct fallback_dispatch *dispatch,
 		fallback_lid_notify_toggle(dispatch, device, time);
 		break;
 	case SW_TABLET_MODE:
-		if (dispatch->tablet_mode.state == e->value)
+		if (dispatch->tablet_mode.sw.state == e->value)
 			return;
 
-		dispatch->tablet_mode.state = e->value;
+		dispatch->tablet_mode.sw.state = e->value;
 		if (e->value)
 			state = LIBINPUT_SWITCH_STATE_ON;
 		else
@@ -1235,10 +1244,10 @@ fallback_interface_remove(struct evdev_dispatch *evdev_dispatch)
 {
 	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
 
-	if (!dispatch->lid.keyboard)
-		return;
+	libinput_device_remove_event_listener(&dispatch->tablet_mode.other.listener);
 
-	libinput_device_remove_event_listener(&dispatch->lid.listener);
+	if (dispatch->lid.keyboard)
+		libinput_device_remove_event_listener(&dispatch->lid.listener);
 }
 
 static void
@@ -1269,7 +1278,7 @@ fallback_interface_sync_initial_state(struct evdev_device *device,
 		}
 	}
 
-	if (dispatch->tablet_mode.state) {
+	if (dispatch->tablet_mode.sw.state) {
 		switch_notify_toggle(&device->base,
 				     time,
 				     LIBINPUT_SWITCH_TABLET_MODE,
@@ -1335,10 +1344,93 @@ fallback_lid_pair_keyboard(struct evdev_device *lid_switch,
 }
 
 static void
+fallback_resume(struct fallback_dispatch *dispatch,
+		struct evdev_device *device)
+{
+	if (dispatch->base.sendevents.current_mode ==
+	    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED)
+		return;
+
+	evdev_device_resume(device);
+}
+
+static void
+fallback_suspend(struct fallback_dispatch *dispatch,
+		 struct evdev_device *device)
+{
+	evdev_device_suspend(device);
+}
+
+static void
+fallback_tablet_mode_switch_event(uint64_t time,
+				  struct libinput_event *event,
+				  void *data)
+{
+	struct fallback_dispatch *dispatch = data;
+	struct evdev_device *device = dispatch->device;
+	struct libinput_event_switch *swev;
+
+	if (libinput_event_get_type(event) != LIBINPUT_EVENT_SWITCH_TOGGLE)
+		return;
+
+	swev = libinput_event_get_switch_event(event);
+	if (libinput_event_switch_get_switch(swev) !=
+	    LIBINPUT_SWITCH_TABLET_MODE)
+		return;
+
+
+	switch (libinput_event_switch_get_switch_state(swev)) {
+	case LIBINPUT_SWITCH_STATE_OFF:
+		fallback_resume(dispatch, device);
+		evdev_log_debug(device, "tablet-mode: resuming device\n");
+		break;
+	case LIBINPUT_SWITCH_STATE_ON:
+		fallback_suspend(dispatch, device);
+		evdev_log_debug(device, "tablet-mode: suspending device\n");
+		break;
+	}
+}
+
+static void
+fallback_keyboard_pair_tablet_mode(struct evdev_device *keyboard,
+				   struct evdev_device *tablet_mode_switch)
+{
+	struct fallback_dispatch *dispatch =
+		fallback_dispatch(keyboard->dispatch);
+
+	if ((keyboard->tags &
+	     (EVDEV_TAG_TRACKPOINT|EVDEV_TAG_INTERNAL_KEYBOARD)) == 0)
+		return;
+
+	if ((tablet_mode_switch->tags & EVDEV_TAG_TABLET_MODE_SWITCH) == 0)
+		return;
+
+	if (dispatch->tablet_mode.other.sw_device)
+		return;
+
+	evdev_log_debug(keyboard,
+			"tablet_mode_switch: activated for %s<->%s\n",
+			keyboard->devname,
+			tablet_mode_switch->devname);
+
+	libinput_device_add_event_listener(&tablet_mode_switch->base,
+				&dispatch->tablet_mode.other.listener,
+				fallback_tablet_mode_switch_event,
+				dispatch);
+	dispatch->tablet_mode.other.sw_device = tablet_mode_switch;
+
+	if (evdev_device_switch_get_state(tablet_mode_switch,
+					  LIBINPUT_SWITCH_TABLET_MODE)
+		    == LIBINPUT_SWITCH_STATE_ON)
+		fallback_suspend(dispatch, keyboard);
+}
+
+static void
 fallback_interface_device_added(struct evdev_device *device,
 				struct evdev_device *added_device)
 {
 	fallback_lid_pair_keyboard(device, added_device);
+	fallback_keyboard_pair_tablet_mode(device, added_device);
 }
 
 static void
@@ -1353,7 +1445,16 @@ fallback_interface_device_removed(struct evdev_device *device,
 					&dispatch->lid.listener);
 		libinput_device_init_event_listener(
 					&dispatch->lid.listener);
+
 		dispatch->lid.keyboard = NULL;
+	}
+
+	if (removed_device == dispatch->tablet_mode.other.sw_device) {
+		libinput_device_remove_event_listener(
+				&dispatch->tablet_mode.other.listener);
+		libinput_device_init_event_listener(
+				&dispatch->tablet_mode.other.listener);
+		dispatch->tablet_mode.other.sw_device = NULL;
 	}
 }
 
@@ -1550,8 +1651,10 @@ fallback_dispatch_init_switch(struct fallback_dispatch *dispatch,
 		val = libevdev_get_event_value(device->evdev,
 					       EV_SW,
 					       SW_TABLET_MODE);
-		dispatch->tablet_mode.state = val;
+		dispatch->tablet_mode.sw.state = val;
 	}
+
+	libinput_device_init_event_listener(&dispatch->tablet_mode.other.listener);
 }
 
 struct evdev_dispatch *
