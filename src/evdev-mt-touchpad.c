@@ -2076,22 +2076,23 @@ tp_pair_tablet_mode_switch(struct evdev_device *touchpad,
 	if ((tablet_mode_switch->tags & EVDEV_TAG_TABLET_MODE_SWITCH) == 0)
 		return;
 
-	if (tp->tablet_mode_switch.tablet_mode_switch == NULL) {
-		evdev_log_debug(touchpad,
-				"tablet_mode_switch: activated for %s<->%s\n",
-				touchpad->devname,
-				tablet_mode_switch->devname);
+	if (tp->tablet_mode_switch.tablet_mode_switch)
+		return;
 
-		libinput_device_add_event_listener(&tablet_mode_switch->base,
-					&tp->tablet_mode_switch.listener,
-					tp_switch_event, tp);
-		tp->tablet_mode_switch.tablet_mode_switch = tablet_mode_switch;
+	evdev_log_debug(touchpad,
+			"tablet_mode_switch: activated for %s<->%s\n",
+			touchpad->devname,
+			tablet_mode_switch->devname);
 
-		if (evdev_device_switch_get_state(tablet_mode_switch,
-						  LIBINPUT_SWITCH_TABLET_MODE)
-			    == LIBINPUT_SWITCH_STATE_ON) {
-			tp_suspend(tp, touchpad);
-		}
+	libinput_device_add_event_listener(&tablet_mode_switch->base,
+				&tp->tablet_mode_switch.listener,
+				tp_switch_event, tp);
+	tp->tablet_mode_switch.tablet_mode_switch = tablet_mode_switch;
+
+	if (evdev_device_switch_get_state(tablet_mode_switch,
+					  LIBINPUT_SWITCH_TABLET_MODE)
+		    == LIBINPUT_SWITCH_STATE_ON) {
+		tp_suspend(tp, touchpad);
 	}
 }
 
