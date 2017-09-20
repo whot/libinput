@@ -158,8 +158,8 @@ fallback_lid_notify_toggle(struct fallback_dispatch *dispatch,
 }
 
 static enum libinput_switch_state
-fallback_get_switch_state(struct evdev_dispatch *evdev_dispatch,
-			  enum libinput_switch sw)
+fallback_interface_get_switch_state(struct evdev_dispatch *evdev_dispatch,
+				    enum libinput_switch sw)
 {
 	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
 
@@ -1089,10 +1089,10 @@ fallback_any_button_down(struct fallback_dispatch *dispatch,
 }
 
 static void
-fallback_process(struct evdev_dispatch *evdev_dispatch,
-		 struct evdev_device *device,
-		 struct input_event *event,
-		 uint64_t time)
+fallback_interface_process(struct evdev_dispatch *evdev_dispatch,
+			   struct evdev_device *device,
+			   struct input_event *event,
+			   uint64_t time)
 {
 	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
 	enum evdev_event_type sent;
@@ -1222,8 +1222,8 @@ fallback_return_to_neutral_state(struct fallback_dispatch *dispatch,
 }
 
 static void
-fallback_suspend(struct evdev_dispatch *evdev_dispatch,
-		 struct evdev_device *device)
+fallback_interface_suspend(struct evdev_dispatch *evdev_dispatch,
+			   struct evdev_device *device)
 {
 	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
 
@@ -1231,7 +1231,7 @@ fallback_suspend(struct evdev_dispatch *evdev_dispatch,
 }
 
 static void
-fallback_remove(struct evdev_dispatch *evdev_dispatch)
+fallback_interface_remove(struct evdev_dispatch *evdev_dispatch)
 {
 	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
 
@@ -1242,8 +1242,8 @@ fallback_remove(struct evdev_dispatch *evdev_dispatch)
 }
 
 static void
-fallback_sync_initial_state(struct evdev_device *device,
-			    struct evdev_dispatch *evdev_dispatch)
+fallback_interface_sync_initial_state(struct evdev_device *device,
+				      struct evdev_dispatch *evdev_dispatch)
 {
 	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
 	uint64_t time = libinput_now(evdev_libinput_context(device));
@@ -1278,9 +1278,9 @@ fallback_sync_initial_state(struct evdev_device *device,
 }
 
 static void
-fallback_toggle_touch(struct evdev_dispatch *evdev_dispatch,
-		      struct evdev_device *device,
-		      bool enable)
+fallback_interface_toggle_touch(struct evdev_dispatch *evdev_dispatch,
+				struct evdev_device *device,
+				bool enable)
 {
 	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
 	bool ignore_events = !enable;
@@ -1295,7 +1295,7 @@ fallback_toggle_touch(struct evdev_dispatch *evdev_dispatch,
 }
 
 static void
-fallback_destroy(struct evdev_dispatch *evdev_dispatch)
+fallback_interface_destroy(struct evdev_dispatch *evdev_dispatch)
 {
 	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
 
@@ -1358,17 +1358,17 @@ fallback_interface_device_removed(struct evdev_device *device,
 }
 
 struct evdev_dispatch_interface fallback_interface = {
-	.process = fallback_process,
-	.suspend = fallback_suspend,
-	.remove = fallback_remove,
-	.destroy = fallback_destroy,
+	.process = fallback_interface_process,
+	.suspend = fallback_interface_suspend,
+	.remove = fallback_interface_remove,
+	.destroy = fallback_interface_destroy,
 	.device_added = fallback_interface_device_added,
 	.device_removed = fallback_interface_device_removed,
 	.device_suspended = fallback_interface_device_removed, /* treat as remove */
 	.device_resumed = fallback_interface_device_added,   /* treat as add */
-	.post_added = fallback_sync_initial_state,
-	.toggle_touch = fallback_toggle_touch,
-	.get_switch_state = fallback_get_switch_state,
+	.post_added = fallback_interface_sync_initial_state,
+	.toggle_touch = fallback_interface_toggle_touch,
+	.get_switch_state = fallback_interface_get_switch_state,
 };
 
 static void
