@@ -270,6 +270,7 @@ struct tp_dispatch {
 	} touch_size;
 
 	struct {
+		bool enabled;
 		struct device_coords margin;
 	} hysteresis;
 

@@ -138,6 +138,9 @@ tp_motion_hysteresis(struct tp_dispatch *tp,
 	int x = t->point.x,
 	    y = t->point.y;
 
+	if (!tp->hysteresis.enabled)
+		return;
+
 	if (t->history.count == 0) {
 		t->hysteresis_center = t->point;
 	} else {
@@ -2901,6 +2904,7 @@ tp_init_hysteresis(struct tp_dispatch *tp)
 	res_y = tp->device->abs.absinfo_y->resolution;
 	tp->hysteresis.margin.x = res_x/2;
 	tp->hysteresis.margin.y = res_y/2;
+	tp->hysteresis.enabled = true;
 }
 
 static void
