@@ -143,10 +143,10 @@ tp_motion_hysteresis(struct tp_dispatch *tp,
 	} else {
 		x = evdev_hysteresis(x,
 				     t->hysteresis_center.x,
-				     tp->hysteresis_margin.x);
+				     tp->hysteresis.margin.x);
 		y = evdev_hysteresis(y,
 				     t->hysteresis_center.y,
-				     tp->hysteresis_margin.y);
+				     tp->hysteresis.margin.y);
 		t->hysteresis_center.x = x;
 		t->hysteresis_center.y = y;
 		t->point.x = x;
@@ -2899,8 +2899,8 @@ tp_init_hysteresis(struct tp_dispatch *tp)
 
 	res_x = tp->device->abs.absinfo_x->resolution;
 	res_y = tp->device->abs.absinfo_y->resolution;
-	tp->hysteresis_margin.x = res_x/2;
-	tp->hysteresis_margin.y = res_y/2;
+	tp->hysteresis.margin.x = res_x/2;
+	tp->hysteresis.margin.y = res_y/2;
 }
 
 static void
