@@ -132,6 +132,30 @@ tp_motion_history_push(struct tp_touch *t)
 }
 
 static inline void
+tp_maybe_disable_hysteresis(struct tp_dispatch *tp)
+{
+	bool has_motion, has_other;
+
+	has_motion = !!(tp->queued & TOUCHPAD_EVENT_MOTION);
+	has_other = !!(tp->queued & TOUCHPAD_EVENT_OTHERAXIS);
+
+	if (has_motion) {
+		tp->hysteresis.other_event_count = 0;
+	} else if (has_other) {
+		tp->hysteresis.other_event_count++;
+
+		/* If we get 5+ events that consist only of other axes
+		 * (e.g. pressure) then we have some fw filtering and we
+		 * don't need to do our own hysteresis.
+		 */
+		if (tp->hysteresis.other_event_count >= 5) {
+			tp->hysteresis.enabled = false;
+			evdev_log_debug(tp->device, "disabling hysteresis\n");
+		}
+	}
+}
+
+static inline void
 tp_motion_hysteresis(struct tp_dispatch *tp,
 		     struct tp_touch *t)
 {
@@ -1530,6 +1554,10 @@ tp_handle_state(struct tp_dispatch *tp,
 		uint64_t time)
 {
 	tp_process_state(tp, time);
+
+	if (tp->hysteresis.enabled)
+		tp_maybe_disable_hysteresis(tp);
+
 	tp_post_events(tp, time);
 	tp_post_process_state(tp, time);
 
