@@ -610,6 +610,19 @@ evdev_to_left_handed(struct evdev_device *device,
  * calculation to do circular hysteresis are nontrivial, especially since
  * many touchpads have uneven x/y resolutions.
  *
+ * Given coordinates, 0, 1, 2, ... this is what we return for a margin of 3
+ * and a center of 0:
+ *
+ * Input:  1 2 3 4 5 6 5 4 3 2 1 0 -1
+ * Coord:  0 0 0 1 2 3 3 3 3 3 3 3 2
+ * Center: 0 0 0 1 2 3 3 3 3 3 3 3 2
+ *
+ * Problem: viewed from a stationary finger that starts moving, the
+ * hysteresis margin is M in both directions. Once we start moving
+ * continuously though, the margin is 0 in the movement direction and 2*M to
+ * change direction. That makes the finger less responsive to directional
+ * changes than to the original movement.
+ *
  * @param in The input coordinate
  * @param center Current center of the hysteresis
  * @param margin Hysteresis width (on each side)
