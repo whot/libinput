@@ -273,6 +273,7 @@ struct tp_dispatch {
 		bool enabled;
 		struct device_coords margin;
 		unsigned int other_event_count;
+		uint64_t last_motion_time;
 	} hysteresis;
 
 	struct {

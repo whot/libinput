@@ -3224,6 +3224,12 @@ litest_timeout_tablet_proxout(void)
 }
 
 void
+litest_timeout_hysteresis(void)
+{
+	msleep(90);
+}
+
+void
 litest_push_event_frame(struct litest_device *dev)
 {
 	litest_assert(dev->skip_ev_syn >= 0);
