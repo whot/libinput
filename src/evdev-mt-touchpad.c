@@ -290,6 +290,7 @@ tp_begin_touch(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	t->thumb.state = THUMB_STATE_MAYBE;
 	t->thumb.first_touch_time = time;
 	t->tap.is_thumb = false;
+	t->tap.is_palm = false;
 	assert(tp->nfingers_down >= 1);
 	tp->hysteresis.last_motion_time = time;
 }
