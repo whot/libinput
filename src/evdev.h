@@ -655,17 +655,14 @@ evdev_log_msg_va(struct evdev_device *device,
 		 const char *format,
 		 va_list args)
 {
+	/* Anything info and above is user-visible, use the device name */
 	log_msg(evdev_libinput_context(device),
 		priority,
-		"%-7s - ",
-		evdev_device_get_sysname(device));
-
-	/* Anything info and above is user-visible, use the device name */
-	if (priority > LIBINPUT_LOG_PRIORITY_DEBUG)
-		log_msg(evdev_libinput_context(device),
-			priority,
-			"%s: ",
-			device->devname);
+		"%-7s - %s%s",
+		evdev_device_get_sysname(device),
+		(priority > LIBINPUT_LOG_PRIORITY_DEBUG) ?  device->devname : "",
+		(priority > LIBINPUT_LOG_PRIORITY_DEBUG) ?  ": " : ""
+		);
 
 	log_msg_va(evdev_libinput_context(device),
 		   priority,
