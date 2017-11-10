@@ -47,11 +47,6 @@ struct fallback_dispatch {
 	struct {
 		struct device_coords point;
 		int32_t seat_slot;
-
-		struct {
-			struct device_coords min, max;
-			struct ratelimit range_warn_limit;
-		} warning_range;
 	} abs;
 
 	struct {
