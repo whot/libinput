@@ -3182,7 +3182,7 @@ litest_timeout_tapndrag(void)
 void
 litest_timeout_debounce(void)
 {
-	msleep(15);
+	msleep(30);
 }
 
 void

@@ -156,6 +156,7 @@ src_libinput = [
 	'src/libinput-private.h',
 	'src/evdev.c',
 	'src/evdev.h',
+	'src/evdev-debounce.c',
 	'src/evdev-fallback.c',
 	'src/evdev-fallback.h',
 	'src/evdev-middle-button.c',
