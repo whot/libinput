@@ -157,6 +157,7 @@ src_libinput = [
 	'src/evdev.c',
 	'src/evdev.h',
 	'src/evdev-fallback.c',
+	'src/evdev-fallback.h',
 	'src/evdev-middle-button.c',
 	'src/evdev-mt-touchpad.c',
 	'src/evdev-mt-touchpad.h',
