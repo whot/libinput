@@ -41,13 +41,14 @@
 
 enum evdev_event_type {
 	EVDEV_NONE,
-	EVDEV_ABSOLUTE_TOUCH_DOWN,
-	EVDEV_ABSOLUTE_MOTION,
-	EVDEV_ABSOLUTE_TOUCH_UP,
-	EVDEV_ABSOLUTE_MT_DOWN,
-	EVDEV_ABSOLUTE_MT_MOTION,
-	EVDEV_ABSOLUTE_MT_UP,
-	EVDEV_RELATIVE_MOTION,
+	EVDEV_ABSOLUTE_TOUCH_DOWN = (1 << 0),
+	EVDEV_ABSOLUTE_MOTION = (1 << 1),
+	EVDEV_ABSOLUTE_TOUCH_UP = (1 << 2),
+	EVDEV_ABSOLUTE_MT= (1 << 3),
+	EVDEV_WHEEL = (1 << 4),
+	EVDEV_KEY = (1 << 5),
+	EVDEV_RELATIVE_MOTION = (1 << 6),
+	EVDEV_BUTTON = (1 << 7),
 };
 
 enum evdev_device_seat_capability {
@@ -150,7 +151,16 @@ enum evdev_debounce_state {
 	DEBOUNCE_ACTIVE,
 };
 
+enum mt_slot_state {
+	SLOT_STATE_NONE,
+	SLOT_STATE_BEGIN,
+	SLOT_STATE_UPDATE,
+	SLOT_STATE_END,
+};
+
 struct mt_slot {
+	bool dirty;
+	enum mt_slot_state state;
 	int32_t seat_slot;
 	struct device_coords point;
 	struct device_coords hysteresis_center;

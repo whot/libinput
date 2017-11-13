@@ -58,6 +58,7 @@ struct fallback_dispatch {
 	} mt;
 
 	struct device_coords rel;
+	struct device_coords wheel;
 
 	struct {
 		/* The struct for the tablet mode switch device itself */
@@ -75,6 +76,7 @@ struct fallback_dispatch {
 	/* Bitmask of pressed keys used to ignore initial release events from
 	 * the kernel. */
 	unsigned long hw_key_mask[NLONGS(KEY_CNT)];
+	unsigned long last_hw_key_mask[NLONGS(KEY_CNT)];
 
 	enum evdev_event_type pending_event;
 

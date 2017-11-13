@@ -45,6 +45,25 @@ hw_set_key_down(struct fallback_dispatch *dispatch, int code, int pressed)
 }
 
 static bool
+hw_key_has_changed(struct fallback_dispatch *dispatch, int code)
+{
+	return long_bit_is_set(dispatch->hw_key_mask, code) !=
+		long_bit_is_set(dispatch->last_hw_key_mask, code);
+}
+
+static void
+hw_key_update_last_state(struct fallback_dispatch *dispatch)
+{
+	static_assert(sizeof(dispatch->hw_key_mask) ==
+		      sizeof(dispatch->last_hw_key_mask),
+		      "Mismatching key mask size");
+
+	memcpy(dispatch->last_hw_key_mask,
+	       dispatch->hw_key_mask,
+	       sizeof(dispatch->hw_key_mask));
+}
+
+static bool
 hw_is_key_down(struct fallback_dispatch *dispatch, int code)
 {
 	return long_bit_is_set(dispatch->hw_key_mask, code);
@@ -225,6 +244,58 @@ fallback_flush_relative_motion(struct fallback_dispatch *dispatch,
 		return;
 
 	pointer_notify_motion(base, time, &accel, &raw);
+}
+
+static void
+fallback_flush_wheels(struct fallback_dispatch *dispatch,
+		      struct evdev_device *device,
+		      uint64_t time)
+{
+	struct normalized_coords wheel_degrees = { 0.0, 0.0 };
+	struct discrete_coords discrete = { 0.0, 0.0 };
+	enum libinput_pointer_axis_source source;
+
+	if (!(device->seat_caps & EVDEV_DEVICE_POINTER))
+		return;
+
+
+	if (dispatch->wheel.y != 0) {
+		wheel_degrees.y = -1 * dispatch->wheel.y *
+					device->scroll.wheel_click_angle.y;
+		discrete.y = -1 * dispatch->wheel.y;
+
+		source = device->scroll.is_tilt.vertical ?
+				LIBINPUT_POINTER_AXIS_SOURCE_WHEEL_TILT:
+				LIBINPUT_POINTER_AXIS_SOURCE_WHEEL;
+
+		evdev_notify_axis(
+			device,
+			time,
+			AS_MASK(LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL),
+			source,
+			&wheel_degrees,
+			&discrete);
+		dispatch->wheel.y = 0;
+	}
+
+	if (dispatch->wheel.x != 0) {
+		wheel_degrees.x = dispatch->wheel.x *
+					device->scroll.wheel_click_angle.x;
+		discrete.x = dispatch->wheel.x;
+
+		source = device->scroll.is_tilt.horizontal ?
+				LIBINPUT_POINTER_AXIS_SOURCE_WHEEL_TILT:
+				LIBINPUT_POINTER_AXIS_SOURCE_WHEEL;
+
+		evdev_notify_axis(
+			device,
+			time,
+			AS_MASK(LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL),
+			source,
+			&wheel_degrees,
+			&discrete);
+		dispatch->wheel.x = 0;
+	}
 }
 
 static void
@@ -424,78 +495,6 @@ fallback_flush_st_up(struct fallback_dispatch *dispatch,
 	return true;
 }
 
-static enum evdev_event_type
-fallback_flush_pending_event(struct fallback_dispatch *dispatch,
-			     struct evdev_device *device,
-			     uint64_t time)
-{
-	enum evdev_event_type sent_event;
-	int slot_idx;
-
-	sent_event = dispatch->pending_event;
-
-	switch (dispatch->pending_event) {
-	case EVDEV_NONE:
-		break;
-	case EVDEV_RELATIVE_MOTION:
-		fallback_flush_relative_motion(dispatch, device, time);
-		break;
-	case EVDEV_ABSOLUTE_MT_DOWN:
-		slot_idx = dispatch->mt.slot;
-		if (!fallback_flush_mt_down(dispatch,
-					    device,
-					    slot_idx,
-					    time))
-			sent_event = EVDEV_NONE;
-		break;
-	case EVDEV_ABSOLUTE_MT_MOTION:
-		slot_idx = dispatch->mt.slot;
-		if (!fallback_flush_mt_motion(dispatch,
-					      device,
-					      slot_idx,
-					      time))
-			sent_event = EVDEV_NONE;
-		break;
-	case EVDEV_ABSOLUTE_MT_UP:
-		slot_idx = dispatch->mt.slot;
-		if (!fallback_flush_mt_up(dispatch,
-					  device,
-					  slot_idx,
-					  time))
-			sent_event = EVDEV_NONE;
-		break;
-	case EVDEV_ABSOLUTE_TOUCH_DOWN:
-		if (!fallback_flush_st_down(dispatch, device, time))
-			sent_event = EVDEV_NONE;
-		break;
-	case EVDEV_ABSOLUTE_MOTION:
-		if (device->seat_caps & EVDEV_DEVICE_TOUCH) {
-			if (fallback_flush_st_motion(dispatch,
-						     device,
-						     time))
-				sent_event = EVDEV_ABSOLUTE_MT_MOTION;
-			else
-				sent_event = EVDEV_NONE;
-		} else if (device->seat_caps & EVDEV_DEVICE_POINTER) {
-			fallback_flush_absolute_motion(dispatch,
-						       device,
-						       time);
-		}
-		break;
-	case EVDEV_ABSOLUTE_TOUCH_UP:
-		if (!fallback_flush_st_up(dispatch, device, time))
-			sent_event = EVDEV_NONE;
-		break;
-	default:
-		assert(0 && "Unknown pending event type");
-		break;
-	}
-
-	dispatch->pending_event = EVDEV_NONE;
-
-	return sent_event;
-}
-
 static enum key_type
 get_key_type(uint16_t code)
 {
@@ -536,13 +535,9 @@ fallback_process_touch_button(struct fallback_dispatch *dispatch,
 			      struct evdev_device *device,
 			      uint64_t time, int value)
 {
-	if (dispatch->pending_event != EVDEV_NONE &&
-	    dispatch->pending_event != EVDEV_ABSOLUTE_MOTION)
-		fallback_flush_pending_event(dispatch, device, time);
-
-	dispatch->pending_event = (value ?
+	dispatch->pending_event |= (value) ?
 				 EVDEV_ABSOLUTE_TOUCH_DOWN :
-				 EVDEV_ABSOLUTE_TOUCH_UP);
+				 EVDEV_ABSOLUTE_TOUCH_UP;
 }
 
 static inline void
@@ -562,6 +557,7 @@ fallback_flush_debounce(struct fallback_dispatch *dispatch,
 						     button,
 						     LIBINPUT_BUTTON_STATE_RELEASED);
 		hw_set_key_down(dispatch, code, 0);
+		hw_key_update_last_state(dispatch);
 	}
 
 	dispatch->debounce.state = DEBOUNCE_ON;
@@ -707,8 +703,6 @@ fallback_process_key(struct fallback_dispatch *dispatch,
 		return;
 	}
 
-	fallback_flush_pending_event(dispatch, device, time);
-
 	type = get_key_type(e->code);
 
 	/* Ignore key release events from the kernel for keys that libinput
@@ -721,40 +715,22 @@ fallback_process_key(struct fallback_dispatch *dispatch,
 		if ((e->value && hw_is_key_down(dispatch, e->code)) ||
 		    (e->value == 0 && !hw_is_key_down(dispatch, e->code)))
 			return;
+
+		dispatch->pending_event |= EVDEV_KEY;
 		break;
 	case KEY_TYPE_BUTTON:
+		/* FIXME: should move to handle_state */
 		if (fallback_filter_debounce(dispatch, device, e, time))
 			return;
 
 		if ((e->value && hw_is_key_down(dispatch, e->code)) ||
 		    (e->value == 0 && !hw_is_key_down(dispatch, e->code)))
 			return;
+		dispatch->pending_event |= EVDEV_KEY;
 		break;
 	}
 
 	hw_set_key_down(dispatch, e->code, e->value);
-
-	switch (type) {
-	case KEY_TYPE_NONE:
-		break;
-	case KEY_TYPE_KEY:
-		fallback_keyboard_notify_key(
-			dispatch,
-			device,
-			time,
-			e->code,
-			e->value ? LIBINPUT_KEY_STATE_PRESSED :
-				   LIBINPUT_KEY_STATE_RELEASED);
-		break;
-	case KEY_TYPE_BUTTON:
-		evdev_pointer_notify_physical_button(
-			device,
-			time,
-			evdev_to_left_handed(device, e->code),
-			e->value ? LIBINPUT_BUTTON_STATE_PRESSED :
-				   LIBINPUT_BUTTON_STATE_RELEASED);
-		break;
-	}
 }
 
 static void
@@ -763,8 +739,9 @@ fallback_process_touch(struct fallback_dispatch *dispatch,
 		       struct input_event *e,
 		       uint64_t time)
 {
-	switch (e->code) {
-	case ABS_MT_SLOT:
+	struct mt_slot *slot = &dispatch->mt.slots[dispatch->mt.slot];
+
+	if (e->code == ABS_MT_SLOT) {
 		if ((size_t)e->value >= dispatch->mt.slots_len) {
 			evdev_log_bug_libinput(device,
 					 "exceeded slot count (%d of max %zd)\n",
@@ -772,32 +749,36 @@ fallback_process_touch(struct fallback_dispatch *dispatch,
 					 dispatch->mt.slots_len);
 			e->value = dispatch->mt.slots_len - 1;
 		}
-		fallback_flush_pending_event(dispatch, device, time);
 		dispatch->mt.slot = e->value;
-		break;
+		return;
+	}
+
+	switch (e->code) {
 	case ABS_MT_TRACKING_ID:
-		if (dispatch->pending_event != EVDEV_NONE &&
-		    dispatch->pending_event != EVDEV_ABSOLUTE_MT_MOTION)
-			fallback_flush_pending_event(dispatch, device, time);
-		if (e->value >= 0)
-			dispatch->pending_event = EVDEV_ABSOLUTE_MT_DOWN;
-		else
-			dispatch->pending_event = EVDEV_ABSOLUTE_MT_UP;
+		if (e->value >= 0) {
+			dispatch->pending_event |= EVDEV_ABSOLUTE_MT;
+			slot->state = SLOT_STATE_BEGIN;
+		} else {
+			dispatch->pending_event |= EVDEV_ABSOLUTE_MT;
+			slot->state = SLOT_STATE_END;
+		}
+		slot->dirty = true;
 		break;
 	case ABS_MT_POSITION_X:
 		evdev_device_check_abs_axis_range(device, e->code, e->value);
 		dispatch->mt.slots[dispatch->mt.slot].point.x = e->value;
-		if (dispatch->pending_event == EVDEV_NONE)
-			dispatch->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
+		dispatch->pending_event |= EVDEV_ABSOLUTE_MT;
+		slot->dirty = true;
 		break;
 	case ABS_MT_POSITION_Y:
 		evdev_device_check_abs_axis_range(device, e->code, e->value);
 		dispatch->mt.slots[dispatch->mt.slot].point.y = e->value;
-		if (dispatch->pending_event == EVDEV_NONE)
-			dispatch->pending_event = EVDEV_ABSOLUTE_MT_MOTION;
+		dispatch->pending_event |= EVDEV_ABSOLUTE_MT;
+		slot->dirty = true;
 		break;
 	}
 }
+
 static inline void
 fallback_process_absolute_motion(struct fallback_dispatch *dispatch,
 				 struct evdev_device *device,
@@ -807,14 +788,12 @@ fallback_process_absolute_motion(struct fallback_dispatch *dispatch,
 	case ABS_X:
 		evdev_device_check_abs_axis_range(device, e->code, e->value);
 		dispatch->abs.point.x = e->value;
-		if (dispatch->pending_event == EVDEV_NONE)
-			dispatch->pending_event = EVDEV_ABSOLUTE_MOTION;
+		dispatch->pending_event |= EVDEV_ABSOLUTE_MOTION;
 		break;
 	case ABS_Y:
 		evdev_device_check_abs_axis_range(device, e->code, e->value);
 		dispatch->abs.point.y = e->value;
-		if (dispatch->pending_event == EVDEV_NONE)
-			dispatch->pending_event = EVDEV_ABSOLUTE_MOTION;
+		dispatch->pending_event |= EVDEV_ABSOLUTE_MOTION;
 		break;
 	}
 }
@@ -897,6 +876,8 @@ fallback_process_switch(struct fallback_dispatch *dispatch,
 	enum libinput_switch_state state;
 	bool is_closed;
 
+	/* TODO: this should to move to handle_state */
+
 	switch (e->code) {
 	case SW_LID:
 		is_closed = !!e->value;
@@ -947,61 +928,25 @@ fallback_process_relative(struct fallback_dispatch *dispatch,
 			  struct evdev_device *device,
 			  struct input_event *e, uint64_t time)
 {
-	struct normalized_coords wheel_degrees = { 0.0, 0.0 };
-	struct discrete_coords discrete = { 0.0, 0.0 };
-	enum libinput_pointer_axis_source source;
-
 	if (fallback_reject_relative(device, e, time))
 		return;
 
 	switch (e->code) {
 	case REL_X:
-		if (dispatch->pending_event != EVDEV_RELATIVE_MOTION)
-			fallback_flush_pending_event(dispatch, device, time);
 		dispatch->rel.x += e->value;
-		dispatch->pending_event = EVDEV_RELATIVE_MOTION;
+		dispatch->pending_event |= EVDEV_RELATIVE_MOTION;
 		break;
 	case REL_Y:
-		if (dispatch->pending_event != EVDEV_RELATIVE_MOTION)
-			fallback_flush_pending_event(dispatch, device, time);
 		dispatch->rel.y += e->value;
-		dispatch->pending_event = EVDEV_RELATIVE_MOTION;
+		dispatch->pending_event |= EVDEV_RELATIVE_MOTION;
 		break;
 	case REL_WHEEL:
-		fallback_flush_pending_event(dispatch, device, time);
-		wheel_degrees.y = -1 * e->value *
-					device->scroll.wheel_click_angle.y;
-		discrete.y = -1 * e->value;
-
-		source = device->scroll.is_tilt.vertical ?
-				LIBINPUT_POINTER_AXIS_SOURCE_WHEEL_TILT:
-				LIBINPUT_POINTER_AXIS_SOURCE_WHEEL;
-
-		evdev_notify_axis(
-			device,
-			time,
-			AS_MASK(LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL),
-			source,
-			&wheel_degrees,
-			&discrete);
+		dispatch->wheel.y += e->value;
+		dispatch->pending_event |= EVDEV_WHEEL;
 		break;
 	case REL_HWHEEL:
-		fallback_flush_pending_event(dispatch, device, time);
-		wheel_degrees.x = e->value *
-					device->scroll.wheel_click_angle.x;
-		discrete.x = e->value;
-
-		source = device->scroll.is_tilt.horizontal ?
-				LIBINPUT_POINTER_AXIS_SOURCE_WHEEL_TILT:
-				LIBINPUT_POINTER_AXIS_SOURCE_WHEEL;
-
-		evdev_notify_axis(
-			device,
-			time,
-			AS_MASK(LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL),
-			source,
-			&wheel_degrees,
-			&discrete);
+		dispatch->wheel.x += e->value;
+		dispatch->pending_event |= EVDEV_WHEEL;
 		break;
 	}
 }
@@ -1034,13 +979,128 @@ fallback_any_button_down(struct fallback_dispatch *dispatch,
 }
 
 static void
+fallback_handle_state(struct fallback_dispatch *dispatch,
+		      struct evdev_device *device,
+		      uint64_t time)
+{
+	bool need_touch_frame = false;
+
+	/* Relative motion */
+	if (dispatch->pending_event & EVDEV_RELATIVE_MOTION)
+		fallback_flush_relative_motion(dispatch, device, time);
+
+	/* Single touch or absolute pointer devices */
+	if (dispatch->pending_event & EVDEV_ABSOLUTE_TOUCH_DOWN) {
+		if (fallback_flush_st_down(dispatch, device, time))
+			need_touch_frame = true;
+	}
+
+	if (dispatch->pending_event & EVDEV_ABSOLUTE_MOTION) {
+		if (device->seat_caps & EVDEV_DEVICE_TOUCH) {
+			if (fallback_flush_st_motion(dispatch,
+						     device,
+						     time))
+				need_touch_frame = true;
+		} else if (device->seat_caps & EVDEV_DEVICE_POINTER) {
+			fallback_flush_absolute_motion(dispatch,
+						       device,
+						       time);
+		}
+	}
+
+	if (dispatch->pending_event & EVDEV_ABSOLUTE_TOUCH_UP) {
+		if (fallback_flush_st_up(dispatch, device, time))
+			need_touch_frame = true;
+	}
+
+	/* Multitouch devices */
+	if (dispatch->pending_event & EVDEV_ABSOLUTE_MT) {
+		bool sent = false;
+		for (size_t i = 0; i < dispatch->mt.slots_len; i++) {
+			struct mt_slot *slot = &dispatch->mt.slots[i];
+
+			if (!slot->dirty)
+				continue;
+
+			if (slot->state == SLOT_STATE_BEGIN) {
+				sent = fallback_flush_mt_down(dispatch,
+							      device,
+							      i,
+							      time);
+				slot->state = SLOT_STATE_UPDATE;
+			} else if (slot->state == SLOT_STATE_UPDATE) {
+				sent = fallback_flush_mt_motion(dispatch,
+								device,
+								i,
+								time);
+			} else if (slot->state == SLOT_STATE_END) {
+				sent = fallback_flush_mt_up(dispatch,
+							    device,
+							    i,
+							    time);
+				slot->state = SLOT_STATE_NONE;
+			}
+
+
+			slot->dirty = false;
+		}
+
+		need_touch_frame = sent;
+	}
+
+	if (need_touch_frame)
+		touch_notify_frame(&device->base, time);
+
+	fallback_flush_wheels(dispatch, device, time);
+
+	/* Buttons and keys */
+	if (dispatch->pending_event & EVDEV_KEY) {
+		for (unsigned int code = 0; code <= KEY_MAX; code++) {
+			bool new_state;
+
+			if (!hw_key_has_changed(dispatch, code))
+				continue;
+
+			new_state = hw_is_key_down(dispatch, code);
+
+			switch (get_key_type(code)) {
+			case KEY_TYPE_NONE:
+				break;
+			case KEY_TYPE_KEY:
+				fallback_keyboard_notify_key(
+						     dispatch,
+						     device,
+						     time,
+						     code,
+						     new_state ?
+							     LIBINPUT_KEY_STATE_PRESSED :
+							     LIBINPUT_KEY_STATE_RELEASED);
+				break;
+			case KEY_TYPE_BUTTON:
+				evdev_pointer_notify_physical_button(
+						     device,
+						     time,
+						     evdev_to_left_handed(device, code),
+						     new_state ?
+							     LIBINPUT_BUTTON_STATE_PRESSED :
+							     LIBINPUT_BUTTON_STATE_RELEASED);
+				break;
+			}
+
+		}
+		hw_key_update_last_state(dispatch);
+	}
+
+	dispatch->pending_event = EVDEV_NONE;
+}
+
+static void
 fallback_interface_process(struct evdev_dispatch *evdev_dispatch,
 			   struct evdev_device *device,
 			   struct input_event *event,
 			   uint64_t time)
 {
 	struct fallback_dispatch *dispatch = fallback_dispatch(evdev_dispatch);
-	enum evdev_event_type sent;
 
 	if (dispatch->ignore_events)
 		return;
@@ -1059,20 +1119,7 @@ fallback_interface_process(struct evdev_dispatch *evdev_dispatch,
 		fallback_process_switch(dispatch, device, event, time);
 		break;
 	case EV_SYN:
-		sent = fallback_flush_pending_event(dispatch, device, time);
-		switch (sent) {
-		case EVDEV_ABSOLUTE_TOUCH_DOWN:
-		case EVDEV_ABSOLUTE_TOUCH_UP:
-		case EVDEV_ABSOLUTE_MT_DOWN:
-		case EVDEV_ABSOLUTE_MT_MOTION:
-		case EVDEV_ABSOLUTE_MT_UP:
-			touch_notify_frame(&device->base, time);
-			break;
-		case EVDEV_ABSOLUTE_MOTION:
-		case EVDEV_RELATIVE_MOTION:
-		case EVDEV_NONE:
-			break;
-		}
+		fallback_handle_state(dispatch, device, time);
 		break;
 	}
 }
@@ -1164,6 +1211,7 @@ fallback_return_to_neutral_state(struct fallback_dispatch *dispatch,
 	release_touches(dispatch, device, time);
 	release_pressed_keys(dispatch, device, time);
 	memset(dispatch->hw_key_mask, 0, sizeof(dispatch->hw_key_mask));
+	memset(dispatch->hw_key_mask, 0, sizeof(dispatch->last_hw_key_mask));
 }
 
 static void
