@@ -291,5 +291,6 @@ def main(args):
     except InvalidDeviceError as e:
         print("Error: {}".format(e))
 
+
 if __name__ == "__main__":
     main(sys.argv)
