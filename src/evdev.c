@@ -1126,17 +1126,17 @@ evdev_read_wheel_click_props(struct evdev_device *device)
 	/* CLICK_COUNT overrides CLICK_ANGLE */
 	if (!evdev_read_wheel_click_count_prop(device,
 					      "MOUSE_WHEEL_CLICK_COUNT",
-					      &angles.x))
+					      &angles.y))
 		evdev_read_wheel_click_prop(device,
 					    "MOUSE_WHEEL_CLICK_ANGLE",
-					    &angles.x);
+					    &angles.y);
 	if (!evdev_read_wheel_click_count_prop(device,
 					      "MOUSE_WHEEL_CLICK_COUNT_HORIZONTAL",
-					      &angles.y)) {
+					      &angles.x)) {
 		if (!evdev_read_wheel_click_prop(device,
 						 "MOUSE_WHEEL_CLICK_ANGLE_HORIZONTAL",
-						 &angles.y))
-			angles.y = angles.x;
+						 &angles.x))
+			angles.x = angles.y;
 	}
 
 	return angles;

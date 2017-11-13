@@ -1060,7 +1060,7 @@ fallback_process_relative(struct fallback_dispatch *dispatch,
 	case REL_WHEEL:
 		fallback_flush_pending_event(dispatch, device, time);
 		wheel_degrees.y = -1 * e->value *
-					device->scroll.wheel_click_angle.x;
+					device->scroll.wheel_click_angle.y;
 		discrete.y = -1 * e->value;
 
 		source = device->scroll.is_tilt.vertical ?
@@ -1078,7 +1078,7 @@ fallback_process_relative(struct fallback_dispatch *dispatch,
 	case REL_HWHEEL:
 		fallback_flush_pending_event(dispatch, device, time);
 		wheel_degrees.x = e->value *
-					device->scroll.wheel_click_angle.y;
+					device->scroll.wheel_click_angle.x;
 		discrete.x = e->value;
 
 		source = device->scroll.is_tilt.horizontal ?
