@@ -26,9 +26,15 @@
 
 import sys
 import argparse
-import evdev
-import evdev.ecodes
-import pyudev
+try:
+    import evdev
+    import evdev.ecodes
+    import pyudev
+except ModuleNotFoundError as e:
+    print('Error: {}'.format(str(e)), file=sys.stderr)
+    print('One or more python modules are missing. Please install those '
+          'modules and re-run this tool.')
+    sys.exit(1)
 
 MINIMUM_EVENT_COUNT = 1000
 
