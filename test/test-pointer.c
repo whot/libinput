@@ -348,7 +348,7 @@ test_button_event(struct litest_device *dev, unsigned int button, int state)
 {
 	struct libinput *li = dev->libinput;
 
-	litest_button_click(dev, button, state);
+	litest_button_click_debounced(dev, li, button, state);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
 	litest_assert_button_event(li, button,
@@ -500,7 +500,7 @@ START_TEST(pointer_recover_from_lost_button_count)
 
 	litest_drain_events(dev->libinput);
 
-	litest_button_click(dev, BTN_LEFT, 1);
+	litest_button_click_debounced(dev, li, BTN_LEFT, 1);
 
 	litest_assert_button_event(li,
 				   BTN_LEFT,
@@ -508,15 +508,15 @@ START_TEST(pointer_recover_from_lost_button_count)
 
 	/* Grab for the release to make libinput lose count */
 	libevdev_grab(evdev, LIBEVDEV_GRAB);
-	litest_button_click(dev, BTN_LEFT, 0);
+	litest_button_click_debounced(dev, li, BTN_LEFT, 0);
 	libevdev_grab(evdev, LIBEVDEV_UNGRAB);
 
 	litest_assert_empty_queue(li);
 
-	litest_button_click(dev, BTN_LEFT, 1);
+	litest_button_click_debounced(dev, li, BTN_LEFT, 1);
 	litest_assert_empty_queue(li);
 
-	litest_button_click(dev, BTN_LEFT, 0);
+	litest_button_click_debounced(dev, li, BTN_LEFT, 0);
 	litest_assert_button_event(li,
 				   BTN_LEFT,
 				   LIBINPUT_BUTTON_STATE_RELEASED);
@@ -802,7 +802,10 @@ START_TEST(pointer_seat_button_count)
 	}
 
 	for (i = 0; i < num_devices; ++i)
-		litest_button_click(devices[i], BTN_LEFT, true);
+		litest_button_click_debounced(devices[i],
+					      libinput,
+					      BTN_LEFT,
+					      true);
 
 	libinput_dispatch(libinput);
 	while ((ev = libinput_get_event(libinput))) {
@@ -832,7 +835,10 @@ START_TEST(pointer_seat_button_count)
 	ck_assert_int_eq(seat_button_count, num_devices);
 
 	for (i = 0; i < num_devices; ++i)
-		litest_button_click(devices[i], BTN_LEFT, false);
+		litest_button_click_debounced(devices[i],
+					      libinput,
+					      BTN_LEFT,
+					      false);
 
 	libinput_dispatch(libinput);
 	while ((ev = libinput_get_event(libinput))) {
@@ -921,8 +927,8 @@ START_TEST(pointer_left_handed)
 	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
 
 	litest_drain_events(li);
-	litest_button_click(dev, BTN_LEFT, 1);
-	litest_button_click(dev, BTN_LEFT, 0);
+	litest_button_click_debounced(dev, li, BTN_LEFT, 1);
+	litest_button_click_debounced(dev, li, BTN_LEFT, 0);
 
 	litest_assert_button_event(li,
 				   BTN_RIGHT,
@@ -931,8 +937,8 @@ START_TEST(pointer_left_handed)
 				   BTN_RIGHT,
 				   LIBINPUT_BUTTON_STATE_RELEASED);
 
-	litest_button_click(dev, BTN_RIGHT, 1);
-	litest_button_click(dev, BTN_RIGHT, 0);
+	litest_button_click_debounced(dev, li, BTN_RIGHT, 1);
+	litest_button_click_debounced(dev, li, BTN_RIGHT, 0);
 	litest_assert_button_event(li,
 				   BTN_LEFT,
 				   LIBINPUT_BUTTON_STATE_PRESSED);
@@ -941,8 +947,8 @@ START_TEST(pointer_left_handed)
 				   LIBINPUT_BUTTON_STATE_RELEASED);
 
 	if (libinput_device_pointer_has_button(d, BTN_MIDDLE)) {
-		litest_button_click(dev, BTN_MIDDLE, 1);
-		litest_button_click(dev, BTN_MIDDLE, 0);
+		litest_button_click_debounced(dev, li, BTN_MIDDLE, 1);
+		litest_button_click_debounced(dev, li, BTN_MIDDLE, 0);
 		litest_assert_button_event(li,
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_PRESSED);
@@ -961,14 +967,14 @@ START_TEST(pointer_left_handed_during_click)
 	enum libinput_config_status status;
 
 	litest_drain_events(li);
-	litest_button_click(dev, BTN_LEFT, 1);
+	litest_button_click_debounced(dev, li, BTN_LEFT, 1);
 	libinput_dispatch(li);
 
 	/* Change while button is down, expect correct release event */
 	status = libinput_device_config_left_handed_set(d, 1);
 	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
 
-	litest_button_click(dev, BTN_LEFT, 0);
+	litest_button_click_debounced(dev, li, BTN_LEFT, 0);
 
 	litest_assert_button_event(li,
 				   BTN_LEFT,
@@ -992,16 +998,16 @@ START_TEST(pointer_left_handed_during_click_multiple_buttons)
 	litest_disable_middleemu(dev);
 
 	litest_drain_events(li);
-	litest_button_click(dev, BTN_LEFT, 1);
+	litest_button_click_debounced(dev, li, BTN_LEFT, 1);
 	libinput_dispatch(li);
 
 	status = libinput_device_config_left_handed_set(d, 1);
 	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
 
 	/* No left-handed until all buttons were down */
-	litest_button_click(dev, BTN_RIGHT, 1);
-	litest_button_click(dev, BTN_RIGHT, 0);
-	litest_button_click(dev, BTN_LEFT, 0);
+	litest_button_click_debounced(dev, li, BTN_RIGHT, 1);
+	litest_button_click_debounced(dev, li, BTN_RIGHT, 0);
+	litest_button_click_debounced(dev, li, BTN_LEFT, 0);
 
 	litest_assert_button_event(li,
 				   BTN_LEFT,
@@ -1102,7 +1108,7 @@ START_TEST(pointer_scroll_button_no_event_before_timeout)
 						 BTN_LEFT);
 	litest_drain_events(li);
 
-	litest_button_click(device, BTN_LEFT, true);
+	litest_button_click_debounced(device, li, BTN_LEFT, true);
 	litest_assert_empty_queue(li);
 
 	for (i = 0; i < 10; i++) {
@@ -1113,7 +1119,7 @@ START_TEST(pointer_scroll_button_no_event_before_timeout)
 
 	litest_timeout_buttonscroll();
 	libinput_dispatch(li);
-	litest_button_click(device, BTN_LEFT, false);
+	litest_button_click_debounced(device, li, BTN_LEFT, false);
 
 	litest_assert_button_event(li, BTN_LEFT,
 				   LIBINPUT_BUTTON_STATE_PRESSED);
@@ -1146,8 +1152,8 @@ START_TEST(pointer_scroll_button_middle_emulation)
 
 	litest_drain_events(li);
 
-	litest_button_click(dev, BTN_LEFT, 1);
-	litest_button_click(dev, BTN_RIGHT, 1);
+	litest_button_click_debounced(dev, li, BTN_LEFT, 1);
+	litest_button_click_debounced(dev, li, BTN_RIGHT, 1);
 	libinput_dispatch(li);
 	litest_timeout_buttonscroll();
 	libinput_dispatch(li);
@@ -1159,8 +1165,8 @@ START_TEST(pointer_scroll_button_middle_emulation)
 
 	libinput_dispatch(li);
 
-	litest_button_click(dev, BTN_LEFT, 0);
-	litest_button_click(dev, BTN_RIGHT, 0);
+	litest_button_click_debounced(dev, li, BTN_LEFT, 0);
+	litest_button_click_debounced(dev, li, BTN_RIGHT, 0);
 	libinput_dispatch(li);
 
 	litest_assert_scroll(li, LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL, -1);
@@ -1525,16 +1531,16 @@ START_TEST(middlebutton)
 	litest_drain_events(li);
 
 	for (i = 0; i < ARRAY_LENGTH(btn); i++) {
-		litest_button_click(device, btn[i][0], true);
-		litest_button_click(device, btn[i][1], true);
+		litest_button_click_debounced(device, li, btn[i][0], true);
+		litest_button_click_debounced(device, li, btn[i][1], true);
 
 		litest_assert_button_event(li,
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_PRESSED);
 		litest_assert_empty_queue(li);
 
-		litest_button_click(device, btn[i][2], false);
-		litest_button_click(device, btn[i][3], false);
+		litest_button_click_debounced(device, li, btn[i][2], false);
+		litest_button_click_debounced(device, li, btn[i][3], false);
 		litest_assert_button_event(li,
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_RELEASED);
@@ -1568,33 +1574,33 @@ START_TEST(middlebutton_nostart_while_down)
 	if (status == LIBINPUT_CONFIG_STATUS_UNSUPPORTED)
 		return;
 
-	litest_button_click(device, BTN_MIDDLE, true);
+	litest_button_click_debounced(device, li, BTN_MIDDLE, true);
 	litest_drain_events(li);
 
 	for (i = 0; i < ARRAY_LENGTH(btn); i++) {
-		litest_button_click(device, btn[i][0], true);
+		litest_button_click_debounced(device, li, btn[i][0], true);
 		litest_assert_button_event(li,
 					   btn[i][0],
 					   LIBINPUT_BUTTON_STATE_PRESSED);
-		litest_button_click(device, btn[i][1], true);
+		litest_button_click_debounced(device, li, btn[i][1], true);
 		litest_assert_button_event(li,
 					   btn[i][1],
 					   LIBINPUT_BUTTON_STATE_PRESSED);
 
 		litest_assert_empty_queue(li);
 
-		litest_button_click(device, btn[i][2], false);
+		litest_button_click_debounced(device, li, btn[i][2], false);
 		litest_assert_button_event(li,
 					   btn[i][2],
 					   LIBINPUT_BUTTON_STATE_RELEASED);
-		litest_button_click(device, btn[i][3], false);
+		litest_button_click_debounced(device, li, btn[i][3], false);
 		litest_assert_button_event(li,
 					   btn[i][3],
 					   LIBINPUT_BUTTON_STATE_RELEASED);
 		litest_assert_empty_queue(li);
 	}
 
-	litest_button_click(device, BTN_MIDDLE, false);
+	litest_button_click_debounced(device, li, BTN_MIDDLE, false);
 	litest_drain_events(li);
 }
 END_TEST
@@ -1616,7 +1622,7 @@ START_TEST(middlebutton_timeout)
 
 	for (button = BTN_LEFT; button <= BTN_RIGHT; button++) {
 		litest_drain_events(li);
-		litest_button_click(device, button, true);
+		litest_button_click_debounced(device, li, button, true);
 		litest_assert_empty_queue(li);
 		litest_timeout_middlebutton();
 
@@ -1624,7 +1630,7 @@ START_TEST(middlebutton_timeout)
 					   button,
 					   LIBINPUT_BUTTON_STATE_PRESSED);
 
-		litest_button_click(device, button, false);
+		litest_button_click_debounced(device, li, button, false);
 		litest_assert_button_event(li,
 					   button,
 					   LIBINPUT_BUTTON_STATE_RELEASED);
@@ -1657,22 +1663,22 @@ START_TEST(middlebutton_doubleclick)
 	litest_drain_events(li);
 
 	for (i = 0; i < ARRAY_LENGTH(btn); i++) {
-		litest_button_click(device, btn[i][0], true);
-		litest_button_click(device, btn[i][1], true);
+		litest_button_click_debounced(device, li, btn[i][0], true);
+		litest_button_click_debounced(device, li, btn[i][1], true);
 		litest_assert_button_event(li,
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_PRESSED);
 		litest_assert_empty_queue(li);
 
-		litest_button_click(device, btn[i][2], false);
-		litest_button_click(device, btn[i][2], true);
+		litest_button_click_debounced(device, li, btn[i][2], false);
+		litest_button_click_debounced(device, li, btn[i][2], true);
 		litest_assert_button_event(li,
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_RELEASED);
 		litest_assert_button_event(li,
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_PRESSED);
-		litest_button_click(device, btn[i][3], false);
+		litest_button_click_debounced(device, li, btn[i][3], false);
 
 		litest_assert_button_event(li,
 					   BTN_MIDDLE,
@@ -1705,8 +1711,8 @@ START_TEST(middlebutton_middleclick)
 	for (button = BTN_LEFT; button <= BTN_RIGHT; button++) {
 		/* release button before middle */
 		litest_drain_events(li);
-		litest_button_click(device, button, true);
-		litest_button_click(device, BTN_MIDDLE, true);
+		litest_button_click_debounced(device, li, button, true);
+		litest_button_click_debounced(device, li, BTN_MIDDLE, true);
 		litest_assert_button_event(li,
 					   button,
 					   LIBINPUT_BUTTON_STATE_PRESSED);
@@ -1714,19 +1720,19 @@ START_TEST(middlebutton_middleclick)
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_PRESSED);
 		litest_assert_empty_queue(li);
-		litest_button_click(device, button, false);
+		litest_button_click_debounced(device, li, button, false);
 		litest_assert_button_event(li,
 					   button,
 					   LIBINPUT_BUTTON_STATE_RELEASED);
-		litest_button_click(device, BTN_MIDDLE, false);
+		litest_button_click_debounced(device, li, BTN_MIDDLE, false);
 		litest_assert_button_event(li,
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_RELEASED);
 		litest_assert_empty_queue(li);
 
 		/* release middle before button */
-		litest_button_click(device, button, true);
-		litest_button_click(device, BTN_MIDDLE, true);
+		litest_button_click_debounced(device, li, button, true);
+		litest_button_click_debounced(device, li, BTN_MIDDLE, true);
 		litest_assert_button_event(li,
 					   button,
 					   LIBINPUT_BUTTON_STATE_PRESSED);
@@ -1734,11 +1740,11 @@ START_TEST(middlebutton_middleclick)
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_PRESSED);
 		litest_assert_empty_queue(li);
-		litest_button_click(device, BTN_MIDDLE, false);
+		litest_button_click_debounced(device, li, BTN_MIDDLE, false);
 		litest_assert_button_event(li,
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_RELEASED);
-		litest_button_click(device, button, false);
+		litest_button_click_debounced(device, li, button, false);
 		litest_assert_button_event(li,
 					   button,
 					   LIBINPUT_BUTTON_STATE_RELEASED);
@@ -1770,14 +1776,14 @@ START_TEST(middlebutton_middleclick_during)
 
 	/* trigger emulation, then real middle */
 	for (button = BTN_LEFT; button <= BTN_RIGHT; button++) {
-		litest_button_click(device, BTN_LEFT, true);
-		litest_button_click(device, BTN_RIGHT, true);
+		litest_button_click_debounced(device, li, BTN_LEFT, true);
+		litest_button_click_debounced(device, li, BTN_RIGHT, true);
 
 		litest_assert_button_event(li,
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_PRESSED);
 
-		litest_button_click(device, BTN_MIDDLE, true);
+		litest_button_click_debounced(device, li, BTN_MIDDLE, true);
 		litest_assert_button_event(li,
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_RELEASED);
@@ -1788,23 +1794,23 @@ START_TEST(middlebutton_middleclick_during)
 		litest_assert_empty_queue(li);
 
 		/* middle still down, release left/right */
-		litest_button_click(device, button, false);
+		litest_button_click_debounced(device, li, button, false);
 		litest_assert_empty_queue(li);
-		litest_button_click(device, button, true);
+		litest_button_click_debounced(device, li, button, true);
 		litest_assert_button_event(li,
 					   button,
 					   LIBINPUT_BUTTON_STATE_PRESSED);
 		litest_assert_empty_queue(li);
 
 		/* release both */
-		litest_button_click(device, BTN_LEFT, false);
-		litest_button_click(device, BTN_RIGHT, false);
+		litest_button_click_debounced(device, li, BTN_LEFT, false);
+		litest_button_click_debounced(device, li, BTN_RIGHT, false);
 		litest_assert_button_event(li,
 					   button,
 					   LIBINPUT_BUTTON_STATE_RELEASED);
 		litest_assert_empty_queue(li);
 
-		litest_button_click(device, BTN_MIDDLE, false);
+		litest_button_click_debounced(device, li, BTN_MIDDLE, false);
 		litest_assert_button_event(li,
 					   BTN_MIDDLE,
 					   LIBINPUT_BUTTON_STATE_RELEASED);

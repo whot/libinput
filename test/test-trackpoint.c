@@ -43,9 +43,9 @@ START_TEST(trackpoint_middlebutton)
 	litest_drain_events(li);
 
 	/* A quick middle button click should get reported normally */
-	litest_button_click(dev, BTN_MIDDLE, 1);
+	litest_button_click_debounced(dev, li, BTN_MIDDLE, 1);
 	msleep(2);
-	litest_button_click(dev, BTN_MIDDLE, 0);
+	litest_button_click_debounced(dev, li, BTN_MIDDLE, 0);
 
 	litest_wait_for_event(li);
 
@@ -173,7 +173,7 @@ START_TEST(trackpoint_topsoftbuttons_left_handed_trackpoint)
 
 	litest_touch_down(touchpad, 0, 5, 5);
 	libinput_dispatch(li);
-	litest_button_click(touchpad, BTN_LEFT, true);
+	litest_button_click_debounced(touchpad, li, BTN_LEFT, true);
 	libinput_dispatch(li);
 
 	event = libinput_get_event(li);
@@ -184,7 +184,7 @@ START_TEST(trackpoint_topsoftbuttons_left_handed_trackpoint)
 	ck_assert(device == trackpoint->libinput_device);
 	libinput_event_destroy(event);
 
-	litest_button_click(touchpad, BTN_LEFT, false);
+	litest_button_click_debounced(touchpad, li, BTN_LEFT, false);
 	libinput_dispatch(li);
 	event = libinput_get_event(li);
 	litest_is_button_event(event,
@@ -216,7 +216,7 @@ START_TEST(trackpoint_topsoftbuttons_left_handed_touchpad)
 
 	litest_touch_down(touchpad, 0, 5, 5);
 	libinput_dispatch(li);
-	litest_button_click(touchpad, BTN_LEFT, true);
+	litest_button_click_debounced(touchpad, li, BTN_LEFT, true);
 	libinput_dispatch(li);
 
 	event = libinput_get_event(li);
@@ -225,7 +225,7 @@ START_TEST(trackpoint_topsoftbuttons_left_handed_touchpad)
 	ck_assert(device == trackpoint->libinput_device);
 	libinput_event_destroy(event);
 
-	litest_button_click(touchpad, BTN_LEFT, false);
+	litest_button_click_debounced(touchpad, li, BTN_LEFT, false);
 	libinput_dispatch(li);
 	event = libinput_get_event(li);
 	litest_is_button_event(event,
@@ -260,7 +260,7 @@ START_TEST(trackpoint_topsoftbuttons_left_handed_both)
 
 	litest_touch_down(touchpad, 0, 5, 5);
 	libinput_dispatch(li);
-	litest_button_click(touchpad, BTN_LEFT, true);
+	litest_button_click_debounced(touchpad, li, BTN_LEFT, true);
 	libinput_dispatch(li);
 
 	event = libinput_get_event(li);
@@ -271,7 +271,7 @@ START_TEST(trackpoint_topsoftbuttons_left_handed_both)
 	ck_assert(device == trackpoint->libinput_device);
 	libinput_event_destroy(event);
 
-	litest_button_click(touchpad, BTN_LEFT, false);
+	litest_button_click_debounced(touchpad, li, BTN_LEFT, false);
 	libinput_dispatch(li);
 	event = libinput_get_event(li);
 	litest_is_button_event(event,

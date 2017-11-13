@@ -463,7 +463,7 @@ START_TEST(device_disable_release_buttons)
 
 	device = dev->libinput_device;
 
-	litest_button_click(dev, BTN_LEFT, true);
+	litest_button_click_debounced(dev, li, BTN_LEFT, true);
 	litest_drain_events(li);
 
 	status = libinput_device_config_send_events_set_mode(device,
@@ -497,7 +497,7 @@ START_TEST(device_disable_release_keys)
 
 	device = dev->libinput_device;
 
-	litest_button_click(dev, KEY_A, true);
+	litest_button_click_debounced(dev, li, KEY_A, true);
 	litest_drain_events(li);
 
 	status = libinput_device_config_send_events_set_mode(device,
@@ -616,7 +616,7 @@ START_TEST(device_disable_release_softbutton)
 	litest_drain_events(li);
 
 	litest_touch_down(dev, 0, 90, 90);
-	litest_button_click(dev, BTN_LEFT, true);
+	litest_button_click_debounced(dev, li, BTN_LEFT, true);
 
 	/* make sure softbutton works */
 	litest_assert_button_event(li,
@@ -633,7 +633,7 @@ START_TEST(device_disable_release_softbutton)
 
 	litest_assert_empty_queue(li);
 
-	litest_button_click(dev, BTN_LEFT, false);
+	litest_button_click_debounced(dev, li, BTN_LEFT, false);
 	litest_touch_up(dev, 0);
 
 	litest_assert_empty_queue(li);
@@ -669,8 +669,8 @@ START_TEST(device_disable_topsoftbutton)
 	litest_drain_events(li);
 
 	litest_touch_down(dev, 0, 90, 10);
-	litest_button_click(dev, BTN_LEFT, true);
-	litest_button_click(dev, BTN_LEFT, false);
+	litest_button_click_debounced(dev, li, BTN_LEFT, true);
+	litest_button_click_debounced(dev, li, BTN_LEFT, false);
 	litest_touch_up(dev, 0);
 
 	litest_wait_for_event(li);

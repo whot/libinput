@@ -416,8 +416,8 @@ START_TEST(event_conversion_tablet)
 
 	litest_tablet_proximity_in(dev, 50, 50, axes);
 	litest_tablet_motion(dev, 60, 50, axes);
-	litest_button_click(dev, BTN_STYLUS, true);
-	litest_button_click(dev, BTN_STYLUS, false);
+	litest_button_click_debounced(dev, li, BTN_STYLUS, true);
+	litest_button_click_debounced(dev, li, BTN_STYLUS, false);
 
 	libinput_dispatch(li);
 
@@ -458,7 +458,7 @@ START_TEST(event_conversion_tablet_pad)
 	struct libinput_event *event;
 	int events = 0;
 
-	litest_button_click(dev, BTN_0, true);
+	litest_button_click_debounced(dev, li, BTN_0, true);
 	litest_pad_ring_start(dev, 10);
 	litest_pad_ring_end(dev);
 

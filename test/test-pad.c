@@ -68,8 +68,8 @@ START_TEST(pad_time)
 		if (!libevdev_has_event_code(dev->evdev, EV_KEY, code))
 			continue;
 
-		litest_button_click(dev, code, 1);
-		litest_button_click(dev, code, 0);
+		litest_button_click_debounced(dev, li, code, 1);
+		litest_button_click_debounced(dev, li, code, 0);
 		libinput_dispatch(li);
 
 		switch (code) {
@@ -98,8 +98,8 @@ START_TEST(pad_time)
 	litest_drain_events(li);
 	msleep(10);
 
-	litest_button_click(dev, code, 1);
-	litest_button_click(dev, code, 0);
+	litest_button_click_debounced(dev, li, code, 1);
+	litest_button_click_debounced(dev, li, code, 0);
 	libinput_dispatch(li);
 
 	ev = libinput_get_event(li);
@@ -156,8 +156,8 @@ START_TEST(pad_button)
 		if (!libevdev_has_event_code(dev->evdev, EV_KEY, code))
 			continue;
 
-		litest_button_click(dev, code, 1);
-		litest_button_click(dev, code, 0);
+		litest_button_click_debounced(dev, li, code, 1);
+		litest_button_click_debounced(dev, li, code, 0);
 		libinput_dispatch(li);
 
 		switch (code) {
@@ -207,8 +207,8 @@ START_TEST(pad_button_mode_groups)
 		if (!libevdev_has_event_code(dev->evdev, EV_KEY, code))
 			continue;
 
-		litest_button_click(dev, code, 1);
-		litest_button_click(dev, code, 0);
+		litest_button_click_debounced(dev, li, code, 1);
+		litest_button_click_debounced(dev, li, code, 0);
 		libinput_dispatch(li);
 
 		switch (code) {

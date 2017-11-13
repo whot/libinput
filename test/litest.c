@@ -2018,7 +2018,10 @@ litest_hover_move_two_touches(struct litest_device *d,
 }
 
 void
-litest_button_click(struct litest_device *d, unsigned int button, bool is_press)
+litest_button_click_debounced(struct litest_device *d,
+			      struct libinput *li,
+			      unsigned int button,
+			      bool is_press)
 {
 
 	struct input_event *ev;
@@ -2029,7 +2032,9 @@ litest_button_click(struct litest_device *d, unsigned int button, bool is_press)
 
 	ARRAY_FOR_EACH(click, ev)
 		litest_event(d, ev->type, ev->code, ev->value);
+	libinput_dispatch(li);
 	litest_timeout_debounce();
+	libinput_dispatch(li);
 }
 
 void
@@ -2039,7 +2044,7 @@ litest_button_scroll(struct litest_device *dev,
 {
 	struct libinput *li = dev->libinput;
 
-	litest_button_click(dev, button, 1);
+	litest_button_click_debounced(dev, li, button, 1);
 
 	libinput_dispatch(li);
 	litest_timeout_buttonscroll();
@@ -2049,7 +2054,7 @@ litest_button_scroll(struct litest_device *dev,
 	litest_event(dev, EV_REL, REL_Y, dy);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
-	litest_button_click(dev, button, 0);
+	litest_button_click_debounced(dev, li, button, 0);
 
 	libinput_dispatch(li);
 }
@@ -2057,7 +2062,14 @@ litest_button_scroll(struct litest_device *dev,
 void
 litest_keyboard_key(struct litest_device *d, unsigned int key, bool is_press)
 {
-	litest_button_click(d, key, is_press);
+	struct input_event *ev;
+	struct input_event click[] = {
+		{ .type = EV_KEY, .code = key, .value = is_press ? 1 : 0 },
+		{ .type = EV_SYN, .code = SYN_REPORT, .value = 0 },
+	};
+
+	ARRAY_FOR_EACH(click, ev)
+		litest_event(d, ev->type, ev->code, ev->value);
 }
 
 void

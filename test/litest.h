@@ -597,9 +597,10 @@ litest_hover_move_two_touches(struct litest_device *d,
 			      int steps, int sleep_ms);
 
 void
-litest_button_click(struct litest_device *d,
-		    unsigned int button,
-		    bool is_press);
+litest_button_click_debounced(struct litest_device *d,
+			      struct libinput *li,
+			      unsigned int button,
+			      bool is_press);
 
 void
 litest_button_scroll(struct litest_device *d,

@@ -1041,7 +1041,7 @@ START_TEST(clickpad_finger_pin)
 	litest_touch_move_to(dev, 0, 48, 48, 50, 50, 10, 1);
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_POINTER_MOTION);
 
-	litest_button_click(dev, BTN_LEFT, true);
+	litest_button_click_debounced(dev, li, BTN_LEFT, true);
 	litest_drain_events(li);
 
 	litest_touch_move_to(dev, 0, 50, 50, 50 + dist, 50 + dist, 10, 1);
@@ -1050,7 +1050,7 @@ START_TEST(clickpad_finger_pin)
 
 	litest_assert_empty_queue(li);
 
-	litest_button_click(dev, BTN_LEFT, false);
+	litest_button_click_debounced(dev, li, BTN_LEFT, false);
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_POINTER_BUTTON);
 
 	/* still pinned after release */
@@ -1490,7 +1490,7 @@ START_TEST(clickpad_softbutton_hover_into_buttons)
 
 	litest_touch_move_to(dev, 0, 90, 90, 91, 91, 1, 0);
 
-	litest_button_click(dev, BTN_LEFT, true);
+	litest_button_click_debounced(dev, li, BTN_LEFT, true);
 	libinput_dispatch(li);
 
 	litest_assert_button_event(li,
@@ -1498,7 +1498,7 @@ START_TEST(clickpad_softbutton_hover_into_buttons)
 				   LIBINPUT_BUTTON_STATE_PRESSED);
 	litest_assert_empty_queue(li);
 
-	litest_button_click(dev, BTN_LEFT, false);
+	litest_button_click_debounced(dev, li, BTN_LEFT, false);
 	litest_touch_up(dev, 0);
 
 	litest_assert_button_event(li,
