@@ -133,6 +133,9 @@ evcode_to_axis(const uint32_t evcode)
 	case ABS_WHEEL:
 		axis = LIBINPUT_TABLET_TOOL_AXIS_SLIDER;
 		break;
+	case ABS_TOOL_WIDTH:
+		axis = LIBINPUT_TABLET_TOOL_AXIS_MAJOR;
+		break;
 	default:
 		axis = LIBINPUT_TABLET_TOOL_AXIS_NONE;
 		break;
@@ -187,6 +190,9 @@ axis_to_evcode(const enum libinput_tablet_tool_axis axis)
 		break;
 	case LIBINPUT_TABLET_TOOL_AXIS_SLIDER:
 		evcode = ABS_WHEEL;
+		break;
+	case LIBINPUT_TABLET_TOOL_AXIS_MAJOR:
+		evcode = ABS_TOOL_WIDTH;
 		break;
 	default:
 		abort();

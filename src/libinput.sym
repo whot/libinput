@@ -297,4 +297,9 @@ LIBINPUT_1.9 {
 LIBINPUT_1.11 {
 	libinput_device_config_accel_set_curve_point;
 	libinput_device_touch_get_touch_count;
+	libinput_event_tablet_tool_ellipse_major_has_changed;
+	libinput_event_tablet_tool_ellipse_minor_has_changed;
+	libinput_event_tablet_tool_get_ellipse_major;
+	libinput_event_tablet_tool_get_ellipse_minor;
+	libinput_tablet_tool_has_ellipse;
 } LIBINPUT_1.9;

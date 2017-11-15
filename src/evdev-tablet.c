@@ -138,6 +138,9 @@ tablet_device_has_axis(struct tablet_dispatch *tablet,
 	bool has_axis = false;
 	unsigned int code;
 
+	if (axis == LIBINPUT_TABLET_TOOL_AXIS_MINOR)
+		axis = LIBINPUT_TABLET_TOOL_AXIS_MAJOR;
+
 	if (axis == LIBINPUT_TABLET_TOOL_AXIS_ROTATION_Z) {
 		has_axis = (libevdev_has_event_code(evdev,
 						    EV_KEY,
@@ -213,6 +216,7 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 	case ABS_TILT_Y:
 	case ABS_DISTANCE:
 	case ABS_WHEEL:
+	case ABS_TOOL_WIDTH:
 		axis = evcode_to_axis(e->code);
 		if (axis == LIBINPUT_TABLET_TOOL_AXIS_NONE) {
 			evdev_log_bug_libinput(device,
@@ -593,6 +597,16 @@ tablet_update_wheel(struct tablet_dispatch *tablet,
 	}
 }
 
+static inline void
+tablet_update_ellipse(struct tablet_dispatch *tablet,
+		      struct evdev_device *device)
+{
+	if (bit_is_set(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_MAJOR))
+		set_bit(tablet->changed_axes, LIBINPUT_TABLET_TOOL_AXIS_MINOR);
+
+	tablet->axes.ellipse.x = tablet->axes.ellipse.y;
+}
+
 static void
 tablet_smoothen_axes(const struct tablet_dispatch *tablet,
 		     struct tablet_axes *axes)
@@ -640,6 +654,7 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	tablet_update_slider(tablet, device);
 	tablet_update_tilt(tablet, device);
 	tablet_update_wheel(tablet, device);
+	tablet_update_ellipse(tablet, device);
 	/* We must check ROTATION_Z after TILT_X/Y so that the tilt axes are
 	 * already normalized and set if we have the mouse/lens tool */
 	tablet_update_rotation(tablet, device);
@@ -652,6 +667,7 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 	axes.wheel = tablet->axes.wheel;
 	axes.wheel_discrete = tablet->axes.wheel_discrete;
 	axes.rotation = tablet->axes.rotation;
+	axes.ellipse = tablet->axes.ellipse;
 
 	rc = true;
 

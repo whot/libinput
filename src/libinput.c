@@ -1169,6 +1169,38 @@ libinput_event_tablet_tool_wheel_has_changed(
 			  LIBINPUT_TABLET_TOOL_AXIS_REL_WHEEL);
 }
 
+LIBINPUT_EXPORT int
+libinput_event_tablet_tool_ellipse_major_has_changed(
+				struct libinput_event_tablet_tool *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
+			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
+			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+
+	return bit_is_set(event->changed_axes,
+			  LIBINPUT_TABLET_TOOL_AXIS_MAJOR);
+}
+
+LIBINPUT_EXPORT int
+libinput_event_tablet_tool_ellipse_minor_has_changed(
+				struct libinput_event_tablet_tool *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
+			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
+			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+
+	return bit_is_set(event->changed_axes,
+			  LIBINPUT_TABLET_TOOL_AXIS_MINOR);
+}
+
 LIBINPUT_EXPORT double
 libinput_event_tablet_tool_get_x(struct libinput_event_tablet_tool *event)
 {
@@ -1342,6 +1374,32 @@ libinput_event_tablet_tool_get_wheel_delta_discrete(
 			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
 
 	return event->axes.wheel_discrete;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_tablet_tool_get_ellipse_major(struct libinput_event_tablet_tool *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
+			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+
+	return event->axes.ellipse.y;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_tablet_tool_get_ellipse_minor(struct libinput_event_tablet_tool *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
+			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+
+	return event->axes.ellipse.x;
 }
 
 LIBINPUT_EXPORT double
@@ -1559,6 +1617,15 @@ libinput_tablet_tool_has_button(struct libinput_tablet_tool *tool,
 		return 0;
 
 	return bit_is_set(tool->buttons, code);
+}
+
+LIBINPUT_EXPORT int
+libinput_tablet_tool_has_ellipse(struct libinput_tablet_tool *tool)
+{
+	/* where minor isn't present on the underlying device, we fake it in
+	 * the backend */
+	return bit_is_set(tool->axis_caps,
+			  LIBINPUT_TABLET_TOOL_AXIS_MAJOR);
 }
 
 LIBINPUT_EXPORT void

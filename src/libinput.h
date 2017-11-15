@@ -328,6 +328,8 @@ enum libinput_tablet_tool_type {
 	LIBINPUT_TABLET_TOOL_TYPE_AIRBRUSH,	/**< An airbrush-like tool */
 	LIBINPUT_TABLET_TOOL_TYPE_MOUSE,	/**< A mouse bound to the tablet */
 	LIBINPUT_TABLET_TOOL_TYPE_LENS,		/**< A mouse tool with a lens */
+
+	LIBINPUT_TABLET_TOOL_TYPE_DIAL,		/**< A dial-like tool */
 };
 
 /**
@@ -2006,6 +2008,54 @@ libinput_event_tablet_tool_wheel_has_changed(
 /**
  * @ingroup event_tablet
  *
+ * Check if the size of the contact ellipse' major axis has changed.
+ * See libinput_event_tablet_tool_get_ellipse_major() for an explanation of
+ * the axis.
+ *
+ * For events that are not of type @ref LIBINPUT_EVENT_TABLET_TOOL_AXIS,
+ * @ref LIBINPUT_EVENT_TABLET_TOOL_TIP, or
+ * @ref LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other
+ * than @ref LIBINPUT_EVENT_TABLET_TOOL_AXIS, @ref
+ * LIBINPUT_EVENT_TABLET_TOOL_TIP, or @ref
+ * LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY, or @ref
+ * LIBINPUT_EVENT_TABLET_TOOL_BUTTON.
+ *
+ * @param event The libinput tablet tool event
+ * @return 1 if the axis was updated or 0 otherwise
+ */
+int
+libinput_event_tablet_tool_ellipse_major_has_changed(
+				struct libinput_event_tablet_tool *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Check if the size of the contact ellipse' minor axis has changed.
+ * See libinput_event_tablet_tool_get_ellipse_minor() for an explanation of
+ * the axis.
+ *
+ * For events that are not of type @ref LIBINPUT_EVENT_TABLET_TOOL_AXIS,
+ * @ref LIBINPUT_EVENT_TABLET_TOOL_TIP, or
+ * @ref LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other
+ * than @ref LIBINPUT_EVENT_TABLET_TOOL_AXIS, @ref
+ * LIBINPUT_EVENT_TABLET_TOOL_TIP, or @ref
+ * LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY, or @ref
+ * LIBINPUT_EVENT_TABLET_TOOL_BUTTON.
+ *
+ * @param event The libinput tablet tool event
+ * @return 1 if the axis was updated or 0 otherwise
+ */
+int
+libinput_event_tablet_tool_ellipse_minor_has_changed(
+				struct libinput_event_tablet_tool *event);
+
+/**
+ * @ingroup event_tablet
+ *
  * Returns the X coordinate of the tablet tool, in mm from the top left
  * corner of the tablet in its current logical orientation. Use
  * libinput_event_tablet_tool_get_x_transformed() for transforming the axis
@@ -2198,6 +2248,40 @@ libinput_event_tablet_tool_get_wheel_delta(
 int
 libinput_event_tablet_tool_get_wheel_delta_discrete(
 				    struct libinput_event_tablet_tool *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Returns the major axis' size in mm of the contacting ellipse. The major
+ * axis is the axis aligned with the y axis in the tool's logical neutral
+ * position.
+ *
+ * Devices with an ellipse major
+ *
+ * @param event The libinput tablet tool event
+ * @return The size of the contact ellipse axis in mm
+ *
+ * @see libinput_event_tablet_tool_get_rotation
+ */
+double
+libinput_event_tablet_tool_get_ellipse_major(
+			     struct libinput_event_tablet_tool *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Returns the minor axis' size in mm of the contacting ellipse. The minor
+ * axis is the axis aligned with the x axis in the tool's logical neutral
+ * position.
+ *
+ * @param event The libinput tablet tool event
+ * @return The size of the contact ellipse axis in mm
+ *
+ * @see libinput_event_tablet_tool_get_rotation
+ */
+double
+libinput_event_tablet_tool_get_ellipse_minor(
+			     struct libinput_event_tablet_tool *event);
 
 /**
  * @ingroup event_tablet
@@ -2504,6 +2588,25 @@ libinput_tablet_tool_has_wheel(struct libinput_tablet_tool *tool);
 int
 libinput_tablet_tool_has_button(struct libinput_tablet_tool *tool,
 				uint32_t code);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return whether the tablet tool provides an contact ellipse.
+ * The contact ellipse is the smallest ellipse that surrounds the
+ * touch area of this tool.
+ *
+ * The ellipse's major and minor axes are aligned with the y and the x axis,
+ * respectively, in the tool's logical neutral position.
+ *
+ * @param tool The tool to check the axis capabilities of
+ * @return Nonzero if the axis is available, zero otherwise.
+ *
+ * @see libinput_event_tablet_tool_get_ellipse_major
+ * @see libinput_event_tablet_tool_get_ellipse_minor
+ */
+int
+libinput_tablet_tool_has_ellipse(struct libinput_tablet_tool *tool);
 
 /**
  * @ingroup event_tablet

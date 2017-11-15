@@ -325,9 +325,11 @@ enum libinput_tablet_tool_axis {
 	LIBINPUT_TABLET_TOOL_AXIS_ROTATION_Z = 7,
 	LIBINPUT_TABLET_TOOL_AXIS_SLIDER = 8,
 	LIBINPUT_TABLET_TOOL_AXIS_REL_WHEEL = 9,
+	LIBINPUT_TABLET_TOOL_AXIS_MAJOR = 10,
+	LIBINPUT_TABLET_TOOL_AXIS_MINOR = 11,
 };
 
-#define LIBINPUT_TABLET_TOOL_AXIS_MAX LIBINPUT_TABLET_TOOL_AXIS_REL_WHEEL
+#define LIBINPUT_TABLET_TOOL_AXIS_MAX LIBINPUT_TABLET_TOOL_AXIS_MINOR
 
 struct tablet_axes {
 	struct device_coords point;
@@ -339,6 +341,7 @@ struct tablet_axes {
 	double slider;
 	double wheel;
 	int wheel_discrete;
+	struct phys_coords ellipse;
 };
 
 struct libinput_tablet_tool {
