@@ -300,6 +300,7 @@ if get_option('documentation')
 		meson.source_root() + '/doc/dot/libinput-stack-gnome.gv',
 		meson.source_root() + '/doc/dot/evemu.gv',
 		# svgs
+		meson.source_root() + '/doc/svg/button-debouncing-wave-diagram.svg',
 		meson.source_root() + '/doc/svg/button-scrolling.svg',
 		meson.source_root() + '/doc/svg/clickfinger.svg',
 		meson.source_root() + '/doc/svg/clickfinger-distance.svg',

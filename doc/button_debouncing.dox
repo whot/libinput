@@ -36,4 +36,12 @@ physical key presses, usually caused by involuntary muscle movement, must be
 filtered to only one key press. This feature must be implemented higher in
 the stack, libinput is limited to hardware debouncing.
 
+Below is an illustration of the button debouncing modes to show the relation
+of the physical button state and the application state. Where applicable, an
+extra line is added to show the timeouts used by libinput that
+affect the button state handling. The waveform's high and low states
+correspond to the buttons 'pressed' and 'released' states, respectively.
+
+@image html button-debouncing-wave-diagram.svg "Diagram illustrating button debouncing"
+
 */
