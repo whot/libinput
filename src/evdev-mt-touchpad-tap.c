@@ -232,6 +232,7 @@ tp_tap_touch_handle_event(struct tp_dispatch *tp,
 	case TAP_EVENT_THUMB:
 		tp->tap.state = TAP_STATE_IDLE;
 		t->tap.is_thumb = true;
+		tp->tap.nfingers_down--;
 		t->tap.state = TAP_TOUCH_STATE_DEAD;
 		tp_tap_clear_timer(tp);
 		break;
@@ -269,6 +270,7 @@ tp_tap_hold_handle_event(struct tp_dispatch *tp,
 	case TAP_EVENT_THUMB:
 		tp->tap.state = TAP_STATE_IDLE;
 		t->tap.is_thumb = true;
+		tp->tap.nfingers_down--;
 		t->tap.state = TAP_TOUCH_STATE_DEAD;
 		break;
 	case TAP_EVENT_PALM:
