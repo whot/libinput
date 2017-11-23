@@ -56,6 +56,12 @@ Measure touch pressure
 .TP 8
 .B libinput\-measure\-trackpoint\-range(1)
 Measure the delta range of a trackpoint
+.TP 8
+.B libinput\-record(1)
+Record the events from a device
+.TP 8
+.B libinput\-replay(1)
+Replay the events from a device
 .SH LIBINPUT
 Part of the
 .B libinput(1)

@@ -1,0 +1,231 @@
+.TH libinput-record "1"
+.SH NAME
+libinput\-record \- record kernel events 
+.SH SYNOPSIS
+.B libinput record [options] [\fI/dev/input/event0\fB]
+.SH DESCRIPTION
+.PP
+The \fBlibinput record\fR tool records kernel events from a device and
+prints them in a format that can later be replayed with the \fBlibinput
+replay(1)\fR tool.  This tool needs to run as root to read from the device.
+.PP
+The output of this tool is JSON, see \fBFILE FORMAT\fR for more details.
+By default it prints to stdout unless the \fB-o\fR option is given.
+.PP
+The events recorded are independent of libinput itself, updating or
+removing libinput will not change the event stream.
+.SH OPTIONS
+If a device node is given, this tool opens that device node. Otherwise, 
+a list of devices is presented and the user can select the device to record.
+If unsure, run without any arguments.
+.TP 8
+.B \-\-help
+Print help
+.TP 8
+.B \-\-autorestart=s
+Terminate the current recording after
+.I s
+seconds of device inactivity. This option requires that a
+\fB\-\-output-file\fR is specified. The output filename is used as prefix,
+suffixed with the date and time of the recording. The timeout must be
+greater than 0.
+.TP 8
+.B \-o filename
+.PD 0
+.TP 8
+.B \-\-output-file=filename
+.PD 1
+Specifies the output file to use. If \fB\-\-autorestart\fR or
+\fB\-\-multiple\fR is given, the filename is used as prefix only.
+.TP 8
+.B \-\-multiple
+Record multiple devices at once, see section
+.B RECORDING MULTIPLE DEVICES
+This option requires that a
+\fB\-\-output-file\fR is specified and that all devices to be recorded are
+given on the commandline.
+
+.SH RECORDING MULTIPLE DEVICES
+Sometimes it is necessary to record the events from multiple devices
+simultaneously, e.g.  when an interaction between a touchpad and a keyboard
+causes a bug. The \fB\-\-multiple\fR option records multiple devices with
+an identical time offset, allowing for correct replay of the interaction.
+.PP
+The \fB\-\-multiple\fR option requires that an output filename is given.
+This filename is used as prefix, with the event node number appended.
+.PP
+All devices to be recorded must be provided on the commandline, an example
+invocation is:
+
+.B libinput record \-\-multiple -o tap-bug /dev/input/event3 /dev/input/event7
+
+The recordings are found in the files \fItap-bug.event3\fR and
+\fItap-bug.event7\fR.
+
+.SH FILE FORMAT
+The output file format is JSON and intended to be both human-readable and
+machine-parseable. Below is a short example JSON file, all keys are detailed
+further below.
+.nf
+.sp
+{ "version": 1,
+  "system": {
+    "kernel": "4.13.9-200.fc26.x86_64",
+     "dmi": "dmi:bvnLENOVO:bvrGJET72WW(2.22):bd02/21/2014:svnLENOVO:...",
+    "eof": []
+  },
+  "evdev": {
+    "desc" : [
+    " Name: Synaptics TM2668-002                                            ",
+    " ID: bus 0x1d vendor 0x6cb product 00 version 00                       ",
+    " Size in mm: 97x68                                                     ",
+    " Supported Events:                                                     ",
+    " Event type 0 (EV_SYN)                                                 ",
+
+    ... abbreviated for man page ...
+
+    ""],
+    "name": "Synaptics TM2668-002",
+    "id": [29, 1739, 0, 0],
+    "syn": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    "key": [272, 325, 328, 330, 333, 334, 335],
+    "abs": [0, 1, 24, 47, 48, 49, 52, 53, 54, 55, 57, 58],
+    "absinfo": [
+        [0, 0, 4089, 0, 0, 42],
+        [1, 0, 2811, 0, 0, 41],
+        [24, 0, 255, 0, 0, 0],
+        [47, 0, 4, 0, 0, 0],
+        [48, 0, 15, 0, 0, 0],
+        [49, 0, 15, 0, 0, 0],
+        [52, 0, 1, 0, 0, 0],
+        [53, 0, 4089, 0, 0, 42],
+        [54, 0, 2811, 0, 0, 41],
+        [55, 0, 2, 0, 0, 0],
+        [57, 0, 65535, 0, 0, 0],
+        [58, 0, 255, 0, 0, 0]
+    ],
+    "properties": [0, 2, 4]
+  },
+  "events": [
+  { "evdev" : [
+    {"data": [  0,      0,   3,  57,  1420], "desc": "EV_ABS / ABS_MT_TRACKING_ID   1420"},
+    {"data": [  0,      0,   3,  53,  1218], "desc": "EV_ABS / ABS_MT_POSITION_X    1218"},
+    {"data": [  0,      0,   3,  54,  1922], "desc": "EV_ABS / ABS_MT_POSITION_Y    1922"},
+    {"data": [  0,      0,   3,  52,     0], "desc": "EV_ABS / ABS_MT_ORIENTATION      0"},
+    {"data": [  0,      0,   3,  58,    47], "desc": "EV_ABS / ABS_MT_PRESSURE        47"},
+    {"data": [  0,      0,   1, 330,     1], "desc": "EV_KEY / BTN_TOUCH               1"},
+    {"data": [  0,      0,   1, 325,     1], "desc": "EV_KEY / BTN_TOOL_FINGER         1"},
+    {"data": [  0,      0,   3,   0,  1218], "desc": "EV_ABS / ABS_X                1218"},
+    {"data": [  0,      0,   3,   1,  1922], "desc": "EV_ABS / ABS_Y                1922"},
+    {"data": [  0,      0,   3,  24,    47], "desc": "EV_ABS / ABS_PRESSURE           47"},
+    {"data": [  0,      0,   0,   0,     0], "desc": "------------ SYN_REPORT (0) ---------- +0ms"}
+  ] },
+  { "evdev" : [
+    {"data": [  0,  11879,   3,  53,  1330], "desc": "EV_ABS / ABS_MT_POSITION_X    1330"},
+    {"data": [  0,  11879,   3,  54,  1928], "desc": "EV_ABS / ABS_MT_POSITION_Y    1928"},
+    {"data": [  0,  11879,   3,  58,    46], "desc": "EV_ABS / ABS_MT_PRESSURE        46"},
+    {"data": [  0,  11879,   3,   0,  1330], "desc": "EV_ABS / ABS_X                1330"},
+    {"data": [  0,  11879,   3,   1,  1928], "desc": "EV_ABS / ABS_Y                1928"},
+    {"data": [  0,  11879,   3,  24,    46], "desc": "EV_ABS / ABS_PRESSURE           46"},
+    {"data": [  0,  11879,   0,   0,     0], "desc": "------------ SYN_REPORT (0) ---------- +0ms"}
+  ] },
+  ]
+}
+.PP
+.fi
+.in
+Top-level keys are listed below, see the respective
+subsection for details on each key.
+.PP
+All numbers are in decimal format as required by JSON.
+.PP
+
+
+.TP 8
+.B version: int
+The file format version
+.TP 8
+.B system: {...}
+A dictionary with system information.
+.TP 8
+.B evdev: {...}
+A dictionary with information about the evdev device node
+.TP 8
+.B events: [...]
+A list of recorded events.
+
+.SS Special Keys
+Special keys can appear in any location of the file and must be ignored by
+parsers.
+.TP 8
+.B desc
+A human-readable description
+.TP 8
+.B eof
+End of file/data marker. Always the last element in a dictionary or list.
+Used to work around JSON's limitation of not allowing a comma after the last
+element.
+
+.SS system
+Information about the system
+.TP 8
+.B kernel: string
+Kernel version, see \fIuname(1)\fR
+.TP 8
+.B dmi: string
+DMI modalias, see \fI/sys/class/dmi/id/modalias\fR
+
+.SS evdev
+Information about the evdev device node
+.TP 8
+.B name: string
+The device name
+.TP 8
+.B id: [bustype, vendor, product, version]
+The data from the \fBstruct input_id\fR, bustype, vendor, product, version.
+.TP 8
+.B syn: [0, 1, ...],
+.PD 0
+.TP 8
+.B key: [272, 325, ...]
+.TP 8
+.B abs: [0, 1, ...]
+.TP 8
+.B rel: [0, 1, ...]
+.PD 1
+All evdev types and codes as nested dictionary. The evdev type is
+abbreviated and converted to lowercase (e.g. \fBEV_KEY\fR becomes
+\fBkey\fR). Each type is an array of all event codes on this device for
+this type.
+.TP 8
+.B absinfo: [[code, min, max, fuzz, flat, res], [ ... ]]
+An array of arrays with 6 decimal elements each, denoting the contents of a
+\fBstruct input_absinfo\fR. The first element is the code (e.g. \fBABS_X\fR)
+in decimal format.
+.TP 8
+.B properties: [0, 1, ...]
+Array with all \fBINPUT_PROP_FOO\fR constants. May be an empty array.
+
+.SS events
+A list of the recorded events. The list contains dictionaries
+Information about the events. The content is a list of dictionaries, with
+the string identifying the type of event sequence.
+.TP 8
+.B { evdev: [ {"data": [sec, usec, type, code, value]}, ...] }
+Each \fBinput_event\fR dictionary contains the contents of a \fBstruct
+input_event\fR in decimal format. The last item in the list is always the
+\fBSYN_REPORT\fR of this event frame. The next event frame starts a new
+\fBevdev\fR dictionary entry in the parent \fBevents\fR list.
+
+
+.SH NOTES
+.PP
+This tool records events from the kernel and is independent of libinput. In
+other words, updating or otherwise changing libinput will not alter the
+output from this tool. libinput itself does not need to be in use to record
+events.
+.SH LIBINPUT
+.PP
+Part of the
+.B libinput(1)
+suite

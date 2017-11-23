@@ -452,6 +452,21 @@ configure_file(input : 'tools/libinput-measure-trackpoint-range.man',
 	       install_dir : join_paths(get_option('mandir'), 'man1')
 	       )
 
+libinput_record_sources = [ 'tools/libinput-record.c' ]
+executable('libinput-record',
+	   libinput_record_sources,
+	   dependencies : deps_tools,
+	   include_directories : [includes_src, includes_include],
+	   install_dir : libinput_tool_path,
+	   install : true,
+	   )
+configure_file(input : 'tools/libinput-record.man',
+	       output : 'libinput-record.1',
+	       configuration : man_config,
+	       install : true,
+	       install_dir : join_paths(get_option('mandir'), 'man1')
+	       )
+
 if get_option('debug-gui')
 	dep_gtk = dependency('gtk+-3.0', version : '>= 3.20')
 	dep_cairo = dependency('cairo')
