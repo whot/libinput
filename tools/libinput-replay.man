@@ -1,0 +1,39 @@
+.TH libinput-replay "1"
+.SH NAME
+libinput\-replay \- replay kernel events 
+.SH SYNOPSIS
+.B libinput replay [options] \fIrecording\fB [\fIrecording2\fI ...]
+.SH DESCRIPTION
+.PP
+The \fBlibinput replay\fR tool replays kernel events from a device recording
+made by the \fBlibinput record(1)\fR tool. This tool needs to run as root to
+create a device and/or replay events.
+.PP
+If more than one recording is given, all recordings are replayed at the same
+time.
+.SH OPTIONS
+.TP 8
+.B \-\-help
+Print help
+.TP 8
+.B \-\-interactive
+Before replaying the events, prompt for user input. After replaying events,
+prompt for user input again instead of exiting to allow for replaying the
+same sequence multiple times. This is the default behavior unless
+\fB\-\-replay-on\fR was given.
+.TP 8
+.B \-\-replay-on=\fI/dev/input/event0\fB
+Replay the events in the recording on the given device instead of creating a
+new uinput device. The sequence is replayed immediately and this tool exits
+unless \fB\-\-interactive\fR is given.
+.SH NOTES
+.PP
+This tool replays events from the kernel and is independent of libinput. In
+other words, updating or otherwise changing libinput will not alter the
+output from this tool. libinput itself does not need to be in use to replay
+events.
+.SH LIBINPUT
+.PP
+Part of the
+.B libinput(1)
+suite

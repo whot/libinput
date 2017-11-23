@@ -46,6 +46,8 @@ dep_mtdev = dependency('mtdev', version : '>= 1.1.0')
 dep_libevdev = dependency('libevdev', version : '>= 0.4')
 dep_lm = cc.find_library('m', required : false)
 dep_rt = cc.find_library('rt', required : false)
+dep_glib = dependency('glib-2.0')
+dep_json_glib = dependency('json-glib-1.0')
 
 # Include directories
 includes_include = include_directories('include')
@@ -467,10 +469,24 @@ configure_file(input : 'tools/libinput-record.man',
 	       install_dir : join_paths(get_option('mandir'), 'man1')
 	       )
 
+libinput_replay_sources = [ 'tools/libinput-replay.c' ]
+executable('libinput-replay',
+	   libinput_replay_sources,
+	   dependencies : deps_tools + [dep_glib, dep_json_glib],
+	   include_directories : [includes_src, includes_include],
+	   install_dir : libinput_tool_path,
+	   install : true,
+	   )
+configure_file(input : 'tools/libinput-replay.man',
+	       output : 'libinput-replay.1',
+	       configuration : man_config,
+	       install : true,
+	       install_dir : join_paths(get_option('mandir'), 'man1')
+	       )
+
 if get_option('debug-gui')
 	dep_gtk = dependency('gtk+-3.0', version : '>= 3.20')
 	dep_cairo = dependency('cairo')
-	dep_glib = dependency('glib-2.0')
 
 	debug_gui_sources = [ 'tools/libinput-debug-gui.c' ]
 	deps_debug_gui = [

@@ -81,7 +81,7 @@ fedora_install: &fedora_install
     name: Install prerequisites
     command: |
       dnf upgrade -y libsolv
-      dnf install -y git gcc gcc-c++ meson check-devel libudev-devel libevdev-devel doxygen graphviz valgrind binutils libwacom-devel cairo-devel gtk3-devel glib2-devel mtdev-devel
+      dnf install -y git gcc gcc-c++ meson check-devel libudev-devel libevdev-devel doxygen graphviz valgrind binutils libwacom-devel cairo-devel gtk3-devel glib2-devel mtdev-devel json-glib-devel
 
 fedora_build_all: &fedora_build_all
   <<: *default_settings
@@ -105,7 +105,7 @@ ubuntu_install: &ubuntu_install
       apt-get install -y software-properties-common
       add-apt-repository universe
       apt-get update
-      apt-get install -y git gcc g++ meson check libudev-dev libevdev-dev doxygen graphviz valgrind binutils libwacom-dev libcairo2-dev libgtk-3-dev libglib2.0-dev libmtdev-dev
+      apt-get install -y git gcc g++ meson check libudev-dev libevdev-dev doxygen graphviz valgrind binutils libwacom-dev libcairo2-dev libgtk-3-dev libglib2.0-dev libmtdev-dev libjson-glib-dev
 
 ubuntu_build_all: &ubuntu_build_all
   <<: *default_settings
