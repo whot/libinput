@@ -167,6 +167,12 @@ struct pointer_tracker {
 	uint32_t dir;
 };
 
+struct pointer_trackers {
+	struct pointer_tracker *trackers;
+	size_t ntrackers;
+	unsigned int cur_tracker;
+};
+
 struct pointer_accelerator {
 	struct motion_filter base;
 
@@ -175,8 +181,7 @@ struct pointer_accelerator {
 	double velocity;	/* units/us */
 	double last_velocity;	/* units/us */
 
-	struct pointer_tracker *trackers;
-	int cur_tracker;
+	struct pointer_trackers trackers;
 
 	double threshold;	/* units/us */
 	double accel;		/* unitless factor */
@@ -220,34 +225,46 @@ struct trackpoint_accelerator {
 };
 
 static void
-feed_trackers(struct pointer_accelerator *accel,
+init_trackers(struct pointer_trackers *trackers,
+	      size_t ntrackers)
+{
+	trackers->trackers = zalloc(ntrackers *
+				    sizeof(*trackers->trackers));
+	trackers->ntrackers = ntrackers;
+	trackers->cur_tracker = 0;
+}
+
+static void
+feed_trackers(struct pointer_trackers *trackers,
 	      const struct device_float_coords *delta,
 	      uint64_t time)
 {
-	int i, current;
-	struct pointer_tracker *trackers = accel->trackers;
+	unsigned int i, current;
+	struct pointer_tracker *ts = trackers->trackers;
 
-	for (i = 0; i < NUM_POINTER_TRACKERS; i++) {
-		trackers[i].delta.x += delta->x;
-		trackers[i].delta.y += delta->y;
+	assert(trackers->ntrackers);
+
+	for (i = 0; i < trackers->ntrackers; i++) {
+		ts[i].delta.x += delta->x;
+		ts[i].delta.y += delta->y;
 	}
 
-	current = (accel->cur_tracker + 1) % NUM_POINTER_TRACKERS;
-	accel->cur_tracker = current;
+	current = (trackers->cur_tracker + 1) % trackers->ntrackers;
+	trackers->cur_tracker = current;
 
-	trackers[current].delta.x = 0.0;
-	trackers[current].delta.y = 0.0;
-	trackers[current].time = time;
-	trackers[current].dir = device_float_get_direction(*delta);
+	ts[current].delta.x = 0.0;
+	ts[current].delta.y = 0.0;
+	ts[current].time = time;
+	ts[current].dir = device_float_get_direction(*delta);
 }
 
 static struct pointer_tracker *
-tracker_by_offset(struct pointer_accelerator *accel, unsigned int offset)
+tracker_by_offset(struct pointer_trackers *trackers, unsigned int offset)
 {
 	unsigned int index =
-		(accel->cur_tracker + NUM_POINTER_TRACKERS - offset)
-		% NUM_POINTER_TRACKERS;
-	return &accel->trackers[index];
+		(trackers->cur_tracker + trackers->ntrackers - offset)
+		% trackers->ntrackers;
+	return &trackers->trackers[index];
 }
 
 static double
@@ -299,12 +316,12 @@ calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
 	double velocity_diff;
 	unsigned int offset;
 
-	unsigned int dir = tracker_by_offset(accel, 0)->dir;
+	unsigned int dir = tracker_by_offset(&accel->trackers, 0)->dir;
 
 	/* Find least recent vector within a timelimit, maximum velocity diff
 	 * and direction threshold. */
-	for (offset = 1; offset < NUM_POINTER_TRACKERS; offset++) {
-		tracker = tracker_by_offset(accel, offset);
+	for (offset = 1; offset < accel->trackers.ntrackers; offset++) {
+		tracker = tracker_by_offset(&accel->trackers, offset);
 
 		/* Bug: time running backwards */
 		if (tracker->time > time)
@@ -415,7 +432,7 @@ calculate_acceleration_factor(struct pointer_accelerator *accel,
 	double velocity; /* units/us in device-native dpi*/
 	double accel_factor;
 
-	feed_trackers(accel, unaccelerated, time);
+	feed_trackers(&accel->trackers, unaccelerated, time);
 	velocity = calculate_velocity(accel, time);
 	accel_factor = calculate_acceleration(accel,
 					      data,
@@ -567,7 +584,7 @@ accelerator_filter_x230(struct motion_filter *filter,
 	delta_normalized.x = unaccelerated.x;
 	delta_normalized.y = unaccelerated.y;
 
-	feed_trackers(accel, &delta_normalized, time);
+	feed_trackers(&accel->trackers, &delta_normalized, time);
 	velocity = calculate_velocity(accel, time);
 	accel_factor = calculate_acceleration(accel,
 					      data,
@@ -648,15 +665,15 @@ accelerator_restart(struct motion_filter *filter,
 	unsigned int offset;
 	struct pointer_tracker *tracker;
 
-	for (offset = 1; offset < NUM_POINTER_TRACKERS; offset++) {
-		tracker = tracker_by_offset(accel, offset);
+	for (offset = 1; offset < accel->trackers.ntrackers; offset++) {
+		tracker = tracker_by_offset(&accel->trackers, offset);
 		tracker->time = 0;
 		tracker->dir = 0;
 		tracker->delta.x = 0;
 		tracker->delta.y = 0;
 	}
 
-	tracker = tracker_by_offset(accel, 0);
+	tracker = tracker_by_offset(&accel->trackers, 0);
 	tracker->time = time;
 	tracker->dir = UNDEFINED_DIRECTION;
 }
@@ -667,7 +684,7 @@ accelerator_destroy(struct motion_filter *filter)
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
 
-	free(accel->trackers);
+	free(accel->trackers.trackers);
 	free(accel);
 }
 
@@ -952,9 +969,7 @@ create_default_filter(int dpi)
 	filter = zalloc(sizeof *filter);
 	filter->last_velocity = 0.0;
 
-	filter->trackers =
-		zalloc(NUM_POINTER_TRACKERS * sizeof *filter->trackers);
-	filter->cur_tracker = 0;
+	init_trackers(&filter->trackers, NUM_POINTER_TRACKERS);
 
 	filter->threshold = DEFAULT_THRESHOLD;
 	filter->accel = DEFAULT_ACCELERATION;
@@ -1054,9 +1069,7 @@ create_pointer_accelerator_filter_lenovo_x230(int dpi)
 	filter->profile = touchpad_lenovo_x230_accel_profile;
 	filter->last_velocity = 0.0;
 
-	filter->trackers =
-		zalloc(NUM_POINTER_TRACKERS * sizeof *filter->trackers);
-	filter->cur_tracker = 0;
+	init_trackers(&filter->trackers, NUM_POINTER_TRACKERS);
 
 	filter->threshold = X230_THRESHOLD;
 	filter->accel = X230_ACCELERATION; /* unitless factor */
