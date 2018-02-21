@@ -149,6 +149,7 @@ struct tp_touch {
 	bool has_ended;				/* TRACKING_ID == -1 */
 	bool dirty;
 	struct device_coords point;
+	struct device_coords last_point;
 	uint64_t time;
 	int pressure;
 	bool is_tool_palm; /* MT_TOOL_PALM */
@@ -177,6 +178,7 @@ struct tp_touch {
 
 	struct {
 		struct device_coords center;
+		uint8_t x_motion_history;
 	} hysteresis;
 
 	/* A pinned touchpoint is the one that pressed the physical button

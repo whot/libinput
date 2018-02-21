@@ -131,6 +131,61 @@ tp_motion_history_push(struct tp_touch *t)
 	t->history.index = motion_index;
 }
 
+/* Idea: if we got a tuple of *very* quick moves like {Left, Right,
+ * Left}, or {Right, Left, Right}, it means touchpad jitters since no
+ * human can move like that within thresholds.
+ *
+ * We encode left moves as zeroes, and right as ones. We also drop
+ * the array to all zeroes when contraints are not satisfied. Then we
+ * search for the pattern {1,0,1}. It can't match {Left, Right, Left},
+ * but it does match {Left, Right, Left, Right}, so it's okay.
+ *
+ * This only looks at x changes, y changes are ignored.
+ */
+static inline void
+tp_detect_wobbling(struct tp_dispatch *tp,
+		   struct tp_touch *t,
+		   uint64_t time)
+{
+	int dx, dy;
+	uint64_t dtime;
+
+	if (!(tp->queued & TOUCHPAD_EVENT_MOTION) || tp->hysteresis.enabled)
+		return;
+
+	if (t->last_point.x == 0) { /* first invocation */
+		dx = 0;
+		dy = 0;
+	} else {
+		dx = t->last_point.x - t->point.x;
+		dy = t->last_point.y - t->point.y;
+	}
+
+	dtime = time - tp->hysteresis.last_motion_time;
+
+	tp->hysteresis.last_motion_time = time;
+	t->last_point = t->point;
+
+	if (dx == 0 && dy != 0) /* ignore y-only changes */
+		return;
+
+	if (dtime > ms2us(40)) {
+		t->hysteresis.x_motion_history = 0;
+		return;
+	}
+
+	t->hysteresis.x_motion_history <<= 1;
+	if (dx > 0) { /* right move */
+		static const char r_l_r = 0x5; /* {Right, Left, Right} */
+
+		t->hysteresis.x_motion_history |= 0x1;
+		if (t->hysteresis.x_motion_history == r_l_r) {
+			tp->hysteresis.enabled = true;
+			evdev_log_debug(tp->device, "hysteresis enabled\n");
+		}
+	}
+}
+
 static inline void
 tp_motion_hysteresis(struct tp_dispatch *tp,
 		     struct tp_touch *t)
@@ -261,6 +316,7 @@ tp_new_touch(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	t->time = time;
 	t->speed.last_speed = 0;
 	t->speed.exceeded_count = 0;
+	t->hysteresis.x_motion_history = 0;
 	tp->queued |= TOUCHPAD_EVENT_MOTION;
 }
 
@@ -1439,7 +1495,7 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 
 		tp_thumb_detect(tp, t, time);
 		tp_palm_detect(tp, t, time);
-
+		tp_detect_wobbling(tp, t, time);
 		tp_motion_hysteresis(tp, t);
 		tp_motion_history_push(t);
 
