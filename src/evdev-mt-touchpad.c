@@ -3006,12 +3006,22 @@ tp_init_default_resolution(struct tp_dispatch *tp,
 static inline void
 tp_init_hysteresis(struct tp_dispatch *tp)
 {
-	int res_x, res_y;
+	int xmargin, ymargin;
+	const struct input_absinfo *ax = tp->device->abs.absinfo_x,
+				   *ay = tp->device->abs.absinfo_y;
 
-	res_x = tp->device->abs.absinfo_x->resolution;
-	res_y = tp->device->abs.absinfo_y->resolution;
-	tp->hysteresis.margin.x = res_x/2;
-	tp->hysteresis.margin.y = res_y/2;
+	if (ax->fuzz)
+		xmargin = ax->fuzz;
+	else
+		xmargin = ax->resolution/4;
+
+	if (ay->fuzz)
+		ymargin = ay->fuzz;
+	else
+		ymargin = ay->resolution/4;
+
+	tp->hysteresis.margin.x = xmargin;
+	tp->hysteresis.margin.y = ymargin;
 	tp->hysteresis.enabled = true;
 }
 
