@@ -158,16 +158,16 @@ tp_motion_hysteresis(struct tp_dispatch *tp,
 		return;
 
 	if (t->history.count == 0) {
-		t->hysteresis_center = t->point;
+		t->hysteresis.center = t->point;
 	} else {
 		x = evdev_hysteresis(x,
-				     t->hysteresis_center.x,
+				     t->hysteresis.center.x,
 				     tp->hysteresis.margin.x);
 		y = evdev_hysteresis(y,
-				     t->hysteresis_center.y,
+				     t->hysteresis.center.y,
 				     tp->hysteresis.margin.y);
-		t->hysteresis_center.x = x;
-		t->hysteresis_center.y = y;
+		t->hysteresis.center.x = x;
+		t->hysteresis.center.y = y;
 		t->point.x = x;
 		t->point.y = y;
 	}

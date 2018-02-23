@@ -175,7 +175,9 @@ struct tp_touch {
 		unsigned int count;
 	} history;
 
-	struct device_coords hysteresis_center;
+	struct {
+		struct device_coords center;
+	} hysteresis;
 
 	/* A pinned touchpoint is the one that pressed the physical button
 	 * on a clickpad. After the release, it won't move until the center
