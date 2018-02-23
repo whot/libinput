@@ -133,16 +133,6 @@ class TouchSequence(object):
         """Mark the TouchSequence as complete (finger is up)"""
         self.is_active = False
 
-    def avg(self):
-        """Average pressure value of this sequence"""
-        return int(sum([p.pressure for p in self.points])/len(self.points))
-
-    def median(self):
-        """Median pressure value of this sequence"""
-        ps = sorted([p.pressure for p in self.points])
-        idx = int(len(self.points)/2)
-        return ps[idx]
-
     def __str__(self):
         return self._str_state() if self.is_active else self._str_summary()
 
@@ -193,7 +183,7 @@ class Device(object):
         # each of which is a list of tuples of (code, AbsInfo)
         #
         # Get the abs list first (or empty list if missing),
-        # then extract the pressure absinfo from that
+        # then extract the touch major absinfo from that
         caps = self.device.capabilities(absinfo=True).get(
                 evdev.ecodes.EV_ABS, []
                )
