@@ -41,6 +41,26 @@ class TestYaml(unittest.TestCase):
         with open(cls.filename) as f:
             cls.yaml = yaml.safe_load(f)
 
+    def dict_key_crosscheck(self, d, keys):
+        '''Check that each key in d is in keys, and that each key is in d'''
+        self.assertEqual(sorted(d.keys()), sorted(keys))
+
+    def libinput_events(self, filter=None):
+        '''Returns all libinput events in the recording, regardless of the
+        device'''
+        devices = self.yaml['devices']
+        for d in devices:
+            events = d['events']
+            for e in events:
+                try:
+                    libinput = e['libinput']
+                except KeyError:
+                    continue
+
+                for ev in libinput:
+                    if filter is None or ev['type'] == filter:
+                        yield ev
+
     def test_sections_exist(self):
         sections = ['version', 'ndevices', 'libinput', 'system', 'devices']
         for section in sections:
@@ -148,19 +168,23 @@ class TestYaml(unittest.TestCase):
             # than one of the latter
             self.assertGreaterEqual(len(id_inputs), 2)
 
-    def test_events_have_evdev(self):
+    def test_events_have_section(self):
         devices = self.yaml['devices']
         for d in devices:
             events = d['events']
             for e in events:
-                self.assertIn('evdev', e)
+                self.assertTrue('evdev' in e or 'libinput' in e)
 
     def test_events_evdev(self):
         devices = self.yaml['devices']
         for d in devices:
             events = d['events']
             for e in events:
-                evdev = e['evdev']
+                try:
+                    evdev = e['evdev']
+                except KeyError:
+                    continue
+
                 for ev in evdev:
                     self.assertEqual(len(ev), 5)
 
@@ -175,9 +199,176 @@ class TestYaml(unittest.TestCase):
         for d in devices:
             events = d['events']
             for e in events:
-                evdev = e['evdev']
+                try:
+                    evdev = e['evdev']
+                except KeyError:
+                    continue
                 for ev in evdev[:-1]:
                     self.assertFalse(ev[2] == 0 and ev[3] == 0)
+
+    def test_events_libinput(self):
+        devices = self.yaml['devices']
+        for d in devices:
+            events = d['events']
+            for e in events:
+                try:
+                    libinput = e['libinput']
+                except KeyError:
+                    continue
+
+                self.assertTrue(isinstance(libinput, list))
+                for ev in libinput:
+                    self.assertTrue(isinstance(ev, dict))
+
+    def test_events_libinput_type(self):
+        types = ['POINTER_MOTION', 'POINTER_MOTION_ABSOLUTE',
+                 'POINTER_BUTTON', 'DEVICE_ADDED', 'KEYBOARD_KEY',
+                 'TOUCH_DOWN', 'TOUCH_MOTION', 'TOUCH_UP', 'TOUCH_FRAME']
+        for e in self.libinput_events():
+            self.assertIn('type', e)
+            self.assertIn(e['type'], types)
+
+    def test_events_libinput_time(self):
+        for e in self.libinput_events():
+            if e['type'] == 'DEVICE_ADDED':
+                continue
+
+            self.assertIn('time', e)
+            self.assertGreater(e['time'], 0.0)
+            self.assertLess(e['time'], 60.0)
+
+    def test_events_libinput_device_added(self):
+        keys = ['type', 'seat', 'logical_seat']
+        for e in self.libinput_events('DEVICE_ADDED'):
+            self.dict_key_crosscheck(e, keys)
+            self.assertEqual(e['seat'], 'seat0')
+            self.assertEqual(e['logical_seat'], 'default')
+
+    def test_events_libinput_pointer_motion(self):
+        keys = ['type', 'time', 'delta', 'unaccel']
+        for e in self.libinput_events('POINTER_MOTION'):
+            self.dict_key_crosscheck(e, keys)
+            delta = e['delta']
+            self.assertTrue(isinstance(delta, list))
+            self.assertEqual(len(delta), 2)
+            for d in delta:
+                self.assertTrue(isinstance(d, float))
+            unaccel = e['unaccel']
+            self.assertTrue(isinstance(unaccel, list))
+            self.assertEqual(len(unaccel), 2)
+            for d in unaccel:
+                self.assertTrue(isinstance(d, float))
+
+    def test_events_libinput_pointer_button(self):
+        keys = ['type', 'time', 'button', 'state', 'seat_count']
+        for e in self.libinput_events('POINTER_BUTTON'):
+            self.dict_key_crosscheck(e, keys)
+            button = e['button']
+            self.assertGreater(button, 0x100)  # BTN_0
+            self.assertLess(button, 0x160)  # KEY_OK
+            state = e['state']
+            self.assertIn(state, ['pressed', 'released'])
+            scount = e['seat_count']
+            self.assertGreaterEqual(scount, 0)
+
+    def test_events_libinput_pointer_absolute(self):
+        keys = ['type', 'time', 'point', 'transformed']
+        for e in self.libinput_events('POINTER_MOTION_ABSOLUTE'):
+            self.dict_key_crosscheck(e, keys)
+            point = e['point']
+            self.assertTrue(isinstance(point, list))
+            self.assertEqual(len(point), 2)
+            for p in point:
+                self.assertTrue(isinstance(p, float))
+                self.assertGreater(p, 0.0)
+                self.assertLess(p, 300.0)
+
+            transformed = e['transformed']
+            self.assertTrue(isinstance(transformed, list))
+            self.assertEqual(len(transformed), 2)
+            for t in transformed:
+                self.assertTrue(isinstance(t, float))
+                self.assertGreater(t, 0.0)
+                self.assertLess(t, 100.0)
+
+    def test_events_libinput_touch(self):
+        keys = ['type', 'time', 'slot', 'seat_slot']
+        for e in self.libinput_events():
+            if (not e['type'].startswith('TOUCH_') or
+                    e['type'] == 'TOUCH_FRAME'):
+                continue
+
+            for k in keys:
+                self.assertIn(k, e.keys())
+            slot = e['slot']
+            seat_slot = e['seat_slot']
+
+            self.assertGreaterEqual(slot, 0)
+            self.assertGreaterEqual(seat_slot, 0)
+
+    def test_events_libinput_touch_down(self):
+        keys = ['type', 'time', 'slot', 'seat_slot', 'point', 'transformed']
+        for e in self.libinput_events('TOUCH_DOWN'):
+            self.dict_key_crosscheck(e, keys);
+            point = e['point']
+            self.assertTrue(isinstance(point, list))
+            self.assertEqual(len(point), 2)
+            for p in point:
+                self.assertTrue(isinstance(p, float))
+                self.assertGreater(p, 0.0)
+                self.assertLess(p, 300.0)
+
+            transformed = e['transformed']
+            self.assertTrue(isinstance(transformed, list))
+            self.assertEqual(len(transformed), 2)
+            for t in transformed:
+                self.assertTrue(isinstance(t, float))
+                self.assertGreater(t, 0.0)
+                self.assertLess(t, 100.0)
+
+    def test_events_libinput_touch_motion(self):
+        keys = ['type', 'time', 'slot', 'seat_slot', 'point', 'transformed']
+        for e in self.libinput_events('TOUCH_MOTION'):
+            self.dict_key_crosscheck(e, keys);
+            point = e['point']
+            self.assertTrue(isinstance(point, list))
+            self.assertEqual(len(point), 2)
+            for p in point:
+                self.assertTrue(isinstance(p, float))
+                self.assertGreater(p, 0.0)
+                self.assertLess(p, 300.0)
+
+            transformed = e['transformed']
+            self.assertTrue(isinstance(transformed, list))
+            self.assertEqual(len(transformed), 2)
+            for t in transformed:
+                self.assertTrue(isinstance(t, float))
+                self.assertGreater(t, 0.0)
+                self.assertLess(t, 100.0)
+
+    def test_events_libinput_touch_frame(self):
+        devices = self.yaml['devices']
+        for d in devices:
+            events = d['events']
+            for e in events:
+                try:
+                    evdev = e['libinput']
+                except KeyError:
+                    continue
+
+                need_frame = False
+                for ev in evdev:
+                    t = ev['type']
+                    if not t.startswith('TOUCH_'):
+                        self.assertFalse(need_frame)
+                        continue
+
+                        self.assertTrue(need_frame)
+                        need_frame = False
+                    else:
+                        need_frame = True
+
+                self.assertFalse(need_frame)
 
 
 if __name__ == '__main__':

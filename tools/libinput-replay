@@ -111,7 +111,11 @@ def replay(device, verbose):
     # each 'evdev' set contains one SYN_REPORT so we only need to check for
     # the time offset once per event
     for event in events:
-        evdev = fetch(event, 'evdev')
+        try:
+            evdev = fetch(event, 'evdev')
+        except YamlException:
+            continue
+
         (sec, usec, evtype, evcode, value) = evdev[0]
 
         evtime = sec + usec/1e6 + offset

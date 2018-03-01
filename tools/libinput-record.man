@@ -52,6 +52,13 @@ Record multiple devices at once, see section
 This option requires that a
 \fB\-\-output-file\fR is specified and that all devices to be recorded are
 given on the commandline.
+.TP 8
+.B \-\-with-libinput
+Record libinput events alongside device events.
+.B THIS FEATURE IS EXPERIMENTAL.
+See section
+.B RECORDING LIBINPUT EVENTS
+for more details.
 
 .SH RECORDING MULTIPLE DEVICES
 Sometimes it is necessary to record the events from multiple devices
@@ -69,6 +76,25 @@ invocation is:
 
 Note that when recording multiple devices, only the first device is printed
 immediately, all other devices and their events are printed on exit.
+
+.SH RECORDING LIBINPUT EVENTS
+When the \fB\-\-with-libinput\fR switch is provided, \fBlibinput\-record\fR
+initializes a libinput context for the devices being recorded. Events from
+these contexts are printed alongside the evdev events.
+.B THIS FEATURE IS EXPERIMENTAL.
+.PP
+The primary purpose of this feature is debugging and event analysis, no
+caller may rely on any specific format of the events.
+.PP
+Note that while libinput and \fBlibinput\-record\fR see the same events from
+the device nodes, no guarantee can be given about the correct order of
+events. libinput events may come in earlier or later than the events from
+the device nodes and for some devices, libinput may internally alter the
+event stream before processing.
+.PP
+Note that the libinput context created by \fBlibinput\-record\fR does not
+affect the running desktop session and does not (can not!) copy any
+configuration options from that session.
 
 .SH FILE FORMAT
 The output file format is in YAML and intended to be both human-readable and
