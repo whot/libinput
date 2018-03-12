@@ -56,6 +56,7 @@ enum event_type {
 	NONE,
 	EVDEV,
 	LIBINPUT,
+	COMMENT,
 };
 
 struct event {
@@ -64,6 +65,7 @@ struct event {
 	union {
 		struct input_event evdev;
 		struct li_event libinput;
+		char comment[200];
 	} u;
 };
 
@@ -76,6 +78,12 @@ struct record_device {
 	struct event *events;
 	size_t nevents;
 	size_t events_sz;
+
+	struct {
+		bool is_touch_device;
+		uint16_t slot_state;
+		uint16_t last_slot_state;
+	} touch;
 };
 
 struct record_context {
@@ -255,11 +263,12 @@ handle_evdev_frame(struct record_context *ctx, struct record_device *d)
 	struct libevdev *evdev = d->evdev;
 	struct input_event e;
 	size_t count = 0;
+	uint32_t last_time = 0;
+	struct event *event;
 
 	while (libevdev_next_event(evdev,
 				   LIBEVDEV_READ_FLAG_NORMAL,
 				   &e) == LIBEVDEV_READ_STATUS_SUCCESS) {
-		struct event *event;
 
 		if (d->nevents == d->events_sz)
 			resize(d->events, d->events_sz);
@@ -270,8 +279,38 @@ handle_evdev_frame(struct record_context *ctx, struct record_device *d)
 		event->u.evdev = e;
 		count++;
 
+		if (d->touch.is_touch_device &&
+		    e.type == EV_ABS &&
+		    e.code == ABS_MT_TRACKING_ID) {
+			unsigned int slot = libevdev_get_current_slot(evdev);
+			assert(slot < sizeof(d->touch.slot_state) * 8);
+
+			if (e.value != -1)
+				d->touch.slot_state |= 1 << slot;
+			else
+				d->touch.slot_state &= ~(1 << slot);
+		}
+
+		last_time = event->time;
+
 		if (e.type == EV_SYN && e.code == SYN_REPORT)
 			break;
+	}
+
+	if (d->touch.slot_state != d->touch.last_slot_state) {
+		d->touch.last_slot_state = d->touch.slot_state;
+		if (d->nevents == d->events_sz)
+			resize(d->events, d->events_sz);
+
+		if (d->touch.slot_state == 0) {
+			event = &d->events[d->nevents++];
+			event->type = COMMENT;
+			event->time = last_time;
+			snprintf(event->u.comment,
+				 sizeof(event->u.comment),
+				 "                               # Touch device in neutral state\n");
+			count++;
+		}
 	}
 
 	return count;
@@ -674,6 +713,8 @@ print_cached_events(struct record_context *ctx,
 				else
 					iprintf(ctx, "libinput:\n");
 				break;
+			case COMMENT:
+				break;
 			default:
 				abort();
 			}
@@ -688,6 +729,9 @@ print_cached_events(struct record_context *ctx,
 			break;
 		case LIBINPUT:
 			iprintf(ctx, "- %s\n", e->u.libinput.msg);
+			break;
+		case COMMENT:
+			iprintf(ctx, "%s", e->u.comment);
 			break;
 		default:
 			abort();
@@ -1494,6 +1538,9 @@ init_device(struct record_context *ctx, char *path)
 	}
 
 	libevdev_set_clock_id(d->evdev, CLOCK_MONOTONIC);
+
+	if (libevdev_get_num_slots(d->evdev) > 0)
+		d->touch.is_touch_device = true;
 
 	list_insert(&ctx->devices, &d->link);
 	ctx->ndevices++;
