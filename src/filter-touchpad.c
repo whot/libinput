@@ -40,13 +40,7 @@
  * technically correct but subjectively wrong, we expect a touchpad to be a
  * lot slower than a mouse. Apply a magic factor to slow down all movements
  */
-#define TP_MAGIC_SLOWDOWN 0.37 /* unitless factor */
-
-/* Touchpad acceleration */
-#define TOUCHPAD_DEFAULT_THRESHOLD 254		/* mm/s */
-#define TOUCHPAD_THRESHOLD_RANGE 184		/* mm/s */
-#define TOUCHPAD_ACCELERATION 9.0		/* unitless factor */
-#define TOUCHPAD_INCLINE 0.011			/* unitless factor */
+#define TP_MAGIC_SLOWDOWN 0.2968 /* unitless factor */
 
 struct touchpad_accelerator {
 	struct motion_filter base;
@@ -60,9 +54,10 @@ struct touchpad_accelerator {
 
 	double threshold;	/* units/us */
 	double accel;		/* unitless factor */
-	double incline;		/* incline of the function */
 
 	int dpi;
+
+	double speed_factor;    /* factor based on speed setting */
 };
 
 /**
@@ -147,6 +142,30 @@ accelerator_filter_post_normalized(struct motion_filter *filter,
 	return normalize_for_dpi(&accelerated, accel->dpi);
 }
 
+/* Maps the [-1, 1] speed setting into a constant acceleration
+ * range. This isn't a linear scale, we keep 0 as the 'optimized'
+ * mid-point and scale down to 0 for setting -1 and up to 5 for
+ * setting 1. On the premise that if you want a faster cursor, it
+ * doesn't matter as much whether you have 0.56789 or 0.56790,
+ * but for lower settings it does because you may lose movements.
+ * *shrug*.
+ *
+ * Magic numbers calculated by MyCurveFit.com, data points were
+ *  0.0 0.0
+ *  0.1 0.1 (because we need 4 points)
+ *  1   1
+ *  2   5
+ *
+ *  This curve fits nicely into the range necessary.
+ */
+static inline double
+speed_factor(double s)
+{
+	s += 1; /* map to [0, 2] */
+	return 435837.2 + (0.04762636 - 435837.2)/(1 + pow(s/240.4549,
+							   2.377168));
+}
+
 static bool
 touchpad_accelerator_set_speed(struct motion_filter *filter,
 		      double speed_adjustment)
@@ -156,15 +175,8 @@ touchpad_accelerator_set_speed(struct motion_filter *filter,
 
 	assert(speed_adjustment >= -1.0 && speed_adjustment <= 1.0);
 
-	/* Note: the numbers below are nothing but trial-and-error magic,
-	   don't read more into them other than "they mostly worked ok" */
-
-	/* adjust when accel kicks in */
-	accel_filter->threshold = TOUCHPAD_DEFAULT_THRESHOLD -
-		TOUCHPAD_THRESHOLD_RANGE * speed_adjustment;
-	accel_filter->accel = TOUCHPAD_ACCELERATION;
-	accel_filter->incline = TOUCHPAD_INCLINE;
 	filter->speed_adjustment = speed_adjustment;
+	accel_filter->speed_factor = speed_factor(speed_adjustment);
 
 	return true;
 }
@@ -214,9 +226,8 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 {
 	struct touchpad_accelerator *accel_filter =
 		(struct touchpad_accelerator *)filter;
-	const double max_accel = accel_filter->accel; /* unitless factor */
 	const double threshold = accel_filter->threshold; /* units/us */
-	const double incline = accel_filter->incline;
+	const double baseline = 0.9;
 	double factor; /* unitless */
 
 	/* Convert to mm/s because that's something one can understand */
@@ -229,20 +240,21 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 
 	  accel
 	 factor
-	   ^
-	   |        /
-	   |  _____/
+	   ^         ______
+	   |        )
+	   |  _____)
 	   | /
 	   |/
 	   +-------------> speed in
 
-	   The two inclines are linear functions in the form
+	   Except the second incline is a curve, but well, asciiart.
+
+	   The first incline is a linear function in the form
 		   y = ax + b
 		   where y is speed_out
 		         x is speed_in
 			 a is the incline of acceleration
 			 b is minimum acceleration factor
-
 	   for speeds up to the lower threshold, we decelerate, down to 30%
 	   of input speed.
 		   hence 1 = a * 7 + 0.3
@@ -250,37 +262,47 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 		   deceleration function is thus:
 			y = 0.1x + 0.3
 
+	   The first plateau is the baseline.
+
+	   The second incline is a curve up, based on magic numbers
+	   obtained by trial-and-error.
+
+	   Above the second incline we have another plateau because
+	   by then you're moving so fast that extra acceleration doesn't
+	   help.
+
 	  Note:
 	  * The minimum threshold is a result of trial-and-error and
-	    has no other intrinsic meaning.
+	    has no other special meaning.
 	  * 0.3 is chosen simply because it is above the Nyquist frequency
 	    for subpixel motion within a pixel.
 	*/
+
 	if (speed_in < 7.0) {
-		factor = 0.1 * speed_in + 0.3;
+		factor = min(baseline, 0.1 * speed_in + 0.3);
 	/* up to the threshold, we keep factor 1, i.e. 1:1 movement */
 	} else if (speed_in < threshold) {
-		factor = 1;
+		factor = baseline;
 	} else {
-	/* Acceleration function above the threshold:
-		y = ax' + b
-		where T is threshold
-		      x is speed_in
-		      x' is speed
-	        and
-			y(T) == 1
-		hence 1 = ax' + 1
-			=> x' := (x - T)
+
+	/* Acceleration function above the threshold is a curve up
+	   to four times the threshold, because why not.
+
+	   Don't assume anything about the specific numbers though, this was
+	   all just trial and error by tweaking numbers here and there, then
+	   the formula was optimized doing basic maths.
+
+	   You could replace this with some other random formula that gives
+	   the same numbers and it would be just as correct.
+
 	 */
-		factor = incline * (speed_in - threshold) + 1;
+		const double upper_threshold = threshold * 4.0;
+		speed_in = min(speed_in, upper_threshold);
+
+		factor = 0.0025 * (speed_in/threshold) * (speed_in - threshold) + baseline;
 	}
 
-	/* Cap at the maximum acceleration factor */
-	factor = min(max_accel, factor);
-
-	/* Scale everything depending on the acceleration set */
-	factor *= 1 + 0.5 * filter->speed_adjustment;
-
+	factor *= accel_filter->speed_factor;
 	return factor * TP_MAGIC_SLOWDOWN;
 }
 
@@ -306,9 +328,7 @@ create_pointer_accelerator_filter_touchpad(int dpi,
 
 	trackers_init(&filter->trackers);
 
-	filter->threshold = TOUCHPAD_DEFAULT_THRESHOLD;
-	filter->accel = TOUCHPAD_ACCELERATION;
-	filter->incline = TOUCHPAD_INCLINE;
+	filter->threshold = 130;
 	filter->dpi = dpi;
 
 	filter->base.interface = &accelerator_interface_touchpad;
