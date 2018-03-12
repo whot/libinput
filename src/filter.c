@@ -135,7 +135,7 @@ filter_get_type(struct motion_filter *filter)
 #define DEFAULT_INCLINE 1.1			/* unitless factor */
 
 /* Touchpad acceleration */
-#define TOUCHPAD_DEFAULT_THRESHOLD 254		/* mm/s */
+#define TOUCHPAD_DEFAULT_THRESHOLD 180		/* mm/s */
 #define TOUCHPAD_THRESHOLD_RANGE 184		/* mm/s */
 #define TOUCHPAD_ACCELERATION 9.0		/* unitless factor */
 #define TOUCHPAD_INCLINE 0.011			/* unitless factor */
@@ -830,6 +830,7 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	const double threshold = accel_filter->threshold; /* units/us */
 	const double incline = accel_filter->incline;
 	double factor; /* unitless */
+	double baseline = 0.9;
 
 	/* Convert to mm/s because that's something one can understand */
 	speed_in = v_us2s(speed_in) * 25.4/accel_filter->dpi;
@@ -868,11 +869,12 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	  * 0.3 is chosen simply because it is above the Nyquist frequency
 	    for subpixel motion within a pixel.
 	*/
+	baseline = 0.9 + 0.5 * filter->speed_adjustment;
 	if (speed_in < 7.0) {
-		factor = 0.1 * speed_in + 0.3;
+		factor = min(baseline, 0.1 * speed_in + 0.3);
 	/* up to the threshold, we keep factor 1, i.e. 1:1 movement */
 	} else if (speed_in < threshold) {
-		factor = 1;
+		factor = baseline;
 	} else {
 	/* Acceleration function above the threshold:
 		y = ax' + b
@@ -885,6 +887,7 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 			=> x' := (x - T)
 	 */
 		factor = incline * (speed_in - threshold) + 1;
+		factor = max(factor, baseline);
 	}
 
 	/* Cap at the maximum acceleration factor */
