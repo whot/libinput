@@ -126,7 +126,8 @@ def replay(device, verbose):
 
         evs = [libevdev.InputEvent(libevdev.evbit(e[2], e[3]), value=e[4], sec=e[0], usec=e[1]) for e in evdev]
         uinput.send_events(evs)
-        print_events(uinput.devnode, device['__index'], evs)
+        if verbose:
+            print_events(uinput.devnode, device['__index'], evs)
 
 
 def wrap(func, *args):
