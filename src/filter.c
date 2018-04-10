@@ -296,23 +296,6 @@ calculate_velocity(struct pointer_trackers *trackers, uint64_t time)
 }
 
 /**
- * Apply the acceleration profile to the given velocity.
- *
- * @param accel The acceleration filter
- * @param data Caller-specific data
- * @param velocity Velocity in device-units per µs
- * @param time Current time in µs
- *
- * @return A unitless acceleration factor, to be applied to the delta
- */
-static double
-acceleration_profile(struct pointer_accelerator *accel,
-		     void *data, double velocity, uint64_t time)
-{
-	return accel->profile(&accel->base, data, velocity, time);
-}
-
-/**
  * Calculate the acceleration factor for our current velocity, averaging
  * between our current and the most recent velocity to smoothen out changes.
  *
@@ -324,23 +307,23 @@ acceleration_profile(struct pointer_accelerator *accel,
  *
  * @return A unitless acceleration factor, to be applied to the delta
  */
-static double
-calculate_acceleration(struct pointer_accelerator *accel,
-		       void *data,
-		       double velocity,
-		       double last_velocity,
-		       uint64_t time)
+double
+calculate_acceleration_simpsons(struct motion_filter *filter,
+				accel_profile_func_t profile,
+				void *data,
+				double velocity,
+				double last_velocity,
+				uint64_t time)
 {
 	double factor;
 
 	/* Use Simpson's rule to calculate the avarage acceleration between
 	 * the previous motion and the most recent. */
-	factor = acceleration_profile(accel, data, velocity, time);
-	factor += acceleration_profile(accel, data, last_velocity, time);
-	factor += 4.0 *
-		acceleration_profile(accel, data,
-				     (last_velocity + velocity) / 2,
-				     time);
+	factor = profile(filter, data, velocity, time);
+	factor += profile(filter, data, last_velocity, time);
+	factor += 4.0 * profile(filter, data,
+				(last_velocity + velocity) / 2,
+				time);
 
 	factor = factor / 6.0;
 
@@ -368,11 +351,12 @@ calculate_acceleration_factor(struct pointer_accelerator *accel,
 
 	feed_trackers(&accel->trackers, unaccelerated, time);
 	velocity = calculate_velocity(&accel->trackers, time);
-	accel_factor = calculate_acceleration(accel,
-					      data,
-					      velocity,
-					      accel->last_velocity,
-					      time);
+	accel_factor = calculate_acceleration_simpsons(&accel->base,
+						       accel->profile,
+						       data,
+						       velocity,
+						       accel->last_velocity,
+						       time);
 	accel->last_velocity = velocity;
 
 	return accel_factor;

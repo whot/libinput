@@ -106,6 +106,14 @@ tracker_by_offset(struct pointer_trackers *trackers, unsigned int offset);
 double
 calculate_velocity(struct pointer_trackers *trackers, uint64_t time);
 
+double
+calculate_acceleration_simpsons(struct motion_filter *filter,
+				accel_profile_func_t profile,
+				void *data,
+				double velocity,
+				double last_velocity,
+				uint64_t time);
+
 /* Convert speed/velocity from units/us to units/ms */
 static inline double
 v_us2ms(double units_per_us)
