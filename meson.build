@@ -152,6 +152,7 @@ dep_libinput_util = declare_dependency(link_with : libinput_util)
 src_libfilter = [
 		'src/filter.c',
 		'src/filter-touchpad-x230.c',
+		'src/filter-tablet.c',
 		'src/filter.h',
 		'src/filter-private.h'
 ]
