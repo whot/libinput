@@ -189,6 +189,33 @@ init_trackers(struct pointer_trackers *trackers,
 }
 
 void
+free_trackers(struct pointer_trackers *trackers)
+{
+	free(trackers->trackers);
+	free(trackers->smoothener);
+}
+
+void
+reset_trackers(struct pointer_trackers *trackers,
+	       uint64_t time)
+{
+	unsigned int offset;
+	struct pointer_tracker *tracker;
+
+	for (offset = 1; offset < trackers->ntrackers; offset++) {
+		tracker = tracker_by_offset(trackers, offset);
+		tracker->time = 0;
+		tracker->dir = 0;
+		tracker->delta.x = 0;
+		tracker->delta.y = 0;
+	}
+
+	tracker = tracker_by_offset(trackers, 0);
+	tracker->time = time;
+	tracker->dir = UNDEFINED_DIRECTION;
+}
+
+void
 feed_trackers(struct pointer_trackers *trackers,
 	      const struct device_float_coords *delta,
 	      uint64_t time)
@@ -622,20 +649,8 @@ accelerator_restart(struct motion_filter *filter,
 {
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
-	unsigned int offset;
-	struct pointer_tracker *tracker;
 
-	for (offset = 1; offset < accel->trackers.ntrackers; offset++) {
-		tracker = tracker_by_offset(&accel->trackers, offset);
-		tracker->time = 0;
-		tracker->dir = 0;
-		tracker->delta.x = 0;
-		tracker->delta.y = 0;
-	}
-
-	tracker = tracker_by_offset(&accel->trackers, 0);
-	tracker->time = time;
-	tracker->dir = UNDEFINED_DIRECTION;
+	reset_trackers(&accel->trackers, time);
 }
 
 static void
@@ -644,7 +659,7 @@ accelerator_destroy(struct motion_filter *filter)
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
 
-	free(accel->trackers.trackers);
+	free_trackers(&accel->trackers);
 	free(accel);
 }
 

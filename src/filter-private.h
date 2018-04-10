@@ -73,6 +73,11 @@ struct pointer_trackers {
 
 void init_trackers(struct pointer_trackers *trackers,
 		   size_t ntrackers);
+void free_trackers(struct pointer_trackers *trackers);
+
+void
+reset_trackers(struct pointer_trackers *trackers,
+	       uint64_t time);
 void
 feed_trackers(struct pointer_trackers *trackers,
 	      const struct device_float_coords *delta,
