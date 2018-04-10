@@ -342,6 +342,21 @@ draw_background(struct window *w, cairo_t *cr)
 		cairo_rel_line_to(cr, 20, 0);
 	}
 	cairo_stroke(cr);
+
+	/* round targets */
+	for (int i = 0; i <= 3; i++) {
+		x1 = w->width * i/4.0;
+		x2 = w->width * i/4.0;
+
+		y1 = w->height * 1.0/4.0;
+		y2 = w->height * 3.0/4.0;
+
+		cairo_arc(cr, x1, y1, 10, 0, 2 * M_PI);
+		cairo_stroke(cr);
+		cairo_arc(cr, x2, y2, 10, 0, 2 * M_PI);
+		cairo_stroke(cr);
+	}
+
 }
 
 static gboolean
