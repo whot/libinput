@@ -109,13 +109,6 @@ filter_get_type(struct motion_filter *filter)
 #define TOUCHPAD_ACCELERATION 9.0		/* unitless factor */
 #define TOUCHPAD_INCLINE 0.011			/* unitless factor */
 
-/* for the Lenovo x230 custom accel. do not touch */
-#define X230_THRESHOLD v_ms2us(0.4)		/* in units/us */
-#define X230_ACCELERATION 2.0			/* unitless factor */
-#define X230_INCLINE 1.1			/* unitless factor */
-#define X230_MAGIC_SLOWDOWN 0.4			/* unitless */
-#define X230_TP_MAGIC_LOW_RES_FACTOR 4.0	/* unitless */
-
 /* Trackpoint acceleration */
 #define TRACKPOINT_DEFAULT_MAX_ACCEL 2.0	/* in units/us */
 #define TRACKPOINT_DEFAULT_MAX_DELTA 60
@@ -547,63 +540,6 @@ accelerator_filter_noop(struct motion_filter *filter,
 	return normalize_for_dpi(unaccelerated, accel->dpi);
 }
 
-static struct normalized_coords
-accelerator_filter_x230(struct motion_filter *filter,
-			const struct device_float_coords *raw,
-			void *data, uint64_t time)
-{
-	struct pointer_accelerator *accel =
-		(struct pointer_accelerator *) filter;
-	double accel_factor; /* unitless factor */
-	struct normalized_coords accelerated;
-	struct device_float_coords delta_normalized;
-	struct normalized_coords unaccelerated;
-	double velocity; /* units/us */
-
-	/* This filter is a "do not touch me" filter. So the hack here is
-	 * just to replicate the old behavior before filters switched to
-	 * device-native dpi:
-	 * 1) convert from device-native to 1000dpi normalized
-	 * 2) run all calculation on 1000dpi-normalized data
-	 * 3) apply accel factor no normalized data
-	 */
-	unaccelerated = normalize_for_dpi(raw, accel->dpi);
-	delta_normalized.x = unaccelerated.x;
-	delta_normalized.y = unaccelerated.y;
-
-	feed_trackers(&accel->trackers, &delta_normalized, time);
-	velocity = calculate_velocity(&accel->trackers, time);
-	accel_factor = calculate_acceleration(accel,
-					      data,
-					      velocity,
-					      accel->last_velocity,
-					      time);
-	accel->last_velocity = velocity;
-
-	accelerated.x = accel_factor * delta_normalized.x;
-	accelerated.y = accel_factor * delta_normalized.y;
-
-	return accelerated;
-}
-
-static struct normalized_coords
-accelerator_filter_constant_x230(struct motion_filter *filter,
-				 const struct device_float_coords *unaccelerated,
-				 void *data, uint64_t time)
-{
-	struct pointer_accelerator *accel =
-		(struct pointer_accelerator *) filter;
-	struct normalized_coords normalized;
-	const double factor =
-		X230_MAGIC_SLOWDOWN/X230_TP_MAGIC_LOW_RES_FACTOR;
-
-	normalized = normalize_for_dpi(unaccelerated, accel->dpi);
-	normalized.x = factor * normalized.x;
-	normalized.y = factor * normalized.y;
-
-	return normalized;
-}
-
 static bool
 touchpad_accelerator_set_speed(struct motion_filter *filter,
 		      double speed_adjustment)
@@ -888,45 +824,6 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	return factor * TP_MAGIC_SLOWDOWN;
 }
 
-double
-touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
-				      void *data,
-				      double speed_in, /* 1000dpi-units/µs */
-				      uint64_t time)
-{
-	/* Those touchpads presents an actual lower resolution that what is
-	 * advertised. We see some jumps from the cursor due to the big steps
-	 * in X and Y when we are receiving data.
-	 * Apply a factor to minimize those jumps at low speed, and try
-	 * keeping the same feeling as regular touchpads at high speed.
-	 * It still feels slower but it is usable at least */
-	double factor; /* unitless */
-	struct pointer_accelerator *accel_filter =
-		(struct pointer_accelerator *)filter;
-
-	double f1, f2; /* unitless */
-	const double max_accel = accel_filter->accel *
-				  X230_TP_MAGIC_LOW_RES_FACTOR; /* unitless factor */
-	const double threshold = accel_filter->threshold /
-				  X230_TP_MAGIC_LOW_RES_FACTOR; /* units/us */
-	const double incline = accel_filter->incline * X230_TP_MAGIC_LOW_RES_FACTOR;
-
-	/* Note: the magic values in this function are obtained by
-	 * trial-and-error. No other meaning should be interpreted.
-	 * The calculation is a compressed form of
-	 * pointer_accel_profile_linear(), look at the git history of that
-	 * function for an explanation of what the min/max/etc. does.
-	 */
-	speed_in *= X230_MAGIC_SLOWDOWN / X230_TP_MAGIC_LOW_RES_FACTOR;
-
-	f1 = min(1, v_us2ms(speed_in) * 5);
-	f2 = 1 + (v_us2ms(speed_in) - v_us2ms(threshold)) * incline;
-
-	factor = min(max_accel, f2 > 1 ? f2 : f1);
-
-	return factor * X230_MAGIC_SLOWDOWN / X230_TP_MAGIC_LOW_RES_FACTOR;
-}
-
 struct motion_filter_interface accelerator_interface = {
 	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
 	.filter = accelerator_filter_pre_normalized,
@@ -1021,39 +918,6 @@ create_pointer_accelerator_filter_touchpad(int dpi,
 	smoothener->threshold = event_delta_smooth_threshold,
 	smoothener->value = event_delta_smooth_value,
 	filter->trackers.smoothener = smoothener;
-
-	return &filter->base;
-}
-
-struct motion_filter_interface accelerator_interface_x230 = {
-	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
-	.filter = accelerator_filter_x230,
-	.filter_constant = accelerator_filter_constant_x230,
-	.restart = accelerator_restart,
-	.destroy = accelerator_destroy,
-	.set_speed = accelerator_set_speed,
-};
-
-/* The Lenovo x230 has a bad touchpad. This accel method has been
- * trial-and-error'd, any changes to it will require re-testing everything.
- * Don't touch this.
- */
-struct motion_filter *
-create_pointer_accelerator_filter_lenovo_x230(int dpi)
-{
-	struct pointer_accelerator *filter;
-
-	filter = zalloc(sizeof *filter);
-	filter->base.interface = &accelerator_interface_x230;
-	filter->profile = touchpad_lenovo_x230_accel_profile;
-	filter->last_velocity = 0.0;
-
-	init_trackers(&filter->trackers, NUM_POINTER_TRACKERS);
-
-	filter->threshold = X230_THRESHOLD;
-	filter->accel = X230_ACCELERATION; /* unitless factor */
-	filter->incline = X230_INCLINE; /* incline of the acceleration function */
-	filter->dpi = dpi;
 
 	return &filter->base;
 }
