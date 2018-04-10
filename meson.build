@@ -161,7 +161,7 @@ dep_libfilter = declare_dependency(link_with : libfilter)
 
 ############ libinput.so ############
 install_headers('src/libinput.h')
-src_libinput = [
+src_libinput = src_libfilter + [
 	'src/libinput.c',
 	'src/libinput.h',
 	'src/libinput-private.h',
@@ -182,9 +182,6 @@ src_libinput = [
 	'src/evdev-tablet-pad.c',
 	'src/evdev-tablet-pad.h',
 	'src/evdev-tablet-pad-leds.c',
-	'src/filter.c',
-	'src/filter.h',
-	'src/filter-private.h',
 	'src/path-seat.h',
 	'src/path-seat.c',
 	'src/udev-seat.c',
@@ -193,6 +190,7 @@ src_libinput = [
 	'src/timer.h',
 	'include/linux/input.h'
 ]
+
 deps_libinput = [
 	dep_mtdev,
 	dep_udev,
