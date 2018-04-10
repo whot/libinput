@@ -71,6 +71,23 @@ struct pointer_trackers {
 	struct pointer_delta_smoothener *smoothener;
 };
 
+struct pointer_accelerator {
+	struct motion_filter base;
+
+	accel_profile_func_t profile;
+
+	double velocity;	/* units/us */
+	double last_velocity;	/* units/us */
+
+	struct pointer_trackers trackers;
+
+	double threshold;	/* units/us */
+	double accel;		/* unitless factor */
+	double incline;		/* incline of the function */
+
+	int dpi;
+};
+
 void init_trackers(struct pointer_trackers *trackers,
 		   size_t ntrackers);
 void free_trackers(struct pointer_trackers *trackers);

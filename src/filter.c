@@ -117,23 +117,6 @@ filter_get_type(struct motion_filter *filter)
 #define MOTION_TIMEOUT		ms2us(1000)
 #define NUM_POINTER_TRACKERS	16
 
-struct pointer_accelerator {
-	struct motion_filter base;
-
-	accel_profile_func_t profile;
-
-	double velocity;	/* units/us */
-	double last_velocity;	/* units/us */
-
-	struct pointer_trackers trackers;
-
-	double threshold;	/* units/us */
-	double accel;		/* unitless factor */
-	double incline;		/* incline of the function */
-
-	int dpi;
-};
-
 struct pointer_accelerator_flat {
 	struct motion_filter base;
 
