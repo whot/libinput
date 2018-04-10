@@ -42,37 +42,6 @@
  */
 #define TP_MAGIC_SLOWDOWN 0.37 /* unitless factor */
 
-/* Convert speed/velocity from units/us to units/ms */
-static inline double
-v_us2ms(double units_per_us)
-{
-	return units_per_us * 1000.0;
-}
-
-static inline double
-v_us2s(double units_per_us)
-{
-	return units_per_us * 1000000.0;
-}
-
-/* Convert speed/velocity from units/ms to units/us */
-static inline double
-v_ms2us(double units_per_ms)
-{
-	return units_per_ms/1000.0;
-}
-
-static inline struct normalized_coords
-normalize_for_dpi(const struct device_float_coords *coords, int dpi)
-{
-	struct normalized_coords norm;
-
-	norm.x = coords->x * DEFAULT_MOUSE_DPI/dpi;
-	norm.y = coords->y * DEFAULT_MOUSE_DPI/dpi;
-
-	return norm;
-}
-
 struct normalized_coords
 filter_dispatch(struct motion_filter *filter,
 		const struct device_float_coords *unaccelerated,
@@ -161,18 +130,6 @@ filter_get_type(struct motion_filter *filter)
 #define MOTION_TIMEOUT		ms2us(1000)
 #define NUM_POINTER_TRACKERS	16
 
-struct pointer_tracker {
-	struct device_float_coords delta; /* delta to most recent event */
-	uint64_t time;  /* us */
-	uint32_t dir;
-};
-
-struct pointer_trackers {
-	struct pointer_tracker *trackers;
-	size_t ntrackers;
-	unsigned int cur_tracker;
-};
-
 struct pointer_accelerator {
 	struct motion_filter base;
 
@@ -224,7 +181,7 @@ struct trackpoint_accelerator {
 	double offset; /* offset of the function */
 };
 
-static void
+void
 init_trackers(struct pointer_trackers *trackers,
 	      size_t ntrackers)
 {
@@ -234,7 +191,7 @@ init_trackers(struct pointer_trackers *trackers,
 	trackers->cur_tracker = 0;
 }
 
-static void
+void
 feed_trackers(struct pointer_trackers *trackers,
 	      const struct device_float_coords *delta,
 	      uint64_t time)
@@ -258,7 +215,7 @@ feed_trackers(struct pointer_trackers *trackers,
 	ts[current].dir = device_float_get_direction(*delta);
 }
 
-static struct pointer_tracker *
+struct pointer_tracker *
 tracker_by_offset(struct pointer_trackers *trackers, unsigned int offset)
 {
 	unsigned int index =

@@ -51,4 +51,57 @@ struct motion_filter {
 	struct motion_filter_interface *interface;
 };
 
+struct pointer_tracker {
+	struct device_float_coords delta; /* delta to most recent event */
+	uint64_t time;  /* us */
+	uint32_t dir;
+};
+
+struct pointer_trackers {
+	struct pointer_tracker *trackers;
+	size_t ntrackers;
+	unsigned int cur_tracker;
+};
+
+void init_trackers(struct pointer_trackers *trackers,
+		   size_t ntrackers);
+void
+feed_trackers(struct pointer_trackers *trackers,
+	      const struct device_float_coords *delta,
+	      uint64_t time);
+
+struct pointer_tracker *
+tracker_by_offset(struct pointer_trackers *trackers, unsigned int offset);
+
+/* Convert speed/velocity from units/us to units/ms */
+static inline double
+v_us2ms(double units_per_us)
+{
+	return units_per_us * 1000.0;
+}
+
+static inline double
+v_us2s(double units_per_us)
+{
+	return units_per_us * 1000000.0;
+}
+
+/* Convert speed/velocity from units/ms to units/us */
+static inline double
+v_ms2us(double units_per_ms)
+{
+	return units_per_ms/1000.0;
+}
+
+static inline struct normalized_coords
+normalize_for_dpi(const struct device_float_coords *coords, int dpi)
+{
+	struct normalized_coords norm;
+
+	norm.x = coords->x * DEFAULT_MOUSE_DPI/dpi;
+	norm.y = coords->y * DEFAULT_MOUSE_DPI/dpi;
+
+	return norm;
+}
+
 #endif
