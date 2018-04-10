@@ -57,10 +57,18 @@ struct pointer_tracker {
 	uint32_t dir;
 };
 
+/* For smoothing timestamps from devices with unreliable timing */
+struct pointer_delta_smoothener {
+	uint64_t threshold;
+	uint64_t value;
+};
+
 struct pointer_trackers {
 	struct pointer_tracker *trackers;
 	size_t ntrackers;
 	unsigned int cur_tracker;
+
+	struct pointer_delta_smoothener *smoothener;
 };
 
 void init_trackers(struct pointer_trackers *trackers,

@@ -144,10 +144,6 @@ struct pointer_accelerator {
 	double accel;		/* unitless factor */
 	double incline;		/* incline of the function */
 
-	/* For smoothing timestamps from devices with unreliable timing */
-	uint64_t event_delta_smooth_threshold;
-	uint64_t event_delta_smooth_value;
-
 	int dpi;
 };
 
@@ -189,6 +185,7 @@ init_trackers(struct pointer_trackers *trackers,
 				    sizeof(*trackers->trackers));
 	trackers->ntrackers = ntrackers;
 	trackers->cur_tracker = 0;
+	trackers->smoothener = NULL;
 }
 
 void
@@ -225,21 +222,22 @@ tracker_by_offset(struct pointer_trackers *trackers, unsigned int offset)
 }
 
 static double
-calculate_tracker_velocity(struct pointer_accelerator *accel,
-			   struct pointer_tracker *tracker, uint64_t time)
+calculate_tracker_velocity(struct pointer_tracker *tracker,
+			   uint64_t time,
+			   struct pointer_delta_smoothener *smoothener)
 {
 	uint64_t tdelta = time - tracker->time + 1;
 
-	if (tdelta < accel->event_delta_smooth_threshold)
-		tdelta = accel->event_delta_smooth_value;
+	if (smoothener && tdelta < smoothener->threshold)
+		tdelta = smoothener->value;
 
 	return hypot(tracker->delta.x, tracker->delta.y) /
 	       (double)tdelta; /* units/us */
 }
 
-static inline double
-calculate_velocity_after_timeout(struct pointer_accelerator *accel,
-				 struct pointer_tracker *tracker)
+static double
+calculate_velocity_after_timeout(struct pointer_tracker *tracker,
+				 struct pointer_delta_smoothener *smoothener)
 {
 	/* First movement after timeout needs special handling.
 	 *
@@ -252,8 +250,9 @@ calculate_velocity_after_timeout(struct pointer_accelerator *accel,
 	 * for really slow movements but provides much more useful initial
 	 * movement in normal use-cases (pause, move, pause, move)
 	 */
-	return calculate_tracker_velocity(accel, tracker,
-					  tracker->time + MOTION_TIMEOUT);
+	return calculate_tracker_velocity(tracker,
+					  tracker->time + MOTION_TIMEOUT,
+					  smoothener);
 }
 
 /**
@@ -266,6 +265,7 @@ calculate_velocity_after_timeout(struct pointer_accelerator *accel,
 static double
 calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
 {
+	struct pointer_trackers *trackers = &accel->trackers;
 	struct pointer_tracker *tracker;
 	double velocity;
 	double result = 0.0;
@@ -273,12 +273,12 @@ calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
 	double velocity_diff;
 	unsigned int offset;
 
-	unsigned int dir = tracker_by_offset(&accel->trackers, 0)->dir;
+	unsigned int dir = tracker_by_offset(trackers, 0)->dir;
 
 	/* Find least recent vector within a timelimit, maximum velocity diff
 	 * and direction threshold. */
 	for (offset = 1; offset < accel->trackers.ntrackers; offset++) {
-		tracker = tracker_by_offset(&accel->trackers, offset);
+		tracker = tracker_by_offset(trackers, offset);
 
 		/* Bug: time running backwards */
 		if (tracker->time > time)
@@ -287,11 +287,15 @@ calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
 		/* Stop if too far away in time */
 		if (time - tracker->time > MOTION_TIMEOUT) {
 			if (offset == 1)
-				result = calculate_velocity_after_timeout(accel, tracker);
+				result = calculate_velocity_after_timeout(
+							  tracker,
+							  trackers->smoothener);
 			break;
 		}
 
-		velocity = calculate_tracker_velocity(accel, tracker, time);
+		velocity = calculate_tracker_velocity(tracker,
+						      time,
+						      trackers->smoothener);
 
 		/* Stop if direction changed */
 		dir &= tracker->dir;
@@ -990,6 +994,7 @@ create_pointer_accelerator_filter_touchpad(int dpi,
 	uint64_t event_delta_smooth_value)
 {
 	struct pointer_accelerator *filter;
+	struct pointer_delta_smoothener *smoothener;
 
 	filter = create_default_filter(dpi);
 	if (!filter)
@@ -997,8 +1002,11 @@ create_pointer_accelerator_filter_touchpad(int dpi,
 
 	filter->base.interface = &accelerator_interface_touchpad;
 	filter->profile = touchpad_accel_profile_linear;
-	filter->event_delta_smooth_threshold = event_delta_smooth_threshold;
-	filter->event_delta_smooth_value = event_delta_smooth_value;
+
+	smoothener = zalloc(sizeof(*smoothener));
+	smoothener->threshold = event_delta_smooth_threshold,
+	smoothener->value = event_delta_smooth_value,
+	filter->trackers.smoothener = smoothener;
 
 	return &filter->base;
 }
