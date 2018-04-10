@@ -262,10 +262,9 @@ calculate_velocity_after_timeout(struct pointer_tracker *tracker,
  * past, moving into a different direction or having too much of a velocity
  * change between events.
  */
-static double
-calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
+double
+calculate_velocity(struct pointer_trackers *trackers, uint64_t time)
 {
-	struct pointer_trackers *trackers = &accel->trackers;
 	struct pointer_tracker *tracker;
 	double velocity;
 	double result = 0.0;
@@ -277,7 +276,7 @@ calculate_velocity(struct pointer_accelerator *accel, uint64_t time)
 
 	/* Find least recent vector within a timelimit, maximum velocity diff
 	 * and direction threshold. */
-	for (offset = 1; offset < accel->trackers.ntrackers; offset++) {
+	for (offset = 1; offset < trackers->ntrackers; offset++) {
 		tracker = tracker_by_offset(trackers, offset);
 
 		/* Bug: time running backwards */
@@ -394,7 +393,7 @@ calculate_acceleration_factor(struct pointer_accelerator *accel,
 	double accel_factor;
 
 	feed_trackers(&accel->trackers, unaccelerated, time);
-	velocity = calculate_velocity(accel, time);
+	velocity = calculate_velocity(&accel->trackers, time);
 	accel_factor = calculate_acceleration(accel,
 					      data,
 					      velocity,
@@ -546,7 +545,7 @@ accelerator_filter_x230(struct motion_filter *filter,
 	delta_normalized.y = unaccelerated.y;
 
 	feed_trackers(&accel->trackers, &delta_normalized, time);
-	velocity = calculate_velocity(accel, time);
+	velocity = calculate_velocity(&accel->trackers, time);
 	accel_factor = calculate_acceleration(accel,
 					      data,
 					      velocity,

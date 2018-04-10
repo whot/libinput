@@ -81,6 +81,9 @@ feed_trackers(struct pointer_trackers *trackers,
 struct pointer_tracker *
 tracker_by_offset(struct pointer_trackers *trackers, unsigned int offset);
 
+double
+calculate_velocity(struct pointer_trackers *trackers, uint64_t time);
+
 /* Convert speed/velocity from units/us to units/ms */
 static inline double
 v_us2ms(double units_per_us)
