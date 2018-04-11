@@ -104,13 +104,6 @@ filter_get_type(struct motion_filter *filter)
 #define MOTION_TIMEOUT		ms2us(1000)
 #define NUM_POINTER_TRACKERS	16
 
-struct pointer_accelerator_flat {
-	struct motion_filter base;
-
-	double factor;
-	int dpi;
-};
-
 void
 init_trackers(struct pointer_trackers *trackers,
 	      size_t ntrackers)
@@ -682,73 +675,3 @@ create_pointer_accelerator_filter_linear_low_dpi(int dpi)
 
 	return &filter->base;
 }
-
-static struct normalized_coords
-accelerator_filter_flat(struct motion_filter *filter,
-			const struct device_float_coords *unaccelerated,
-			void *data, uint64_t time)
-{
-	struct pointer_accelerator_flat *accel_filter =
-		(struct pointer_accelerator_flat *)filter;
-	double factor; /* unitless factor */
-	struct normalized_coords accelerated;
-
-	/* You want flat acceleration, you get flat acceleration for the
-	 * device */
-	factor = accel_filter->factor;
-	accelerated.x = factor * unaccelerated->x;
-	accelerated.y = factor * unaccelerated->y;
-
-	return accelerated;
-}
-
-static bool
-accelerator_set_speed_flat(struct motion_filter *filter,
-			   double speed_adjustment)
-{
-	struct pointer_accelerator_flat *accel_filter =
-		(struct pointer_accelerator_flat *)filter;
-
-	assert(speed_adjustment >= -1.0 && speed_adjustment <= 1.0);
-
-	/* Speed rage is 0-200% of the nominal speed, with 0 mapping to the
-	 * nominal speed. Anything above 200 is pointless, we're already
-	 * skipping over ever second pixel at 200% speed.
-	 */
-
-	accel_filter->factor = max(0.005, 1 + speed_adjustment);
-	filter->speed_adjustment = speed_adjustment;
-
-	return true;
-}
-
-static void
-accelerator_destroy_flat(struct motion_filter *filter)
-{
-	struct pointer_accelerator_flat *accel =
-		(struct pointer_accelerator_flat *) filter;
-
-	free(accel);
-}
-
-struct motion_filter_interface accelerator_interface_flat = {
-	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT,
-	.filter = accelerator_filter_flat,
-	.filter_constant = accelerator_filter_noop,
-	.restart = NULL,
-	.destroy = accelerator_destroy_flat,
-	.set_speed = accelerator_set_speed_flat,
-};
-
-struct motion_filter *
-create_pointer_accelerator_filter_flat(int dpi)
-{
-	struct pointer_accelerator_flat *filter;
-
-	filter = zalloc(sizeof *filter);
-	filter->base.interface = &accelerator_interface_flat;
-	filter->dpi = dpi;
-
-	return &filter->base;
-}
-
