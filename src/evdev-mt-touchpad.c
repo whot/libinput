@@ -2563,26 +2563,8 @@ tp_init_slots(struct tp_dispatch *tp,
 static uint32_t
 tp_accel_config_get_profiles(struct libinput_device *libinput_device)
 {
-	return LIBINPUT_CONFIG_ACCEL_PROFILE_NONE;
-}
-
-static enum libinput_config_status
-tp_accel_config_set_profile(struct libinput_device *libinput_device,
-			    enum libinput_config_accel_profile profile)
-{
-	return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
-}
-
-static enum libinput_config_accel_profile
-tp_accel_config_get_profile(struct libinput_device *libinput_device)
-{
-	return LIBINPUT_CONFIG_ACCEL_PROFILE_NONE;
-}
-
-static enum libinput_config_accel_profile
-tp_accel_config_get_default_profile(struct libinput_device *libinput_device)
-{
-	return LIBINPUT_CONFIG_ACCEL_PROFILE_NONE;
+	return LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE |
+	       LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM_DEVICE_SPEED;
 }
 
 static bool
@@ -2619,12 +2601,9 @@ tp_init_accel(struct tp_dispatch *tp)
 
 	evdev_device_init_pointer_acceleration(tp->device, filter);
 
-	/* we override the profile hooks for accel configuration with hooks
-	 * that don't allow selection of profiles */
+	/* override the profile hooks for get_profile because we don't
+	 * have the flat profile on touchpads */
 	device->pointer.config.get_profiles = tp_accel_config_get_profiles;
-	device->pointer.config.set_profile = tp_accel_config_set_profile;
-	device->pointer.config.get_profile = tp_accel_config_get_profile;
-	device->pointer.config.get_default_profile = tp_accel_config_get_default_profile;
 
 	return true;
 }
