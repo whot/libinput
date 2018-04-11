@@ -401,24 +401,6 @@ accelerator_filter_pre_normalized(struct motion_filter *filter,
 	return normalized;
 }
 
-static struct normalized_coords
-accelerator_filter_unnormalized(struct motion_filter *filter,
-				const struct device_float_coords *unaccelerated,
-				void *data, uint64_t time)
-{
-	struct device_float_coords accelerated;
-	struct normalized_coords normalized;
-
-	/* Accelerate for device units and return device units */
-	accelerated = accelerator_filter_generic(filter,
-						 unaccelerated,
-						 data,
-						 time);
-	normalized.x = accelerated.x;
-	normalized.y = accelerated.y;
-	return normalized;
-}
-
 /**
  * Generic filter that does nothing beyond converting from the device's
  * native dpi into normalized coordinates.
@@ -489,49 +471,6 @@ accelerator_set_speed(struct motion_filter *filter,
 
 	filter->speed_adjustment = speed_adjustment;
 	return true;
-}
-
-/**
- * Custom acceleration function for mice < 1000dpi.
- * At slow motion, a single device unit causes a one-pixel movement.
- * The threshold/max accel depends on the DPI, the smaller the DPI the
- * earlier we accelerate and the higher the maximum acceleration is. Result:
- * at low speeds we get pixel-precision, at high speeds we get approx. the
- * same movement as a high-dpi mouse.
- *
- * Note: data fed to this function is in device units, not normalized.
- */
-double
-pointer_accel_profile_linear_low_dpi(struct motion_filter *filter,
-				     void *data,
-				     double speed_in, /* in device units (units/us) */
-				     uint64_t time)
-{
-	struct pointer_accelerator *accel_filter =
-		(struct pointer_accelerator *)filter;
-
-	double max_accel = accel_filter->accel; /* unitless factor */
-	double threshold = accel_filter->threshold; /* units/us */
-	const double incline = accel_filter->incline;
-	double dpi_factor = accel_filter->dpi/(double)DEFAULT_MOUSE_DPI;
-	double factor; /* unitless */
-
-	/* dpi_factor is always < 1.0, increase max_accel, reduce
-	   the threshold so it kicks in earlier */
-	max_accel /= dpi_factor;
-	threshold *= dpi_factor;
-
-	/* see pointer_accel_profile_linear for a long description */
-	if (v_us2ms(speed_in) < 0.07)
-		factor = 10 * v_us2ms(speed_in) + 0.3;
-	else if (speed_in < threshold)
-		factor = 1;
-	else
-		factor = incline * v_us2ms(speed_in - threshold) + 1;
-
-	factor = min(max_accel, factor);
-
-	return factor;
 }
 
 double
@@ -648,30 +587,6 @@ create_pointer_accelerator_filter_linear(int dpi)
 
 	filter->base.interface = &accelerator_interface;
 	filter->profile = pointer_accel_profile_linear;
-
-	return &filter->base;
-}
-
-struct motion_filter_interface accelerator_interface_low_dpi = {
-	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
-	.filter = accelerator_filter_unnormalized,
-	.filter_constant = accelerator_filter_noop,
-	.restart = accelerator_restart,
-	.destroy = accelerator_destroy,
-	.set_speed = accelerator_set_speed,
-};
-
-struct motion_filter *
-create_pointer_accelerator_filter_linear_low_dpi(int dpi)
-{
-	struct pointer_accelerator *filter;
-
-	filter = create_default_filter(dpi);
-	if (!filter)
-		return NULL;
-
-	filter->base.interface = &accelerator_interface_low_dpi;
-	filter->profile = pointer_accel_profile_linear_low_dpi;
 
 	return &filter->base;
 }
