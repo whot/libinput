@@ -1292,6 +1292,58 @@ START_TEST(strsplit_test)
 }
 END_TEST
 
+struct kvsplit_dbl_test {
+	const char *string;
+	const char *psep;
+	const char *kvsep;
+	ssize_t nresults;
+	struct {
+		double a;
+		double b;
+	} results[32];
+};
+
+START_TEST(kvsplit_double_test)
+{
+	struct kvsplit_dbl_test tests[] = {
+		{ "1:2;3:4;5:6", ";", ":", 3, { {1, 2}, {3, 4}, {5, 6}}},
+		{ "1.0x2.3 -3.2x4.5 8.090909x-6.00", " ", "x", 3, { {1.0, 2.3}, {-3.2, 4.5}, {8.090909, -6}}},
+
+		{ "1:2", "x", ":", 1, {{1, 2}}},
+		{ "1:2", ":", "x", -1, {}},
+		{ "1:2", NULL, "x", -1, {}},
+		{ "1:2", "", "x", -1, {}},
+		{ "1:2", "x", NULL, -1, {}},
+		{ "1:2", "x", "", -1, {}},
+		{ "a:b", "x", ":", -1, {}},
+		{ "", " ", "x", -1, {}},
+		{ "1.2.3.4.5", ".", "", -1, {}},
+		{ NULL }
+	};
+	struct kvsplit_dbl_test *t = tests;
+
+	while (t->string) {
+		struct key_value_double *result = NULL;
+		ssize_t npairs;
+
+		npairs = kv_double_from_string(t->string,
+					       t->psep,
+					       t->kvsep,
+					       &result);
+		ck_assert_int_eq(npairs, t->nresults);
+
+		for (ssize_t i = 0; i < npairs; i++) {
+			ck_assert_double_eq(t->results[i].a, result[i].key);
+			ck_assert_double_eq(t->results[i].b, result[i].value);
+		}
+
+
+		free(result);
+		t++;
+	}
+}
+END_TEST
+
 static int open_restricted_leak(const char *path, int flags, void *data)
 {
 	return *(int*)data;
@@ -1528,6 +1580,7 @@ TEST_COLLECTION(misc)
 	litest_add_no_device("misc:parser", safe_atoi_base_8_test);
 	litest_add_no_device("misc:parser", safe_atod_test);
 	litest_add_no_device("misc:parser", strsplit_test);
+	litest_add_no_device("misc:parser", kvsplit_double_test);
 	litest_add_no_device("misc:time", time_conversion);
 
 	litest_add_no_device("misc:fd", fd_no_event_leak);
