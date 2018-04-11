@@ -102,12 +102,12 @@ filter_get_type(struct motion_filter *filter)
  */
 
 #define MOTION_TIMEOUT		ms2us(1000)
-#define NUM_POINTER_TRACKERS	16
 
 void
-init_trackers(struct pointer_trackers *trackers,
-	      size_t ntrackers)
+init_trackers(struct pointer_trackers *trackers)
 {
+	const int ntrackers = 16;
+
 	trackers->trackers = zalloc(ntrackers *
 				    sizeof(*trackers->trackers));
 	trackers->ntrackers = ntrackers;
@@ -566,7 +566,7 @@ create_default_filter(int dpi)
 	filter = zalloc(sizeof *filter);
 	filter->last_velocity = 0.0;
 
-	init_trackers(&filter->trackers, NUM_POINTER_TRACKERS);
+	init_trackers(&filter->trackers);
 
 	filter->threshold = DEFAULT_THRESHOLD;
 	filter->accel = DEFAULT_ACCELERATION;

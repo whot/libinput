@@ -60,11 +60,6 @@
 #define X230_MAGIC_SLOWDOWN 0.4			/* unitless */
 #define X230_TP_MAGIC_LOW_RES_FACTOR 4.0	/* unitless */
 
-/*
- * Pointer acceleration filter constants
- */
-#define NUM_POINTER_TRACKERS	16
-
 struct pointer_accelerator_x230 {
 	struct motion_filter base;
 
@@ -345,7 +340,7 @@ create_pointer_accelerator_filter_lenovo_x230(int dpi)
 	filter->profile = touchpad_lenovo_x230_accel_profile;
 	filter->last_velocity = 0.0;
 
-	init_trackers(&filter->trackers, NUM_POINTER_TRACKERS);
+	init_trackers(&filter->trackers);
 
 	filter->threshold = X230_THRESHOLD;
 	filter->accel = X230_ACCELERATION; /* unitless factor */

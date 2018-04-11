@@ -48,11 +48,6 @@
 #define TOUCHPAD_ACCELERATION 9.0		/* unitless factor */
 #define TOUCHPAD_INCLINE 0.011			/* unitless factor */
 
-/*
- * Pointer acceleration filter constants
- */
-#define NUM_POINTER_TRACKERS	16
-
 /**
  * Calculate the acceleration factor for the given delta with the timestamp.
  *
@@ -292,7 +287,7 @@ create_pointer_accelerator_filter_touchpad(int dpi,
 	filter = zalloc(sizeof *filter);
 	filter->last_velocity = 0.0;
 
-	init_trackers(&filter->trackers, NUM_POINTER_TRACKERS);
+	init_trackers(&filter->trackers);
 
 	filter->threshold = TOUCHPAD_DEFAULT_THRESHOLD;
 	filter->accel = TOUCHPAD_ACCELERATION;

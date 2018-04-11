@@ -88,8 +88,7 @@ struct pointer_accelerator {
 	int dpi;
 };
 
-void init_trackers(struct pointer_trackers *trackers,
-		   size_t ntrackers);
+void init_trackers(struct pointer_trackers *trackers);
 void free_trackers(struct pointer_trackers *trackers);
 
 void

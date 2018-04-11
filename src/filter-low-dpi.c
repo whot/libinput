@@ -45,7 +45,6 @@
 #define DEFAULT_ACCELERATION 2.0		/* unitless factor */
 #define DEFAULT_INCLINE 1.1			/* unitless factor */
 
-#define NUM_POINTER_TRACKERS	16
 /**
  * Custom acceleration function for mice < 1000dpi.
  * At slow motion, a single device unit causes a one-pixel movement.
@@ -227,7 +226,7 @@ create_default_filter(int dpi)
 	filter = zalloc(sizeof *filter);
 	filter->last_velocity = 0.0;
 
-	init_trackers(&filter->trackers, NUM_POINTER_TRACKERS);
+	init_trackers(&filter->trackers);
 
 	filter->threshold = DEFAULT_THRESHOLD;
 	filter->accel = DEFAULT_ACCELERATION;
