@@ -42,15 +42,6 @@
  */
 #define TP_MAGIC_SLOWDOWN 0.37 /* unitless factor */
 
-/*
- * Default parameters for pointer acceleration profiles.
- */
-
-#define DEFAULT_THRESHOLD v_ms2us(0.4)		/* in units/us */
-#define MINIMUM_THRESHOLD v_ms2us(0.2)		/* in units/us */
-#define DEFAULT_ACCELERATION 2.0		/* unitless factor */
-#define DEFAULT_INCLINE 1.1			/* unitless factor */
-
 /* Touchpad acceleration */
 #define TOUCHPAD_DEFAULT_THRESHOLD 254		/* mm/s */
 #define TOUCHPAD_THRESHOLD_RANGE 184		/* mm/s */
@@ -281,24 +272,6 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	return factor * TP_MAGIC_SLOWDOWN;
 }
 
-static struct pointer_accelerator *
-create_default_filter(int dpi)
-{
-	struct pointer_accelerator *filter;
-
-	filter = zalloc(sizeof *filter);
-	filter->last_velocity = 0.0;
-
-	init_trackers(&filter->trackers, NUM_POINTER_TRACKERS);
-
-	filter->threshold = DEFAULT_THRESHOLD;
-	filter->accel = DEFAULT_ACCELERATION;
-	filter->incline = DEFAULT_INCLINE;
-	filter->dpi = dpi;
-
-	return filter;
-}
-
 struct motion_filter_interface accelerator_interface_touchpad = {
 	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
 	.filter = accelerator_filter_post_normalized,
@@ -316,9 +289,15 @@ create_pointer_accelerator_filter_touchpad(int dpi,
 	struct pointer_accelerator *filter;
 	struct pointer_delta_smoothener *smoothener;
 
-	filter = create_default_filter(dpi);
-	if (!filter)
-		return NULL;
+	filter = zalloc(sizeof *filter);
+	filter->last_velocity = 0.0;
+
+	init_trackers(&filter->trackers, NUM_POINTER_TRACKERS);
+
+	filter->threshold = TOUCHPAD_DEFAULT_THRESHOLD;
+	filter->accel = TOUCHPAD_ACCELERATION;
+	filter->incline = TOUCHPAD_INCLINE;
+	filter->dpi = dpi;
 
 	filter->base.interface = &accelerator_interface_touchpad;
 	filter->profile = touchpad_accel_profile_linear;
