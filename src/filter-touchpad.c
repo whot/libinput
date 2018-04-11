@@ -48,6 +48,23 @@
 #define TOUCHPAD_ACCELERATION 9.0		/* unitless factor */
 #define TOUCHPAD_INCLINE 0.011			/* unitless factor */
 
+struct touchpad_accelerator {
+	struct motion_filter base;
+
+	accel_profile_func_t profile;
+
+	double velocity;	/* units/us */
+	double last_velocity;	/* units/us */
+
+	struct pointer_trackers trackers;
+
+	double threshold;	/* units/us */
+	double accel;		/* unitless factor */
+	double incline;		/* incline of the function */
+
+	int dpi;
+};
+
 /**
  * Calculate the acceleration factor for the given delta with the timestamp.
  *
@@ -59,7 +76,7 @@
  * @return A unitless acceleration factor, to be applied to the delta
  */
 static inline double
-calculate_acceleration_factor(struct pointer_accelerator *accel,
+calculate_acceleration_factor(struct touchpad_accelerator *accel,
 			      const struct device_float_coords *unaccelerated,
 			      void *data,
 			      uint64_t time)
@@ -97,8 +114,8 @@ accelerator_filter_generic(struct motion_filter *filter,
 			   const struct device_float_coords *unaccelerated,
 			   void *data, uint64_t time)
 {
-	struct pointer_accelerator *accel =
-		(struct pointer_accelerator *) filter;
+	struct touchpad_accelerator *accel =
+		(struct touchpad_accelerator *) filter;
 	double accel_value; /* unitless factor */
 	struct device_float_coords accelerated;
 
@@ -118,8 +135,8 @@ accelerator_filter_post_normalized(struct motion_filter *filter,
 				   const struct device_float_coords *unaccelerated,
 				   void *data, uint64_t time)
 {
-	struct pointer_accelerator *accel =
-		(struct pointer_accelerator *) filter;
+	struct touchpad_accelerator *accel =
+		(struct touchpad_accelerator *) filter;
 	struct device_float_coords accelerated;
 
 	/* Accelerate for device units, normalize afterwards */
@@ -134,8 +151,8 @@ static bool
 touchpad_accelerator_set_speed(struct motion_filter *filter,
 		      double speed_adjustment)
 {
-	struct pointer_accelerator *accel_filter =
-		(struct pointer_accelerator *)filter;
+	struct touchpad_accelerator *accel_filter =
+		(struct touchpad_accelerator *)filter;
 
 	assert(speed_adjustment >= -1.0 && speed_adjustment <= 1.0);
 
@@ -157,8 +174,8 @@ touchpad_constant_filter(struct motion_filter *filter,
 			 const struct device_float_coords *unaccelerated,
 			 void *data, uint64_t time)
 {
-	struct pointer_accelerator *accel =
-		(struct pointer_accelerator *)filter;
+	struct touchpad_accelerator *accel =
+		(struct touchpad_accelerator *)filter;
 	struct normalized_coords normalized;
 
 	normalized = normalize_for_dpi(unaccelerated, accel->dpi);
@@ -173,8 +190,8 @@ touchpad_accelerator_restart(struct motion_filter *filter,
 			     void *data,
 			     uint64_t time)
 {
-	struct pointer_accelerator *accel =
-		(struct pointer_accelerator *) filter;
+	struct touchpad_accelerator *accel =
+		(struct touchpad_accelerator *) filter;
 
 	trackers_reset(&accel->trackers, time);
 }
@@ -182,8 +199,8 @@ touchpad_accelerator_restart(struct motion_filter *filter,
 static void
 touchpad_accelerator_destroy(struct motion_filter *filter)
 {
-	struct pointer_accelerator *accel =
-		(struct pointer_accelerator *) filter;
+	struct touchpad_accelerator *accel =
+		(struct touchpad_accelerator *) filter;
 
 	trackers_free(&accel->trackers);
 	free(accel);
@@ -195,8 +212,8 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 			      double speed_in, /* in device units/µs */
 			      uint64_t time)
 {
-	struct pointer_accelerator *accel_filter =
-		(struct pointer_accelerator *)filter;
+	struct touchpad_accelerator *accel_filter =
+		(struct touchpad_accelerator *)filter;
 	const double max_accel = accel_filter->accel; /* unitless factor */
 	const double threshold = accel_filter->threshold; /* units/us */
 	const double incline = accel_filter->incline;
@@ -281,7 +298,7 @@ create_pointer_accelerator_filter_touchpad(int dpi,
 	uint64_t event_delta_smooth_threshold,
 	uint64_t event_delta_smooth_value)
 {
-	struct pointer_accelerator *filter;
+	struct touchpad_accelerator *filter;
 	struct pointer_delta_smoothener *smoothener;
 
 	filter = zalloc(sizeof *filter);

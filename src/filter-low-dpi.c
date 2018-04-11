@@ -45,6 +45,23 @@
 #define DEFAULT_ACCELERATION 2.0		/* unitless factor */
 #define DEFAULT_INCLINE 1.1			/* unitless factor */
 
+struct pointer_accelerator_low_dpi {
+	struct motion_filter base;
+
+	accel_profile_func_t profile;
+
+	double velocity;	/* units/us */
+	double last_velocity;	/* units/us */
+
+	struct pointer_trackers trackers;
+
+	double threshold;	/* units/us */
+	double accel;		/* unitless factor */
+	double incline;		/* incline of the function */
+
+	int dpi;
+};
+
 /**
  * Custom acceleration function for mice < 1000dpi.
  * At slow motion, a single device unit causes a one-pixel movement.
@@ -61,8 +78,8 @@ pointer_accel_profile_linear_low_dpi(struct motion_filter *filter,
 				     double speed_in, /* in device units (units/us) */
 				     uint64_t time)
 {
-	struct pointer_accelerator *accel_filter =
-		(struct pointer_accelerator *)filter;
+	struct pointer_accelerator_low_dpi *accel_filter =
+		(struct pointer_accelerator_low_dpi *)filter;
 
 	double max_accel = accel_filter->accel; /* unitless factor */
 	double threshold = accel_filter->threshold; /* units/us */
@@ -89,7 +106,7 @@ pointer_accel_profile_linear_low_dpi(struct motion_filter *filter,
 }
 
 static inline double
-calculate_acceleration_factor(struct pointer_accelerator *accel,
+calculate_acceleration_factor(struct pointer_accelerator_low_dpi *accel,
 			      const struct device_float_coords *unaccelerated,
 			      void *data,
 			      uint64_t time)
@@ -115,8 +132,8 @@ accelerator_filter_generic(struct motion_filter *filter,
 			   const struct device_float_coords *unaccelerated,
 			   void *data, uint64_t time)
 {
-	struct pointer_accelerator *accel =
-		(struct pointer_accelerator *) filter;
+	struct pointer_accelerator_low_dpi *accel =
+		(struct pointer_accelerator_low_dpi *) filter;
 	double accel_value; /* unitless factor */
 	struct device_float_coords accelerated;
 
@@ -154,8 +171,8 @@ accelerator_filter_noop(struct motion_filter *filter,
 			const struct device_float_coords *unaccelerated,
 			void *data, uint64_t time)
 {
-	struct pointer_accelerator *accel =
-		(struct pointer_accelerator *) filter;
+	struct pointer_accelerator_low_dpi *accel =
+		(struct pointer_accelerator_low_dpi *) filter;
 
 	return normalize_for_dpi(unaccelerated, accel->dpi);
 }
@@ -165,8 +182,8 @@ accelerator_restart(struct motion_filter *filter,
 		    void *data,
 		    uint64_t time)
 {
-	struct pointer_accelerator *accel =
-		(struct pointer_accelerator *) filter;
+	struct pointer_accelerator_low_dpi *accel =
+		(struct pointer_accelerator_low_dpi *) filter;
 
 	trackers_reset(&accel->trackers, time);
 }
@@ -174,8 +191,8 @@ accelerator_restart(struct motion_filter *filter,
 static void
 accelerator_destroy(struct motion_filter *filter)
 {
-	struct pointer_accelerator *accel =
-		(struct pointer_accelerator *) filter;
+	struct pointer_accelerator_low_dpi *accel =
+		(struct pointer_accelerator_low_dpi *) filter;
 
 	trackers_free(&accel->trackers);
 	free(accel);
@@ -185,8 +202,8 @@ static bool
 accelerator_set_speed(struct motion_filter *filter,
 		      double speed_adjustment)
 {
-	struct pointer_accelerator *accel_filter =
-		(struct pointer_accelerator *)filter;
+	struct pointer_accelerator_low_dpi *accel_filter =
+		(struct pointer_accelerator_low_dpi *)filter;
 
 	assert(speed_adjustment >= -1.0 && speed_adjustment <= 1.0);
 
@@ -218,10 +235,10 @@ struct motion_filter_interface accelerator_interface_low_dpi = {
 	.set_speed = accelerator_set_speed,
 };
 
-static struct pointer_accelerator *
+static struct pointer_accelerator_low_dpi *
 create_default_filter(int dpi)
 {
-	struct pointer_accelerator *filter;
+	struct pointer_accelerator_low_dpi *filter;
 
 	filter = zalloc(sizeof *filter);
 	filter->last_velocity = 0.0;
@@ -239,7 +256,7 @@ create_default_filter(int dpi)
 struct motion_filter *
 create_pointer_accelerator_filter_linear_low_dpi(int dpi)
 {
-	struct pointer_accelerator *filter;
+	struct pointer_accelerator_low_dpi *filter;
 
 	filter = create_default_filter(dpi);
 	if (!filter)

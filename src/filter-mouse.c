@@ -45,6 +45,23 @@
 #define DEFAULT_ACCELERATION 2.0		/* unitless factor */
 #define DEFAULT_INCLINE 1.1			/* unitless factor */
 
+struct pointer_accelerator {
+	struct motion_filter base;
+
+	accel_profile_func_t profile;
+
+	double velocity;	/* units/us */
+	double last_velocity;	/* units/us */
+
+	struct pointer_trackers trackers;
+
+	double threshold;	/* units/us */
+	double accel;		/* unitless factor */
+	double incline;		/* incline of the function */
+
+	int dpi;
+};
+
 /**
  * Calculate the acceleration factor for the given delta with the timestamp.
  *
