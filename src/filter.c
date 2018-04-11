@@ -101,7 +101,6 @@ filter_get_type(struct motion_filter *filter)
  * Pointer acceleration filter constants
  */
 
-#define MAX_VELOCITY_DIFF	v_ms2us(1) /* units/us */
 #define MOTION_TIMEOUT		ms2us(1000)
 #define NUM_POINTER_TRACKERS	16
 
@@ -227,6 +226,7 @@ calculate_velocity_after_timeout(struct pointer_tracker *tracker,
 double
 calculate_velocity(struct pointer_trackers *trackers, uint64_t time)
 {
+	const int MAX_VELOCITY_DIFF = v_ms2us(1); /* units/us */
 	struct pointer_tracker *tracker;
 	double velocity;
 	double result = 0.0;
