@@ -88,22 +88,22 @@ struct pointer_accelerator {
 	int dpi;
 };
 
-void init_trackers(struct pointer_trackers *trackers);
-void free_trackers(struct pointer_trackers *trackers);
+void trackers_init(struct pointer_trackers *trackers);
+void trackers_free(struct pointer_trackers *trackers);
 
 void
-reset_trackers(struct pointer_trackers *trackers,
+trackers_reset(struct pointer_trackers *trackers,
 	       uint64_t time);
 void
-feed_trackers(struct pointer_trackers *trackers,
+trackers_feed(struct pointer_trackers *trackers,
 	      const struct device_float_coords *delta,
 	      uint64_t time);
 
 struct pointer_tracker *
-tracker_by_offset(struct pointer_trackers *trackers, unsigned int offset);
+trackers_by_offset(struct pointer_trackers *trackers, unsigned int offset);
 
 double
-calculate_velocity(struct pointer_trackers *trackers, uint64_t time);
+trackers_velocity(struct pointer_trackers *trackers, uint64_t time);
 
 double
 calculate_acceleration_simpsons(struct motion_filter *filter,

@@ -91,7 +91,7 @@ filter_get_type(struct motion_filter *filter)
 }
 
 void
-init_trackers(struct pointer_trackers *trackers)
+trackers_init(struct pointer_trackers *trackers)
 {
 	const int ntrackers = 16;
 
@@ -103,34 +103,34 @@ init_trackers(struct pointer_trackers *trackers)
 }
 
 void
-free_trackers(struct pointer_trackers *trackers)
+trackers_free(struct pointer_trackers *trackers)
 {
 	free(trackers->trackers);
 	free(trackers->smoothener);
 }
 
 void
-reset_trackers(struct pointer_trackers *trackers,
+trackers_reset(struct pointer_trackers *trackers,
 	       uint64_t time)
 {
 	unsigned int offset;
 	struct pointer_tracker *tracker;
 
 	for (offset = 1; offset < trackers->ntrackers; offset++) {
-		tracker = tracker_by_offset(trackers, offset);
+		tracker = trackers_by_offset(trackers, offset);
 		tracker->time = 0;
 		tracker->dir = 0;
 		tracker->delta.x = 0;
 		tracker->delta.y = 0;
 	}
 
-	tracker = tracker_by_offset(trackers, 0);
+	tracker = trackers_by_offset(trackers, 0);
 	tracker->time = time;
 	tracker->dir = UNDEFINED_DIRECTION;
 }
 
 void
-feed_trackers(struct pointer_trackers *trackers,
+trackers_feed(struct pointer_trackers *trackers,
 	      const struct device_float_coords *delta,
 	      uint64_t time)
 {
@@ -154,7 +154,7 @@ feed_trackers(struct pointer_trackers *trackers,
 }
 
 struct pointer_tracker *
-tracker_by_offset(struct pointer_trackers *trackers, unsigned int offset)
+trackers_by_offset(struct pointer_trackers *trackers, unsigned int offset)
 {
 	unsigned int index =
 		(trackers->cur_tracker + trackers->ntrackers - offset)
@@ -163,7 +163,7 @@ tracker_by_offset(struct pointer_trackers *trackers, unsigned int offset)
 }
 
 static double
-calculate_tracker_velocity(struct pointer_tracker *tracker,
+calculate_trackers_velocity(struct pointer_tracker *tracker,
 			   uint64_t time,
 			   struct pointer_delta_smoothener *smoothener)
 {
@@ -177,7 +177,7 @@ calculate_tracker_velocity(struct pointer_tracker *tracker,
 }
 
 static double
-calculate_velocity_after_timeout(struct pointer_tracker *tracker,
+trackers_velocity_after_timeout(struct pointer_tracker *tracker,
 				 struct pointer_delta_smoothener *smoothener)
 {
 	/* First movement after timeout needs special handling.
@@ -191,7 +191,7 @@ calculate_velocity_after_timeout(struct pointer_tracker *tracker,
 	 * for really slow movements but provides much more useful initial
 	 * movement in normal use-cases (pause, move, pause, move)
 	 */
-	return calculate_tracker_velocity(tracker,
+	return calculate_trackers_velocity(tracker,
 					  tracker->time + MOTION_TIMEOUT,
 					  smoothener);
 }
@@ -204,7 +204,7 @@ calculate_velocity_after_timeout(struct pointer_tracker *tracker,
  * change between events.
  */
 double
-calculate_velocity(struct pointer_trackers *trackers, uint64_t time)
+trackers_velocity(struct pointer_trackers *trackers, uint64_t time)
 {
 	const int MAX_VELOCITY_DIFF = v_ms2us(1); /* units/us */
 	struct pointer_tracker *tracker;
@@ -214,12 +214,12 @@ calculate_velocity(struct pointer_trackers *trackers, uint64_t time)
 	double velocity_diff;
 	unsigned int offset;
 
-	unsigned int dir = tracker_by_offset(trackers, 0)->dir;
+	unsigned int dir = trackers_by_offset(trackers, 0)->dir;
 
 	/* Find least recent vector within a timelimit, maximum velocity diff
 	 * and direction threshold. */
 	for (offset = 1; offset < trackers->ntrackers; offset++) {
-		tracker = tracker_by_offset(trackers, offset);
+		tracker = trackers_by_offset(trackers, offset);
 
 		/* Bug: time running backwards */
 		if (tracker->time > time)
@@ -228,13 +228,13 @@ calculate_velocity(struct pointer_trackers *trackers, uint64_t time)
 		/* Stop if too far away in time */
 		if (time - tracker->time > MOTION_TIMEOUT) {
 			if (offset == 1)
-				result = calculate_velocity_after_timeout(
+				result = trackers_velocity_after_timeout(
 							  tracker,
 							  trackers->smoothener);
 			break;
 		}
 
-		velocity = calculate_tracker_velocity(tracker,
+		velocity = calculate_trackers_velocity(tracker,
 						      time,
 						      trackers->smoothener);
 

@@ -148,8 +148,8 @@ calculate_acceleration_factor(struct pointer_accelerator_x230 *accel,
 	double velocity; /* units/us in device-native dpi*/
 	double accel_factor;
 
-	feed_trackers(&accel->trackers, unaccelerated, time);
-	velocity = calculate_velocity(&accel->trackers, time);
+	trackers_feed(&accel->trackers, unaccelerated, time);
+	velocity = trackers_velocity(&accel->trackers, time);
 	accel_factor = calculate_acceleration(accel,
 					      data,
 					      velocity,
@@ -184,8 +184,8 @@ accelerator_filter_x230(struct motion_filter *filter,
 	delta_normalized.x = unaccelerated.x;
 	delta_normalized.y = unaccelerated.y;
 
-	feed_trackers(&accel->trackers, &delta_normalized, time);
-	velocity = calculate_velocity(&accel->trackers, time);
+	trackers_feed(&accel->trackers, &delta_normalized, time);
+	velocity = trackers_velocity(&accel->trackers, time);
 	accel_factor = calculate_acceleration(accel,
 					      data,
 					      velocity,
@@ -228,14 +228,14 @@ accelerator_restart_x230(struct motion_filter *filter,
 	struct pointer_tracker *tracker;
 
 	for (offset = 1; offset < accel->trackers.ntrackers; offset++) {
-		tracker = tracker_by_offset(&accel->trackers, offset);
+		tracker = trackers_by_offset(&accel->trackers, offset);
 		tracker->time = 0;
 		tracker->dir = 0;
 		tracker->delta.x = 0;
 		tracker->delta.y = 0;
 	}
 
-	tracker = tracker_by_offset(&accel->trackers, 0);
+	tracker = trackers_by_offset(&accel->trackers, 0);
 	tracker->time = time;
 	tracker->dir = UNDEFINED_DIRECTION;
 }
@@ -340,7 +340,7 @@ create_pointer_accelerator_filter_lenovo_x230(int dpi)
 	filter->profile = touchpad_lenovo_x230_accel_profile;
 	filter->last_velocity = 0.0;
 
-	init_trackers(&filter->trackers);
+	trackers_init(&filter->trackers);
 
 	filter->threshold = X230_THRESHOLD;
 	filter->accel = X230_ACCELERATION; /* unitless factor */

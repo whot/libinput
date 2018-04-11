@@ -67,8 +67,8 @@ calculate_acceleration_factor(struct pointer_accelerator *accel,
 	double velocity; /* units/us in device-native dpi*/
 	double accel_factor;
 
-	feed_trackers(&accel->trackers, unaccelerated, time);
-	velocity = calculate_velocity(&accel->trackers, time);
+	trackers_feed(&accel->trackers, unaccelerated, time);
+	velocity = trackers_velocity(&accel->trackers, time);
 	accel_factor = calculate_acceleration_simpsons(&accel->base,
 						       accel->profile,
 						       data,
@@ -176,7 +176,7 @@ touchpad_accelerator_restart(struct motion_filter *filter,
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
 
-	reset_trackers(&accel->trackers, time);
+	trackers_reset(&accel->trackers, time);
 }
 
 static void
@@ -185,7 +185,7 @@ touchpad_accelerator_destroy(struct motion_filter *filter)
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
 
-	free_trackers(&accel->trackers);
+	trackers_free(&accel->trackers);
 	free(accel);
 }
 
@@ -287,7 +287,7 @@ create_pointer_accelerator_filter_touchpad(int dpi,
 	filter = zalloc(sizeof *filter);
 	filter->last_velocity = 0.0;
 
-	init_trackers(&filter->trackers);
+	trackers_init(&filter->trackers);
 
 	filter->threshold = TOUCHPAD_DEFAULT_THRESHOLD;
 	filter->accel = TOUCHPAD_ACCELERATION;
