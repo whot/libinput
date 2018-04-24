@@ -40,7 +40,7 @@
  * technically correct but subjectively wrong, we expect a touchpad to be a
  * lot slower than a mouse. Apply a magic factor to slow down all movements
  */
-#define TP_MAGIC_SLOWDOWN (0.37 * 0.9) /* unitless factor */
+#define TP_MAGIC_SLOWDOWN (0.37 * 0.8) /* unitless factor */
 
 /* Touchpad acceleration */
 #define TOUCHPAD_DEFAULT_THRESHOLD 130		/* mm/s */
@@ -160,8 +160,7 @@ touchpad_accelerator_set_speed(struct motion_filter *filter,
 	   don't read more into them other than "they mostly worked ok" */
 
 	/* adjust when accel kicks in */
-	accel_filter->threshold = TOUCHPAD_DEFAULT_THRESHOLD -
-		TOUCHPAD_THRESHOLD_RANGE * speed_adjustment;
+	accel_filter->threshold = TOUCHPAD_DEFAULT_THRESHOLD;
 	accel_filter->accel = TOUCHPAD_ACCELERATION;
 	accel_filter->incline = TOUCHPAD_INCLINE;
 	filter->speed_adjustment = speed_adjustment;
@@ -257,7 +256,9 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	  * 0.3 is chosen simply because it is above the Nyquist frequency
 	    for subpixel motion within a pixel.
 	*/
-	baseline = 0.9 + 0.5 * filter->speed_adjustment;
+
+	/* FIXME: assumption: speed_adjustment is always 0 */
+	baseline = 0.9;
 	if (speed_in < 7.0) {
 		factor = min(baseline, 0.1 * speed_in + 0.3);
 	/* up to the threshold, we keep factor 1, i.e. 1:1 movement */
@@ -283,8 +284,8 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	/* Cap at the maximum acceleration factor */
 	factor = min(max_accel, factor);
 
-	/* Scale everything depending on the acceleration set */
-	factor *= 1 + 0.5 * filter->speed_adjustment;
+	/* Scale everything depending on the speed setting, avoiding 0 */
+	factor *= filter->speed_adjustment + 1.01;
 
 	return factor * TP_MAGIC_SLOWDOWN;
 }
