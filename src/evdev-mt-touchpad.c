@@ -155,6 +155,10 @@ tp_detect_wobbling(struct tp_dispatch *tp,
 	int dx, dy;
 	uint64_t dtime;
 
+	if (tp->nfingers_down == 1 &&
+	    tp->nfingers_down == tp->old_nfingers_down)
+		return;
+
 	if (tp->hysteresis.enabled)
 		return;
 
