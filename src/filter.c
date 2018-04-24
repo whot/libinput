@@ -206,7 +206,7 @@ trackers_velocity_after_timeout(struct pointer_tracker *tracker,
 double
 trackers_velocity(struct pointer_trackers *trackers, uint64_t time)
 {
-	const int MAX_VELOCITY_DIFF = v_ms2us(1); /* units/us */
+	const double MAX_VELOCITY_DIFF = v_ms2us(1); /* units/us */
 	struct pointer_tracker *tracker;
 	double velocity;
 	double result = 0.0;
