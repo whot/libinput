@@ -248,7 +248,10 @@ trackers_velocity(struct pointer_trackers *trackers, uint64_t time)
 			break;
 		}
 
-		if (initial_velocity == 0.0) {
+		/* Always average the first two events. On some touchpads
+		 * where the first event is jumpy, this somewhat reduces
+		 * pointer jumps on slow motions. */
+		if (initial_velocity == 0.0 || offset <= 2) {
 			result = initial_velocity = velocity;
 		} else {
 			/* Stop if velocity differs too much from initial */
