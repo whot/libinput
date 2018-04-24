@@ -1,7 +1,12 @@
 #!/bin/bash
 
-tool=`dirname $0`/ptraccel-debug
+tool=`dirname $0`/../build/ptraccel-debug
 gnuplot=/usr/bin/gnuplot
+
+if [[ -e '$tool' ]]; then
+	echo "Unable to find $tool"
+	exit 1
+fi
 
 outfile="ptraccel-linear"
 for speed in -1 -0.75 -0.5 -0.25 0 0.5 1; do
