@@ -171,10 +171,7 @@ tp_detect_wobbling(struct tp_dispatch *tp,
 	tp->hysteresis.last_motion_time = time;
 	t->last_point = t->point;
 
-	if (dx == 0 && dy != 0) /* ignore y-only changes */
-		return;
-
-	if (dtime > ms2us(40)) {
+	if ((dx == 0 && dy != 0) || dtime > ms2us(40)) {
 		t->hysteresis.x_motion_history = 0;
 		return;
 	}
