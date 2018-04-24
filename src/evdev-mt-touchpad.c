@@ -155,8 +155,13 @@ tp_detect_wobbling(struct tp_dispatch *tp,
 	int dx, dy;
 	uint64_t dtime;
 
-	if (!(tp->queued & TOUCHPAD_EVENT_MOTION) || tp->hysteresis.enabled)
+	if (tp->hysteresis.enabled)
 		return;
+
+	if (!(tp->queued & TOUCHPAD_EVENT_MOTION)) {
+		t->hysteresis.x_motion_history = 0;
+		return;
+	}
 
 	if (t->last_point.x == 0) { /* first invocation */
 		dx = 0;
