@@ -10,6 +10,7 @@
 - @subpage t440_support
 - @subpage touchpad_jumping_cursor
 - @subpage absolute_coordinate_ranges
+- @subpage touchpad_jitter
 
 @page touchscreens Touchscreens
 

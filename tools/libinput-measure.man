@@ -22,6 +22,9 @@ Print help
 .SH FEATURES
 Features that can be measured include
 .TP 8
+.B libinput\-measure\-fuzz(1)
+Measure touch fuzz to avoid pointer jitter
+.TP 8
 .B libinput\-measure\-touch\-size(1)
 Measure touch size and orientation
 .TP 8

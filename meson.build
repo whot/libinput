@@ -321,6 +321,7 @@ if get_option('documentation')
 		meson.source_root() + '/doc/tools.dox',
 		meson.source_root() + '/doc/touchpad-jumping-cursors.dox',
 		meson.source_root() + '/doc/touchpad-pressure.dox',
+		meson.source_root() + '/doc/touchpad-jitter.dox',
 		meson.source_root() + '/doc/touchpads.dox',
 		meson.source_root() + '/doc/trackpoints.dox',
 		meson.source_root() + '/doc/what-is-libinput.dox',
@@ -444,6 +445,15 @@ executable('libinput-measure',
 	   )
 configure_file(input : 'tools/libinput-measure.man',
 	       output : 'libinput-measure.1',
+	       configuration : man_config,
+	       install : true,
+	       install_dir : join_paths(get_option('mandir'), 'man1')
+	       )
+
+install_data('tools/libinput-measure-fuzz',
+	     install_dir : libinput_tool_path)
+configure_file(input : 'tools/libinput-measure-fuzz.man',
+	       output : 'libinput-measure-fuzz.1',
 	       configuration : man_config,
 	       install : true,
 	       install_dir : join_paths(get_option('mandir'), 'man1')

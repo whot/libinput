@@ -191,8 +191,10 @@ tp_detect_wobbling(struct tp_dispatch *tp,
 
 		t->hysteresis.x_motion_history |= (1 << 2);
 		if (t->hysteresis.x_motion_history == r_l_r) {
-			tp->hysteresis.enabled = true;
-			evdev_log_debug(tp->device, "hysteresis enabled\n");
+			evdev_log_info(tp->device,
+				       "Touch jitter detected, your touchpad may need a fuzz setting.\n"
+				       "See %stouchpad_jitter.html for details\n",
+				       HTTP_DOC_LINK);
 		}
 	}
 }
