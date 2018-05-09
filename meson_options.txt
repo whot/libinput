@@ -18,3 +18,7 @@ option('documentation',
        type: 'boolean',
        value: true,
        description: 'Build the documentation [default=true]')
+option('varlink',
+       type: 'boolean',
+       value: false,
+       description: 'Expose the varlink interface [default=false]')

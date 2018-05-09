@@ -5428,6 +5428,10 @@ libinput_device_config_rotation_get_angle(struct libinput_device *device);
 unsigned int
 libinput_device_config_rotation_get_default_angle(struct libinput_device *device);
 
+/* FIXME */
+int
+libinput_add_varlink_socket(struct libinput *libinput);
+
 #ifdef __cplusplus
 }
 #endif

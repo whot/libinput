@@ -140,6 +140,8 @@ struct libinput {
 	struct list device_group_list;
 
 	uint64_t last_event_time;
+
+	void *varlink; /* FIXME */
 };
 
 typedef void (*libinput_seat_destroy_func) (struct libinput_seat *seat);

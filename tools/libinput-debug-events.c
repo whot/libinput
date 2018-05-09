@@ -995,6 +995,9 @@ main(int argc, char **argv)
 	if (!li)
 		return 1;
 
+	/* FIXME */
+	libinput_add_varlink_socket(li);
+
 	mainloop(li);
 
 	libinput_unref(li);

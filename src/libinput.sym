@@ -297,4 +297,5 @@ LIBINPUT_1.9 {
 LIBINPUT_1.11 {
 	libinput_device_config_accel_set_curve_point;
 	libinput_device_touch_get_touch_count;
+	libinput_add_varlink_socket;
 } LIBINPUT_1.9;

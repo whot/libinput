@@ -209,6 +209,12 @@ deps_libinput = [
 	dep_libinput_util
 ]
 
+if get_option('varlink')
+	dep_varlink = dependency('libvarlink')
+	deps_libinput += dep_varlink
+	src_libinput += 'src/varlink.c'
+endif
+
 libinput_version_h_config = configuration_data()
 libinput_version_h_config.set('LIBINPUT_VERSION_MAJOR', libinput_version[0])
 libinput_version_h_config.set('LIBINPUT_VERSION_MINOR', libinput_version[1])
