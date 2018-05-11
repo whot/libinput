@@ -74,6 +74,10 @@ libinput:touchpad:input:b0005v05ACp030E*
 libinput:touchpad:input:b0003v05ACp021A*
  LIBINPUT_MODEL_APPLE_TOUCHPAD_ONEBUTTON=1
 
+# MacBookPro5,5 (Mid 2009)
+libinput:name:bcm5974:dmi:*:svnAppleInc.:pnMacBookPro5,5:*
+ LIBINPUT_ATTR_PALM_SIZE_THRESHOLD=1000
+
 ##########################################
 # Asus
 ##########################################
