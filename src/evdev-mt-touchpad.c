@@ -1842,8 +1842,16 @@ tp_clear_state(struct tp_dispatch *tp)
 }
 
 static void
-tp_suspend(struct tp_dispatch *tp, struct evdev_device *device)
+tp_suspend(struct tp_dispatch *tp,
+	   struct evdev_device *device,
+	   enum suspend_trigger trigger)
 {
+	if (tp->suspend_reason & trigger)
+		return;
+
+	if (tp->suspend_reason != 0)
+		goto out;
+
 	tp_clear_state(tp);
 
 	/* On devices with top softwarebuttons we don't actually suspend the
@@ -1857,6 +1865,9 @@ tp_suspend(struct tp_dispatch *tp, struct evdev_device *device)
 	} else {
 		evdev_device_suspend(device);
 	}
+
+out:
+	tp->suspend_reason |= trigger;
 }
 
 static void
@@ -1917,8 +1928,14 @@ tp_sync_slots(struct tp_dispatch *tp,
 }
 
 static void
-tp_resume(struct tp_dispatch *tp, struct evdev_device *device)
+tp_resume(struct tp_dispatch *tp,
+	  struct evdev_device *device,
+	  enum suspend_trigger trigger)
 {
+	tp->suspend_reason &= ~trigger;
+	if (tp->suspend_reason != 0)
+		return;
+
 	if (tp->buttons.has_topbuttons) {
 		/* tap state-machine is offline while suspended, reset state */
 		tp_clear_state(tp);
@@ -1930,31 +1947,6 @@ tp_resume(struct tp_dispatch *tp, struct evdev_device *device)
 	}
 
 	tp_sync_slots(tp, device);
-}
-
-#define NO_EXCLUDED_DEVICE NULL
-static void
-tp_resume_conditional(struct tp_dispatch *tp,
-		      struct evdev_device *device,
-		      struct evdev_device *excluded_device)
-{
-	if (tp->sendevents.current_mode == LIBINPUT_CONFIG_SEND_EVENTS_DISABLED)
-		return;
-
-	if (tp->sendevents.current_mode ==
-		    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE) {
-		struct libinput_device *dev;
-
-		list_for_each(dev, &device->base.seat->devices_list, link) {
-			struct evdev_device *d = evdev_device(dev);
-			if (d != excluded_device &&
-			    (d->tags & EVDEV_TAG_EXTERNAL_MOUSE)) {
-				return;
-			}
-		}
-	}
-
-	tp_resume(tp, device);
 }
 
 static void
@@ -2215,11 +2207,11 @@ tp_lid_switch_event(uint64_t time, struct libinput_event *event, void *data)
 
 	switch (libinput_event_switch_get_switch_state(swev)) {
 	case LIBINPUT_SWITCH_STATE_OFF:
-		tp_resume_conditional(tp, tp->device, NO_EXCLUDED_DEVICE);
+		tp_resume(tp, tp->device, SUSPEND_LID);
 		evdev_log_debug(tp->device, "lid: resume touchpad\n");
 		break;
 	case LIBINPUT_SWITCH_STATE_ON:
-		tp_suspend(tp, tp->device);
+		tp_suspend(tp, tp->device, SUSPEND_LID);
 		evdev_log_debug(tp->device, "lid: suspending touchpad\n");
 		break;
 	}
@@ -2243,11 +2235,11 @@ tp_tablet_mode_switch_event(uint64_t time,
 
 	switch (libinput_event_switch_get_switch_state(swev)) {
 	case LIBINPUT_SWITCH_STATE_OFF:
-		tp_resume_conditional(tp, tp->device, NO_EXCLUDED_DEVICE);
+		tp_resume(tp, tp->device, SUSPEND_TABLET_MODE);
 		evdev_log_debug(tp->device, "tablet-mode: resume touchpad\n");
 		break;
 	case LIBINPUT_SWITCH_STATE_ON:
-		tp_suspend(tp, tp->device);
+		tp_suspend(tp, tp->device, SUSPEND_TABLET_MODE);
 		evdev_log_debug(tp->device, "tablet-mode: suspending touchpad\n");
 		break;
 	}
@@ -2300,7 +2292,7 @@ tp_pair_tablet_mode_switch(struct evdev_device *touchpad,
 	if (evdev_device_switch_get_state(tablet_mode_switch,
 					  LIBINPUT_SWITCH_TABLET_MODE)
 		    == LIBINPUT_SWITCH_STATE_ON) {
-		tp_suspend(tp, touchpad);
+		tp_suspend(tp, touchpad, SUSPEND_TABLET_MODE);
 	}
 }
 
@@ -2320,7 +2312,7 @@ tp_interface_device_added(struct evdev_device *device,
 		return;
 
 	if (added_device->tags & EVDEV_TAG_EXTERNAL_MOUSE)
-		tp_suspend(tp, device);
+		tp_suspend(tp, device, SUSPEND_EXTERNAL_MOUSE);
 }
 
 static void
@@ -2354,17 +2346,32 @@ tp_interface_device_removed(struct evdev_device *device,
 		libinput_device_remove_event_listener(
 					&tp->lid_switch.listener);
 		tp->lid_switch.lid_switch = NULL;
+		tp_resume(tp, device, SUSPEND_LID);
 	}
 
 	if (removed_device == tp->tablet_mode_switch.tablet_mode_switch) {
 		libinput_device_remove_event_listener(
 					&tp->tablet_mode_switch.listener);
 		tp->tablet_mode_switch.tablet_mode_switch = NULL;
+		tp_resume(tp, device, SUSPEND_TABLET_MODE);
 	}
 
-	/* removed_device is still in the device list at this point, so we
-	 * need to exclude it from the tp_resume_conditional */
-	tp_resume_conditional(tp, device, removed_device);
+	if (tp->sendevents.current_mode ==
+		    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE) {
+		struct libinput_device *dev;
+		bool found = false;
+
+		list_for_each(dev, &device->base.seat->devices_list, link) {
+			struct evdev_device *d = evdev_device(dev);
+			if (d != removed_device &&
+			    (d->tags & EVDEV_TAG_EXTERNAL_MOUSE)) {
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+			tp_resume(tp, device, SUSPEND_EXTERNAL_MOUSE);
+	}
 }
 
 static inline void
@@ -3334,8 +3341,8 @@ tp_suspend_conditional(struct tp_dispatch *tp,
 	list_for_each(dev, &device->base.seat->devices_list, link) {
 		struct evdev_device *d = evdev_device(dev);
 		if (d->tags & EVDEV_TAG_EXTERNAL_MOUSE) {
-			tp_suspend(tp, device);
-			return;
+			tp_suspend(tp, device, SUSPEND_EXTERNAL_MOUSE);
+			break;
 		}
 	}
 }
@@ -3357,13 +3364,16 @@ tp_sendevents_set_mode(struct libinput_device *device,
 
 	switch(mode) {
 	case LIBINPUT_CONFIG_SEND_EVENTS_ENABLED:
-		tp_resume(tp, evdev);
+		tp_resume(tp, evdev, SUSPEND_SENDEVENTS);
+		tp_resume(tp, evdev, SUSPEND_EXTERNAL_MOUSE);
 		break;
 	case LIBINPUT_CONFIG_SEND_EVENTS_DISABLED:
-		tp_suspend(tp, evdev);
+		tp_suspend(tp, evdev, SUSPEND_SENDEVENTS);
+		tp_resume(tp, evdev, SUSPEND_EXTERNAL_MOUSE);
 		break;
 	case LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE:
 		tp_suspend_conditional(tp, evdev);
+		tp_resume(tp, evdev, SUSPEND_SENDEVENTS);
 		break;
 	default:
 		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;

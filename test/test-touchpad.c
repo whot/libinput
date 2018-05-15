@@ -5968,8 +5968,322 @@ START_TEST(touchpad_speed_ignore_finger_edgescroll)
 }
 END_TEST
 
+enum suspend {
+	SUSPEND_EXT_MOUSE = 1,
+	SUSPEND_SENDEVENTS,
+	SUSPEND_LID,
+	SUSPEND_TABLETMODE,
+	SUSPEND_COUNT,
+};
+
+static void
+assert_touchpad_moves(struct litest_device *tp)
+{
+	struct libinput *li = tp->libinput;
+
+	litest_touch_down(tp, 0, 50, 50);
+	litest_touch_move_to(tp, 0, 50, 50, 60, 80, 20, 0);
+	litest_touch_up(tp, 0);
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_POINTER_MOTION);
+}
+
+static void
+assert_touchpad_does_not_move(struct litest_device *tp)
+{
+	struct libinput *li = tp->libinput;
+
+	litest_touch_down(tp, 0, 20, 20);
+	litest_touch_move_to(tp, 0, 20, 20, 60, 80, 20, 0);
+	litest_touch_up(tp, 0);
+	litest_assert_empty_queue(li);
+}
+
+START_TEST(touchpad_suspend_abba)
+{
+	struct litest_device *tp = litest_current_device();
+	struct litest_device *lid, *tabletmode, *extmouse;
+	struct libinput *li = tp->libinput;
+	enum suspend first = _i; /* ranged test */
+	enum suspend other;
+
+	if (first == SUSPEND_EXT_MOUSE && litest_touchpad_is_external(tp))
+		return;
+
+	lid = litest_add_device(li, LITEST_LID_SWITCH);
+	tabletmode = litest_add_device(li, LITEST_THINKPAD_EXTRABUTTONS);
+	extmouse = litest_add_device(li, LITEST_MOUSE);
+
+	litest_disable_tap(tp->libinput_device);
+
+	/* ABBA test for touchpad internal suspend:
+	 *  reason A on
+	 *  reason B on
+	 *  reason B off
+	 *  reason A off
+	 */
+	for (other = SUSPEND_EXT_MOUSE; other < SUSPEND_COUNT; other++) {
+		if (other == first)
+			continue;
+
+		if (other == SUSPEND_EXT_MOUSE && litest_touchpad_is_external(tp))
+			return;
+
+		/* That transition is tested elsewhere and has a different
+		 * behavior */
+		if ((other == SUSPEND_SENDEVENTS && first == SUSPEND_EXT_MOUSE) ||
+		    (first == SUSPEND_SENDEVENTS && other == SUSPEND_EXT_MOUSE))
+			continue;
+
+		litest_drain_events(li);
+		assert_touchpad_moves(tp);
+
+		/* First reason for suspend: on */
+		switch (first) {
+		case  SUSPEND_EXT_MOUSE:
+			litest_sendevents_ext_mouse(tp);
+			break;
+		case  SUSPEND_TABLETMODE:
+			litest_switch_action(tabletmode,
+					     LIBINPUT_SWITCH_TABLET_MODE,
+					     LIBINPUT_SWITCH_STATE_ON);
+			break;
+		case  SUSPEND_LID:
+			litest_switch_action(lid,
+					     LIBINPUT_SWITCH_LID,
+					     LIBINPUT_SWITCH_STATE_ON);
+			break;
+		case  SUSPEND_SENDEVENTS:
+			litest_sendevents_off(tp);
+			break;
+		default:
+			ck_abort();
+		}
+
+		litest_drain_events(li);
+
+		assert_touchpad_does_not_move(tp);
+
+		/* Second reason to suspend: on/off while first reason remains */
+		switch (other) {
+		case SUSPEND_EXT_MOUSE:
+			litest_sendevents_ext_mouse(tp);
+			litest_sendevents_on(tp);
+			break;
+		case SUSPEND_LID:
+			litest_switch_action(lid,
+					     LIBINPUT_SWITCH_LID,
+					     LIBINPUT_SWITCH_STATE_ON);
+			litest_drain_events(li);
+			litest_switch_action(lid,
+					     LIBINPUT_SWITCH_LID,
+					     LIBINPUT_SWITCH_STATE_OFF);
+			litest_drain_events(li);
+			break;
+		case SUSPEND_TABLETMODE:
+			litest_switch_action(tabletmode,
+					     LIBINPUT_SWITCH_TABLET_MODE,
+					     LIBINPUT_SWITCH_STATE_ON);
+			litest_drain_events(li);
+			litest_switch_action(tabletmode,
+					     LIBINPUT_SWITCH_TABLET_MODE,
+					     LIBINPUT_SWITCH_STATE_OFF);
+			litest_drain_events(li);
+			break;
+		case SUSPEND_SENDEVENTS:
+			litest_sendevents_off(tp);
+			litest_sendevents_on(tp);
+			break;
+		default:
+			ck_abort();
+		}
+
+		assert_touchpad_does_not_move(tp);
+
+		/* First reason for suspend: off */
+		switch (first) {
+		case  SUSPEND_EXT_MOUSE:
+			litest_sendevents_on(tp);
+			break;
+		case  SUSPEND_TABLETMODE:
+			litest_switch_action(tabletmode,
+					     LIBINPUT_SWITCH_TABLET_MODE,
+					     LIBINPUT_SWITCH_STATE_OFF);
+			break;
+		case  SUSPEND_LID:
+			litest_switch_action(lid,
+					     LIBINPUT_SWITCH_LID,
+					     LIBINPUT_SWITCH_STATE_OFF);
+			break;
+		case  SUSPEND_SENDEVENTS:
+			litest_sendevents_on(tp);
+			break;
+		default:
+			ck_abort();
+		}
+
+		litest_drain_events(li);
+		assert_touchpad_moves(tp);
+	}
+
+	litest_delete_device(lid);
+	litest_delete_device(tabletmode);
+	litest_delete_device(extmouse);
+}
+END_TEST
+
+START_TEST(touchpad_suspend_abab)
+{
+	struct litest_device *tp = litest_current_device();
+	struct litest_device *lid, *tabletmode, *extmouse;
+	struct libinput *li = tp->libinput;
+	enum suspend first = _i; /* ranged test */
+	enum suspend other;
+
+	if (first == SUSPEND_EXT_MOUSE && litest_touchpad_is_external(tp))
+		return;
+
+	lid = litest_add_device(li, LITEST_LID_SWITCH);
+	tabletmode = litest_add_device(li, LITEST_THINKPAD_EXTRABUTTONS);
+	extmouse = litest_add_device(li, LITEST_MOUSE);
+
+	litest_disable_tap(tp->libinput_device);
+
+	/* ABAB test for touchpad internal suspend:
+	 *  reason A on
+	 *  reason B on
+	 *  reason A off
+	 *  reason B off
+	 */
+	for (other = SUSPEND_EXT_MOUSE; other < SUSPEND_COUNT; other++) {
+		if (other == first)
+			continue;
+
+		if (other == SUSPEND_EXT_MOUSE && litest_touchpad_is_external(tp))
+			return;
+
+		/* That transition is tested elsewhere and has a different
+		 * behavior */
+		if ((other == SUSPEND_SENDEVENTS && first == SUSPEND_EXT_MOUSE) ||
+		    (first == SUSPEND_SENDEVENTS && other == SUSPEND_EXT_MOUSE))
+			continue;
+
+		litest_drain_events(li);
+		assert_touchpad_moves(tp);
+
+		/* First reason for suspend: on */
+		switch (first) {
+		case  SUSPEND_EXT_MOUSE:
+			litest_sendevents_ext_mouse(tp);
+			break;
+		case  SUSPEND_TABLETMODE:
+			litest_switch_action(tabletmode,
+					     LIBINPUT_SWITCH_TABLET_MODE,
+					     LIBINPUT_SWITCH_STATE_ON);
+			break;
+		case  SUSPEND_LID:
+			litest_switch_action(lid,
+					     LIBINPUT_SWITCH_LID,
+					     LIBINPUT_SWITCH_STATE_ON);
+			break;
+		case  SUSPEND_SENDEVENTS:
+			litest_sendevents_off(tp);
+			break;
+		default:
+			ck_abort();
+		}
+
+		litest_drain_events(li);
+
+		assert_touchpad_does_not_move(tp);
+
+		/* Second reason to suspend: on */
+		switch (other) {
+		case SUSPEND_EXT_MOUSE:
+			litest_sendevents_ext_mouse(tp);
+			break;
+		case SUSPEND_LID:
+			litest_switch_action(lid,
+					     LIBINPUT_SWITCH_LID,
+					     LIBINPUT_SWITCH_STATE_ON);
+			litest_drain_events(li);
+			break;
+		case SUSPEND_TABLETMODE:
+			litest_switch_action(tabletmode,
+					     LIBINPUT_SWITCH_TABLET_MODE,
+					     LIBINPUT_SWITCH_STATE_ON);
+			litest_drain_events(li);
+			break;
+		case SUSPEND_SENDEVENTS:
+			litest_sendevents_off(tp);
+			break;
+		default:
+			ck_abort();
+		}
+
+		assert_touchpad_does_not_move(tp);
+
+		/* First reason for suspend: off */
+		switch (first) {
+		case  SUSPEND_EXT_MOUSE:
+			litest_sendevents_on(tp);
+			break;
+		case  SUSPEND_TABLETMODE:
+			litest_switch_action(tabletmode,
+					     LIBINPUT_SWITCH_TABLET_MODE,
+					     LIBINPUT_SWITCH_STATE_OFF);
+			break;
+		case  SUSPEND_LID:
+			litest_switch_action(lid,
+					     LIBINPUT_SWITCH_LID,
+					     LIBINPUT_SWITCH_STATE_OFF);
+			break;
+		case  SUSPEND_SENDEVENTS:
+			litest_sendevents_on(tp);
+			break;
+		default:
+			ck_abort();
+		}
+
+		litest_drain_events(li);
+		assert_touchpad_does_not_move(tp);
+
+		/* Second reason to suspend: off */
+		switch (other) {
+		case SUSPEND_EXT_MOUSE:
+			litest_sendevents_on(tp);
+			break;
+		case SUSPEND_LID:
+			litest_switch_action(lid,
+					     LIBINPUT_SWITCH_LID,
+					     LIBINPUT_SWITCH_STATE_OFF);
+			litest_drain_events(li);
+			break;
+		case SUSPEND_TABLETMODE:
+			litest_switch_action(tabletmode,
+					     LIBINPUT_SWITCH_TABLET_MODE,
+					     LIBINPUT_SWITCH_STATE_OFF);
+			litest_drain_events(li);
+			break;
+		case SUSPEND_SENDEVENTS:
+			litest_sendevents_on(tp);
+			break;
+		default:
+			ck_abort();
+		}
+
+		litest_drain_events(li);
+		assert_touchpad_moves(tp);
+	}
+
+	litest_delete_device(lid);
+	litest_delete_device(tabletmode);
+	litest_delete_device(extmouse);
+}
+END_TEST
+
 TEST_COLLECTION(touchpad)
 {
+	struct range suspends = { SUSPEND_EXT_MOUSE, SUSPEND_COUNT };
 	struct range axis_range = {ABS_X, ABS_Y + 1};
 	struct range twice = {0, 2 };
 
@@ -6150,4 +6464,7 @@ TEST_COLLECTION(touchpad)
 	litest_add("touchpad:speed", touchpad_speed_ignore_finger, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH|LITEST_SEMI_MT);
 	litest_add("touchpad:speed", touchpad_speed_allow_nearby_finger, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH|LITEST_SEMI_MT);
 	litest_add("touchpad:speed", touchpad_speed_ignore_finger_edgescroll, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH|LITEST_SEMI_MT);
+
+	litest_add_ranged("touchpad:suspend", touchpad_suspend_abba, LITEST_TOUCHPAD, LITEST_ANY, &suspends);
+	litest_add_ranged("touchpad:suspend", touchpad_suspend_abab, LITEST_TOUCHPAD, LITEST_ANY, &suspends);
 }

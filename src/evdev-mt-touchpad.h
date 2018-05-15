@@ -236,6 +236,14 @@ struct tp_touch {
 	} speed;
 };
 
+enum suspend_trigger {
+	SUSPEND_NO_FLAG         = 0x0,
+	SUSPEND_EXTERNAL_MOUSE  = 0x1,
+	SUSPEND_SENDEVENTS      = 0x2,
+	SUSPEND_LID             = 0x4,
+	SUSPEND_TABLET_MODE     = 0x8,
+};
+
 struct tp_dispatch {
 	struct evdev_dispatch base;
 	struct evdev_device *device;
@@ -244,6 +252,8 @@ struct tp_dispatch {
 	unsigned int slot;			/* current slot */
 	bool has_mt;
 	bool semi_mt;
+
+	uint32_t suspend_reason;
 
 	/* pen/touch arbitration */
 	struct {

@@ -1012,6 +1012,42 @@ litest_disable_middleemu(struct litest_device *dev)
 	litest_assert_int_eq(status, expected);
 }
 
+static inline void
+litest_sendevents_off(struct litest_device *dev)
+{
+	struct libinput_device *device = dev->libinput_device;
+	enum libinput_config_status status, expected;
+
+	expected = LIBINPUT_CONFIG_STATUS_SUCCESS;
+	status = libinput_device_config_send_events_set_mode(device,
+				    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED);
+	litest_assert_int_eq(status, expected);
+}
+
+static inline void
+litest_sendevents_on(struct litest_device *dev)
+{
+	struct libinput_device *device = dev->libinput_device;
+	enum libinput_config_status status, expected;
+
+	expected = LIBINPUT_CONFIG_STATUS_SUCCESS;
+	status = libinput_device_config_send_events_set_mode(device,
+				    LIBINPUT_CONFIG_SEND_EVENTS_ENABLED);
+	litest_assert_int_eq(status, expected);
+}
+
+static inline void
+litest_sendevents_ext_mouse(struct litest_device *dev)
+{
+	struct libinput_device *device = dev->libinput_device;
+	enum libinput_config_status status, expected;
+
+	expected = LIBINPUT_CONFIG_STATUS_SUCCESS;
+	status = libinput_device_config_send_events_set_mode(device,
+				    LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE);
+	litest_assert_int_eq(status, expected);
+}
+
 static inline bool
 litest_touchpad_is_external(struct litest_device *dev)
 {
