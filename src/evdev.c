@@ -904,14 +904,21 @@ evdev_device_dispatch(void *data)
 	struct evdev_device *device = data;
 	struct libinput *libinput = evdev_libinput_context(device);
 	struct input_event ev;
+	struct input_event next_event;
+	bool have_next_event = false;
+	uint64_t smeared_timestamp = 0;
 	int rc;
 
 	/* If the compositor is repainting, this function is called only once
 	 * per frame and we have to process all the events available on the
 	 * fd, otherwise there will be input lag. */
+
+	/* FIXME: move loop to helper so we can avoid crazy indentation */
 	do {
 		rc = libevdev_next_event(device->evdev,
 					 LIBEVDEV_READ_FLAG_NORMAL, &ev);
+		/* FIXME: move this to a SYN_DROPPED helper function so we
+		 * can reduce indentation here */
 		if (rc == LIBEVDEV_READ_STATUS_SYNC) {
 			evdev_log_info_ratelimit(device,
 						 &device->syn_drop_limit,
@@ -927,7 +934,50 @@ evdev_device_dispatch(void *data)
 			if (rc == 0)
 				rc = LIBEVDEV_READ_STATUS_SUCCESS;
 		} else if (rc == LIBEVDEV_READ_STATUS_SUCCESS) {
+			/* event frame time smearing
+			   If we have a SYN_REPORT, check the next event and
+			   its timestamp. If its timestamp is less than one
+			   ms from now, assume the device is garbage and
+			   smear the frame across the next frame too.
+
+			   but libinput uses the event's timestamp, so
+			   having the timestamp differ even by a bit may be
+			   risky, so we need to also 'fix' the timestamp
+			   for the second frame
+
+			   https://bugs.freedesktop.org/show_bug.cgi?id=100436
+			 */
+			if (ev.type == EV_SYN && ev.code == SYN_REPORT) {
+				smeared_timestamp = 0;
+
+				if (libevdev_has_event_pending(device->evdev)) {
+					rc = libevdev_next_event(device->evdev,
+								 LIBEVDEV_READ_FLAG_NORMAL,
+								 &next_event);
+					/* FIXME: we're screwed for SYN_DROPPED here */
+					if (rc == LIBEVDEV_READ_STATUS_SUCCESS) {
+						uint64_t t1 = event_time_us(&ev),
+							 t2 = event_time_us(&next_event);
+
+						if (t2 - t1 < 1000) { /* less than 1ms */
+							ev = next_event; /* discard the original SYN_REPORT */
+							smeared_timestamp = t1;
+							printf("smearing timestamp\n");
+						} else {
+							have_next_event = true;
+						}
+					}
+				}
+			}
+
+			if (smeared_timestamp != 0)
+				us_to_event_time(&ev, smeared_timestamp);
+
 			evdev_device_dispatch_one(device, &ev);
+			if (have_next_event)
+				evdev_device_dispatch_one(device,
+							  &next_event);
+			have_next_event = false;
 		}
 	} while (rc == LIBEVDEV_READ_STATUS_SUCCESS);
 

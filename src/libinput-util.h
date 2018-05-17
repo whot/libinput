@@ -39,6 +39,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <linux/input.h>
 
 #include "libinput.h"
 
@@ -471,6 +472,19 @@ static inline uint64_t
 tv2us(const struct timeval *tv)
 {
 	return s2us(tv->tv_sec) + tv->tv_usec;
+}
+
+static inline uint64_t
+event_time_us(const struct input_event *ev)
+{
+	return s2us(ev->input_event_sec) + ev->input_event_usec;
+}
+
+static inline void
+us_to_event_time(struct input_event *ev, uint64_t time)
+{
+	ev->input_event_sec = time / 1000000;
+	ev->input_event_usec = time % 1000000;
 }
 
 static inline struct timeval
