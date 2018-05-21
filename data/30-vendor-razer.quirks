@@ -1,0 +1,11 @@
+[Razer Blade Keyboard]
+MatchUdevType=keyboard
+MatchBus=usb
+MatchVendor=0x1532
+MatchProduct=0x0220
+AttrKeyboardIntegration=internal
+
+[Razer Blade Lid Switch]
+MatchName=*Lid Switch*
+MatchDMIModalias=dmi:*svnRazer:pnBlade*
+AttrLidSwitchReliability=write_open

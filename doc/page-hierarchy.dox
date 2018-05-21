@@ -37,6 +37,7 @@
 
 @page general General 
 
+- @subpage device-quirks
 - @subpage udev_config
 - @subpage seats
 - @subpage timestamps

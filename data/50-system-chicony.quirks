@@ -1,0 +1,7 @@
+# Acer Hawaii Keyboard, uses Chicony VID
+[Acer Hawaii Keyboard]
+MatchUdevType=touchpad
+MatchBus=usb
+MatchVendor=0x4F2
+MatchProduct=0x1558
+AttrTPKComboLayout=below

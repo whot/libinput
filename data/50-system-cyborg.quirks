@@ -1,0 +1,6 @@
+[Saitek Cyborg RAT5]
+MatchUdevType=mouse
+MatchBus=usb
+MatchVendor=0x06A3
+MatchProduct=0x0CD5
+ModelCyborgRat=1

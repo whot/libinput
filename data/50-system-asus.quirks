@@ -1,0 +1,9 @@
+[Asus X555LAB]
+MatchName=*ETPS/2 Elantech Touchpad*
+MatchDMIModalias=dmi:*svnASUSTeKCOMPUTERINC.:pnX555LAB:*
+ModelTouchpadVisibleMarker=1
+
+[Asus UX21E]
+MatchName=*ETPS/2 Elantech Touchpad*
+MatchDMIModalias=dmi:*svnASUSTeKComputerInc.:pnUX21E:*
+AttrPressureRange=24:10

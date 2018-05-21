@@ -1,0 +1,4 @@
+[Serial Keyboards]
+MatchUdevType=keyboard
+MatchBus=serial
+AttrKeyboardIntegration=internal

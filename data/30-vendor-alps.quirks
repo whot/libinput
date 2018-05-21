@@ -1,0 +1,9 @@
+[AlpsTouchpadDualPoint]
+MatchUdevType=touchpad
+MatchName=*AlpsPS/2 ALPS DualPoint TouchPad
+ModelALPSTouchpad=1
+
+[AlpsTouchpadGlidePoint]
+MatchUdevType=touchpad
+MatchName=*AlpsPS/2 ALPS GlidePoint
+ModelALPSTouchpad=1

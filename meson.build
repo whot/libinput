@@ -181,6 +181,54 @@ libfilter = static_library('filter', src_libfilter,
 			   include_directories : includes_include)
 dep_libfilter = declare_dependency(link_with : libfilter)
 
+############ libquirks.a #############
+libinput_data_path = join_paths(get_option('prefix'), get_option('datadir'), 'libinput')
+libinput_data_override_path = join_paths(get_option('prefix'),
+					 get_option('sysconfdir'),
+					 'libinput',
+					 'local-overrides.quirks')
+config_h.set_quoted('LIBINPUT_DATA_DIR', libinput_data_path)
+config_h.set_quoted('LIBINPUT_DATA_OVERRIDE_FILE', libinput_data_override_path)
+
+quirks_data = [
+	'data/10-generic-keyboard.quirks',
+	'data/10-generic-lid.quirks',
+	'data/10-generic-trackball.quirks',
+	'data/30-vendor-aiptek.quirks',
+	'data/30-vendor-alps.quirks',
+	'data/30-vendor-cyapa.quirks',
+	'data/30-vendor-elantech.quirks',
+	'data/30-vendor-huion.quirks',
+	'data/30-vendor-ibm.quirks',
+	'data/30-vendor-logitech.quirks',
+	'data/30-vendor-microsoft.quirks',
+	'data/30-vendor-razer.quirks',
+	'data/30-vendor-synaptics.quirks',
+	'data/30-vendor-wacom.quirks',
+	'data/50-system-apple.quirks',
+	'data/50-system-asus.quirks',
+	'data/50-system-chicony.quirks',
+	'data/50-system-cyborg.quirks',
+	'data/50-system-dell.quirks',
+	'data/50-system-google.quirks',
+	'data/50-system-hp.quirks',
+	'data/50-system-lenovo.quirks',
+	'data/50-system-system76.quirks',
+]
+
+install_data(quirks_data, install_dir : libinput_data_path)
+
+src_libquirks = [
+	'src/quirks.c',
+	'src/quirks.h',
+]
+
+deps_libquirks = [dep_udev, dep_libinput_util]
+libquirks = static_library('quirks', src_libquirks,
+			   dependencies : deps_libquirks,
+			   include_directories : includes_include)
+dep_libquirks = declare_dependency(link_with : libquirks)
+
 ############ libinput.so ############
 install_headers('src/libinput.h')
 src_libinput = src_libfilter + [
@@ -220,7 +268,8 @@ deps_libinput = [
 	dep_lm,
 	dep_rt,
 	dep_libwacom,
-	dep_libinput_util
+	dep_libinput_util,
+	dep_libquirks
 ]
 
 libinput_version_h_config = configuration_data()
@@ -317,6 +366,7 @@ if get_option('documentation')
 		meson.source_root() + '/doc/clickpad-softbuttons.dox',
 		meson.source_root() + '/doc/contributing.dox',
 		meson.source_root() + '/doc/device-configuration-via-udev.dox',
+		meson.source_root() + '/doc/device-quirks.dox',
 		meson.source_root() + '/doc/faqs.dox',
 		meson.source_root() + '/doc/gestures.dox',
 		meson.source_root() + '/doc/middle-button-emulation.dox',
@@ -430,6 +480,22 @@ executable('libinput-debug-events',
 	   )
 configure_file(input : 'tools/libinput-debug-events.man',
 	       output : 'libinput-debug-events.1',
+	       configuration : man_config,
+	       install : true,
+	       install_dir : join_paths(get_option('mandir'), 'man1')
+	       )
+
+libinput_list_quirks_sources = [ 'tools/libinput-list-quirks.c' ]
+executable('libinput-list-quirks',
+	   libinput_list_quirks_sources,
+	   dependencies : [dep_libquirks, dep_libinput],
+	   include_directories : [includes_src, includes_include],
+	   install_dir : libinput_tool_path,
+	   install : true
+	   )
+
+configure_file(input : 'tools/libinput-list-quirks.man',
+	       output : 'libinput-list-quirks.1',
 	       configuration : man_config,
 	       install : true,
 	       install_dir : join_paths(get_option('mandir'), 'man1')
@@ -697,6 +763,7 @@ if get_option('tests')
 		dep_dl,
 		dep_lm,
 		dep_libsystemd,
+		dep_libquirks,
 	]
 
 	configure_file(input : 'udev/80-libinput-test-device.rules',
@@ -763,7 +830,8 @@ if get_option('tests')
 		'test/test-keyboard.c',
 		'test/test-device.c',
 		'test/test-gestures.c',
-		'test/test-switch.c'
+		'test/test-switch.c',
+		'test/test-quirks.c',
 	]
 	def_LT_VERSION = '-DLIBINPUT_LT_VERSION="@0@:@1@:@2@"'.format(libinput_lt_c, libinput_lt_r, libinput_lt_a)
 	libinput_test_runner = executable('libinput-test-suite-runner',

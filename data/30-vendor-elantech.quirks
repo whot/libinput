@@ -1,0 +1,4 @@
+[Elantech Touchpads]
+MatchName=*Elantech Touchpad*
+AttrResolutionHint=31x31
+AttrPressureRange=10:8

@@ -1,0 +1,3 @@
+[Cyapa Touchpads]
+MatchName=*Cypress APA Trackpad ?cyapa?
+AttrPressureRange=10:8

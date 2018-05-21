@@ -1,0 +1,5 @@
+[Aiptek No Tilt Tablet]
+MatchUdevType=tablet
+MatchBus=usb
+MatchVendor=0x08CA
+ModelTabletNoTilt=1

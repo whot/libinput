@@ -1,0 +1,78 @@
+[Lenovo Thinkpad Touchpad]
+MatchName=*Synaptics*
+MatchDMIModalias=dmi:*svnLENOVO:*:pvrThinkPad*:*
+AttrThumbPressureThreshold=100
+
+[Lenovo x230 Touchpad]
+MatchName=*SynPS/2 Synaptics TouchPad
+MatchDMIModalias=dmi:*svnLENOVO:*:pvrThinkPadX230*
+ModelLenovoX230=1
+
+[Lenovo T440p Touchpad PS/2]
+MatchName=SynPS/2 Synaptics TouchPad
+MatchDMIModalias=dmi:*svnLENOVO:*:pvrThinkPadT440p*
+ModelLenovoT450Touchpad=1
+
+[Lenovo T440p Touchpad RMI4]
+MatchName=Synaptics tm2964-001
+MatchDMIModalias=dmi:*svnLENOVO:*:pvrThinkPadT440p*
+ModelLenovoT450Touchpad=1
+
+[Lenovo T440s Trackpoint]
+MatchName=TPPS/2 IBM TrackPoint
+MatchDMIModalias=dmi:*svnLENOVO:*:pvrThinkPadT440s*
+AttrTrackpointRange=30
+
+[Lenovo T440s Trackpoint]
+MatchName=TPPS/2 IBM TrackPoint
+MatchDMIModalias=dmi:*svnLENOVO:*:pvrThinkPadT450s*
+AttrTrackpointRange=50
+
+[Lenovo P50 Touchpad]
+MatchName=SynPS/2 Synaptics TouchPad
+MatchDMIModalias=dmi:*svnLENOVO:*:pvrThinkPadP50*:
+ModelLenovoT450Touchpad=1
+AttrPalmPressureThreshold=150
+
+[Lenovo *50 Touchpad]
+MatchName=SynPS/2 Synaptics TouchPad
+MatchDMIModalias=dmi:*svnLENOVO:*:pvrThinkPad??50*:
+ModelLenovoT450Touchpad=1
+AttrPalmPressureThreshold=150
+
+[Lenovo *60 Touchpad]
+MatchName=SynPS/2 Synaptics TouchPad
+MatchDMIModalias=dmi:*svnLENOVO:*:pvrThinkPad??60*:
+ModelLenovoT450Touchpad=1
+AttrPalmPressureThreshold=150
+
+[Lenovo X1 Carbon 3rd Touchpad]
+MatchName=SynPS/2 Synaptics TouchPad
+MatchDMIModalias=dmi:*svnLENOVO:*:pvrThinkPadX1Carbon3rd:*
+ModelLenovoT450Touchpad=1
+AttrPalmPressureThreshold=150
+
+[Lenovo ThinkPad Compact USB Keyboard with TrackPoint]
+MatchUdevType=keyboard
+MatchBus=usb
+MatchVendor=0x17EF
+MatchProduct=0x6047
+AttrKeyboardIntegration=external
+
+[Lenovo X280 Trackpoint]
+MatchName=*ALPS TrackPoint*
+MatchDMIModalias=dmi:*svnLENOVO:*:pvrThinkPadX280:*
+AttrTrackpointRange=70
+
+# Lenovo Thinkpad X1 Yoga disables the keyboard anyway but has the same device
+# use a windows key on the screen and volume rocker on the side (#103749)
+[Lenovo Thinkpad X1 Yoga]
+MatchName=AT Translated Set 2 keyboard
+MatchDMIModalias=dmi:*svnLENOVO:*pvrThinkPadX1Yoga1st:*
+ModelTabletModeNoSuspend=1
+
+# Lenovo Carbon X1 6th gen (RMI4 only, PS/2 is broken on this device)
+[Lenovo Carbon X1 6th gen]
+MatchName=Synaptics TM3288-010
+MatchDMIModalias=dmi:*svnLenovo:*pvrThinkPadX1Carbon6th:*
+ModelLenovoCarbonX16th=1
