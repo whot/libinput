@@ -62,6 +62,20 @@ list_insert(struct list *list, struct list *elm)
 }
 
 void
+list_append(struct list *list, struct list *elm)
+{
+	assert((list->next != NULL && list->prev != NULL) ||
+	       !"list->next|prev is NULL, possibly missing list_init()");
+	assert(((elm->next == NULL && elm->prev == NULL) || list_empty(elm)) ||
+	       !"elm->next|prev is not NULL, list node used twice?");
+
+	elm->next = list;
+	elm->prev = list->prev;
+	list->prev = elm;
+	elm->prev->next = elm;
+}
+
+void
 list_remove(struct list *elm)
 {
 	assert((elm->next != NULL && elm->prev != NULL) ||
