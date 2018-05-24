@@ -87,6 +87,7 @@ struct list created_files_list; /* list of all files to remove at the end of
 
 static void litest_init_udev_rules(struct list *created_files_list);
 static void litest_remove_udev_rules(struct list *created_files_list);
+static char *litest_install_quirks(struct list *created_files_list);
 
 /* defined for the litest selftest */
 #ifndef LITEST_DISABLE_BACKTRACE_LOGGING
@@ -999,6 +1000,7 @@ litest_run(int argc, char **argv)
 {
 	int failed = 0;
 	int inhibit_lock_fd;
+	char *quirks_dir;
 
 	list_init(&created_files_list);
 
@@ -1012,6 +1014,10 @@ litest_run(int argc, char **argv)
 		verbose = 1;
 
 	litest_init_udev_rules(&created_files_list);
+	quirks_dir = litest_install_quirks(&created_files_list);
+
+	setenv("LIBINPUT_DATA_DIR", quirks_dir, 1);
+	free(quirks_dir);
 
 	litest_setup_sighandler(SIGINT);
 
@@ -1173,6 +1179,86 @@ litest_install_model_quirks(struct list *created_files_list)
 				LIBINPUT_DEVICE_GROUPS_RULES_FILE,
 				warning);
 	list_insert(created_files_list, &file->link);
+}
+
+static char *
+litest_init_device_quirk_file(const char *data_dir,
+			      struct litest_test_device *dev)
+{
+	int fd;
+	FILE *f;
+	char path[PATH_MAX];
+	static int count;
+
+	if (!dev->quirk_file)
+		return NULL;
+
+	snprintf(path, sizeof(path),
+		 "%s/99-%03d-%s.quirks",
+		 data_dir,
+		 ++count,
+		 dev->shortname);
+	fd = open(path, O_CREAT|O_WRONLY, 0644);
+	litest_assert_int_ne(fd, -1);
+	f = fdopen(fd, "w");
+	litest_assert_notnull(f);
+	litest_assert_int_ge(fputs(dev->quirk_file, f), 0);
+	fclose(f);
+
+	return safe_strdup(path);
+}
+
+
+static char *
+litest_install_quirks(struct list *created_files_list)
+{
+	struct litest_test_device **dev = devices;
+	struct created_file *file;
+	char dirname[PATH_MAX] = "/run/litest-XXXXXX";
+	char **quirks, **q;
+
+	litest_assert_notnull(mkdtemp(dirname));
+	litest_assert_int_ne(chmod(dirname, 0755), -1);
+
+	quirks = strv_from_string(LIBINPUT_DATA_FILES, ":");
+	litest_assert(quirks);
+
+	q = quirks;
+	while (*q) {
+		char *filename;
+		char dest[PATH_MAX];
+		char src[PATH_MAX];
+
+		litest_assert(strneq(*q, "data/", 5));
+		filename = &(*q)[5];
+
+		snprintf(src, sizeof(src), "%s/%s", LIBINPUT_DATA_SRCDIR, filename);
+		snprintf(dest, sizeof(dest), "%s/%s", dirname, filename);
+		file = litest_copy_file(dest, src, NULL);
+		list_append(created_files_list, &file->link);
+		q++;
+	}
+	strv_free(quirks);
+
+	/* Now add the per-device special config files */
+
+	while (*dev) {
+		char *path;
+
+		path = litest_init_device_quirk_file(dirname, *dev);
+		if (path) {
+			struct created_file *file = zalloc(sizeof(*file));
+			file->path = path;
+			list_insert(created_files_list, &file->link);
+		}
+		dev++;
+	}
+
+	file = zalloc(sizeof *file);
+	file->path = safe_strdup(dirname);
+	list_append(created_files_list, &file->link);
+
+	return safe_strdup(dirname);
 }
 
 static inline void

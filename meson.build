@@ -216,6 +216,9 @@ quirks_data = [
 	'data/50-system-system76.quirks',
 ]
 
+config_h.set_quoted('LIBINPUT_DATA_FILES', ':'.join(quirks_data))
+config_h.set_quoted('LIBINPUT_DATA_SRCDIR', join_paths(meson.source_root(), 'data'))
+
 install_data(quirks_data, install_dir : libinput_data_path)
 
 src_libquirks = [

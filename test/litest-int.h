@@ -70,6 +70,7 @@ struct litest_test_device {
        struct litest_device_interface *interface;
 
        const char *udev_rule;
+       const char *quirk_file;
 };
 
 struct litest_device_interface {
