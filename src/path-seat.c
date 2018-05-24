@@ -337,6 +337,13 @@ libinput_path_add_device(struct libinput *libinput,
 		return NULL;
 	}
 
+	/* We cannot do this during path_create_context because the log
+	 * handler isn't set up there but we really want to log to the right
+	 * place if the quirks run into parser errors. So we have to do it
+	 * on the first call to add_device.
+	 */
+	libinput_init_quirks(libinput);
+
 	udev_device = udev_device_from_devnode(libinput, udev, path);
 	if (!udev_device) {
 		log_bug_client(libinput, "Invalid path %s\n", path);

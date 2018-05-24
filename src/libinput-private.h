@@ -140,6 +140,9 @@ struct libinput {
 	struct list device_group_list;
 
 	uint64_t last_event_time;
+
+	bool quirks_initialized;
+	struct quirks_context *quirks;
 };
 
 typedef void (*libinput_seat_destroy_func) (struct libinput_seat *seat);
@@ -426,6 +429,9 @@ libinput_init(struct libinput *libinput,
 	      const struct libinput_interface *interface,
 	      const struct libinput_interface_backend *interface_backend,
 	      void *user_data);
+
+void
+libinput_init_quirks(struct libinput *libinput);
 
 struct libinput_source *
 libinput_add_fd(struct libinput *libinput,

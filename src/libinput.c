@@ -38,6 +38,7 @@
 #include "libinput-private.h"
 #include "evdev.h"
 #include "timer.h"
+#include "quirks.h"
 
 #define require_event_type(li_, type_, retval_, ...)	\
 	if (type_ == LIBINPUT_EVENT_NONE) abort(); \
@@ -1720,6 +1721,46 @@ libinput_init(struct libinput *libinput,
 	return 0;
 }
 
+void
+libinput_init_quirks(struct libinput *libinput)
+{
+	const char *data_path,
+	           *override_file = NULL;
+	struct quirks_context *quirks;
+
+	if (libinput->quirks_initialized)
+		return;
+
+	/* If we fail, we'll fail next time too */
+	libinput->quirks_initialized = true;
+
+	data_path = getenv("LIBINPUT_DATA_DIR");
+	if (!data_path) {
+		data_path = LIBINPUT_DATA_DIR;
+		override_file = LIBINPUT_DATA_OVERRIDE_FILE;
+	}
+
+	quirks = quirks_init_subsystem(data_path,
+				       override_file,
+				       log_msg_va,
+				       libinput,
+				       QLOG_LIBINPUT_LOGGING);
+	if (!quirks) {
+		log_error(libinput,
+			  "Failed to load the device quirks from %s%s%s. "
+			  "This will negatively affect device behavior. "
+			  "See %sdevice-quirks.html for details.\n",
+			  data_path,
+			  override_file ? " and " : "",
+			  override_file ? override_file : "",
+			  HTTP_DOC_LINK
+			  );
+		return;
+	}
+
+	libinput->quirks = quirks;
+}
+
 static void
 libinput_device_destroy(struct libinput_device *device);
 
@@ -1791,6 +1832,7 @@ libinput_unref(struct libinput *libinput)
 
 	libinput_timer_subsys_destroy(libinput);
 	libinput_drop_destroyed_sources(libinput);
+	quirks_context_unref(libinput->quirks);
 	close(libinput->epoll_fd);
 	free(libinput);
 
