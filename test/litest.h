@@ -35,6 +35,7 @@
 #include <math.h>
 
 #include "libinput-util.h"
+#include "quirks.h"
 
 struct test_device {
 	const char *name;
@@ -345,6 +346,7 @@ struct litest_device {
 	struct libevdev *evdev;
 	struct libevdev_uinput *uinput;
 	struct libinput *libinput;
+	struct quirks *quirks;
 	bool owns_context;
 	struct libinput_device *libinput_device;
 	struct litest_device_interface *interface;

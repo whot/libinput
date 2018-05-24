@@ -55,6 +55,7 @@
 #include "litest.h"
 #include "litest-int.h"
 #include "libinput-util.h"
+#include "quirks.h"
 
 #include <linux/kd.h>
 
@@ -76,6 +77,7 @@ static int verbose = 0;
 const char *filter_test = NULL;
 const char *filter_device = NULL;
 const char *filter_group = NULL;
+static struct quirks_context *quirks_context;
 
 struct created_file {
 	struct list link;
@@ -790,6 +792,19 @@ litest_free_test_list(struct list *tests)
 	}
 }
 
+LIBINPUT_ATTRIBUTE_PRINTF(3, 0)
+static inline void
+quirk_log_handler(struct libinput *unused,
+		  enum libinput_log_priority priority,
+		  const char *format,
+		  va_list args)
+{
+	if (priority < LIBINPUT_LOG_PRIORITY_ERROR)
+		return;
+
+	vfprintf(stderr, format, args);
+}
+
 static int
 litest_run_suite(struct list *tests, int which, int max, int error_fd)
 {
@@ -804,6 +819,12 @@ litest_run_suite(struct list *tests, int which, int max, int error_fd)
 	};
 	struct name *n, *tmp;
 	struct list testnames;
+
+	quirks_context = quirks_init_subsystem(getenv("LIBINPUT_DATA_DIR"),
+					       NULL,
+					       quirk_log_handler,
+					       NULL,
+					       QLOG_LIBINPUT_LOGGING);
 
 	/* Check just takes the suite/test name pointers but doesn't strdup
 	 * them - we have to keep them around */
@@ -888,6 +909,8 @@ out:
 		free(n->name);
 		free(n);
 	}
+
+	quirks_context_unref(quirks_context);
 
 	return failed;
 }
@@ -1492,6 +1515,9 @@ litest_add_device_with_overrides(struct libinput *libinput,
 
 	d->libinput = libinput;
 	d->libinput_device = libinput_path_add_device(d->libinput, path);
+	d->quirks = quirks_fetch_for_device(quirks_context,
+					    libinput_device_get_udev_device(d->libinput_device));
+
 	litest_assert(d->libinput_device != NULL);
 	libinput_device_ref(d->libinput_device);
 
@@ -1614,6 +1640,8 @@ litest_delete_device(struct litest_device *d)
 		 libevdev_uinput_get_syspath(d->uinput));
 
 	litest_assert_int_eq(d->skip_ev_syn, 0);
+
+	quirks_unref(d->quirks);
 
 	if (d->libinput_device) {
 		libinput_path_remove_device(d->libinput_device);
