@@ -43,6 +43,7 @@
 #include "evdev.h"
 #include "filter.h"
 #include "libinput-private.h"
+#include "quirks.h"
 
 #if HAVE_LIBWACOM
 #include <libwacom/libwacom.h>
@@ -410,7 +411,9 @@ static void
 evdev_tag_keyboard(struct evdev_device *device,
 		   struct udev_device *udev_device)
 {
-	const char *prop;
+	struct quirks_context *quirks;
+	struct quirks *q;
+	char *prop;
 	int code;
 
 	if (!libevdev_has_event_type(device->evdev, EV_KEY))
@@ -423,10 +426,9 @@ evdev_tag_keyboard(struct evdev_device *device,
 			return;
 	}
 
-	/* This should eventually become ID_INPUT_KEYBOARD_INTEGRATION */
-	prop = udev_device_get_property_value(udev_device,
-					      "LIBINPUT_ATTR_KEYBOARD_INTEGRATION");
-	if (prop) {
+	quirks = evdev_libinput_context(device)->quirks;
+	q = quirks_fetch_for_device(quirks, device->udev_device);
+	if (q && quirks_get_string(q, QUIRK_ATTR_KEYBOARD_INTEGRATION, &prop)) {
 		if (streq(prop, "internal")) {
 			evdev_tag_keyboard_internal(device);
 		} else if (streq(prop, "external")) {
@@ -437,6 +439,8 @@ evdev_tag_keyboard(struct evdev_device *device,
 				       prop);
 		}
 	}
+
+	quirks_unref(q);
 
 	device->tags |= EVDEV_TAG_KEYBOARD;
 }
@@ -796,12 +800,16 @@ evdev_is_fake_mt_device(struct evdev_device *device)
 enum switch_reliability
 evdev_read_switch_reliability_prop(struct evdev_device *device)
 {
-	const char *prop;
 	enum switch_reliability r;
+	struct quirks_context *quirks;
+	struct quirks *q;
+	char *prop;
 
-	prop = udev_device_get_property_value(device->udev_device,
-					      "LIBINPUT_ATTR_LID_SWITCH_RELIABILITY");
-	if (!parse_switch_reliability_property(prop, &r)) {
+	quirks = evdev_libinput_context(device)->quirks;
+	q = quirks_fetch_for_device(quirks, device->udev_device);
+	if (!q || !quirks_get_string(q, QUIRK_ATTR_LID_SWITCH_RELIABILITY, &prop)) {
+		r = RELIABILITY_UNKNOWN;
+	} else if (!parse_switch_reliability_property(prop, &r)) {
 		evdev_log_error(device,
 				"%s: switch reliability set to unknown value '%s'\n",
 				device->devname,
@@ -810,6 +818,8 @@ evdev_read_switch_reliability_prop(struct evdev_device *device)
 	} else if (r == RELIABILITY_WRITE_OPEN) {
 		evdev_log_info(device, "will write switch open events\n");
 	}
+
+	quirks_unref(q);
 
 	return r;
 }
@@ -1169,22 +1179,17 @@ evdev_read_wheel_tilt_props(struct evdev_device *device)
 static inline int
 evdev_get_trackpoint_range(struct evdev_device *device)
 {
+	struct quirks_context *quirks;
+	struct quirks *q;
 	const char *prop;
-	int range = DEFAULT_TRACKPOINT_RANGE;
+	uint32_t range = DEFAULT_TRACKPOINT_RANGE;
 
 	if (!(device->tags & EVDEV_TAG_TRACKPOINT))
 		return DEFAULT_TRACKPOINT_RANGE;
 
-	prop = udev_device_get_property_value(device->udev_device,
-					      "LIBINPUT_ATTR_TRACKPOINT_RANGE");
-	if (prop) {
-		if (!safe_atoi(prop, &range) || range < 0.0) {
-			evdev_log_error(device,
-					"trackpoint range property is present but invalid, "
-					"using %d instead\n",
-					DEFAULT_TRACKPOINT_RANGE);
-			range = DEFAULT_TRACKPOINT_RANGE;
-		}
+	quirks = evdev_libinput_context(device)->quirks;
+	q = quirks_fetch_for_device(quirks, device->udev_device);
+	if (q && quirks_get_uint32(q, QUIRK_ATTR_TRACKPOINT_RANGE, &range)) {
 		goto out;
 	}
 
@@ -1215,6 +1220,8 @@ evdev_get_trackpoint_range(struct evdev_device *device)
 	}
 
 out:
+	quirks_unref(q);
+
 	if (range == 0) {
 		evdev_log_bug_libinput(device, "trackpoint range is zero\n");
 		range = DEFAULT_TRACKPOINT_RANGE;
@@ -1256,12 +1263,11 @@ static inline uint32_t
 evdev_read_model_flags(struct evdev_device *device)
 {
 	const struct model_map {
-		const char *property;
+		enum quirk quirk;
 		enum evdev_device_model model;
 	} model_map[] = {
-#define MODEL(name) { "LIBINPUT_MODEL_" #name, EVDEV_MODEL_##name }
+#define MODEL(name) { QUIRK_MODEL_##name, EVDEV_MODEL_##name }
 		MODEL(LENOVO_X230),
-		MODEL(LENOVO_X220_TOUCHPAD_FW81),
 		MODEL(CHROMEBOOK),
 		MODEL(SYSTEM76_BONOBO),
 		MODEL(SYSTEM76_GALAGO),
@@ -1290,27 +1296,60 @@ evdev_read_model_flags(struct evdev_device *device)
 		MODEL(LENOVO_CARBON_X1_6TH),
 		MODEL(LENOVO_SCROLLPOINT),
 #undef MODEL
-		{ "ID_INPUT_TRACKBALL", EVDEV_MODEL_TRACKBALL },
-		{ NULL, EVDEV_MODEL_DEFAULT },
+		{ 0, 0 },
 	};
 	const struct model_map *m = model_map;
 	uint32_t model_flags = 0;
 	uint32_t all_model_flags = 0;
+	struct quirks_context *quirks;
+	struct quirks *q;
 
-	while (m->property) {
+	quirks = evdev_libinput_context(device)->quirks;
+	q = quirks_fetch_for_device(quirks, device->udev_device);
+
+	while (q && m->quirk) {
+		bool is_set;
+
 		/* Check for flag re-use */
-		if (strneq("LIBINPUT_MODEL_", m->property, 15)) {
-			assert((all_model_flags & m->model) == 0);
-			all_model_flags |= m->model;
+		assert((all_model_flags & m->model) == 0);
+		all_model_flags |= m->model;
+
+		if (quirks_get_bool(q, m->quirk, &is_set)) {
+			if (is_set) {
+				evdev_log_debug(device,
+						"tagged as %s\n",
+						quirk_get_name(m->quirk));
+				model_flags |= m->model;
+			} else {
+				evdev_log_debug(device,
+						"untagged as %s\n",
+						quirk_get_name(m->quirk));
+				model_flags &= ~m->model;
+			}
 		}
 
-		if (parse_udev_flag(device,
-				    device->udev_device,
-				    m->property)) {
-			evdev_log_debug(device, "tagged as %s\n", m->property);
-			model_flags |= m->model;
-		}
 		m++;
+	}
+
+	quirks_unref(q);
+
+	if (parse_udev_flag(device,
+			    device->udev_device,
+			    "ID_INPUT_TRACKBALL")) {
+		evdev_log_debug(device, "tagged as trackball\n");
+		model_flags |= EVDEV_MODEL_TRACKBALL;
+	}
+
+	/**
+	 * Device is 6 years old at the time of writing this and this was
+	 * one of the few udev properties that wasn't reserved for private
+	 * usage, so we need to keep this for backwards compat.
+	 */
+	if (parse_udev_flag(device,
+			    device->udev_device,
+			    "LIBINPUT_MODEL_LENOVO_X220_TOUCHPAD_FW81")) {
+		evdev_log_debug(device, "tagged as trackball\n");
+		model_flags |= EVDEV_MODEL_LENOVO_X220_TOUCHPAD_FW81;
 	}
 
 	return model_flags;
@@ -1321,16 +1360,25 @@ evdev_read_attr_res_prop(struct evdev_device *device,
 			 size_t *xres,
 			 size_t *yres)
 {
-	struct udev_device *udev;
-	const char *res_prop;
+	struct quirks_context *quirks;
+	struct quirks *q;
+	struct quirk_dimensions dim;
+	bool rc = false;
 
-	udev = device->udev_device;
-	res_prop = udev_device_get_property_value(udev,
-						   "LIBINPUT_ATTR_RESOLUTION_HINT");
-	if (!res_prop)
+	quirks = evdev_libinput_context(device)->quirks;
+	q = quirks_fetch_for_device(quirks, device->udev_device);
+	if (!q)
 		return false;
 
-	return parse_dimension_property(res_prop, xres, yres);
+	rc = quirks_get_dimensions(q, QUIRK_ATTR_RESOLUTION_HINT, &dim);
+	if (rc) {
+		*xres = dim.x;
+		*yres = dim.y;
+	}
+
+	quirks_unref(q);
+
+	return rc;
 }
 
 static inline bool
@@ -1338,16 +1386,25 @@ evdev_read_attr_size_prop(struct evdev_device *device,
 			  size_t *size_x,
 			  size_t *size_y)
 {
-	struct udev_device *udev;
-	const char *size_prop;
+	struct quirks_context *quirks;
+	struct quirks *q;
+	struct quirk_dimensions dim;
+	bool rc = false;
 
-	udev = device->udev_device;
-	size_prop = udev_device_get_property_value(udev,
-						   "LIBINPUT_ATTR_SIZE_HINT");
-	if (!size_prop)
+	quirks = evdev_libinput_context(device)->quirks;
+	q = quirks_fetch_for_device(quirks, device->udev_device);
+	if (!q)
 		return false;
 
-	return parse_dimension_property(size_prop, size_x, size_y);
+	rc = quirks_get_dimensions(q, QUIRK_ATTR_SIZE_HINT, &dim);
+	if (rc) {
+		*size_x = dim.x;
+		*size_y = dim.y;
+	}
+
+	quirks_unref(q);
+
+	return rc;
 }
 
 /* Return 1 if the device is set to the fake resolution or 0 otherwise */

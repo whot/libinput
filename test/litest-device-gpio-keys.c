@@ -47,10 +47,14 @@ static const char udev_rule[] =
 "KERNEL!=\"event*\", GOTO=\"switch_end\"\n"
 "\n"
 "ATTRS{name}==\"litest gpio-keys*\",\\\n"
-"    ENV{ID_INPUT_SWITCH}=\"1\",\\\n"
-"    ENV{LIBINPUT_ATTR_LID_SWITCH_RELIABILITY}=\"reliable\"\n"
+"    ENV{ID_INPUT_SWITCH}=\"1\"\n"
 "\n"
 "LABEL=\"switch_end\"";
+
+static const char quirk_file[] =
+"[litest gpio quirk]\n"
+"MatchName=litest gpio-keys\n"
+"AttrLidSwitchReliability=reliable\n";
 
 TEST_DEVICE("gpio-keys",
 	.type = LITEST_GPIO_KEYS,
@@ -63,4 +67,5 @@ TEST_DEVICE("gpio-keys",
 	.absinfo = NULL,
 
 	.udev_rule = udev_rule,
+	.quirk_file = quirk_file,
 )

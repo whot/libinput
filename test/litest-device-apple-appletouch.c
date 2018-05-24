@@ -83,15 +83,10 @@ static struct input_absinfo absinfo[] = {
 	{ .value = -1 }
 };
 
-static const char udev_rule[] =
-"ACTION==\"remove\", GOTO=\"touchpad_end\"\n"
-"KERNEL!=\"event*\", GOTO=\"touchpad_end\"\n"
-"ENV{ID_INPUT_TOUCHPAD}==\"\", GOTO=\"touchpad_end\"\n"
-"\n"
-"ATTRS{name}==\"litest appletouch\","
-"    ENV{LIBINPUT_MODEL_APPLE_TOUCHPAD_ONEBUTTON}=\"1\"\n"
-"\n"
-"LABEL=\"touchpad_end\"";
+static const char quirk_file[] =
+"[litest ALPS Touchpad]\n"
+"MatchName=litest appletouch\n"
+"ModelAppleTouchpadOneButton=1\n";
 
 TEST_DEVICE("appletouch",
 	.type = LITEST_APPLETOUCH,
@@ -102,5 +97,5 @@ TEST_DEVICE("appletouch",
 	.id = &input_id,
 	.events = events,
 	.absinfo = absinfo,
-	.udev_rule = udev_rule,
+	.quirk_file = quirk_file,
 )

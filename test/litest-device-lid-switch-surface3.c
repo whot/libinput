@@ -43,10 +43,14 @@ static const char udev_rule[] =
 "KERNEL!=\"event*\", GOTO=\"switch_end\"\n"
 "\n"
 "ATTRS{name}==\"litest Lid Switch Surface3*\",\\\n"
-"    ENV{ID_INPUT_SWITCH}=\"1\",\\\n"
-"    ENV{LIBINPUT_ATTR_LID_SWITCH_RELIABILITY}=\"write_open\"\n"
+"    ENV{ID_INPUT_SWITCH}=\"1\"\n"
 "\n"
 "LABEL=\"switch_end\"";
+
+static const char quirk_file[] =
+"[litest Surface Lid]\n"
+"MatchName=litest Lid Switch Surface3\n"
+"AttrLidSwitchReliability=write_open\n";
 
 TEST_DEVICE("lid-switch-surface3",
 	.type = LITEST_LID_SWITCH_SURFACE3,
@@ -59,4 +63,5 @@ TEST_DEVICE("lid-switch-surface3",
 	.absinfo = NULL,
 
 	.udev_rule = udev_rule,
+	.quirk_file = quirk_file,
 )

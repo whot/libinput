@@ -143,16 +143,15 @@ END_TEST
 static bool
 lid_switch_is_reliable(struct litest_device *dev)
 {
-	struct udev_device *udev_device;
-	const char *prop;
+	char *prop;
 	bool is_reliable = false;
 
-	udev_device = libinput_device_get_udev_device(dev->libinput_device);
-	prop = udev_device_get_property_value(udev_device,
-					      "LIBINPUT_ATTR_LID_SWITCH_RELIABILITY");
+	if (quirks_get_string(dev->quirks,
+			      QUIRK_ATTR_LID_SWITCH_RELIABILITY,
+			      &prop)) {
+		is_reliable = streq(prop, "reliable");
+	}
 
-	is_reliable = prop && streq(prop, "reliable");
-	udev_device_unref(udev_device);
 
 	return is_reliable;
 }

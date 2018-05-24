@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <limits.h>
 
+#include "quirks.h"
 #include "evdev-mt-touchpad.h"
 
 #define DEFAULT_TRACKPOINT_ACTIVITY_TIMEOUT ms2us(300)
@@ -2835,16 +2836,25 @@ tp_dwt_config_get_default(struct libinput_device *device)
 static inline bool
 tp_is_tpkb_combo_below(struct evdev_device *device)
 {
-	const char *prop;
+	struct quirks_context *quirks;
+	struct quirks *q;
+	char *prop;
 	enum tpkbcombo_layout layout = TPKBCOMBO_LAYOUT_UNKNOWN;
+	int rc = false;
 
-	prop = udev_device_get_property_value(device->udev_device,
-					      "LIBINPUT_ATTR_TPKBCOMBO_LAYOUT");
-	if (!prop)
+	quirks = evdev_libinput_context(device)->quirks;
+	q = quirks_fetch_for_device(quirks, device->udev_device);
+	if (!q)
 		return false;
 
-	return parse_tpkbcombo_layout_poperty(prop, &layout) &&
-		layout == TPKBCOMBO_LAYOUT_BELOW;
+	if (quirks_get_string(q, QUIRK_ATTR_TPKBCOMBO_LAYOUT, &prop)) {
+		rc = parse_tpkbcombo_layout_poperty(prop, &layout) &&
+			layout == TPKBCOMBO_LAYOUT_BELOW;
+	}
+
+	quirks_unref(q);
+
+	return rc;
 }
 
 static inline bool
@@ -2911,19 +2921,20 @@ static int
 tp_read_palm_pressure_prop(struct tp_dispatch *tp,
 			   const struct evdev_device *device)
 {
-	struct udev_device *udev_device = device->udev_device;
-	const char *prop;
-	int threshold;
 	const int default_palm_threshold = 130;
+	uint32_t threshold = default_palm_threshold;
+	struct quirks_context *quirks;
+	struct quirks *q;
 
-	prop = udev_device_get_property_value(udev_device,
-			      "LIBINPUT_ATTR_PALM_PRESSURE_THRESHOLD");
-	if (!prop)
-		return default_palm_threshold;
+	quirks = evdev_libinput_context(device)->quirks;
+	q = quirks_fetch_for_device(quirks, device->udev_device);
+	if (!q)
+		return threshold;
 
-	threshold = parse_palm_pressure_property(prop);
+	quirks_get_uint32(q, QUIRK_ATTR_PALM_PRESSURE_THRESHOLD, &threshold);
+	quirks_unref(q);
 
-	return threshold > 0 ? threshold : default_palm_threshold;
+	return threshold;
 }
 
 static inline void
@@ -2947,24 +2958,26 @@ static inline void
 tp_init_palmdetect_size(struct tp_dispatch *tp,
 			struct evdev_device *device)
 {
-	const char *prop;
-	int threshold;
+	struct quirks_context *quirks;
+	struct quirks *q;
+	uint32_t threshold;
 
-	prop = udev_device_get_property_value(device->udev_device,
-					      "LIBINPUT_ATTR_PALM_SIZE_THRESHOLD");
-	if (!prop)
+	quirks = evdev_libinput_context(device)->quirks;
+	q = quirks_fetch_for_device(quirks, device->udev_device);
+	if (!q)
 		return;
 
-	threshold = parse_palm_size_property(prop);
-	if (threshold == 0) {
-		evdev_log_bug_client(device,
-				     "palm: ignoring invalid threshold %s\n",
-				     prop);
-		return;
+	if (quirks_get_uint32(q, QUIRK_ATTR_PALM_SIZE_THRESHOLD, &threshold)) {
+		if (threshold == 0) {
+			evdev_log_bug_client(device,
+					     "palm: ignoring invalid threshold %d\n",
+					     threshold);
+		} else {
+			tp->palm.use_size = true;
+			tp->palm.size_threshold = threshold;
+		}
 	}
-
-	tp->palm.use_size = true;
-	tp->palm.size_threshold = threshold;
+	quirks_unref(q);
 }
 
 static inline void
@@ -3039,25 +3052,6 @@ tp_init_sendevents(struct tp_dispatch *tp,
 			    tp_keyboard_timeout, tp);
 }
 
-static int
-tp_read_thumb_pressure_prop(struct tp_dispatch *tp,
-			    const struct evdev_device *device)
-{
-	struct udev_device *udev_device = device->udev_device;
-	const char *prop;
-	int threshold;
-	const int default_thumb_threshold = 0;
-
-	prop = udev_device_get_property_value(udev_device,
-			      "LIBINPUT_ATTR_THUMB_PRESSURE_THRESHOLD");
-	if (!prop)
-		return default_thumb_threshold;
-
-	threshold = parse_thumb_pressure_property(prop);
-
-	return threshold > 0 ? threshold : default_thumb_threshold;
-}
-
 static void
 tp_init_thumb(struct tp_dispatch *tp)
 {
@@ -3066,7 +3060,9 @@ tp_init_thumb(struct tp_dispatch *tp)
 	double w = 0.0, h = 0.0;
 	struct device_coords edges;
 	struct phys_coords mm = { 0.0, 0.0 };
-	int threshold;
+	uint32_t threshold;
+	struct quirks_context *quirks;
+	struct quirks *q;
 
 	if (!tp->buttons.is_clickpad)
 		return;
@@ -3095,11 +3091,13 @@ tp_init_thumb(struct tp_dispatch *tp)
 	if (!abs)
 		goto out;
 
-	threshold = tp_read_thumb_pressure_prop(tp, device);
-	if (threshold == 0)
-		goto out;
-
-	tp->thumb.threshold = threshold;
+	quirks = evdev_libinput_context(device)->quirks;
+	q = quirks_fetch_for_device(quirks, device->udev_device);
+	if (quirks_get_uint32(q,
+			      QUIRK_ATTR_THUMB_PRESSURE_THRESHOLD,
+			      &threshold))
+		tp->thumb.threshold = threshold;
+	quirks_unref(q);
 
 out:
 	evdev_log_debug(device,
@@ -3197,7 +3195,9 @@ tp_init_pressure(struct tp_dispatch *tp,
 {
 	const struct input_absinfo *abs;
 	unsigned int code;
-	const char *prop;
+	struct quirks_context *quirks;
+	struct quirks *q;
+	struct quirk_range r;
 	int hi, lo;
 
 	code = tp->has_mt ? ABS_MT_PRESSURE : ABS_PRESSURE;
@@ -3209,20 +3209,16 @@ tp_init_pressure(struct tp_dispatch *tp,
 	abs = libevdev_get_abs_info(device->evdev, code);
 	assert(abs);
 
-	prop = udev_device_get_property_value(device->udev_device,
-					      "LIBINPUT_ATTR_PRESSURE_RANGE");
-	if (prop) {
-		if (!parse_range_property(prop, &hi, &lo)) {
-			evdev_log_bug_client(device,
-				     "discarding invalid pressure range '%s'\n",
-				     prop);
-			return;
-		}
+	quirks = evdev_libinput_context(device)->quirks;
+	q = quirks_fetch_for_device(quirks, device->udev_device);
+	if (q && quirks_get_range(q, QUIRK_ATTR_PRESSURE_RANGE, &r)) {
+		hi = r.upper;
+		lo = r.lower;
 
 		if (hi == 0 && lo == 0) {
 			evdev_log_info(device,
 			       "pressure-based touch detection disabled\n");
-			return;
+			goto out;
 		}
 	} else {
 		unsigned int range = abs->maximum - abs->minimum;
@@ -3232,12 +3228,13 @@ tp_init_pressure(struct tp_dispatch *tp,
 		lo = abs->minimum + 0.10 * range;
 	}
 
+
 	if (hi > abs->maximum || hi < abs->minimum ||
 	    lo > abs->maximum || lo < abs->minimum) {
 		evdev_log_bug_libinput(device,
 			       "discarding out-of-bounds pressure range %d:%d\n",
 			       hi, lo);
-		return;
+		goto out;
 	}
 
 	tp->pressure.use_pressure = true;
@@ -3248,14 +3245,19 @@ tp_init_pressure(struct tp_dispatch *tp,
 			"using pressure-based touch detection (%d:%d)\n",
 			lo,
 			hi);
+out:
+	quirks_unref(q);
 }
 
 static bool
 tp_init_touch_size(struct tp_dispatch *tp,
 		   struct evdev_device *device)
 {
-	const char *prop;
+	struct quirks_context *quirks;
+	struct quirks *q;
+	struct quirk_range r;
 	int lo, hi;
+	int rc = false;
 
 	if (!libevdev_has_event_code(device->evdev,
 				     EV_ABS,
@@ -3263,28 +3265,25 @@ tp_init_touch_size(struct tp_dispatch *tp,
 		return false;
 	}
 
-	prop = udev_device_get_property_value(device->udev_device,
-					      "LIBINPUT_ATTR_TOUCH_SIZE_RANGE");
-	if (!prop)
-		return false;
+	quirks = evdev_libinput_context(device)->quirks;
+	q = quirks_fetch_for_device(quirks, device->udev_device);
+	if (q && quirks_get_range(q, QUIRK_ATTR_TOUCH_SIZE_RANGE, &r)) {
+		hi = r.upper;
+		lo = r.lower;
+	} else {
+		goto out;
+	}
 
 	if (libevdev_get_num_slots(device->evdev) < 5) {
 		evdev_log_bug_libinput(device,
 			       "Expected 5+ slots for touch size detection\n");
-		return false;
-	}
-
-	if (!parse_range_property(prop, &hi, &lo)) {
-		evdev_log_bug_client(device,
-				     "discarding invalid touch size range '%s'\n",
-				     prop);
-		return false;
+		goto out;
 	}
 
 	if (hi == 0 && lo == 0) {
 		evdev_log_info(device,
 			       "touch size based touch detection disabled\n");
-		return false;
+		goto out;
 	}
 
 	/* Thresholds apply for both major or minor */
@@ -3296,7 +3295,10 @@ tp_init_touch_size(struct tp_dispatch *tp,
 			"using size-based touch detection (%d:%d)\n",
 			hi, lo);
 
-	return true;
+	rc = true;
+out:
+	quirks_unref(q);
+	return rc;
 }
 
 static int

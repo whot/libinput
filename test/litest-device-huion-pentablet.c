@@ -88,15 +88,10 @@ static int events[] = {
 	-1, -1,
 };
 
-static const char udev_rule[] =
-"ACTION==\"remove\", GOTO=\"huion_end\"\n"
-"KERNEL!=\"event*\", GOTO=\"huion_end\"\n"
-"ENV{ID_INPUT_TABLET}==\"\", GOTO=\"huion_end\"\n"
-"\n"
-"ATTRS{name}==\"litest HUION PenTablet Pen\","
-"    ENV{LIBINPUT_MODEL_TABLET_NO_PROXIMITY_OUT}=\"1\"\n"
-"\n"
-"LABEL=\"huion_end\"";
+static const char quirk_file[] =
+"[litest HUION tablet]\n"
+"MatchName=litest HUION PenTablet Pen\n"
+"ModelTabletNoProximityOut=1\n";
 
 TEST_DEVICE("huion-tablet",
 	.type = LITEST_HUION_TABLET,
@@ -107,5 +102,5 @@ TEST_DEVICE("huion-tablet",
 	.id = &input_id,
 	.events = events,
 	.absinfo = absinfo,
-	.udev_rule = udev_rule,
+	.quirk_file = quirk_file,
 )

@@ -293,19 +293,13 @@ END_TEST
 static inline bool
 tablet_has_proxout_quirk(struct litest_device *dev)
 {
-	struct udev_device *udev_device;
-	bool has_quirk;
+	bool is_set = false;
+	if (!quirks_get_bool(dev->quirks,
+			     QUIRK_MODEL_TABLET_NO_PROXIMITY_OUT,
+			     &is_set))
+		return false;
 
-	udev_device = libinput_device_get_udev_device(dev->libinput_device);
-
-	has_quirk = !!udev_device_get_property_value(udev_device,
-			   "LIBINPUT_MODEL_TABLET_NO_PROXIMITY_OUT");
-	if (!has_quirk)
-		has_quirk = !libevdev_has_event_code(dev->evdev, EV_KEY, BTN_TOOL_PEN);
-
-	udev_device_unref(udev_device);
-
-	return has_quirk;
+	return is_set;
 }
 
 START_TEST(tip_up_prox_out)

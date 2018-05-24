@@ -105,15 +105,10 @@ static struct input_absinfo absinfo[] = {
 	{ .value = -1 }
 };
 
-static const char udev_rule[] =
-"ACTION==\"remove\", GOTO=\"touchpad_end\"\n"
-"KERNEL!=\"event*\", GOTO=\"touchpad_end\"\n"
-"ENV{ID_INPUT_TOUCHPAD}==\"\", GOTO=\"touchpad_end\"\n"
-"\n"
-"ATTRS{name}==\"litest SynPS/2 Synaptics TouchPad X1C3rd\","
-"    ENV{LIBINPUT_MODEL_LENOVO_T450_TOUCHPAD}=\"1\"\n"
-"\n"
-"LABEL=\"touchpad_end\"";
+static const char quirk_file[] =
+"[litest Synaptics X1 Carbon 3rd Touchpad]\n"
+"MatchName=litest SynPS/2 Synaptics TouchPad X1C3rd\n"
+"ModelLenovoT450Touchpad=1\n";
 
 TEST_DEVICE("synaptics-carbon3rd",
 	.type = LITEST_SYNAPTICS_TRACKPOINT_BUTTONS,
@@ -124,5 +119,5 @@ TEST_DEVICE("synaptics-carbon3rd",
 	.id = &input_id,
 	.events = events,
 	.absinfo = absinfo,
-	.udev_rule = udev_rule,
+	.quirk_file = quirk_file,
 )

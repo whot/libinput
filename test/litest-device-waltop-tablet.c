@@ -220,15 +220,10 @@ static int events[] = {
 	-1, -1,
 };
 
-static const char udev_rule[] =
-"ACTION==\"remove\", GOTO=\"waltop_end\"\n"
-"KERNEL!=\"event*\", GOTO=\"waltop_end\"\n"
-"ENV{ID_INPUT_TABLET}==\"\", GOTO=\"waltop_end\"\n"
-"\n"
-"ATTRS{name}==\"litest          WALTOP     Batteryless Tablet*\",\\\n"
-"    ENV{LIBINPUT_ATTR_SIZE_HINT}=\"200x200\"\n"
-"\n"
-"LABEL=\"waltop_end\"";
+static const char quirk_file[] =
+"[litest Waltop Tablet]\n"
+"MatchName=litest          WALTOP     Batteryless Tablet*\n"
+"AttrSizeHint=200x200\n";
 
 TEST_DEVICE("waltop-tablet",
 	.type = LITEST_WALTOP,
@@ -239,5 +234,5 @@ TEST_DEVICE("waltop-tablet",
 	.id = &input_id,
 	.events = events,
 	.absinfo = absinfo,
-	.udev_rule = udev_rule,
+	.quirk_file = quirk_file,
 )
