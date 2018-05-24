@@ -113,7 +113,7 @@ struct match {
 	uint32_t vendor;
 	uint32_t product;
 
-	char *dmi;
+	char *dmi;	/* dmi modalias with preceding "dmi:" */
 
 	/* We can have more than one type set, so this is a bitfield */
 	uint32_t udev_type;
@@ -327,9 +327,12 @@ init_dmi(void)
 {
 	struct udev *udev;
 	struct udev_device *udev_device;
-	const char *modalias;
+	const char *modalias = NULL;
 	char *copy = NULL;
 	const char *syspath = "/sys/devices/virtual/dmi/id";
+
+	if (getenv("LIBINPUT_RUNNING_TEST_SUITE"))
+		return safe_strdup("dmi:");
 
 	udev = udev_new();
 	if (!udev)
