@@ -1104,13 +1104,18 @@ litest_copy_file(const char *dest, const char *src, const char *header)
 {
 	int in, out, length;
 	struct created_file *file;
-	int suffixlen;
 
 	file = zalloc(sizeof(*file));
 	file->path = safe_strdup(dest);
 
-	suffixlen = file->path + strlen(file->path)  - rindex(file->path, '.');
-	out = mkstemps(file->path, suffixlen);
+	if (strstr(dest, "XXXXXX")) {
+		int suffixlen;
+
+		suffixlen = file->path + strlen(file->path)  - rindex(file->path, '.');
+		out = mkstemps(file->path, suffixlen);
+	} else {
+		out = open(file->path, O_CREAT|O_WRONLY);
+	}
 	if (out == -1)
 		litest_abort_msg("Failed to write to file %s (%s)\n",
 				 file->path,
