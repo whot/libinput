@@ -741,6 +741,7 @@ litest_signal(int sig)
 	list_for_each_safe(f, tmp, &created_files_list, link) {
 		list_remove(&f->link);
 		unlink(f->path);
+		rmdir(f->path);
 		/* in the sighandler, we can't free */
 	}
 
@@ -1217,6 +1218,7 @@ litest_remove_udev_rules(struct list *created_files_list)
 	list_for_each_safe(f, tmp, created_files_list, link) {
 		list_remove(&f->link);
 		unlink(f->path);
+		rmdir(f->path);
 		free(f->path);
 		free(f);
 	}
