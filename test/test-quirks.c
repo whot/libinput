@@ -465,6 +465,84 @@ START_TEST(quirks_model_zero)
 }
 END_TEST
 
+START_TEST(quirks_model_alps)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	struct quirks *q;
+	bool exists, value;
+
+	q = dev->quirks;
+	exists = quirks_get_bool(q, QUIRK_MODEL_ALPS_TOUCHPAD, &value);
+
+	if (strstr(libinput_device_get_name(device), "ALPS")) {
+		ck_assert(exists);
+		ck_assert(value);
+	} else {
+		ck_assert(!exists);
+		ck_assert(!value);
+	}
+}
+END_TEST
+
+START_TEST(quirks_model_wacom)
+{
+	struct litest_device *dev = litest_current_device();
+	struct quirks *q;
+	bool exists, value;
+
+	q = dev->quirks;
+	exists = quirks_get_bool(q, QUIRK_MODEL_WACOM_TOUCHPAD, &value);
+
+	if (libevdev_get_id_vendor(dev->evdev) == VENDOR_ID_WACOM) {
+		ck_assert(exists);
+		ck_assert(value);
+	} else {
+		ck_assert(!exists);
+		ck_assert(!value);
+	}
+}
+END_TEST
+
+START_TEST(quirks_model_apple)
+{
+	struct litest_device *dev = litest_current_device();
+	struct quirks *q;
+	bool exists, value;
+
+	q = dev->quirks;
+	exists = quirks_get_bool(q, QUIRK_MODEL_APPLE_TOUCHPAD, &value);
+
+	if (libevdev_get_id_vendor(dev->evdev) == VENDOR_ID_APPLE) {
+		ck_assert(exists);
+		ck_assert(value);
+	} else {
+		ck_assert(!exists);
+		ck_assert(!value);
+	}
+}
+END_TEST
+
+START_TEST(quirks_model_synaptics_serial)
+{
+	struct litest_device *dev = litest_current_device();
+	struct quirks *q;
+	bool exists, value;
+
+	q = dev->quirks;
+	exists = quirks_get_bool(q, QUIRK_MODEL_SYNAPTICS_SERIAL_TOUCHPAD, &value);
+
+	if (libevdev_get_id_vendor(dev->evdev) == VENDOR_ID_SYNAPTICS_SERIAL &&
+	    libevdev_get_id_product(dev->evdev) == PRODUCT_ID_SYNAPTICS_SERIAL) {
+		ck_assert(exists);
+		ck_assert(value);
+	} else {
+		ck_assert(!exists);
+		ck_assert(!value);
+	}
+}
+END_TEST
+
 TEST_COLLECTION(quirks)
 {
 	litest_add_for_device("quirks:datadir", quirks_invalid_dir, LITEST_MOUSE);
@@ -489,4 +567,9 @@ TEST_COLLECTION(quirks)
 
 	litest_add_for_device("quirks:model", quirks_model_one, LITEST_MOUSE);
 	litest_add_for_device("quirks:model", quirks_model_zero, LITEST_MOUSE);
+
+	litest_add("quirks:devices", quirks_model_alps, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("quirks:devices", quirks_model_wacom, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("quirks:devices", quirks_model_apple, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add("quirks:devices", quirks_model_synaptics_serial, LITEST_TOUCHPAD, LITEST_ANY);
 }
