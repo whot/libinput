@@ -747,10 +747,26 @@ parse_file(struct quirks_context *ctx, const char *path)
 	}
 
 	while (fgets(line, sizeof(line), fp)) {
-		lineno++;
-		if (strlen(line) >= 1 && line[strlen(line) - 1] == '\n')
-			line[strlen(line) - 1] = '\0'; /* drop trailing \n */
+		char *comment;
 
+		lineno++;
+
+		comment = strstr(line, "#");
+		if (comment) {
+			/* comment points to # but we need to remove the
+			 * preceding whitespaces too */
+			comment--;
+			while (comment >= line) {
+				if (*comment != ' ' && *comment != '\t')
+					break;
+				comment--;
+			}
+			*(comment + 1) = '\0';
+		} else { /* strip the trailing newline */
+			comment = strstr(line, "\n");
+			if (comment)
+				*comment = '\0';
+		}
 		if (strlen(line) == 0)
 			continue;
 

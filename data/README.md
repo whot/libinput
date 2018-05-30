@@ -60,7 +60,6 @@ The following will cause parser errors and are considered invalid data
 files:
 
 * Whitespace at the beginning of the line
-* Inline comments, e.g. `MatchBus=usb # oops, fail`
 * Sections without at least one `Match*` entry
 * Sections with the same `Match*` entry repeated
 * Sections without at least one of `Model*` or `Attr` entries

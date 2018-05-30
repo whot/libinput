@@ -264,6 +264,25 @@ START_TEST(quirks_parse_error_section)
 }
 END_TEST
 
+START_TEST(quirks_parse_error_trailing_whitespace)
+{
+	struct quirks_context *ctx;
+	const char quirks_file[] =
+	"[Section name]\n"
+	"MatchUdevType=mouse    \n"
+	"AttrSizeHint=10x10\n";
+	struct data_dir dd = make_data_dir(quirks_file);
+
+	ctx = quirks_init_subsystem(dd.dirname,
+				    NULL,
+				    log_handler,
+				    NULL,
+				    QLOG_CUSTOM_LOG_PRIORITIES);
+	ck_assert(ctx == NULL);
+	cleanup_data_dir(dd);
+}
+END_TEST
+
 START_TEST(quirks_parse_error_unknown_match)
 {
 	struct quirks_context *ctx;
@@ -336,6 +355,48 @@ START_TEST(quirks_parse_error_model_not_one)
 				    NULL,
 				    QLOG_CUSTOM_LOG_PRIORITIES);
 	ck_assert(ctx == NULL);
+	cleanup_data_dir(dd);
+}
+END_TEST
+
+START_TEST(quirks_parse_comment_inline)
+{
+	struct quirks_context *ctx;
+	const char quirks_file[] =
+	"[Section name] # some inline comment\n"
+	"MatchUdevType=mouse\t   # another inline comment\n"
+	"ModelAppleTouchpad=1#\n";
+	struct data_dir dd = make_data_dir(quirks_file);
+
+	ctx = quirks_init_subsystem(dd.dirname,
+				    NULL,
+				    log_handler,
+				    NULL,
+				    QLOG_CUSTOM_LOG_PRIORITIES);
+	ck_assert_notnull(ctx);
+	quirks_context_unref(ctx);
+	cleanup_data_dir(dd);
+}
+END_TEST
+
+START_TEST(quirks_parse_comment_empty)
+{
+	struct quirks_context *ctx;
+	const char quirks_file[] =
+	"[Section name]\n"
+	"#\n"
+	"   #\n"
+	"MatchUdevType=mouse\n"
+	"ModelAppleTouchpad=1\n";
+	struct data_dir dd = make_data_dir(quirks_file);
+
+	ctx = quirks_init_subsystem(dd.dirname,
+				    NULL,
+				    log_handler,
+				    NULL,
+				    QLOG_CUSTOM_LOG_PRIORITIES);
+	ck_assert_notnull(ctx);
+	quirks_context_unref(ctx);
 	cleanup_data_dir(dd);
 }
 END_TEST
@@ -418,10 +479,13 @@ TEST_COLLECTION(quirks)
 	litest_add_for_device("quirks:structure", quirks_section_duplicate_attr, LITEST_MOUSE);
 
 	litest_add_for_device("quirks:parsing", quirks_parse_error_section, LITEST_MOUSE);
+	litest_add_for_device("quirks:parsing", quirks_parse_error_trailing_whitespace, LITEST_MOUSE);
 	litest_add_for_device("quirks:parsing", quirks_parse_error_unknown_match, LITEST_MOUSE);
 	litest_add_for_device("quirks:parsing", quirks_parse_error_unknown_attr, LITEST_MOUSE);
 	litest_add_for_device("quirks:parsing", quirks_parse_error_unknown_model, LITEST_MOUSE);
 	litest_add_for_device("quirks:parsing", quirks_parse_error_model_not_one, LITEST_MOUSE);
+	litest_add_for_device("quirks:parsing", quirks_parse_comment_inline, LITEST_MOUSE);
+	litest_add_for_device("quirks:parsing", quirks_parse_comment_empty, LITEST_MOUSE);
 
 	litest_add_for_device("quirks:model", quirks_model_one, LITEST_MOUSE);
 	litest_add_for_device("quirks:model", quirks_model_zero, LITEST_MOUSE);
