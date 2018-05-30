@@ -149,14 +149,13 @@ libinput:name:*Elan Touchpad*:dt:*Elm*
 # The various chromebooks, info from modinfo chromeos_laptop, touchpad names
 # extrapolated from the chromiumos touchad-tests repo
 # https://chromium.googlesource.com/chromiumos/platform/touchpad-tests
-libinput:name:Cypress APA Trackpad ?cyapa?:dmi:*pnFalco:pvr*
+libinput:name:Cypress APA Trackpad ?cyapa?:dmi:*pn*Falco*
 libinput:name:SynPS/2 Synaptics TouchPad:dmi:*pn*Mario*
 libinput:name:Cypress APA Trackpad ?cyapa?:dmi:*pn*Butterfly*
 libinput:name:Cypress APA Trackpad ?cyapa?:dmi:*pn*Peppy*
 libinput:name:SynPS/2 Synaptics TouchPad:dmi:*pn*ZGB*
 libinput:name:Cypress APA Trackpad ?cyapa?:dmi:*pn*Parrot*
 libinput:name:Cypress APA Trackpad ?cyapa?:dmi:*bvn*coreboot*:pn*Leon*
-libinput:name:Cypress APA Trackpad ?cyapa?:dmi:*bvn*coreboot*:pn*Falco*
 libinput:name:Cypress APA Trackpad ?cyapa?:dmi:*bvn*coreboot*:pn*Wolf*
 libinput:name:Cypress APA Trackpad ?cyapa?:dmi:*svn*GOOGLE*:pn*Link*
 libinput:name:SynPS/2 Synaptics TouchPad:dmi:*pn*Alex*
