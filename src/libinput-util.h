@@ -517,6 +517,36 @@ safe_atoi(const char *str, int *val)
 }
 
 static inline bool
+safe_atou_base(const char *str, unsigned int *val, int base)
+{
+	char *endptr;
+	unsigned long v;
+
+	assert(base == 10 || base == 16 || base == 8);
+
+	errno = 0;
+	v = strtoul(str, &endptr, base);
+	if (errno > 0)
+		return false;
+	if (str == endptr)
+		return false;
+	if (*str != '\0' && *endptr != '\0')
+		return false;
+
+	if (v > UINT_MAX)
+		return false;
+
+	*val = v;
+	return true;
+}
+
+static inline bool
+safe_atou(const char *str, unsigned int *val)
+{
+	return safe_atou_base(str, val, 10);
+}
+
+static inline bool
 safe_atod(const char *str, double *val)
 {
 	char *endptr;
