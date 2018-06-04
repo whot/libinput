@@ -118,7 +118,7 @@ struct match {
 	/* We can have more than one type set, so this is a bitfield */
 	uint32_t udev_type;
 
-	char *dt;	/* FIXME: clarify */
+	char *dt;	/* device tree compatible (first) string */
 };
 
 /**
@@ -158,6 +158,7 @@ struct quirks_context {
 	struct libinput *libinput; /* for logging */
 
 	char *dmi;
+	char *dt;
 
 	struct list sections;
 
@@ -357,6 +358,35 @@ init_dmi(void)
 	return copy;
 }
 
+/**
+ * Return the dt compatible string
+ */
+static inline char *
+init_dt(void)
+{
+	char compatible[1024];
+	char *copy = NULL;
+	const char *syspath = "/sys/firmware/devicetree/base/compatible";
+	FILE *fp;
+
+	if (getenv("LIBINPUT_RUNNING_TEST_SUITE"))
+		return safe_strdup("");
+
+	fp = fopen(syspath, "r");
+	if (!fp)
+		return NULL;
+
+	/* devicetree/base/compatible has multiple null-terminated entries
+	   but we only care about the first one here, so strdup is enough */
+	if (fgets(compatible, sizeof(compatible), fp)) {
+		copy = safe_strdup(compatible);
+	}
+
+	fclose(fp);
+
+	return copy;
+}
+
 static inline struct section *
 section_new(const char *path, const char *name)
 {
@@ -467,7 +497,8 @@ parse_match(struct quirks_context *ctx,
 		else if (streq(value, "tablet-pad"))
 			s->match.udev_type = UDEV_TABLET_PAD;
 	} else if (streq(key, "MatchDeviceTree")) {
-		/* FIXME */
+		check_set_bit(s, M_DT);
+		s->match.dt = safe_strdup(value);
 	} else {
 		qlog_error(ctx, "Unknown match key '%s'\n", key);
 		goto out;
@@ -946,7 +977,8 @@ quirks_init_subsystem(const char *data_path,
 	qlog_debug(ctx, "%s is data root\n", data_path);
 
 	ctx->dmi = init_dmi();
-	if (!ctx->dmi)
+	ctx->dt = init_dt();
+	if (!ctx->dmi && !ctx->dt)
 		goto error;
 
 	if (!parse_files(ctx, data_path))
@@ -1140,32 +1172,37 @@ match_fill_udev_type(struct match *m,
 }
 
 static inline void
-match_fill_dmi(struct match *m,
-	       char *dmi)
+match_fill_dmi_dt(struct match *m, char *dmi, char *dt)
 {
-	m->dmi = dmi;
-	m->bits |= M_DMI;
+	if (dmi) {
+		m->dmi = dmi;
+		m->bits |= M_DMI;
+	}
+
+	if (dt) {
+		m->dt = dt;
+		m->bits |= M_DT;
+	}
 }
 
 static struct match *
 match_new(struct udev_device *device,
-	  char *dmi)
+	  char *dmi, char *dt)
 {
 	struct match *m = zalloc(sizeof *m);
 
 	match_fill_name(m, device);
 	match_fill_bus_vid_pid(m, device);
-	match_fill_dmi(m, dmi);
+	match_fill_dmi_dt(m, dmi, dt);
 	match_fill_udev_type(m, device);
-	/* FIXME: dt */
 	return m;
 }
 
 static void
 match_free(struct match *m)
 {
+	/* dmi and dt are global */
 	free(m->name);
-	free(m->dt);
 	free(m);
 }
 
@@ -1242,12 +1279,13 @@ quirk_match_section(struct quirks_context *ctx,
 			if (fnmatch(s->match.dmi, m->dmi, 0) == 0)
 				matched_flags |= flag;
 			break;
+		case M_DT:
+			if (fnmatch(s->match.dt, m->dt, 0) == 0)
+				matched_flags |= flag;
+			break;
 		case M_UDEV_TYPE:
 			if (s->match.udev_type & m->udev_type)
 				matched_flags |= flag;
-			break;
-		case M_DT:
-			/* FIXME */
 			break;
 		default:
 			abort();
@@ -1285,7 +1323,7 @@ quirks_fetch_for_device(struct quirks_context *ctx,
 
 	q = quirks_new();
 
-	m = match_new(udev_device, ctx->dmi);
+	m = match_new(udev_device, ctx->dmi, ctx->dt);
 
 	list_for_each(s, &ctx->sections, link) {
 		quirk_match_section(ctx, q, s, m, udev_device);
