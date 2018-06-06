@@ -489,13 +489,17 @@ configure_file(input : 'tools/libinput-debug-events.man',
 	       )
 
 libinput_list_quirks_sources = [ 'tools/libinput-list-quirks.c' ]
-executable('libinput-list-quirks',
-	   libinput_list_quirks_sources,
-	   dependencies : [dep_libquirks, dep_libinput],
-	   include_directories : [includes_src, includes_include],
-	   install_dir : libinput_tool_path,
-	   install : true
-	   )
+libinput_list_quirks = executable('libinput-list-quirks',
+				  libinput_list_quirks_sources,
+				  dependencies : [dep_libquirks, dep_libinput],
+				  include_directories : [includes_src, includes_include],
+				  install_dir : libinput_tool_path,
+				  install : true
+				 )
+test('validate-quirks',
+     libinput_list_quirks,
+     args: ['--validate-only', '--data-dir=@0@'.format(join_paths(meson.source_root(), 'data'))]
+     )
 
 configure_file(input : 'tools/libinput-list-quirks.man',
 	       output : 'libinput-list-quirks.1',

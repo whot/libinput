@@ -2,7 +2,11 @@
 .SH NAME
 libinput\-list\-quirks \- quirk debug helper for libinput
 .SH SYNOPSIS
-.B libinput list\-quirks [\-\-help] [\-\-data\-dir /path/to/dir] [\-\-verbose\fB] \fI/dev/input/event0\fB
+.B libinput list\-quirks [\-\-data\-dir /path/to/dir] [\-\-verbose\fB] \fI/dev/input/event0\fB
+.br
+.B libinput list\-quirks [\-\-data\-dir /path/to/dir] [\-\-verbose\fB] \-\-validate\-only
+.br
+.B libinput list\-quirks [\-\-help]
 .SH DESCRIPTION
 .PP
 The
@@ -19,6 +23,10 @@ Use the given directory as data directory for quirks files.
 .TP 8
 .B \-\-help
 Print help
+.TP 8
+.B \-\-validate\-only
+Only validate that the quirks files can be parsed. When this option is
+given, no device file should be supplied.
 .TP 8
 .B \-\-verbose
 Use verbose output, useful for debugging.

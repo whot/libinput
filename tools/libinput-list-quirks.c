@@ -136,21 +136,27 @@ list_device_quirks(struct quirks_context *ctx, struct udev_device *device)
 static void
 usage(void)
 {
-	printf("Usage: %s [--data-dir /path/to/data/dir] /dev/input/event0\n",
+	printf("Usage:\n"
+	       "  %s [--data-dir /path/to/data/dir] /dev/input/event0\n"
+	       "	Print the quirks for the given device\n"
+	       "\n",
 	       program_invocation_short_name);
-	printf("Note: this tool also takes a syspath\n");
+	printf("  %s [--data-dir /path/to/data/dir] --validate-only\n"
+	       "	Validate the database\n",
+	       program_invocation_short_name);
 }
 
 int
 main(int argc, char **argv)
 {
-	struct udev *udev;
+	struct udev *udev = NULL;
 	struct udev_device *device = NULL;
 	const char *path;
 	const char *data_path = NULL,
 	           *override_file = NULL;
 	int rc = 1;
 	struct quirks_context *quirks;
+	bool validate = false;
 
 	while (1) {
 		int c;
@@ -158,11 +164,13 @@ main(int argc, char **argv)
 		enum {
 			OPT_VERBOSE,
 			OPT_DATADIR,
+			OPT_VALIDATE,
 		};
 		static struct option opts[] = {
 			{ "help",     no_argument,       0, 'h' },
 			{ "verbose",  no_argument,       0, OPT_VERBOSE },
 			{ "data-dir", required_argument, 0, OPT_DATADIR },
+			{ "validate-only", no_argument,  0, OPT_VALIDATE },
 			{ 0, 0, 0, 0}
 		};
 
@@ -184,13 +192,16 @@ main(int argc, char **argv)
 		case OPT_DATADIR:
 			data_path = optarg;
 			break;
+		case OPT_VALIDATE:
+			validate = true;
+			break;
 		default:
 			usage();
 			return 1;
 		}
 	}
 
-	if (optind >= argc) {
+	if (optind >= argc && !validate) {
 		usage();
 		return 1;
 	}
@@ -212,6 +223,11 @@ main(int argc, char **argv)
 			"Please see the above errors "
 			"and/or re-run with --verbose for more details\n");
 		return 1;
+	}
+
+	if (validate) {
+		rc = 0;
+		goto out;
 	}
 
 	udev = udev_new();
