@@ -89,12 +89,12 @@ variables:
     - docker pull $DOCKER_IMAGE
     - IMG_DATE="$(docker inspect -f '{{ .Created }}' $DOCKER_IMAGE | cut -dT -f1)"
 
-    # get today's date
-    - TODAY=$(date -u +%F)
-    - echo $TODAY $IMG_DATE
+    - TODAY_SECS=$(date -u +%s)
+    - IMG_SECS=$(date -u --date="$IMG_DATE" +%s)
+    - echo "today $TODAY_SECS, image $IMG_SECS"
 
-    # check if both dates are equal
-    - test "$IMG_DATE" = "$TODAY"
+    # check if image is less than a week old
+    - test $(($IMG_SECS + 604800)) -gt $TODAY_SECS
 
     # export an artefact telling the next stage that the image is valid
     - touch .img_ready
