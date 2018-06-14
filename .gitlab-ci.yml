@@ -33,7 +33,7 @@ variables:
   MESON_BUILDDIR: builddir
   NINJA_ARGS: ''
   MESON_PARAMS: ''
-  FEDORA_RPMS: 'git gcc gcc-c++ meson check-devel libudev-devel libevdev-devel doxygen graphviz valgrind binutils libwacom-devel cairo-devel   gtk3-devel   glib2-devel    mtdev-devel  clang-analyzer findutils'
+  FEDORA_RPMS: 'git gcc gcc-c++ meson check-devel libudev-devel libevdev-devel doxygen graphviz valgrind binutils libwacom-devel cairo-devel   gtk3-devel   glib2-devel    mtdev-devel'
   UBUNTU_DEBS: 'git gcc g++     meson check       libudev-dev   libevdev-dev   doxygen graphviz valgrind binutils libwacom-dev   libcairo2-dev libgtk-3-dev libglib2.0-dev libmtdev-dev'
   FEDORA_DOCKER_IMAGE: $CI_REGISTRY/libinput/$CI_PROJECT_NAME/fedora/$FEDORA_VERSION:latest
   UBUNTU_DOCKER_IMAGE: $CI_REGISTRY/libinput/$CI_PROJECT_NAME/ubuntu/$UBUNTU_VERSION:latest
@@ -378,6 +378,8 @@ fedora:28@scan-build:
   variables:
     FEDORA_VERSION: 28
     NINJA_ARGS: scan-build
+  before_script:
+    - dnf install -y clang-analyzer findutils
   after_script:
     - test ! -d $MESON_BUILDDIR/meson-logs/scanbuild && exit 0
     - test $(find $MESON_BUILDDIR/meson-logs/scanbuild -maxdepth 0 ! -empty -exec echo "not empty" \; | wc -l) -eq 0 && exit 0
