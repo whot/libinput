@@ -1440,8 +1440,9 @@ tp_detect_jumps(const struct tp_dispatch *tp, struct tp_touch *t)
 {
 	struct device_coords delta;
 	struct phys_coords mm;
-	const int JUMP_THRESHOLD_MM = 20;
 	struct tp_history_point *last;
+	double distance;
+	bool is_jump = false;
 
 	/* We haven't seen pointer jumps on Wacom tablets yet, so exclude
 	 * those.
@@ -1449,8 +1450,10 @@ tp_detect_jumps(const struct tp_dispatch *tp, struct tp_touch *t)
 	if (tp->device->model_flags & EVDEV_MODEL_WACOM_TOUCHPAD)
 		return false;
 
-	if (t->history.count == 0)
+	if (t->history.count == 0) {
+		t->jumps.last_delta_mm = 0.0;
 		return false;
+	}
 
 	/* called before tp_motion_history_push, so offset 0 is the most
 	 * recent coordinate */
@@ -1459,7 +1462,17 @@ tp_detect_jumps(const struct tp_dispatch *tp, struct tp_touch *t)
 	delta.y = abs(t->point.y - last->point.y);
 	mm = evdev_device_unit_delta_to_mm(tp->device, &delta);
 
-	return hypot(mm.x, mm.y) > JUMP_THRESHOLD_MM;
+	distance = hypot(mm.x, mm.y);
+
+	/* Cursor jump if:
+	 * - current single-event delta is >20mm, or
+	 * - we increased the delta by over 7mm within a frame.
+	 */
+	is_jump = distance > 20.0 ||
+		 (distance - t->jumps.last_delta_mm) > 7;
+	t->jumps.last_delta_mm = distance;
+
+	return is_jump;
 }
 
 static void

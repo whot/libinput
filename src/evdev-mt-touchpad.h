@@ -177,6 +177,10 @@ struct tp_touch {
 	} history;
 
 	struct {
+		double last_delta_mm;
+	} jumps;
+
+	struct {
 		struct device_coords center;
 		uint8_t x_motion_history;
 	} hysteresis;
