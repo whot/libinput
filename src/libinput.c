@@ -1,6 +1,6 @@
 /*
  * Copyright © 2013 Jonas Ådahl
- * Copyright © 2013-2015 Red Hat, Inc.
+ * Copyright © 2013-2018 Red Hat, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -1155,6 +1155,38 @@ libinput_event_tablet_tool_slider_has_changed(
 }
 
 LIBINPUT_EXPORT int
+libinput_event_tablet_tool_size_major_has_changed(
+				struct libinput_event_tablet_tool *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
+			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
+			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+
+	return bit_is_set(event->changed_axes,
+			  LIBINPUT_TABLET_TOOL_AXIS_SIZE_MAJOR);
+}
+
+LIBINPUT_EXPORT int
+libinput_event_tablet_tool_size_minor_has_changed(
+				struct libinput_event_tablet_tool *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
+			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
+			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+
+	return bit_is_set(event->changed_axes,
+			  LIBINPUT_TABLET_TOOL_AXIS_SIZE_MINOR);
+}
+
+LIBINPUT_EXPORT int
 libinput_event_tablet_tool_wheel_has_changed(
 				struct libinput_event_tablet_tool *event)
 {
@@ -1314,6 +1346,34 @@ libinput_event_tablet_tool_get_slider_position(struct libinput_event_tablet_tool
 			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
 
 	return event->axes.slider;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_tablet_tool_get_size_major(struct libinput_event_tablet_tool *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
+			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
+			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+
+	return event->axes.size.major;
+}
+
+LIBINPUT_EXPORT double
+libinput_event_tablet_tool_get_size_minor(struct libinput_event_tablet_tool *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
+			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
+			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+
+	return event->axes.size.minor;
 }
 
 LIBINPUT_EXPORT double
@@ -1550,6 +1610,13 @@ libinput_tablet_tool_has_wheel(struct libinput_tablet_tool *tool)
 {
 	return bit_is_set(tool->axis_caps,
 			  LIBINPUT_TABLET_TOOL_AXIS_REL_WHEEL);
+}
+
+LIBINPUT_EXPORT int
+libinput_tablet_tool_has_size(struct libinput_tablet_tool *tool)
+{
+	return bit_is_set(tool->axis_caps,
+			  LIBINPUT_TABLET_TOOL_AXIS_SIZE_MAJOR);
 }
 
 LIBINPUT_EXPORT int

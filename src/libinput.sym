@@ -297,3 +297,11 @@ LIBINPUT_1.9 {
 LIBINPUT_1.11 {
 	libinput_device_touch_get_touch_count;
 } LIBINPUT_1.9;
+
+LIBINPUT_1.13 {
+	libinput_tablet_tool_has_size;
+	libinput_event_tablet_tool_get_size_major;
+	libinput_event_tablet_tool_get_size_minor;
+	libinput_event_tablet_tool_size_major_has_changed;
+	libinput_event_tablet_tool_size_minor_has_changed;
+} LIBINPUT_1.11;

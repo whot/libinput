@@ -366,6 +366,7 @@ print_tablet_axes(struct libinput_event_tablet_tool *t)
 	double dist, pressure;
 	double rotation, slider, wheel;
 	double delta;
+	double major, minor;
 
 #define changed_sym(ev, ax) \
 	(libinput_event_tablet_tool_##ax##_has_changed(ev) ? "*" : "")
@@ -414,6 +415,14 @@ print_tablet_axes(struct libinput_event_tablet_tool *t)
 		printq("\twheel: %.2f%s (%d)",
 		       wheel, changed_sym(t, wheel),
 		       (int)delta);
+	}
+
+	if (libinput_tablet_tool_has_size(tool)) {
+		major = libinput_event_tablet_tool_get_size_major(t);
+		minor = libinput_event_tablet_tool_get_size_minor(t);
+		printq("\tsize: %.2f%s/%.2f%s",
+		       major, changed_sym(t, size_major),
+		       minor, changed_sym(t, size_minor));
 	}
 }
 
@@ -543,6 +552,9 @@ print_proximity_event(struct libinput_event *ev)
 	case LIBINPUT_TABLET_TOOL_TYPE_LENS:
 		tool_str = "lens";
 		break;
+	case LIBINPUT_TABLET_TOOL_TYPE_TOTEM:
+		tool_str = "totem";
+		break;
 	default:
 		abort();
 	}
@@ -581,6 +593,8 @@ print_proximity_event(struct libinput_event *ev)
 			printq("s");
 		if (libinput_tablet_tool_has_wheel(tool))
 			printq("w");
+		if (libinput_tablet_tool_has_size(tool))
+			printq("S");
 
 		printq("\tbtn:");
 		if (libinput_tablet_tool_has_button(tool, BTN_TOUCH))
@@ -599,6 +613,8 @@ print_proximity_event(struct libinput_event *ev)
 			printq("Sd");
 		if (libinput_tablet_tool_has_button(tool, BTN_EXTRA))
 			printq("Ex");
+		if (libinput_tablet_tool_has_button(tool, BTN_0))
+			printq("0");
 	}
 
 	printq("\n");

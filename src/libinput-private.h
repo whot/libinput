@@ -95,6 +95,13 @@ struct phys_coords {
 	double y;
 };
 
+/* A pair of major/minor in mm */
+struct phys_ellipsis {
+	double major;
+	double minor;
+};
+
+
 /* A pair of tilt flags */
 struct wheel_tilt_flags {
 	bool vertical, horizontal;
@@ -326,9 +333,11 @@ enum libinput_tablet_tool_axis {
 	LIBINPUT_TABLET_TOOL_AXIS_ROTATION_Z = 7,
 	LIBINPUT_TABLET_TOOL_AXIS_SLIDER = 8,
 	LIBINPUT_TABLET_TOOL_AXIS_REL_WHEEL = 9,
+	LIBINPUT_TABLET_TOOL_AXIS_SIZE_MAJOR = 10,
+	LIBINPUT_TABLET_TOOL_AXIS_SIZE_MINOR = 11,
 };
 
-#define LIBINPUT_TABLET_TOOL_AXIS_MAX LIBINPUT_TABLET_TOOL_AXIS_REL_WHEEL
+#define LIBINPUT_TABLET_TOOL_AXIS_MAX LIBINPUT_TABLET_TOOL_AXIS_SIZE_MINOR
 
 struct tablet_axes {
 	struct device_coords point;
@@ -340,6 +349,7 @@ struct tablet_axes {
 	double slider;
 	double wheel;
 	int wheel_discrete;
+	struct phys_ellipsis size;
 };
 
 struct libinput_tablet_tool {

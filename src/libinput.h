@@ -329,6 +329,10 @@ enum libinput_tablet_tool_type {
 	LIBINPUT_TABLET_TOOL_TYPE_AIRBRUSH,	/**< An airbrush-like tool */
 	LIBINPUT_TABLET_TOOL_TYPE_MOUSE,	/**< A mouse bound to the tablet */
 	LIBINPUT_TABLET_TOOL_TYPE_LENS,		/**< A mouse tool with a lens */
+
+	LIBINPUT_TABLET_TOOL_TYPE_TOTEM,	/**< A rotary device with
+						     positional and rotation
+						     data */
 };
 
 /**
@@ -1994,6 +1998,49 @@ libinput_event_tablet_tool_rotation_has_changed(
 int
 libinput_event_tablet_tool_slider_has_changed(
 				struct libinput_event_tablet_tool *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Check if the size major axis was updated in this event.
+ * For events that are not of type @ref LIBINPUT_EVENT_TABLET_TOOL_AXIS,
+ * @ref LIBINPUT_EVENT_TABLET_TOOL_TIP, or
+ * @ref LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other
+ * than @ref LIBINPUT_EVENT_TABLET_TOOL_AXIS, @ref
+ * LIBINPUT_EVENT_TABLET_TOOL_TIP, or @ref
+ * LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY, or @ref
+ * LIBINPUT_EVENT_TABLET_TOOL_BUTTON.
+ *
+ * @param event The libinput tablet tool event
+ * @return 1 if the axis was updated or 0 otherwise
+ */
+int
+libinput_event_tablet_tool_size_major_has_changed(
+				struct libinput_event_tablet_tool *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Check if the size minor axis was updated in this event.
+ * For events that are not of type @ref LIBINPUT_EVENT_TABLET_TOOL_AXIS,
+ * @ref LIBINPUT_EVENT_TABLET_TOOL_TIP, or
+ * @ref LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other
+ * than @ref LIBINPUT_EVENT_TABLET_TOOL_AXIS, @ref
+ * LIBINPUT_EVENT_TABLET_TOOL_TIP, or @ref
+ * LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY, or @ref
+ * LIBINPUT_EVENT_TABLET_TOOL_BUTTON.
+ *
+ * @param event The libinput tablet tool event
+ * @return 1 if the axis was updated or 0 otherwise
+ */
+int
+libinput_event_tablet_tool_size_minor_has_changed(
+				struct libinput_event_tablet_tool *event);
+
 /**
  * @ingroup event_tablet
  *
@@ -2182,6 +2229,42 @@ libinput_event_tablet_tool_get_rotation(struct libinput_event_tablet_tool *event
  */
 double
 libinput_event_tablet_tool_get_slider_position(struct libinput_event_tablet_tool *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Returns the current size in mm along the major axis of the touching
+ * ellipse. This axis is not necessarily aligned with either x or y, the
+ * rotation must be taken into account.
+ *
+ * Where no rotation is available on a tool, or where rotatoin is zero, the
+ * major axis aligns with the y axis and the minor axis with the x axis.
+ *
+ * If this axis does not exist on the current tool, this function returns 0.
+ *
+ * @param event The libinput tablet tool event
+ * @return The current value of the axis major in mm
+ */
+double
+libinput_event_tablet_tool_get_size_major(struct libinput_event_tablet_tool *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Returns the current size in mm along the minor axis of the touching
+ * ellipse. This axis is not necessarily aligned with either x or y, the
+ * rotation must be taken into account.
+ *
+ * Where no rotation is available on a tool, or where rotatoin is zero, the
+ * minor axis aligns with the y axis and the minor axis with the x axis.
+ *
+ * If this axis does not exist on the current tool, this function returns 0.
+ *
+ * @param event The libinput tablet tool event
+ * @return The current value of the axis minor in mm
+ */
+double
+libinput_event_tablet_tool_get_size_minor(struct libinput_event_tablet_tool *event);
 
 /**
  * @ingroup event_tablet
@@ -2513,6 +2596,20 @@ libinput_tablet_tool_has_rotation(struct libinput_tablet_tool *tool);
  */
 int
 libinput_tablet_tool_has_slider(struct libinput_tablet_tool *tool);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return whether the tablet tool has a ellipsis major and minor.
+ * Where the underlying hardware only supports one of either major or minor,
+ * libinput emulates the other axis as a circular contact, i.e. major ==
+ * minor for all values of major.
+ *
+ * @param tool The tool to check the axis capabilities of
+ * @return Nonzero if the axis is available, zero otherwise.
+ */
+int
+libinput_tablet_tool_has_size(struct libinput_tablet_tool *tool);
 
 /**
  * @ingroup event_tablet
