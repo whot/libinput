@@ -2030,7 +2030,7 @@ tablet_init_left_handed(struct evdev_device *device)
 					   tablet_change_to_left_handed);
 }
 
-static int
+static bool
 tablet_reject_device(struct evdev_device *device)
 {
 	struct libevdev *evdev = device->evdev;
@@ -2044,7 +2044,7 @@ tablet_reject_device(struct evdev_device *device)
 	has_size = evdev_device_get_size(device, &w, &h) == 0;
 
 	if (has_xy && (has_pen || has_btn_stylus) && has_size)
-		return 0;
+		return false;
 
 	evdev_log_bug_libinput(device,
 			       "missing tablet capabilities:%s%s%s%s. "
@@ -2053,7 +2053,7 @@ tablet_reject_device(struct evdev_device *device)
 			       has_pen ? "" : " pen",
 			       has_btn_stylus ? "" : " btn-stylus",
 			       has_size ? "" : " resolution");
-	return -1;
+	return true;
 }
 
 static int
