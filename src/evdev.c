@@ -1282,6 +1282,7 @@ evdev_read_model_flags(struct evdev_device *device)
 		MODEL(SYNAPTICS_SERIAL_TOUCHPAD),
 		MODEL(BOUNCING_KEYS),
 		MODEL(CYBORG_RAT),
+		MODEL(DELL_CANVAS_TOTEM),
 		MODEL(HP_STREAM11_TOUCHPAD),
 		MODEL(LENOVO_T450_TOUCHPAD),
 		MODEL(TOUCHPAD_VISIBLE_MARKER),
@@ -1724,6 +1725,13 @@ evdev_configure_device(struct evdev_device *device)
 			udev_tags &= ~EVDEV_UDEV_TAG_TOUCHSCREEN;
 	}
 
+	if (device->model_flags & EVDEV_MODEL_DELL_CANVAS_TOTEM) {
+		dispatch = evdev_totem_create(device);
+		device->seat_caps |= EVDEV_DEVICE_TABLET;
+		evdev_log_info(device, "device is a totem\n");
+		return dispatch;
+	}
+
 	/* libwacom assigns touchpad (or touchscreen) _and_ tablet to the
 	   tablet touch bits, so make sure we don't initialize the tablet
 	   interface for the touch device */
@@ -1738,7 +1746,8 @@ evdev_configure_device(struct evdev_device *device)
 		evdev_log_info(device, "device is a tablet pad\n");
 		return dispatch;
 
-	} else if ((udev_tags & tablet_tags) == EVDEV_UDEV_TAG_TABLET) {
+	} else if ((device->model_flags & EVDEV_MODEL_DELL_CANVAS_TOTEM) ||
+		   (udev_tags & tablet_tags) == EVDEV_UDEV_TAG_TABLET) {
 		dispatch = evdev_tablet_create(device);
 		device->seat_caps |= EVDEV_DEVICE_TABLET;
 		evdev_log_info(device, "device is a tablet\n");

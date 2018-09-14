@@ -691,6 +691,7 @@ tools_list_device_quirks(struct quirks_context *ctx,
 		case QUIRK_MODEL_SYSTEM76_GALAGO:
 		case QUIRK_MODEL_SYSTEM76_KUDU:
 		case QUIRK_MODEL_WACOM_TOUCHPAD:
+		case QUIRK_MODEL_DELL_CANVAS_TOTEM:
 			snprintf(buf, sizeof(buf), "%s=1", name);
 			callback(userdata, buf);
 			break;

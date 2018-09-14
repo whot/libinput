@@ -115,6 +115,7 @@ enum evdev_device_model {
 	EVDEV_MODEL_LENOVO_X220_TOUCHPAD_FW81 = (1 << 12),
 	EVDEV_MODEL_LENOVO_CARBON_X1_6TH = (1 << 13),
 	EVDEV_MODEL_CYBORG_RAT = (1 << 14),
+	EVDEV_MODEL_DELL_CANVAS_TOTEM = (1 << 15),
 	EVDEV_MODEL_HP_STREAM11_TOUCHPAD = (1 << 16),
 	EVDEV_MODEL_LENOVO_T450_TOUCHPAD= (1 << 17),
 	EVDEV_MODEL_TOUCHPAD_VISIBLE_MARKER = (1 << 18),
@@ -329,6 +330,7 @@ enum evdev_dispatch_type {
 	DISPATCH_TOUCHPAD,
 	DISPATCH_TABLET,
 	DISPATCH_TABLET_PAD,
+	DISPATCH_TOTEM,
 };
 
 struct evdev_dispatch {
@@ -399,6 +401,9 @@ evdev_lid_switch_dispatch_create(struct evdev_device *device);
 
 struct evdev_dispatch *
 fallback_dispatch_create(struct libinput_device *libinput_device);
+
+struct evdev_dispatch *
+evdev_totem_create(struct evdev_device *device);
 
 bool
 evdev_is_fake_mt_device(struct evdev_device *device);
