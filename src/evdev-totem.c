@@ -211,7 +211,7 @@ totem_slot_fetch_axes(struct totem_dispatch *totem,
 						    slot->index,
 						    ABS_MT_ORIENTATION);
 		/* The kernel gives us ±90 degrees off neutral */
-		slot->axes.rotation = (360 + angle) % 360;
+		slot->axes.rotation = (360 - angle) % 360;
 	}
 
 	if (bit_is_set(slot->changed_axes,
