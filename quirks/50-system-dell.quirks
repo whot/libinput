@@ -54,6 +54,7 @@ MatchDMIModalias=dmi:*svnDellInc.:pnLatitudeE7470*
 AttrTrackpointMultiplier=0.6
 
 [Canvas Totem]
+MatchName=*System Multi Axis
 MatchBus=usb
 MatchVendor=0x2575
 MatchProduct=0x0204
