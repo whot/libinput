@@ -54,6 +54,8 @@ struct totem_dispatch {
 	int slot; /* current slot */
 	struct totem_slot *slots;
 	size_t nslots;
+
+	struct evdev_device *touch_device;
 };
 
 static inline struct totem_dispatch*
@@ -99,6 +101,24 @@ totem_new_tool(struct totem_dispatch *totem)
 	list_insert(&libinput->tool_list, &tool->link);
 
 	return tool;
+}
+
+static inline void
+totem_set_touch_device_enabled(struct evdev_device *touch_device,
+				bool enable,
+				uint64_t time)
+{
+	struct evdev_dispatch *dispatch;
+
+	if (touch_device == NULL)
+		return;
+
+	dispatch = touch_device->dispatch;
+	if (dispatch->interface->toggle_touch)
+		dispatch->interface->toggle_touch(dispatch,
+						  touch_device,
+						  enable,
+						  time);
 }
 
 static void
@@ -269,7 +289,7 @@ totem_slot_reset_changed_axes(struct totem_dispatch *totem,
 	memset(slot->changed_axes, 0, sizeof(slot->changed_axes));
 }
 
-static void
+static enum totem_slot_state
 totem_handle_slot_state(struct totem_dispatch *totem,
 			struct totem_slot *slot,
 			uint64_t time)
@@ -291,7 +311,7 @@ totem_handle_slot_state(struct totem_dispatch *totem,
 		assert(slot->tool);
 		break;
 	case SLOT_STATE_NONE:
-		return;
+		return SLOT_STATE_NONE;
 	}
 
 	updated = totem_slot_fetch_axes(totem, slot, slot->tool, &axes, time);
@@ -361,18 +381,29 @@ totem_handle_slot_state(struct totem_dispatch *totem,
 
 	slot->last_point = slot->axes.point;
 	totem_slot_reset_changed_axes(totem, slot);
+
+	return slot->state;
 }
 
-static void
+static enum totem_slot_state
 totem_handle_state(struct totem_dispatch *totem,
 		   uint64_t time)
 {
-	for (size_t i = 0; i < totem->nslots; i++) {
-		totem_handle_slot_state(totem,
-					&totem->slots[i],
-					time);
+	enum totem_slot_state global_state = SLOT_STATE_NONE;
 
+	for (size_t i = 0; i < totem->nslots; i++) {
+		enum totem_slot_state s;
+
+		s = totem_handle_slot_state(totem,
+					    &totem->slots[i],
+					    time);
+
+		/* If one slot is active, the totem is active */
+		if (s != SLOT_STATE_NONE)
+			global_state = SLOT_STATE_UPDATE;
 	}
+
+	return global_state;
 }
 
 static void
@@ -382,6 +413,8 @@ totem_interface_process(struct evdev_dispatch *dispatch,
 			uint64_t time)
 {
 	struct totem_dispatch *totem = totem_dispatch(dispatch);
+	enum totem_slot_state global_state;
+	bool enable_touch;
 
 	switch(e->type) {
 	case EV_ABS:
@@ -394,7 +427,11 @@ totem_interface_process(struct evdev_dispatch *dispatch,
 		/* timestamp, ignore */
 		break;
 	case EV_SYN:
-		totem_handle_state(totem, time);
+		global_state = totem_handle_state(totem, time);
+		enable_touch = (global_state == SLOT_STATE_NONE);
+		totem_set_touch_device_enabled(totem->touch_device,
+					       enable_touch,
+					       time);
 		break;
 	default:
 		evdev_log_error(device,
@@ -420,15 +457,58 @@ totem_interface_destroy(struct evdev_dispatch *dispatch)
 	free(totem);
 }
 
+static void
+totem_interface_device_added(struct evdev_device *device,
+			     struct evdev_device *added_device)
+{
+	struct totem_dispatch *totem = totem_dispatch(device->dispatch);
+
+	if ((evdev_device_get_id_vendor(added_device) !=
+	    evdev_device_get_id_vendor(device)) ||
+	    (evdev_device_get_id_product(added_device) !=
+	     evdev_device_get_id_product(device)))
+	    return;
+
+	/* FIXME:
+	   On the real canvas this works but not for testing with
+	   libinput replay */
+#if 0
+	if (libinput_device_get_device_group(&device->base) !=
+	    libinput_device_get_device_group(&added_device->base))
+		return;
+#endif
+
+	if (totem->touch_device != NULL) {
+		evdev_log_bug_libinput(device,
+				       "already have a paired touch device, ignoring (%s)\n",
+				       added_device->devname);
+		return;
+	}
+
+	totem->touch_device = added_device;
+}
+
+static void
+totem_interface_device_removed(struct evdev_device *device,
+			       struct evdev_device *removed_device)
+{
+	struct totem_dispatch *totem = totem_dispatch(device->dispatch);
+
+	if (totem->touch_device != removed_device)
+		return;
+
+	totem->touch_device = NULL;
+}
+
 struct evdev_dispatch_interface totem_interface = {
 	.process = totem_interface_process,
 	.suspend = totem_interface_suspend,
 	.remove = NULL,
 	.destroy = totem_interface_destroy,
-	.device_added = NULL,
-	.device_removed = NULL,
-	.device_suspended = NULL, /* treat as remove */
-	.device_resumed = NULL,   /* treat as add */
+	.device_added = totem_interface_device_added,
+	.device_removed = totem_interface_device_removed,
+	.device_suspended = totem_interface_device_added, /* treat as remove */
+	.device_resumed = totem_interface_device_removed, /* treat as add */
 	.post_added = NULL,
 	.toggle_touch = NULL,
 	.get_switch_state = NULL,
