@@ -1,9 +1,0 @@
-[Lid Switch Ct9]
-MatchName=*Lid Switch*
-MatchDMIModalias=dmi:*:ct9:*
-AttrLidSwitchReliability=reliable
-
-[Lid Switch Ct10]
-MatchName=*Lid Switch*
-MatchDMIModalias=dmi:*:ct10:*
-AttrLidSwitchReliability=reliable

@@ -1,1 +1,0 @@
-KERNELS=="*input*", ATTRS{name}=="litest *", ENV{LIBINPUT_TEST_DEVICE}="1"

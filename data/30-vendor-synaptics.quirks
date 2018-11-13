@@ -1,6 +1,0 @@
-[Synaptics Serial Touchpads]
-MatchUdevType=touchpad
-MatchBus=ps2
-MatchVendor=0x0002
-MatchProduct=0x0007
-ModelSynapticsSerialTouchpad=1
